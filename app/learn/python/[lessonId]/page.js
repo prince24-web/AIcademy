@@ -290,14 +290,62 @@ export default function LessonPage() {
         {/* LESSON CONTENT PANEL (LEFT) */}
         <section className={styles.lessonPanel}>
           <div className={styles.lessonHeader}>
-            <h1 className={styles.lessonMainTitle}>{lessonData.subtitle}</h1>
+            <div>
+              <h1 className={styles.lessonMainTitle}>{lessonData.subtitle}</h1>
+              {lessonData.gfgUrl && (
+                <a href={lessonData.gfgUrl} target="_blank" rel="noopener noreferrer" className={styles.gfgRefLink}>
+                  <span>GeeksforGeeks Reference ↗</span>
+                </a>
+              )}
+            </div>
             <div className={styles.tldrBadgeGroup}>
               <button className={styles.tldrBtn}>TL;DR</button>
               <button className={styles.tldrBtn}>Hide</button>
             </div>
           </div>
 
-          <p className={styles.lessonText}>{lessonData.description}</p>
+          {/* Paragraph Explanations */}
+          {lessonData.paragraphs ? (
+            lessonData.paragraphs.map((p, idx) => (
+              <p key={idx} className={styles.lessonParagraph}>{p}</p>
+            ))
+          ) : (
+            <p className={styles.lessonText}>{lessonData.description}</p>
+          )}
+
+          {/* Real-World Analogy Card */}
+          {lessonData.analogy && (
+            <div className={styles.analogyCard}>
+              <div className={styles.analogyTitle}>
+                <IconLightbulb size={20} />
+                <span>Real-World Analogy</span>
+              </div>
+              <p className={styles.analogyText}>{lessonData.analogy}</p>
+            </div>
+          )}
+
+          {/* Embedded Code Example Block */}
+          {lessonData.codeExample && (
+            <div className={styles.exampleBlock}>
+              <div className={styles.exampleHeader}>
+                <span>Code Example</span>
+                <span>Python 3</span>
+              </div>
+              <pre className={styles.exampleCode}>{lessonData.codeExample}</pre>
+            </div>
+          )}
+
+          {/* Key Takeaways Box */}
+          {lessonData.takeaways && lessonData.takeaways.length > 0 && (
+            <div className={styles.takeawaysBox}>
+              <div className={styles.takeawaysTitle}>Key Rules &amp; Concepts</div>
+              <ul className={styles.takeawaysList}>
+                {lessonData.takeaways.map((take, idx) => (
+                  <li key={idx}>{take}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Challenge Box */}
           <div className={styles.challengeCard}>

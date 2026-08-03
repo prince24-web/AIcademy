@@ -175,9 +175,115 @@
 
 .lessonText {
   font-size: 1rem;
-  line-height: 1.6;
+  line-height: 1.7;
   color: #374151;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
+}
+
+.lessonParagraph {
+  margin-bottom: 16px;
+  line-height: 1.7;
+}
+
+/* Analogy Card */
+.analogyCard {
+  background: #f0f9ff;
+  border-left: 4px solid #0284c7;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.06);
+}
+
+.analogyTitle {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0369a1;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analogyText {
+  font-size: 0.92rem;
+  color: #0c4a6e;
+  line-height: 1.6;
+}
+
+/* Code Example Block (Outside Editor) */
+.exampleBlock {
+  background: #0d0f14;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 20px 0;
+  border: 1px solid #2d3248;
+}
+
+.exampleHeader {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #9aa3c2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.exampleCode {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88rem;
+  color: #f8f8f2;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+/* Key Takeaways Box */
+.takeawaysBox {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin: 20px 0 28px 0;
+}
+
+.takeawaysTitle {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.takeawaysList {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.gfgRefLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0284c7;
+  text-decoration: none;
+  background: #f0f9ff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-left: 12px;
+  transition: all 0.15s ease;
+}
+
+.gfgRefLink:hover {
+  background: #e0f2fe;
+  color: #0369a1;
 }
 
 /* Challenge Section Card */
