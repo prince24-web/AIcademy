@@ -1,0 +1,480 @@
+/* ─── AI LESSON ARTICLE READER STYLES ───────────────────────────────── */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Top Sticky Navigation Header */
+.topNav {
+  height: 64px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.btnBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btnBack:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.navTitleGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.navSectionTag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #7c3aed;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.navLessonTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.readTimeBadge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.btnGfg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btnGfg:hover {
+  background: #d1fae5;
+}
+
+/* Article Reading Layout */
+.articleWrapper {
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 24px 120px 24px;
+}
+
+/* Hero Header Card */
+.heroCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  padding: 32px 36px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.heroBadge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  margin-bottom: 12px;
+}
+
+.articleTitle {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1.25;
+  margin-bottom: 8px;
+}
+
+.articleSubtitle {
+  font-size: 1.1rem;
+  color: #64748b;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Content Blocks */
+.contentSection {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+}
+
+.sectionHeading {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.paragraph {
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: #334155;
+  margin-bottom: 16px;
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}
+
+/* ELI5 Analogy Card */
+.analogyCard {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border: 2px solid #a78bfa;
+  border-radius: 20px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.08);
+}
+
+.analogyTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #5b21b6;
+  margin-bottom: 10px;
+}
+
+.analogyText {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #4c1d95;
+  margin: 0;
+}
+
+/* ─── ANIMATED DIAGRAM CONTAINERS ──────────────────────────────────── */
+.diagramBox {
+  background: #0f172a;
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 28px;
+  color: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+}
+
+.diagramTitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #f8fafc;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Traditional vs AI Diagram */
+.diagramGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.diagramCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.diagramLabel {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #a78bfa;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.diagramStep {
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.diagramArrow {
+  color: #94a3b8;
+  font-size: 1.2rem;
+  margin: 4px 0;
+}
+
+/* Nesting Dolls Diagram */
+.nestingDollsWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nestingLayer {
+  border-radius: 14px;
+  padding: 16px 20px;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
+}
+
+.nestingLayer:hover {
+  transform: translateX(6px);
+}
+
+.layerTitle {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.layerDesc {
+  font-size: 0.88rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* Industry Grid Diagram */
+.industryGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.industryCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.industryHeader {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #38bdf8;
+  margin-bottom: 6px;
+}
+
+.industryDesc {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Key Takeaways Checklist */
+.takeawaysCard {
+  background: #ffffff;
+  border: 2px solid #bbf7d0;
+  border-radius: 20px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+}
+
+.takeawaysTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #15803d;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.takeawaysList {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.takeawayItem {
+  font-size: 0.98rem;
+  color: #166534;
+  line-height: 1.6;
+}
+
+/* ─── INTERACTIVE QUIZ CARD ─────────────────────────────────────────── */
+.quizCard {
+  background: #ffffff;
+  border: 2px solid #7c3aed;
+  border-radius: 24px;
+  padding: 32px;
+  margin-bottom: 36px;
+  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.1);
+}
+
+.quizHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #5b21b6;
+  margin-bottom: 16px;
+}
+
+.quizQuestion {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.quizOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.optionBtn {
+  width: 100%;
+  text-align: left;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.optionBtn:hover {
+  border-color: #a78bfa;
+  background: #f5f3ff;
+  color: #5b21b6;
+}
+
+.optionCorrect {
+  background: #dcfce7 !important;
+  border-color: #22c55e !important;
+  color: #15803d !important;
+  font-weight: 800;
+}
+
+.optionIncorrect {
+  background: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #b91c1c !important;
+}
+
+.explanationBox {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  padding: 16px 20px;
+  color: #166534;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* Navigation Footer */
+.bottomNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.btnNext {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #7c3aed;
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 28px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #5b21b6;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btnNext:hover {
+  background: #6d28d9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #4c1d95;
+}
+
+.btnNext:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #4c1d95;
+}
+
+@media (max-width: 640px) {
+  .diagramGrid, .industryGrid {
+    grid-template-columns: 1fr;
+  }
+  .heroTitle {
+    font-size: 1.7rem;
+  }
+}
