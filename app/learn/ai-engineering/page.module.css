@@ -1,0 +1,668 @@
+/* ─── GAMIFIED AI ENGINEERING JOURNEY STYLES (PURPLE 3D THEME) ──── */
+
+.container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #ffffff;
+  color: #1f2937;
+  font-family: 'Varela Round', 'Inter', -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ─── LEFT SIDEBAR ────────────────────────────────────────────────────── */
+.leftSidebar {
+  width: 80px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+}
+
+.sidebarLogo {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.sidebarLogo:hover {
+  transform: scale(1.08);
+}
+
+.sidebarLogoImg {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.navItems {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  align-items: center;
+}
+
+.navBtn {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.navBtn:hover {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+.navBtnActive {
+  background: #f3e8ff;
+  color: #7c3aed;
+  border: 2px solid #7c3aed;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18);
+}
+
+.navTooltip {
+  position: absolute;
+  left: 64px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: translateX(-4px);
+  z-index: 120;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.navBtn:hover .navTooltip {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ─── MAIN CONTENT LAYOUT ─────────────────────────────────────────────── */
+.mainLayout {
+  margin-left: 80px;
+  flex: 1;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ─── PATH AREA (MIDDLE) ─────────────────────────────────────────────── */
+.pathArea {
+  flex: 1;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 32px 120px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+/* Floating Scroll-to-Top Button */
+.scrollTopBtn {
+  position: fixed;
+  bottom: 32px;
+  right: 380px;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4b5563;
+  cursor: pointer;
+  z-index: 90;
+  transition: all 0.2s ease;
+}
+
+.scrollTopBtn:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(124, 58, 237, 0.25);
+}
+
+/* Sticky Breadcrumb Header inside path area */
+.syllabusHeader {
+  width: 100%;
+  max-width: 580px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px 24px;
+  margin-bottom: 36px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  position: sticky;
+  top: 16px;
+  z-index: 80;
+}
+
+.syllabusBreadcrumb {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.syllabusBreadcrumb span {
+  color: #7c3aed;
+}
+
+.syllabusTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+/* Section Banner on the path */
+.sectionBanner {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.sectionBannerLine {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: #e5e7eb;
+  z-index: 1;
+}
+
+.sectionBannerTag {
+  position: relative;
+  z-index: 2;
+  background: #ffffff;
+  padding: 8px 24px;
+  border-radius: 30px;
+  border: 2px solid #7c3aed;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #5b21b6;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.12);
+}
+
+/* ─── CONNECTED PATH CANVAS ──────────────────────────────────────────── */
+.pathCanvas {
+  position: relative;
+  width: 440px;
+  margin: 0 auto;
+}
+
+/* Background Connected SVG Ribbon Line */
+.connectedSvg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 440px;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.pathNodeWrapper {
+  position: absolute;
+  z-index: 10;
+  width: 86px;
+  height: 78px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── RICH 3D HEXAGONAL / ROUNDED NODE STYLES ────────────────────────── */
+.nodeBtn {
+  width: 86px;
+  height: 78px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  outline: none;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  user-select: none;
+}
+
+.nodeBtn:hover {
+  transform: translateY(-4px) scale(1.06);
+}
+
+.nodeBtn:active {
+  transform: translateY(3px) scale(0.97);
+}
+
+/* 3D Base Shadow (Bottom Layer) */
+.node3dShadow {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  width: 86px;
+  height: 68px;
+  background: #94a3b8;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  border-radius: 14px;
+}
+
+/* 3D Depth Extrusion (Middle Layer) */
+.node3dDepth {
+  position: absolute;
+  top: 5px;
+  left: 0;
+  width: 86px;
+  height: 68px;
+  background: #cbd5e1;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+
+/* 3D Top Surface (Top Face) */
+.node3dTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 86px;
+  height: 68px;
+  background: #e2e8f0;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.6);
+  transition: all 0.15s ease;
+}
+
+/* ─── NODE COLOR SCHEMES ─────────────────────────────────────────────── */
+
+/* Completed Node (Rich 3D Green) */
+.nodeCompleted .node3dShadow { background: #15803d; }
+.nodeCompleted .node3dDepth  { background: #16a34a; }
+.nodeCompleted .node3dTop    { background: #22c55e; color: #ffffff; }
+
+/* Active Current Node (Rich 3D Purple / AI Theme) */
+.nodeActive .node3dShadow { background: #4c1d95; }
+.nodeActive .node3dDepth  { background: #6d28d9; }
+.nodeActive .node3dTop    { background: #7c3aed; color: #ffffff; box-shadow: inset 0 3px 0 rgba(255,255,255,0.4); }
+
+.nodeActiveGlow {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  width: 104px;
+  height: 92px;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  background: rgba(124, 58, 237, 0.32);
+  animation: pulseGlow 2s infinite ease-in-out;
+  z-index: 3;
+}
+
+@keyframes pulseGlow {
+  0%   { transform: scale(1); opacity: 0.7; }
+  50%  { transform: scale(1.14); opacity: 0.2; }
+  100% { transform: scale(1); opacity: 0.7; }
+}
+
+/* Project Node (Rich 3D Amber / Gold) */
+.nodeProject .node3dShadow { background: #b45309; }
+.nodeProject .node3dDepth  { background: #d97706; }
+.nodeProject .node3dTop    { background: #f59e0b; color: #ffffff; }
+
+/* ─── POPOVER CARD & CALLOUT ─────────────────────────────────────────── */
+.popoverCard {
+  position: absolute;
+  top: -88px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  border: 2px solid #7c3aed;
+  border-radius: 16px;
+  padding: 14px 20px;
+  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 50;
+  min-width: 230px;
+  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.popoverCard::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 10px 10px 0 10px;
+  border-style: solid;
+  border-color: #7c3aed transparent transparent transparent;
+}
+
+@keyframes popIn {
+  0%   { opacity: 0; transform: translate(-50%, 8px) scale(0.9); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+.popoverTitle {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #111827;
+  text-align: center;
+}
+
+.popoverBtn {
+  width: 100%;
+  padding: 10px 24px;
+  background: #7c3aed;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #5b21b6;
+  transition: all 0.15s ease;
+}
+
+.popoverBtn:hover {
+  background: #6d28d9;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 #4c1d95;
+}
+
+.popoverBtn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #4c1d95;
+}
+
+/* Jump Here floating callout badge */
+.jumpHereTag {
+  position: absolute;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  border: 2px solid #e5e7eb;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #7c3aed;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  white-space: nowrap;
+  animation: bounce 2s infinite ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translate(-50%, 0); }
+  50%      { transform: translate(-50%, -4px); }
+}
+
+/* Project Badge Pill */
+.projectPill {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+}
+
+/* ─── RIGHT SIDEBAR ───────────────────────────────────────────────────── */
+.rightSidebar {
+  width: 360px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-left: 1px solid #f3f4f6;
+  background: #ffffff;
+}
+
+/* Top Stats Header inside Right Sidebar */
+.topStatsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 12px 18px;
+  border-radius: 16px;
+}
+
+.langBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #5b21b6;
+}
+
+.statsCounters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.statItemFlame  { color: #f97316; }
+.statItemGems   { color: #f59e0b; }
+.statItemEnergy { color: #3b82f6; }
+
+/* Widget Card */
+.widgetCard {
+  background: #ffffff;
+  border: 2px solid #f3f4f6;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.02);
+}
+
+/* Offer Promo Card */
+.promoCard {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border: 2px solid #7c3aed;
+  position: relative;
+  overflow: hidden;
+}
+
+.promoTitle {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #4c1d95;
+  margin-bottom: 4px;
+}
+
+.promoText {
+  font-size: 0.82rem;
+  color: #5b21b6;
+  line-height: 1.4;
+  margin-bottom: 12px;
+  max-width: 70%;
+}
+
+.promoTimer {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #6d28d9;
+  margin-bottom: 14px;
+}
+
+.btnGoPro {
+  width: 100%;
+  padding: 12px 0;
+  background: #7c3aed;
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #5b21b6;
+  transition: all 0.15s ease;
+}
+
+.btnGoPro:hover {
+  background: #6d28d9;
+}
+
+.promoMascot {
+  position: absolute;
+  right: -10px;
+  top: 10px;
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  opacity: 0.95;
+}
+
+/* Widget Header */
+.widgetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.widgetTitle {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.widgetAction {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #7c3aed;
+  text-decoration: none;
+}
+
+.widgetAction:hover {
+  text-decoration: underline;
+}
+
+/* Leaderboard Empty State */
+.leaderboardBox {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 14px;
+}
+
+.shieldIcon {
+  width: 44px;
+  height: 48px;
+  background: #7c3aed;
+  clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.leaderboardText {
+  font-size: 0.82rem;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+/* Footer Links */
+.journeyFooter {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  line-height: 1.8;
+}
+
+.footerNavLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.footerNavLink {
+  color: #6b7280;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footerNavLink:hover {
+  color: #7c3aed;
+}
+
+/* Responsive queries */
+@media (max-width: 1024px) {
+  .rightSidebar {
+    display: none;
+  }
+  .scrollTopBtn {
+    right: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .leftSidebar {
+    width: 60px;
+  }
+  .mainLayout {
+    margin-left: 60px;
+  }
+  .pathCanvas {
+    width: 320px;
+  }
+}

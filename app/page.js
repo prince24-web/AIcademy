@@ -152,9 +152,9 @@ const MLLogo = ({ size = 40 }) => (
 
 // ─── DATA ────────────────────────────────────────────────────────────────
 const courses = [
-  { id: 1, logo: <PythonLogo size={44} />, name: 'Python for Beginners', level: 'Beginner', exercises: 140, desc: 'Start your coding journey with Python — the most beginner-friendly language in AI & data science.' },
-  { id: 2, logo: <AILogo size={44} />, name: 'Applied AI Engineering', level: 'Intermediate', exercises: 95, desc: 'Build real AI apps: API calls, context management, prompting and autonomous agents.' },
-  { id: 3, logo: <MLLogo size={44} />, name: 'Machine Learning', level: 'Advanced', exercises: 110, desc: 'Train ML models, understand algorithms, and apply them to real-world datasets.' },
+  { id: 1, logo: <PythonLogo size={44} />, name: 'Python for Beginners', level: 'Beginner', exercises: 140, desc: 'Start your coding journey with Python — the most beginner-friendly language in AI & data science.', href: '/learn/python' },
+  { id: 2, logo: <AILogo size={44} />, name: 'Applied AI Engineering', level: 'Intermediate', exercises: 95, desc: 'Build real AI apps: API calls, context management, prompting and autonomous agents.', href: '/learn/ai-engineering' },
+  { id: 3, logo: <MLLogo size={44} />, name: 'Machine Learning', level: 'Advanced', exercises: 110, desc: 'Train ML models, understand algorithms, and apply them to real-world datasets.', href: '/learn/machine-learning' },
 ];
 
 const features = [
@@ -563,7 +563,7 @@ function CoursesSection() {
               <h3 className={styles.courseName}>{course.name}</h3>
               <p className={styles.courseExercises}>{course.exercises} Exercises</p>
               <p className={styles.courseDesc}>{course.desc}</p>
-              <Link href="/learn/python" className={styles.btnStartCourse} style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none' }}>Start Course →</Link>
+              <Link href={course.href} className={styles.btnStartCourse} style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none' }}>Start Course →</Link>
             </div>
           ))}
         </div>
