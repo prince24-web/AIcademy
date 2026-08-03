@@ -1,9 +1,123 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import styles from './page.module.css';
+
+// ─── SVG LOGOS & VECTOR ICONS (NO EMOJIS) ───────────────────────────────
+const PythonLogo = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 256 255" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="pyBlueL" x1="12%" y1="12%" x2="88%" y2="88%">
+        <stop offset="0%" stopColor="#387EB8"/>
+        <stop offset="100%" stopColor="#366994"/>
+      </linearGradient>
+      <linearGradient id="pyYellowL" x1="12%" y1="12%" x2="88%" y2="88%">
+        <stop offset="0%" stopColor="#FFE052"/>
+        <stop offset="100%" stopColor="#FFC331"/>
+      </linearGradient>
+    </defs>
+    <path fill="url(#pyBlueL)" d="M126.9 0C62.4 0 66.3 28 66.3 28l.1 29h61.8v8.7H41.6S0 61.2 0 126.3c0 65 35.9 62.7 35.9 62.7h21.4v-30.2s-1.2-35.9 35.3-35.9h60.8s34.2.5 34.2-33.1V34.3S192.1 0 126.9 0zm-33.8 19.7c6.1 0 11 4.9 11 11s-4.9 11-11 11-11-4.9-11-11 4.9-11 11-11z"/>
+    <path fill="url(#pyYellowL)" d="M128.9 255c64.5 0 60.6-28 60.6-28l-.1-29h-61.8v-8.7h86.6s41.6 4.5 41.6-60.6c0-65-35.9-62.7-35.9-62.7h-21.4v30.2s1.2 35.9-35.3 35.9H102.4s-34.2-.5-34.2 33.1v55.5S63 255 128.9 255zm33.8-19.7c-6.1 0-11-4.9-11-11s4.9-11 11-11 11 4.9 11 11-4.9 11-11 11z"/>
+  </svg>
+);
+
+const StatIconStreak = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="#f97316">
+    <path d="M12.432 0c1.34 8.636-5.36 11.29-5.36 11.29-.09-3.06-1.4-4.29-3.37-5.67C3.704 7.26 2.5 10.03 2.5 12.5 2.5 18.299 6.7 22 12 22s9.5-3.7 9.5-9.5c0-4.88-4.7-8.3-9.068-12.5z"/>
+  </svg>
+);
+
+const StatIconGem = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="#f59e0b">
+    <polygon points="6 3 18 3 22 9 12 22 2 9"/>
+  </svg>
+);
+
+const StatIconEnergy = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="#3b82f6">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </svg>
+);
+
+const IconLightbulb = ({ size = 22 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5.76.76 1.23 1.52 1.41 2.5"/>
+  </svg>
+);
+
+const IconRobot = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>
+  </svg>
+);
+
+const IconTarget = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+  </svg>
+);
+
+const IconBook = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+  </svg>
+);
+
+const IconCode = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+  </svg>
+);
+
+const IconHistory = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>
+  </svg>
+);
+
+const IconSearch = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+);
+
+const IconChat = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+);
+
+const IconHelp = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>
+);
+
+const IconSpeaker = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+  </svg>
+);
+
+const IconSave = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+  </svg>
+);
+
+const IconReset = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+  </svg>
+);
+
+const IconCheckmark = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
 
 // ─── LESSON DATABASE (12 MODULES) ───────────────────────────────────────
 const lessonDatabase = {
@@ -64,14 +178,10 @@ export default function LessonPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
   const [isPassed, setIsPassed] = useState(false);
-  const [skulptLoaded, setSkulptLoaded] = useState(false);
 
-  // Dynamically load Skulpt scripts if not already present
+  // Dynamically load Skulpt scripts
   useEffect(() => {
-    if (window.Sk) {
-      setSkulptLoaded(true);
-      return;
-    }
+    if (window.Sk) return;
 
     const script1 = document.createElement('script');
     script1.src = 'https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js';
@@ -84,18 +194,10 @@ export default function LessonPage() {
     script1.onload = () => {
       document.body.appendChild(script2);
     };
-    script2.onload = () => {
-      setSkulptLoaded(true);
-    };
 
     document.body.appendChild(script1);
-
-    return () => {
-      // cleanup optional
-    };
   }, []);
 
-  // Update initial code when lessonId changes
   useEffect(() => {
     setCode(lessonData.initialCode);
     setOutput('');
@@ -103,7 +205,6 @@ export default function LessonPage() {
     setShowSolution(false);
   }, [lessonId]);
 
-  // Execute code via Skulpt or Python fallback evaluator
   const handleRunCode = () => {
     setIsRunning(true);
     setOutput('Running...');
@@ -138,7 +239,6 @@ export default function LessonPage() {
             setOutput(cleanResult);
             setIsRunning(false);
 
-            // Check against expected output
             if (cleanResult === lessonData.expectedOutput.trim()) {
               setIsPassed(true);
             } else {
@@ -155,7 +255,6 @@ export default function LessonPage() {
         setIsRunning(false);
       }
     } else {
-      // Basic fallback if Skulpt loading is delayed
       setTimeout(() => {
         let simulatedOut = '';
         if (code.includes('print("Hello Python!")') || code.includes("print('Hello Python!')")) {
@@ -196,13 +295,16 @@ export default function LessonPage() {
 
         <div className={styles.headerRight}>
           <div className={`${styles.statItem} ${styles.statFlame}`}>
-            <span>0</span> 💧
+            <StatIconStreak size={18} />
+            <span>0</span>
           </div>
           <div className={`${styles.statItem} ${styles.statGems}`}>
-            <span>20</span> 🔶
+            <StatIconGem size={18} />
+            <span>20</span>
           </div>
           <div className={`${styles.statItem} ${styles.statEnergy}`}>
-            <span>5</span> ⚡
+            <StatIconEnergy size={18} />
+            <span>5</span>
           </div>
           <div className={styles.userAvatar}>P</div>
         </div>
@@ -213,12 +315,24 @@ export default function LessonPage() {
 
         {/* LEFTMOST ICON SIDEBAR */}
         <aside className={styles.iconSidebar}>
-          <button className={`${styles.sideIconBtn} ${styles.sideIconBtnActive}`} title="Lesson">📖</button>
-          <button className={styles.sideIconBtn} title="Code">💻</button>
-          <button className={styles.sideIconBtn} title="History">🕒</button>
-          <button className={styles.sideIconBtn} title="Search">🔍</button>
-          <button className={styles.sideIconBtn} title="Discussion">💬</button>
-          <button className={styles.sideIconBtn} title="Help">❓</button>
+          <button className={`${styles.sideIconBtn} ${styles.sideIconBtnActive}`} title="Lesson">
+            <IconBook size={20} />
+          </button>
+          <button className={styles.sideIconBtn} title="Code">
+            <IconCode size={20} />
+          </button>
+          <button className={styles.sideIconBtn} title="History">
+            <IconHistory size={20} />
+          </button>
+          <button className={styles.sideIconBtn} title="Search">
+            <IconSearch size={20} />
+          </button>
+          <button className={styles.sideIconBtn} title="Discussion">
+            <IconChat size={20} />
+          </button>
+          <button className={styles.sideIconBtn} title="Help">
+            <IconHelp size={20} />
+          </button>
         </aside>
 
         {/* LESSON CONTENT PANEL (LEFT) */}
@@ -236,7 +350,9 @@ export default function LessonPage() {
           {/* Challenge Box */}
           <div className={styles.challengeCard}>
             <div className={styles.challengeTitleRow}>
-              <span style={{ fontSize: '1.4rem' }}>💡</span>
+              <div style={{ color: '#0284c7', display: 'flex' }}>
+                <IconLightbulb size={24} />
+              </div>
               <h2 className={styles.challengeTitle}>Challenge</h2>
               <span className={styles.levelTag}>Beginner</span>
             </div>
@@ -260,7 +376,7 @@ export default function LessonPage() {
             </ol>
 
             <button className={styles.btnExplain}>
-              <span>🤖</span> Explain challenge
+              <IconRobot size={18} /> Explain challenge
             </button>
           </div>
 
@@ -270,7 +386,9 @@ export default function LessonPage() {
               className={styles.solutionToggle}
               onClick={() => setShowSolution(!showSolution)}
             >
-              <span>🎯 Solution</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <IconTarget size={20} /> Solution
+              </span>
               <span>{showSolution ? '▲' : '▼'}</span>
             </button>
 
@@ -288,12 +406,18 @@ export default function LessonPage() {
           {/* Toolbar */}
           <div className={styles.editorToolbar}>
             <div className={styles.fileTab}>
-              <span>🐍</span> Python
+              <PythonLogo size={18} /> Python
             </div>
             <div className={styles.toolbarActions}>
-              <button className={styles.toolBtn} title="Audio Guide">🔊</button>
-              <button className={styles.toolBtn} title="Save Code">💾</button>
-              <button className={styles.toolBtn} onClick={handleResetCode} title="Reset Code">🔄</button>
+              <button className={styles.toolBtn} title="Audio Guide">
+                <IconSpeaker size={18} />
+              </button>
+              <button className={styles.toolBtn} title="Save Code">
+                <IconSave size={18} />
+              </button>
+              <button className={styles.toolBtn} onClick={handleResetCode} title="Reset Code">
+                <IconReset size={18} />
+              </button>
             </div>
           </div>
 
@@ -309,7 +433,7 @@ export default function LessonPage() {
             {/* Floating Action Buttons */}
             <div className={styles.editorFloatBar}>
               <button className={styles.btnAskAI}>
-                <span>🤖</span> Ask AI
+                <IconRobot size={18} /> Ask AI
               </button>
               <button
                 className={styles.btnRunCode}
@@ -325,7 +449,9 @@ export default function LessonPage() {
           <div className={styles.outputPanel}>
             {isPassed && (
               <div className={styles.successBanner}>
-                <span>🎉 Challenge Completed! +20 XP</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <IconCheckmark size={20} /> Challenge Completed! +20 XP
+                </span>
                 <Link href="/learn/python" style={{ color: 'white', textDecoration: 'underline' }}>
                   Next Lesson →
                 </Link>
