@@ -163,6 +163,11 @@ export default function LessonPage() {
   const lessonId = params?.lessonId || '1-1';
   const lessonData = lessonsData[lessonId] || lessonsData['1-1'];
 
+  const allLessonIds = Object.keys(lessonsData);
+  const currentIndex = allLessonIds.indexOf(lessonId);
+  const prevLessonId = currentIndex > 0 ? allLessonIds[currentIndex - 1] : null;
+  const nextLessonId = currentIndex < allLessonIds.length - 1 ? allLessonIds[currentIndex + 1] : null;
+
   const [code, setCode] = useState(lessonData.initialCode);
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -328,6 +333,22 @@ export default function LessonPage() {
           <Link href="/learn/python" className={styles.btnClose} title="Back to Journey">
             ✕
           </Link>
+          <div className={styles.navGroup}>
+            {prevLessonId ? (
+              <Link href={`/learn/python/${prevLessonId}`} className={styles.navBtnHeader} title="Previous Lesson">
+                ‹ Prev
+              </Link>
+            ) : (
+              <button className={styles.navBtnHeaderDisabled} disabled>‹ Prev</button>
+            )}
+            {nextLessonId ? (
+              <Link href={`/learn/python/${nextLessonId}`} className={styles.navBtnHeader} title="Next Lesson">
+                Next ›
+              </Link>
+            ) : (
+              <button className={styles.navBtnHeaderDisabled} disabled>Next ›</button>
+            )}
+          </div>
           <span className={styles.lessonTitle}>{lessonData.title}</span>
         </div>
 
@@ -484,6 +505,25 @@ export default function LessonPage() {
               </div>
             )}
           </div>
+
+          {/* Bottom Lesson Navigation Bar */}
+          <div className={styles.lessonNavFooter}>
+            {prevLessonId ? (
+              <Link href={`/learn/python/${prevLessonId}`} className={styles.btnLessonNavPrev}>
+                ‹ Previous Lesson
+              </Link>
+            ) : <div />}
+
+            {nextLessonId ? (
+              <Link href={`/learn/python/${nextLessonId}`} className={styles.btnLessonNavNext}>
+                Next Lesson ›
+              </Link>
+            ) : (
+              <Link href="/learn/python" className={styles.btnLessonNavNext}>
+                Finish Python Course 🎉
+              </Link>
+            )}
+          </div>
         </section>
 
         {/* EDITOR PANEL (RIGHT) */}
@@ -563,9 +603,15 @@ export default function LessonPage() {
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <IconCheckmark size={20} /> Challenge Completed! +20 XP
                 </span>
-                <Link href="/learn/python" style={{ color: 'white', textDecoration: 'underline' }}>
-                  Next Lesson →
-                </Link>
+                {nextLessonId ? (
+                  <Link href={`/learn/python/${nextLessonId}`} className={styles.btnContinueNext}>
+                    Continue to Next Lesson →
+                  </Link>
+                ) : (
+                  <Link href="/learn/python" className={styles.btnContinueNext}>
+                    Course Completed 🎉
+                  </Link>
+                )}
               </div>
             )}
 
