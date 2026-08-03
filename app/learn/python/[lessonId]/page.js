@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import styles from './page.module.css';
+import { lessonsData } from '../lessonsData';
 
 // ─── SVG LOGOS & VECTOR ICONS (NO EMOJIS) ───────────────────────────────
 const PythonLogo = ({ size = 20 }) => (
@@ -119,59 +120,10 @@ const IconCheckmark = ({ size = 20 }) => (
   </svg>
 );
 
-// ─── LESSON DATABASE (12 MODULES) ───────────────────────────────────────
-const lessonDatabase = {
-  '1-1': {
-    title: 'Introduction',
-    subtitle: 'The Language',
-    section: 'Section 1 · Chapter 1',
-    description: "Python is one of the world's easiest and most popular programming languages.",
-    challengeIntro: 'Welcome to your first Python program! The code is already written for you.',
-    instructions: [
-      'Look at the code: print("Hello Python!")',
-      'Press the "Run Code" button to execute it',
-      'You should see "Hello Python!" appear in the output'
-    ],
-    initialCode: 'print("Hello Python!")',
-    expectedOutput: 'Hello Python!',
-    solutionCode: 'print("Hello Python!")'
-  },
-  '1-2': {
-    title: 'Variables & Assignments',
-    subtitle: 'Storing Data',
-    section: 'Section 1 · Chapter 2',
-    description: 'Variables are used to store data in your program. Create a variable using the = sign.',
-    challengeIntro: 'Create a variable named message and assign it the string "Welcome to AIcademy!".',
-    instructions: [
-      'Define a variable: message = "Welcome to AIcademy!"',
-      'Print the variable: print(message)',
-      'Click "Run Code" to verify'
-    ],
-    initialCode: '# Write your code below\nmessage = "Welcome to AIcademy!"\nprint(message)',
-    expectedOutput: 'Welcome to AIcademy!',
-    solutionCode: 'message = "Welcome to AIcademy!"\nprint(message)'
-  },
-  '1-3': {
-    title: 'Data Types',
-    subtitle: 'Strings, Numbers & Booleans',
-    section: 'Section 1 · Chapter 3',
-    description: 'Python has several data types: str for text, int and float for numbers, and bool for True/False.',
-    challengeIntro: 'Print three different data types: text, integer, and boolean.',
-    instructions: [
-      'Print a string: print("Python")',
-      'Print an integer: print(42)',
-      'Print a boolean: print(True)'
-    ],
-    initialCode: 'print("Python")\nprint(42)\nprint(True)',
-    expectedOutput: 'Python\n42\nTrue',
-    solutionCode: 'print("Python")\nprint(42)\nprint(True)'
-  }
-};
-
 export default function LessonPage() {
   const params = useParams();
   const lessonId = params?.lessonId || '1-1';
-  const lessonData = lessonDatabase[lessonId] || lessonDatabase['1-1'];
+  const lessonData = lessonsData[lessonId] || lessonsData['1-1'];
 
   const [code, setCode] = useState(lessonData.initialCode);
   const [output, setOutput] = useState('');
