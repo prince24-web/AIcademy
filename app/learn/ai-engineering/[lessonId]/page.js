@@ -37,6 +37,84 @@ const IconSparkles = ({ size = 22 }) => (
   </svg>
 );
 
+// Nested Circles SVG Diagram Component (Matching User Reference Image Style)
+const NestedCirclesDiagram = () => {
+  const [activeCircle, setActiveCircle] = useState(null);
+
+  return (
+    <div className={styles.nestedSvgContainer}>
+      <svg viewBox="0 0 500 460" className={styles.nestedSvg}>
+        <defs>
+          <filter id="circleShadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="6" stdDeviation="8" floodOpacity="0.18" />
+          </filter>
+        </defs>
+
+        {/* 1. OUTER CIRCLE: Artificial Intelligence */}
+        <g
+          className={styles.circleGroup}
+          onMouseEnter={() => setActiveCircle('ai')}
+          onMouseLeave={() => setActiveCircle(null)}
+        >
+          <circle cx="250" cy="230" r="210" fill="#15803d" stroke="#166534" strokeWidth="4" filter="url(#circleShadow)" />
+          <text x="250" y="75" textAnchor="middle" fill="#ffffff" fontSize="24" fontWeight="800" fontFamily="Inter, sans-serif">
+            Artificial Intelligence
+          </text>
+          <text x="250" y="98" textAnchor="middle" fill="#dcfce7" fontSize="13" fontWeight="600" opacity="0.95">
+            The Broad Concept of Smart Machines
+          </text>
+        </g>
+
+        {/* 2. MIDDLE CIRCLE: Machine Learning */}
+        <g
+          className={styles.circleGroup}
+          onMouseEnter={() => setActiveCircle('ml')}
+          onMouseLeave={() => setActiveCircle(null)}
+        >
+          <circle cx="250" cy="275" r="148" fill="#86efac" stroke="#16a34a" strokeWidth="3.5" filter="url(#circleShadow)" />
+          <text x="250" y="185" textAnchor="middle" fill="#064e3b" fontSize="21" fontWeight="800" fontFamily="Inter, sans-serif">
+            Machine Learning
+          </text>
+          <text x="250" y="206" textAnchor="middle" fill="#14532d" fontSize="13" fontWeight="600">
+            Algorithms Learning from Data
+          </text>
+        </g>
+
+        {/* 3. INNER CIRCLE: Deep Learning */}
+        <g
+          className={styles.circleGroup}
+          onMouseEnter={() => setActiveCircle('dl')}
+          onMouseLeave={() => setActiveCircle(null)}
+        >
+          <circle cx="250" cy="335" r="86" fill="#ffffff" stroke="#22c55e" strokeWidth="3.5" filter="url(#circleShadow)" />
+          <text x="250" y="328" textAnchor="middle" fill="#0f172a" fontSize="19" fontWeight="900" fontFamily="Inter, sans-serif">
+            Deep Learning
+          </text>
+          <text x="250" y="350" textAnchor="middle" fill="#166534" fontSize="12" fontWeight="700">
+            Multi-Layer Neural Networks
+          </text>
+        </g>
+      </svg>
+
+      {/* Info Callout Box */}
+      <div className={styles.nestedInfoCard}>
+        {activeCircle === 'ai' && (
+          <p>🟢 <strong>Artificial Intelligence (AI)</strong>: The outer umbrella encompassing all intelligent machines, expert rule systems, and self-learning models.</p>
+        )}
+        {activeCircle === 'ml' && (
+          <p>🟢 <strong>Machine Learning (ML)</strong>: The middle layer of algorithms that automatically discover patterns from data without hand-written code.</p>
+        )}
+        {activeCircle === 'dl' && (
+          <p>🟢 <strong>Deep Learning (DL)</strong>: The inner core inspired by human brain neural networks powering ChatGPT, Midjourney, and Autonomous Vision.</p>
+        )}
+        {!activeCircle && (
+          <p>💡 <em>Hover over any circle in the diagram above to inspect how AI, Machine Learning, and Deep Learning fit together!</em></p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Sequence of lesson IDs for next/prev navigation
 const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5'];
 
@@ -162,20 +240,9 @@ export default function AILessonArticlePage() {
               </div>
             )}
 
-            {/* Nesting Dolls Diagram */}
+            {/* Nesting Circles Diagram */}
             {lesson.diagram.type === 'nesting_dolls' && (
-              <div className={styles.nestingDollsWrap}>
-                {lesson.diagram.layers.map((layer, lIdx) => (
-                  <div
-                    key={lIdx}
-                    className={styles.nestingLayer}
-                    style={{ background: layer.color }}
-                  >
-                    <div className={styles.layerTitle}>{layer.name}</div>
-                    <p className={styles.layerDesc}>{layer.desc}</p>
-                  </div>
-                ))}
-              </div>
+              <NestedCirclesDiagram />
             )}
 
             {/* Industry Grid Diagram */}
