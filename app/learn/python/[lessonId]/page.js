@@ -275,6 +275,51 @@ export default function LessonPage() {
     setIsPassed(false);
   };
 
+  // Smart Python Auto-Indentation & Tab Key Handler
+  const handleKeyDown = (e) => {
+    const textarea = e.target;
+    const { selectionStart, selectionEnd, value } = textarea;
+
+    // 1. TAB KEY: Insert 4 spaces
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const newValue = value.substring(0, selectionStart) + '    ' + value.substring(selectionEnd);
+      setCode(newValue);
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = selectionStart + 4;
+      }, 0);
+      return;
+    }
+
+    // 2. ENTER KEY: Smart auto-indentation (add 4 spaces if line ends with :)
+    if (e.key === 'Enter') {
+      e.preventDefault();
+
+      // Find current line up to cursor
+      const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+      const currentLine = value.substring(lineStart, selectionStart);
+
+      // Get existing indentation of current line
+      const matchIndent = currentLine.match(/^(\s*)/);
+      let currentIndent = matchIndent ? matchIndent[1] : '';
+
+      // Check if current line ends with a colon : (ignoring trailing whitespace)
+      const trimmedLine = currentLine.trimEnd();
+      if (trimmedLine.endsWith(':')) {
+        currentIndent += '    '; // Add 4 spaces for Python block indentation
+      }
+
+      const newLineInsert = '\n' + currentIndent;
+      const newValue = value.substring(0, selectionStart) + newLineInsert + value.substring(selectionEnd);
+
+      setCode(newValue);
+
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = selectionStart + newLineInsert.length;
+      }, 0);
+    }
+  };
+
   return (
     <div className={styles.container}>
       {/* ─── TOP HEADER ─────────────────────────────────────────────── */}
@@ -482,6 +527,7 @@ export default function LessonPage() {
                 className={styles.textareaEditor}
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
+                onKeyDown={handleKeyDown}
                 onScroll={(e) => {
                   if (backdropRef.current) {
                     backdropRef.current.scrollTop = e.target.scrollTop;
