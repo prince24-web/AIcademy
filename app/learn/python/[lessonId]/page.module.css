@@ -465,13 +465,72 @@
   position: relative;
   overflow: hidden;
   background: #0d0f14;
+  display: flex;
 }
 
-.textareaEditor {
+/* Line Numbers Gutter */
+.lineNumbersGutter {
+  width: 48px;
+  background: #090b0e;
+  border-right: 1px solid #2d3248;
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  line-height: 1.75;
+  color: #4b5563;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.lineNumberItem {
+  height: 24.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editorContainer {
+  flex: 1;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Syntax Highlighted Backdrop Overlay */
+.highlightBackdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  background: #0d0f14;
+  padding: 16px 20px;
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  line-height: 1.75;
   color: #f8f8f2;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow: hidden;
+  pointer-events: none;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+/* Transparent Editable Textarea */
+.textareaEditor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  color: transparent;
+  caret-color: #a395f9;
   font-family: 'JetBrains Mono', monospace;
   font-size: 14px;
   line-height: 1.75;
@@ -480,7 +539,20 @@
   outline: none;
   resize: none;
   tab-size: 4;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
+
+/* Token Colors */
+.tokKeyword  { color: #c678dd; font-weight: 700; }
+.tokFunction { color: #61afef; font-weight: 600; }
+.tokString   { color: #98c379; }
+.tokNumber   { color: #d19a66; }
+.tokBoolean  { color: #e5c07b; font-weight: 700; }
+.tokComment  { color: #6a737d; font-style: italic; }
+.tokOperator { color: #56b6c2; }
 
 /* Floating Action Buttons inside Editor */
 .editorFloatBar {

@@ -1,10 +1,48 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import styles from './page.module.css';
 import { lessonsData } from '../lessonsData';
+
+// Helper for syntax highlighting Python code
+const highlightPython = (rawCode) => {
+  if (!rawCode) return '';
+
+  const escapeHtml = (str) =>
+    str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const lines = rawCode.split('\n');
+
+  const highlightedLines = lines.map((line) => {
+    let escaped = escapeHtml(line);
+
+    // Comments check
+    let commentPart = '';
+    const commentIdx = escaped.indexOf('#');
+    if (commentIdx !== -1) {
+      commentPart = `<span class="${styles.tokComment}">${escaped.slice(commentIdx)}</span>`;
+      escaped = escaped.slice(0, commentIdx);
+    }
+
+    // Tokenizer regex
+    const tokenRegex = /(f?&quot;[\s\S]*?&quot;|f?&#39;[\s\S]*?&#39;|f?"[^"]*"|f?'[^']*')|(\b(?:def|return|if|elif|else|for|while|import|from|as|in|try|except|class|raise|pass|break|continue|not|and|or|is|lambda|with|yield|global)\b)|(\b(?:print|len|range|int|str|float|bool|list|dict|set|tuple|sum|max|min|sorted|type|round|input)\b)|(\b(?:True|False|None)\b)|(\b\d+(?:\.\d+)?\b)/g;
+
+    escaped = escaped.replace(tokenRegex, (match, str, kw, fn, bool, num) => {
+      if (str) return `<span class="${styles.tokString}">${str}</span>`;
+      if (kw) return `<span class="${styles.tokKeyword}">${kw}</span>`;
+      if (fn) return `<span class="${styles.tokFunction}">${fn}</span>`;
+      if (bool) return `<span class="${styles.tokBoolean}">${bool}</span>`;
+      if (num) return `<span class="${styles.tokNumber}">${num}</span>`;
+      return match;
+    });
+
+    return escaped + commentPart;
+  });
+
+  return highlightedLines.join('\n');
+};
 
 // ─── SVG LOGOS & VECTOR ICONS (NO EMOJIS) ───────────────────────────────
 const PythonLogo = ({ size = 20 }) => (
@@ -130,6 +168,9 @@ export default function LessonPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
   const [isPassed, setIsPassed] = useState(false);
+
+  const backdropRef = useRef(null);
+  const gutterRef = useRef(null);
 
   // Dynamically load Skulpt scripts
   useEffect(() => {
@@ -421,14 +462,38 @@ export default function LessonPage() {
             </div>
           </div>
 
-          {/* Code Mirror / Textarea Editor */}
+          {/* Code Mirror / Textarea Editor with Real Python Syntax Highlighting */}
           <div className={styles.codeWrap}>
-            <textarea
-              className={styles.textareaEditor}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              spellCheck="false"
-            />
+            {/* Line Numbers Gutter */}
+            <div className={styles.lineNumbersGutter} ref={gutterRef}>
+              {code.split('\n').map((_, i) => (
+                <div key={i} className={styles.lineNumberItem}>{i + 1}</div>
+              ))}
+            </div>
+
+            {/* Syntax Highlighted Editor Container */}
+            <div className={styles.editorContainer}>
+              <pre
+                ref={backdropRef}
+                className={styles.highlightBackdrop}
+                dangerouslySetInnerHTML={{ __html: highlightPython(code) + '\n' }}
+              />
+              <textarea
+                className={styles.textareaEditor}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                onScroll={(e) => {
+                  if (backdropRef.current) {
+                    backdropRef.current.scrollTop = e.target.scrollTop;
+                    backdropRef.current.scrollLeft = e.target.scrollLeft;
+                  }
+                  if (gutterRef.current) {
+                    gutterRef.current.scrollTop = e.target.scrollTop;
+                  }
+                }}
+                spellCheck="false"
+              />
+            </div>
 
             {/* Floating Action Buttons */}
             <div className={styles.editorFloatBar}>
