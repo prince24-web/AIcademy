@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import styles from './page.module.css';
 
 // ─── ICONS ──────────────────────────────────────────────────────────────
@@ -562,7 +563,7 @@ function CoursesSection() {
               <h3 className={styles.courseName}>{course.name}</h3>
               <p className={styles.courseExercises}>{course.exercises} Exercises</p>
               <p className={styles.courseDesc}>{course.desc}</p>
-              <button className={styles.btnStartCourse}>Start Course →</button>
+              <Link href="/learn/python" className={styles.btnStartCourse} style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none' }}>Start Course →</Link>
             </div>
           ))}
         </div>
