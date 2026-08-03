@@ -518,9 +518,9 @@ export default function PythonJourneyPage() {
                   {isActive && (
                     <div className={styles.popoverCard}>
                       <div className={styles.popoverTitle}>{lesson.name}</div>
-                      <button className={styles.popoverBtn}>
+                      <Link href={`/learn/python/${lesson.id}`} className={styles.popoverBtn} style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
                         {isCompleted ? 'REVIEW' : 'START'}
-                      </button>
+                      </Link>
                     </div>
                   )}
 
