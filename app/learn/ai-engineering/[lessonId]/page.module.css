@@ -518,3 +518,53 @@
   justify-content: center;
   box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
 }
+
+/* ─── LLM PIPELINE FLOWCHART DIAGRAM STYLES ─────────────────────────── */
+.flowchartContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 12px 0;
+}
+
+.flowchartSvg {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  overflow: visible;
+}
+
+.flowNode {
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.flowNode rect, .flowNode polygon {
+  transition: all 0.2s ease;
+}
+
+.flowNode:hover rect, .flowNode:hover polygon {
+  fill: #bbf7d0;
+  stroke-width: 3px;
+  filter: drop-shadow(0 6px 18px rgba(34, 197, 94, 0.35));
+}
+
+.flowchartInfoBox {
+  width: 100%;
+  max-width: 540px;
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 16px;
+  padding: 14px 20px;
+  margin-top: 18px;
+  text-align: center;
+  font-size: 0.93rem;
+  color: #14532d;
+  line-height: 1.55;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+}

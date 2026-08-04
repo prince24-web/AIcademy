@@ -115,8 +115,177 @@ const NestedCirclesDiagram = () => {
   );
 };
 
+// LLM Architecture Flowchart Diagram Component (Matching User Reference Flowchart Image)
+const LLMFlowchartDiagram = () => {
+  const [activeStep, setActiveStep] = useState(null);
+
+  const steps = {
+    input: {
+      title: '1. Input Data',
+      desc: 'The raw text prompt provided by the user (e.g., "Explain quantum computing in simple terms").'
+    },
+    tokenization: {
+      title: '2. Tokenization',
+      desc: 'Breaks raw text strings into numerical sub-word pieces called "tokens" (e.g., "quantum" → 14932).'
+    },
+    embedding: {
+      title: '3. Embedding Layer',
+      desc: 'Translates discrete token numbers into dense vector coordinates in high-dimensional semantic space.'
+    },
+    transformer: {
+      title: '4. Transformer Blocks',
+      desc: 'The heart of the LLM containing stacked layers of Self-Attention and Feed-Forward Neural Networks.'
+    },
+    attention: {
+      title: '4a. Self-Attention Mechanism',
+      desc: 'Calculates context weights between words in a sequence (e.g., connecting "it" to "river" instead of "bank").'
+    },
+    feedforward: {
+      title: '4b. Feed-Forward Network',
+      desc: 'Processes attention-weighted features through dense non-linear layers to extract higher-level representations.'
+    },
+    output: {
+      title: '5. Output Layer',
+      desc: 'Converts final hidden vectors back into probability distributions (Softmax) over candidate vocabulary words.'
+    },
+    optimization: {
+      title: '6. Training & Loss Optimization',
+      desc: 'Calculates error (Loss) between predicted vs actual next words, updating parameters via Gradient Descent.'
+    }
+  };
+
+  return (
+    <div className={styles.flowchartContainer}>
+      <svg viewBox="0 0 540 680" className={styles.flowchartSvg}>
+        <defs>
+          <filter id="nodeGlow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" floodOpacity="0.2" />
+          </filter>
+
+          <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#22c55e" />
+          </marker>
+        </defs>
+
+        {/* CONNECTION LINES & ARROWS */}
+        <line x1="270" y1="48" x2="270" y2="82" stroke="#22c55e" strokeWidth="3" markerEnd="url(#arrow)" />
+        <line x1="270" y1="126" x2="270" y2="160" stroke="#22c55e" strokeWidth="3" markerEnd="url(#arrow)" />
+        <line x1="270" y1="204" x2="270" y2="242" stroke="#22c55e" strokeWidth="3" markerEnd="url(#arrow)" />
+
+        {/* Transformer Splits */}
+        <path d="M 270 338 L 140 338 L 140 344" fill="none" stroke="#22c55e" strokeWidth="2.5" />
+        <path d="M 270 338 L 400 338 L 400 344" fill="none" stroke="#22c55e" strokeWidth="2.5" />
+
+        {/* Branch Labels */}
+        <text x="180" y="328" textAnchor="middle" fill="#a78bfa" fontSize="12" fontWeight="700">Self-Attention</text>
+        <text x="360" y="328" textAnchor="middle" fill="#a78bfa" fontSize="12" fontWeight="700">Feed-Forward</text>
+
+        {/* Rejoin Branches to Output Layer */}
+        <path d="M 140 382 L 140 420 L 270 420" fill="none" stroke="#22c55e" strokeWidth="2.5" />
+        <path d="M 400 382 L 400 420 L 270 420" fill="none" stroke="#22c55e" strokeWidth="2.5" />
+        <line x1="270" y1="420" x2="270" y2="462" stroke="#22c55e" strokeWidth="3" markerEnd="url(#arrow)" />
+        <line x1="270" y1="506" x2="270" y2="548" stroke="#22c55e" strokeWidth="3" markerEnd="url(#arrow)" />
+
+        {/* NODE 1: INPUT DATA */}
+        <g
+          className={`${styles.flowNode} ${activeStep === 'input' ? styles.flowNodeActive : ''}`}
+          onMouseEnter={() => setActiveStep('input')}
+          onMouseLeave={() => setActiveStep(null)}
+        >
+          <rect x="150" y="10" width="240" height="38" rx="10" fill="#dcfce7" stroke="#22c55e" strokeWidth="2" filter="url(#nodeGlow)" />
+          <text x="270" y="34" textAnchor="middle" fill="#14532d" fontSize="15" fontWeight="800">Input Data</text>
+        </g>
+
+        {/* NODE 2: TOKENIZATION */}
+        <g
+          className={`${styles.flowNode} ${activeStep === 'tokenization' ? styles.flowNodeActive : ''}`}
+          onMouseEnter={() => setActiveStep('tokenization')}
+          onMouseLeave={() => setActiveStep(null)}
+        >
+          <rect x="150" y="88" width="240" height="38" rx="10" fill="#dcfce7" stroke="#22c55e" strokeWidth="2" filter="url(#nodeGlow)" />
+          <text x="270" y="112" textAnchor="middle" fill="#14532d" fontSize="15" fontWeight="800">Tokenization</text>
+        </g>
+
+        {/* NODE 3: EMBEDDING LAYER */}
+        <g
+          className={`${styles.flowNode} ${activeStep === 'embedding' ? styles.flowNodeActive : ''}`}
+          onMouseEnter={() => setActiveStep('embedding')}
+          onMouseLeave={() => setActiveStep(null)}
+        >
+          <rect x="150" y="166" width="240" height="38" rx="10" fill="#dcfce7" stroke="#22c55e" strokeWidth="2" filter="url(#nodeGlow)" />
+          <text x="270" y="190" textAnchor="middle" fill="#14532d" fontSize="15" fontWeight="800">Embedding Layer</text>
+        </g>
+
+        {/* NODE 4: TRANSFORMER BLOCKS (DIAMOND NODE) */}
+        <g
+          className={`${styles.flowNode} ${activeStep === 'transformer' ? styles.flowNodeActive : ''}`}
+          onMouseEnter={() => setActiveStep('transformer')}
+          onMouseLeave={() => setActiveStep(null)}
+        >
+          <polygon points="270 242, 345 290, 270 338, 195 290" fill="#dcfce7" stroke="#16a34a" strokeWidth="2.5" filter="url(#nodeGlow)" />
+          <text x="270" y="284" textAnchor="middle" fill="#14532d" fontSize="13" fontWeight="900">Transformer</text>
+          <text x="270" y="298" textAnchor="middle" fill="#14532d" fontSize="13" fontWeight="900">Blocks</text>
+        </g>
+
+        {/* NODE 5: SELF-ATTENTION MECHANISM */}
+        <g
+          className={`${styles.flowNode} ${activeStep === 'attention' ? styles.flowNodeActive : ''}`}
+          onMouseEnter={() => setActiveStep('attention')}
+          onMouseLeave={() => setActiveStep(null)}
+        >
+          <rect x="35" y="344" width="210" height="38" rx="10" fill="#dcfce7" stroke="#22c55e" strokeWidth="2" filter="url(#nodeGlow)" />
+          <text x="140" y="368" textAnchor="middle" fill="#14532d" fontSize="13" fontWeight="800">Self-Attention Mechanism</text>
+        </g>
+
+        {/* NODE 6: FEED-FORWARD NETWORK */}
+        <g
+          className={`${styles.flowNode} ${activeStep === 'feedforward' ? styles.flowNodeActive : ''}`}
+          onMouseEnter={() => setActiveStep('feedforward')}
+          onMouseLeave={() => setActiveStep(null)}
+        >
+          <rect x="295" y="344" width="210" height="38" rx="10" fill="#dcfce7" stroke="#22c55e" strokeWidth="2" filter="url(#nodeGlow)" />
+          <text x="400" y="368" textAnchor="middle" fill="#14532d" fontSize="13" fontWeight="800">Feed-Forward Network</text>
+        </g>
+
+        {/* NODE 7: OUTPUT LAYER */}
+        <g
+          className={`${styles.flowNode} ${activeStep === 'output' ? styles.flowNodeActive : ''}`}
+          onMouseEnter={() => setActiveStep('output')}
+          onMouseLeave={() => setActiveStep(null)}
+        >
+          <rect x="150" y="468" width="240" height="38" rx="10" fill="#dcfce7" stroke="#22c55e" strokeWidth="2" filter="url(#nodeGlow)" />
+          <text x="270" y="492" textAnchor="middle" fill="#14532d" fontSize="15" fontWeight="800">Output Layer</text>
+        </g>
+
+        {/* NODE 8: TRAINING & LOSS OPTIMIZATION */}
+        <g
+          className={`${styles.flowNode} ${activeStep === 'optimization' ? styles.flowNodeActive : ''}`}
+          onMouseEnter={() => setActiveStep('optimization')}
+          onMouseLeave={() => setActiveStep(null)}
+        >
+          <rect x="110" y="554" width="320" height="42" rx="10" fill="#dcfce7" stroke="#16a34a" strokeWidth="2.5" filter="url(#nodeGlow)" />
+          <text x="270" y="580" textAnchor="middle" fill="#14532d" fontSize="15" fontWeight="900">Training & Loss Optimization</text>
+        </g>
+      </svg>
+
+      {/* Interactive Step Description Box */}
+      <div className={styles.flowchartInfoBox}>
+        {activeStep ? (
+          <div>
+            <strong>{steps[activeStep].title}</strong>: {steps[activeStep].desc}
+          </div>
+        ) : (
+          <div>
+            💡 <em>Hover over any block in the flowchart above to inspect each stage of the LLM architecture!</em>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -243,6 +412,11 @@ export default function AILessonArticlePage() {
             {/* Nesting Circles Diagram */}
             {lesson.diagram.type === 'nesting_dolls' && (
               <NestedCirclesDiagram />
+            )}
+
+            {/* LLM Architecture Flowchart Diagram */}
+            {lesson.diagram.type === 'llm_flowchart' && (
+              <LLMFlowchartDiagram />
             )}
 
             {/* Industry Grid Diagram */}

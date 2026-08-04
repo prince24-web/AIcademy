@@ -332,5 +332,70 @@ export const aiLessonsData = {
       'Module 1 Completed! You understand the foundations of AI, ML, and DL.',
       'Next Up: Module 2 — How Large Language Models (LLMs) Work (Tokens, Embeddings, Context Windows, and Temperature)!'
     ]
+  },
+
+  'ai-2-1': {
+    id: 'ai-2-1',
+    title: 'What is a Large Language Model (LLM)?',
+    subtitle: 'Deconstructing the Architecture Behind ChatGPT & Generative AI',
+    section: 'Module 2 · Chapter 1',
+    estimatedTime: '7 min read',
+    gfgUrl: 'https://www.ibm.com/think/topics/large-language-models',
+
+    badgeText: 'MODULE 2 • LLM ARCHITECTURE',
+    badgeColor: '#7c3aed',
+
+    sections: [
+      {
+        heading: 'Deconstructing the Term: Large Language Model',
+        paragraphs: [
+          'A Large Language Model (LLM) is a specialized category of Deep Learning Artificial Intelligence foundation models trained on massive, internet-scale textual datasets.',
+          'To understand how an LLM functions, we can break its technical name down into 3 core pillars:',
+          '• Large: Refers to both the colossal training dataset size (trillions of words/tokens) and the neural network capacity, containing tens or hundreds of billions of adjustable parameters (weights).',
+          '• Language: Unlike classical Machine Learning models that process tabular numbers in spreadsheets, LLMs process, understand, and generate natural human language—including English, Spanish, Python code, and mathematical proofs.',
+          '• Model: Refers to the underlying Transformer Neural Network architecture designed to compute probabilistic relationships between words.'
+        ]
+      },
+      {
+        heading: 'How LLMs Process Text: From Words to Vectors',
+        paragraphs: [
+          'Computers do not natively understand English letters—they only compute numbers. When you feed a prompt into an LLM, your text undergoes a sophisticated multi-stage processing pipeline:',
+          '1. Tokenization: Raw text is split into small numerical sub-word chunks called Tokens.',
+          '2. Embedding Layer: Converts token numbers into dense, high-dimensional vector coordinates capturing semantic meaning.',
+          '3. Transformer Blocks: The core computational engine. It routes vectors through Self-Attention Mechanisms (calculating contextual relationships between words) and Feed-Forward Networks.',
+          '4. Output & Training Optimization: Converts hidden vectors back into probability distributions over next-word candidates, continuously adjusting weights via Loss Optimization during training.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: '💡 Real-World Analogy: The World\'s Most Experienced Autocomplete Engine',
+      text: 'Think of an LLM like the autocomplete feature on your smartphone keyboard, but scaled up by a factor of 100 Billion! Your phone guesses the next word based on simple 2-word memory. An LLM has read nearly the entire public internet, allowing it to autocomplete complex essays, Python scripts, legal contracts, or poems—predicting one token at a time with uncanny accuracy!'
+    },
+
+    diagram: {
+      type: 'llm_flowchart',
+      title: 'LLM Technical Architecture Pipeline (Tokenization → Transformer → Optimization)'
+    },
+
+    takeaways: [
+      'Large Language Models (LLMs) are deep neural networks trained on vast datasets to understand and generate human text.',
+      'Tokenization converts raw text strings into numerical sub-word tokens.',
+      'The Embedding Layer maps token numbers to high-dimensional semantic vector space coordinates.',
+      'Transformer Blocks combine Self-Attention (word context weights) and Feed-Forward Networks (feature processing).',
+      'Training uses Loss Optimization (Backpropagation) to continuously minimize next-token prediction errors.'
+    ],
+
+    quiz: {
+      question: 'In an LLM architecture pipeline, what is the primary role of the Self-Attention Mechanism inside Transformer Blocks?',
+      options: [
+        'To erase past conversation history',
+        'To calculate contextual relationships and relevance between words in a sequence',
+        'To print the final text on the screen',
+        'To convert text into audio'
+      ],
+      correctIndex: 1,
+      explanation: 'Spot on! Self-attention allows the model to analyze every word in a sentence and calculate how strongly each word relates to other words in context (e.g. knowing "bank" refers to a river vs money).'
+    }
   }
 };
