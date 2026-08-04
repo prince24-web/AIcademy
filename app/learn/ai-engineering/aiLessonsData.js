@@ -344,6 +344,7 @@ export const aiLessonsData = {
 
     badgeText: 'MODULE 2 • LLM ARCHITECTURE',
     badgeColor: '#7c3aed',
+    videoUrl: 'https://www.youtube.com/embed/LPZh9BOjkQs',
 
     sections: [
       {

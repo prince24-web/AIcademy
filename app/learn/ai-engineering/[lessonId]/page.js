@@ -31,9 +31,16 @@ const IconCheckmark = ({ size = 20 }) => (
   </svg>
 );
 
-const IconSparkles = ({ size = 22 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/>
+const IconSparkles = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275-1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"/>
+  </svg>
+);
+
+const IconVideo = ({ size = 22 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="23 7 16 12 23 17 23 7"/>
+    <rect x="1" y="5" width="15" height="14" rx="3" ry="3"/>
   </svg>
 );
 
@@ -446,6 +453,24 @@ export default function AILessonArticlePage() {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* EMBEDDED YOUTUBE VIDEO WALKTHROUGH */}
+        {lesson.videoUrl && (
+          <div className={styles.videoCard}>
+            <div className={styles.videoCardHeader}>
+              <IconVideo size={22} />
+              <span>Video Walkthrough &amp; Practical Demonstration</span>
+            </div>
+            <div className={styles.videoEmbedRatio}>
+              <iframe
+                src={lesson.videoUrl}
+                title="Video Tutorial Walkthrough"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
           </div>
         )}
 
