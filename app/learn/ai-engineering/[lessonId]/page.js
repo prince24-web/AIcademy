@@ -99,16 +99,16 @@ const NestedCirclesDiagram = () => {
       {/* Info Callout Box */}
       <div className={styles.nestedInfoCard}>
         {activeCircle === 'ai' && (
-          <p>🟢 <strong>Artificial Intelligence (AI)</strong>: The outer umbrella encompassing all intelligent machines, expert rule systems, and self-learning models.</p>
+          <p><strong>Artificial Intelligence (AI)</strong>: The outer umbrella encompassing all intelligent machines, expert rule systems, and self-learning models.</p>
         )}
         {activeCircle === 'ml' && (
-          <p>🟢 <strong>Machine Learning (ML)</strong>: The middle layer of algorithms that automatically discover patterns from data without hand-written code.</p>
+          <p><strong>Machine Learning (ML)</strong>: The middle layer of algorithms that automatically discover patterns from data without hand-written code.</p>
         )}
         {activeCircle === 'dl' && (
-          <p>🟢 <strong>Deep Learning (DL)</strong>: The inner core inspired by human brain neural networks powering ChatGPT, Midjourney, and Autonomous Vision.</p>
+          <p><strong>Deep Learning (DL)</strong>: The inner core inspired by human brain neural networks powering ChatGPT, Midjourney, and Autonomous Vision.</p>
         )}
         {!activeCircle && (
-          <p>💡 <em>Hover over any circle in the diagram above to inspect how AI, Machine Learning, and Deep Learning fit together!</em></p>
+          <p><em>Hover over any circle in the diagram above to inspect how AI, Machine Learning, and Deep Learning fit together!</em></p>
         )}
       </div>
     </div>
@@ -276,7 +276,7 @@ const LLMFlowchartDiagram = () => {
           </div>
         ) : (
           <div>
-            💡 <em>Hover over any block in the flowchart above to inspect each stage of the LLM architecture!</em>
+            <em>Hover over any block in the flowchart above to inspect each stage of the LLM architecture!</em>
           </div>
         )}
       </div>
@@ -336,7 +336,7 @@ export default function AILessonArticlePage() {
               rel="noopener noreferrer"
               className={styles.btnGfg}
             >
-              GeeksforGeeks Reference <IconExternalLink size={14} />
+              Reference Articles <IconExternalLink size={14} />
             </a>
           )}
         </div>
@@ -544,7 +544,7 @@ export default function AILessonArticlePage() {
             </Link>
           ) : (
             <Link href="/learn/ai-engineering" className={styles.btnNext}>
-              Finish Module 1 🎉
+              Finish Module 1
             </Link>
           )}
         </div>

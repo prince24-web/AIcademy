@@ -33,7 +33,7 @@ export const aiLessonsData = {
 
     // ELI5 Real-World Analogy Card
     analogy: {
-      title: '💡 Real-World Analogy: The Printed Recipe vs. The Expert Chef',
+      title: 'Real-World Analogy: The Printed Recipe vs. The Expert Chef',
       text: 'Think of traditional software like a printed cookbook recipe: it follows exact steps line-by-line. If you are missing an ingredient, the recipe fails. AI is like a master chef: you show them whatever random ingredients are inside your fridge, and using their past experience, they adapt and invent a delicious new meal on the spot!'
     },
 
@@ -106,7 +106,7 @@ export const aiLessonsData = {
     ],
 
     analogy: {
-      title: '🪆 Real-World Analogy: The Vehicle Hierarchy',
+      title: 'Real-World Analogy: The Vehicle Hierarchy',
       text: 'Think of AI as "Vehicles" (anything that moves people). Machine Learning is like "Motorized Vehicles" (cars, trucks, motorcycles). Deep Learning is like "High-Speed Electric Supercars" (Tesla Model S)—a specialized, high-tech sub-category of motorized vehicles designed for maximum speed and intelligence!'
     },
 
@@ -168,7 +168,7 @@ export const aiLessonsData = {
     ],
 
     analogy: {
-      title: '🏆 Real-World Analogy: The Olympic Specialist vs. The Renaissance Polymath',
+      title: 'Real-World Analogy: The Olympic Specialist vs. The Renaissance Polymath',
       text: 'Narrow AI is like an Olympic Gold Medalist in Archery: they are unmatched at hitting a target 70 meters away, but if you ask them to play grandmaster chess or perform heart surgery, they can\'t do it. AGI is like Leonardo da Vinci: someone who excels at art, engineering, science, anatomy, and philosophy all at once!'
     },
 
@@ -235,7 +235,7 @@ export const aiLessonsData = {
     ],
 
     analogy: {
-      title: '⚡ Real-World Analogy: Electricity in the 20th Century',
+      title: 'Real-World Analogy: Electricity in the 20th Century',
       text: 'Just like electricity transformed manufacturing, lighting, agriculture, and transportation in the early 1900s, Artificial Intelligence is acting as the new "digital electricity"—plugging into every modern tool to make it smarter and faster!'
     },
 
@@ -369,7 +369,7 @@ export const aiLessonsData = {
     ],
 
     analogy: {
-      title: '💡 Real-World Analogy: The World\'s Most Experienced Autocomplete Engine',
+      title: 'Real-World Analogy: The World\'s Most Experienced Autocomplete Engine',
       text: 'Think of an LLM like the autocomplete feature on your smartphone keyboard, but scaled up by a factor of 100 Billion! Your phone guesses the next word based on simple 2-word memory. An LLM has read nearly the entire public internet, allowing it to autocomplete complex essays, Python scripts, legal contracts, or poems—predicting one token at a time with uncanny accuracy!'
     },
 

@@ -267,7 +267,7 @@ const aiModules = [
       { id: 'ai-9-4', name: 'AI-Powered Search Engines', nodeType: 'concept', status: 'locked' },
       { id: 'ai-9-5', name: 'AI Process Automation', nodeType: 'lightbulb', status: 'locked' },
       { id: 'ai-9-6', name: 'Enterprise AI Workflows', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-9-7', name: '🛠 Final Project: Build Your Autonomous AI Assistant', nodeType: 'project', status: 'locked', isProject: true },
+      { id: 'ai-9-7', name: 'Final Project: Build Your Autonomous AI Assistant', nodeType: 'project', status: 'locked', isProject: true },
     ]
   }
 ];

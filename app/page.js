@@ -275,19 +275,19 @@ function Navbar() {
             {resourcesOpen && (
               <div className={styles.dropdown}>
                 <a href="#" className={styles.dropdownItemRich}>
-                  <span className={styles.dropdownItemIconWrap} style={{ background: '#fef3c7' }}>📝</span>
+                  <span className={styles.dropdownItemIconWrap} style={{ background: '#fef3c7', color: '#d97706' }}><IconCode size={18} /></span>
                   <div><strong>Blog</strong><small>Tutorials and guides from our team</small></div>
                 </a>
                 <a href="#" className={styles.dropdownItemRich}>
-                  <span className={styles.dropdownItemIconWrap} style={{ background: '#dbeafe' }}>📚</span>
+                  <span className={styles.dropdownItemIconWrap} style={{ background: '#dbeafe', color: '#2563eb' }}><IconBook size={18} /></span>
                   <div><strong>Docs</strong><small>Reference docs for every language</small></div>
                 </a>
                 <a href="#" className={styles.dropdownItemRich}>
-                  <span className={styles.dropdownItemIconWrap} style={{ background: '#ede9fe' }}>🤖</span>
+                  <span className={styles.dropdownItemIconWrap} style={{ background: '#ede9fe', color: '#7c3aed' }}><IconRobot size={18} /></span>
                   <div><strong>AI Assistant</strong><small>Personal AI tutor for coding help</small></div>
                 </a>
                 <a href="#" className={styles.dropdownItemRich}>
-                  <span className={styles.dropdownItemIconWrap} style={{ background: '#dcfce7' }}>🎮</span>
+                  <span className={styles.dropdownItemIconWrap} style={{ background: '#dcfce7', color: '#16a34a' }}><IconTerminal size={18} /></span>
                   <div><strong>Playground</strong><small>Run code in browser, no setup</small></div>
                 </a>
               </div>
@@ -299,15 +299,15 @@ function Navbar() {
             {companyOpen && (
               <div className={styles.dropdown}>
                 <a href="#" className={styles.dropdownItemRich}>
-                  <span className={styles.dropdownItemIconWrap} style={{ background: '#f0f4ff' }}>🏢</span>
+                  <span className={styles.dropdownItemIconWrap} style={{ background: '#f0f4ff', color: '#3b82f6' }}><IconTarget size={18} /></span>
                   <div><strong>About Us</strong><small>Our mission and story</small></div>
                 </a>
                 <a href="#" className={styles.dropdownItemRich}>
-                  <span className={styles.dropdownItemIconWrap} style={{ background: '#fef9ec' }}>💼</span>
+                  <span className={styles.dropdownItemIconWrap} style={{ background: '#fef9ec', color: '#d97706' }}><IconSparkles size={18} /></span>
                   <div><strong>Careers</strong><small>Join our team</small></div>
                 </a>
                 <a href="#" className={styles.dropdownItemRich}>
-                  <span className={styles.dropdownItemIconWrap} style={{ background: '#f0fdf4' }}>✉️</span>
+                  <span className={styles.dropdownItemIconWrap} style={{ background: '#f0fdf4', color: '#16a34a' }}><IconCheck size={18} /></span>
                   <div><strong>Contact</strong><small>Get in touch with us</small></div>
                 </a>
               </div>
@@ -351,7 +351,7 @@ function HeroSection() {
 
         <div className={styles.heroContent}>
           <p className={styles.heroSubBadge}>
-            🚀 Join over <strong>{count.toLocaleString()}</strong> AI learners
+            Join over <strong>{count.toLocaleString()}</strong> AI learners
           </p>
           <h1 className={styles.heroTitle}>
             The free, fun, and effective way<br />to learn <span className={styles.heroAccent}>AI &amp; coding!</span>
@@ -417,7 +417,7 @@ function LearnByDoingSection() {
       lang: 'Python',
       lines: [
         { num: 1, tokens: [{ t: 'def ', c: 'kw' }, { t: 'greet', c: 'fn' }, { t: '(name):', c: 'txt' }] },
-        { num: 2, tokens: [{ t: '    return ', c: 'kw' }, { t: 'f"Hello, {name}! 👋"', c: 'str' }] },
+        { num: 2, tokens: [{ t: '    return ', c: 'kw' }, { t: 'f"Hello, {name}!"', c: 'str' }] },
         { num: 3, tokens: [] },
         { num: 4, tokens: [{ t: 'print', c: 'fn' }, { t: '(greet(', c: 'txt' }, { t: '"World"', c: 'str' }, { t: '))', c: 'txt' }] },
       ],
@@ -529,7 +529,7 @@ function LearnByDoingSection() {
                 </div>
                 <div className={styles.resultsRow}>
                   <span className={styles.resultsLabel}>XP Earned</span>
-                  <span className={styles.resultsValue} style={{ color: '#f59e0b' }}>+25 XP ⚡</span>
+                  <span className={styles.resultsValue} style={{ color: '#f59e0b' }}>+25 XP</span>
                 </div>
               </div>
             </div>
@@ -607,11 +607,11 @@ function StreakSection() {
             </div>
             <div className={styles.streakBadges}>
               <div className={styles.streakBadge}>
-                <span className={styles.streakBadgeIcon}>⚔️</span>
+                <span className={styles.streakBadgeIcon}>Target</span>
                 <div><strong>Double or Nothing</strong><small>Day 5 of 7</small></div>
               </div>
               <div className={styles.streakBadge}>
-                <span className={styles.streakBadgeIcon}>🔥</span>
+                <span className={styles.streakBadgeIcon}>Flame</span>
                 <div><strong>Streak Freeze</strong><span className={styles.streakFreezeBadge}>2 left</span></div>
               </div>
             </div>
@@ -671,7 +671,7 @@ function MobileSection() {
           </div>
           <div className={styles.appStoreRow}>
             <button className={styles.appStoreBtn}>
-              <span className={styles.appStoreBtnIcon}>🍎</span>
+              <span className={styles.appStoreBtnIcon}>iOS</span>
               <div><small>Download on the</small><strong>App Store</strong></div>
             </button>
             <button className={styles.appStoreBtn}>
@@ -684,7 +684,7 @@ function MobileSection() {
           <div className={styles.phoneMockup}>
             <div className={styles.phoneScreen}>
               <div className={styles.phoneTopBar}>
-                <span className={styles.phoneIcon}>🐍</span>
+                <span className={styles.phoneIcon}><PythonLogo size={18} /></span>
                 <div className={styles.phoneStats}>
                   <span><IconFlame /> 7</span>
                   <span style={{ color: '#f59e0b' }}><IconZap /> 250</span>
@@ -816,7 +816,7 @@ function Footer() {
             </a>
             <p className={styles.footerBrandDesc}>The most effective way to learn AI &amp; coding through hands-on interactive courses.</p>
             <div className={styles.socialRow}>
-              {['𝕏', 'in', '⊕', '📺'].map((s, i) => (
+              {['X', 'in', 'YT', 'GH'].map((s, i) => (
                 <a key={i} href="#" className={styles.socialBtn}>{s}</a>
               ))}
             </div>

@@ -401,7 +401,7 @@ export default function LessonPage() {
               <h1 className={styles.lessonMainTitle}>{lessonData.subtitle}</h1>
               {lessonData.gfgUrl && (
                 <a href={lessonData.gfgUrl} target="_blank" rel="noopener noreferrer" className={styles.gfgRefLink}>
-                  <span>GeeksforGeeks Reference ↗</span>
+                  <span>Reference Articles ↗</span>
                 </a>
               )}
             </div>
@@ -520,7 +520,7 @@ export default function LessonPage() {
               </Link>
             ) : (
               <Link href="/learn/python" className={styles.btnLessonNavNext}>
-                Finish Python Course 🎉
+                Finish Python Course
               </Link>
             )}
           </div>
@@ -609,7 +609,7 @@ export default function LessonPage() {
                   </Link>
                 ) : (
                   <Link href="/learn/python" className={styles.btnContinueNext}>
-                    Course Completed 🎉
+                    Course Completed
                   </Link>
                 )}
               </div>
