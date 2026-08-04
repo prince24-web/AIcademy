@@ -291,6 +291,42 @@ const LLMFlowchartDiagram = () => {
   );
 };
 
+// Vector Art Icons for Training vs Inference Diagram
+const PersonSvg = ({ x, y, scale = 1 }) => (
+  <g transform={`translate(${x}, ${y}) scale(${scale})`}>
+    <circle cx="20" cy="12" r="7" fill="#2563eb" />
+    <path d="M 6 32 C 6 22, 10 18, 20 18 C 30 18, 34 22, 34 32 Z" fill="#2563eb" />
+  </g>
+);
+
+const BicycleSvg = ({ x, y, color = "#d97706", scale = 1 }) => (
+  <g transform={`translate(${x}, ${y}) scale(${scale})`}>
+    <circle cx="12" cy="22" r="10" fill="none" stroke={color} strokeWidth="2.5" />
+    <circle cx="48" cy="22" r="10" fill="none" stroke={color} strokeWidth="2.5" />
+    <circle cx="28" cy="22" r="3" fill={color} />
+    <line x1="12" y1="22" x2="28" y2="22" stroke={color} strokeWidth="2" />
+    <line x1="12" y1="22" x2="22" y2="10" stroke={color} strokeWidth="2" />
+    <line x1="28" y1="22" x2="22" y2="10" stroke={color} strokeWidth="2" />
+    <line x1="28" y1="22" x2="40" y2="8" stroke={color} strokeWidth="2" />
+    <line x1="48" y1="22" x2="40" y2="8" stroke={color} strokeWidth="2" />
+    <line x1="40" y1="8" x2="36" y2="4" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="19" y1="9" x2="25" y2="9" stroke={color} strokeWidth="3" strokeLinecap="round" />
+  </g>
+);
+
+const StrawberrySvg = ({ x, y, scale = 1 }) => (
+  <g transform={`translate(${x}, ${y}) scale(${scale})`}>
+    <path d="M 12 8 C 4 12, 4 26, 16 32 C 28 26, 28 12, 20 8 Z" fill="#ef4444" stroke="#dc2626" strokeWidth="1.5" />
+    <circle cx="12" cy="16" r="1" fill="#fef08a" />
+    <circle cx="20" cy="16" r="1" fill="#fef08a" />
+    <circle cx="16" cy="22" r="1" fill="#fef08a" />
+    <circle cx="12" cy="26" r="1" fill="#fef08a" />
+    <circle cx="20" cy="26" r="1" fill="#fef08a" />
+    <path d="M 12 9 C 14 5, 18 5, 20 9 C 18 7, 14 7, 12 9 Z" fill="#16a34a" />
+    <path d="M 16 9 L 16 4" stroke="#15803d" strokeWidth="2" strokeLinecap="round" />
+  </g>
+);
+
 // Training vs Inference Diagram Component (Matching User Reference Diagram Image)
 const TrainingInferenceDiagram = () => {
   const [activeStage, setActiveStage] = useState(null);
@@ -328,7 +364,7 @@ const TrainingInferenceDiagram = () => {
 
   return (
     <div className={styles.flowchartContainer}>
-      <svg viewBox="0 0 900 480" className={styles.flowchartSvg} style={{ maxWidth: '780px' }}>
+      <svg viewBox="0 0 920 490" className={styles.flowchartSvg} style={{ maxWidth: '820px' }}>
         <defs>
           <marker id="arrowBlue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
@@ -336,132 +372,137 @@ const TrainingInferenceDiagram = () => {
         </defs>
 
         {/* SECTION HEADINGS */}
-        <text x="30" y="140" fill="#1d4ed8" fontSize="24" fontWeight="800">Training</text>
-        <text x="30" y="380" fill="#1d4ed8" fontSize="24" fontWeight="800">Inference</text>
+        <text x="30" y="140" fill="#1d4ed8" fontSize="26" fontWeight="900">Training</text>
+        <text x="30" y="380" fill="#1d4ed8" fontSize="26" fontWeight="900">Inference</text>
 
         {/* TOP HALF: TRAINING */}
         {/* 1. Labeled Data Stack */}
         <g className={styles.flowNode} onMouseEnter={() => setActiveStage('labeled_data')} onClick={() => setActiveStage('labeled_data')}>
-          <rect x="150" y="45" width="130" height="150" rx="8" fill="#ffffff" stroke="#475569" strokeWidth="2" />
-          <rect x="140" y="35" width="130" height="150" rx="8" fill="#ffffff" stroke="#475569" strokeWidth="2" />
-          <rect x="130" y="25" width="130" height="150" rx="8" fill="#ffffff" stroke="#334155" strokeWidth="2" />
-          
-          <text x="140" y="45" fill="#1e3a8a" fontSize="13" fontStyle="italic" fontWeight="700">Person</text>
-          <text x="210" y="45" fill="#1e3a8a" fontSize="13" fontStyle="italic" fontWeight="700">Bicycle</text>
+          {/* Stacked Cards */}
+          <rect x="150" y="45" width="130" height="150" rx="10" fill="#ffffff" stroke="#cbd5e1" strokeWidth="2" />
+          <PersonSvg x={195} y={80} scale={1.2} />
+          <text x="195" y="65" fill="#1e3a8a" fontSize="13" fontStyle="italic" fontWeight="700">Person</text>
 
-          <circle cx="170" cy="115" r="16" fill="#fecdd3" stroke="#e11d48" strokeWidth="2" />
-          <text x="140" y="150" fill="#9f1239" fontSize="13" fontStyle="italic" fontWeight="700">Strawberry</text>
+          <rect x="140" y="35" width="130" height="150" rx="10" fill="#ffffff" stroke="#94a3b8" strokeWidth="2" />
+          <BicycleSvg x={175} y={75} color="#d97706" scale={1.1} />
+          <text x="180" y="55" fill="#1e3a8a" fontSize="13" fontStyle="italic" fontWeight="700">Bicycle</text>
 
-          <text x="220" y="165" fill="#475569" fontSize="11" fontWeight="600" transform="rotate(-30 220 165)">Lots of labeled data!</text>
+          <rect x="130" y="25" width="130" height="150" rx="10" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <StrawberrySvg x={175} y={65} scale={1.3} />
+          <text x="155" y="140" fill="#9f1239" fontSize="14" fontStyle="italic" fontWeight="800">Strawberry</text>
+
+          <text x="215" y="168" fill="#475569" fontSize="11" fontWeight="700" transform="rotate(-30 215 168)">Lots of labeled data!</text>
         </g>
 
         {/* Arrow Data -> Training Net */}
-        <line x1="285" y1="100" x2="345" y2="100" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
+        <line x1="285" y1="100" x2="345" y2="100" stroke="#3b82f6" strokeWidth="3.5" markerEnd="url(#arrowBlue)" />
 
         {/* 2. Training Neural Network */}
         <g className={styles.flowNode} onMouseEnter={() => setActiveStage('train_forward')} onClick={() => setActiveStage('train_forward')}>
-          <rect x="350" y="15" width="130" height="170" rx="12" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="4 4" />
-          <circle cx="370" cy="40" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
-          <circle cx="370" cy="80" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
-          <circle cx="370" cy="120" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
-          <circle cx="370" cy="160" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <rect x="350" y="15" width="130" height="170" rx="14" fill="#f8fafc" stroke="#64748b" strokeWidth="1.5" strokeDasharray="4 4" />
+          <circle cx="370" cy="40" r="11" fill="#ffffff" stroke="#1e293b" strokeWidth="2" />
+          <circle cx="370" cy="80" r="11" fill="#ffffff" stroke="#1e293b" strokeWidth="2" />
+          <circle cx="370" cy="120" r="11" fill="#ffffff" stroke="#1e293b" strokeWidth="2" />
+          <circle cx="370" cy="160" r="11" fill="#ffffff" stroke="#1e293b" strokeWidth="2" />
 
-          <circle cx="415" cy="60" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
-          <circle cx="415" cy="100" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
-          <circle cx="415" cy="140" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <circle cx="415" cy="60" r="11" fill="#ffffff" stroke="#1e293b" strokeWidth="2" />
+          <circle cx="415" cy="100" r="11" fill="#ffffff" stroke="#1e293b" strokeWidth="2" />
+          <circle cx="415" cy="140" r="11" fill="#ffffff" stroke="#1e293b" strokeWidth="2" />
 
-          <circle cx="460" cy="60" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
-          <circle cx="460" cy="100" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
-          <circle cx="460" cy="140" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <circle cx="460" cy="60" r="11" fill="#ffffff" stroke="#1e293b" strokeWidth="2" />
+          <circle cx="460" cy="100" r="11" fill="#ffffff" stroke="#1e293b" strokeWidth="2" />
+          <circle cx="460" cy="140" r="11" fill="#ffffff" stroke="#1e293b" strokeWidth="2" />
 
-          <line x1="381" y1="40" x2="404" y2="60" stroke="#94a3b8" strokeWidth="1" />
-          <line x1="381" y1="80" x2="404" y2="60" stroke="#94a3b8" strokeWidth="1" />
-          <line x1="381" y1="80" x2="404" y2="100" stroke="#94a3b8" strokeWidth="1" />
-          <line x1="381" y1="120" x2="404" y2="100" stroke="#94a3b8" strokeWidth="1" />
-          <line x1="381" y1="160" x2="404" y2="140" stroke="#94a3b8" strokeWidth="1" />
-          <line x1="426" y1="60" x2="449" y2="60" stroke="#94a3b8" strokeWidth="1" />
-          <line x1="426" y1="100" x2="449" y2="100" stroke="#94a3b8" strokeWidth="1" />
-          <line x1="426" y1="140" x2="449" y2="140" stroke="#94a3b8" strokeWidth="1" />
+          <line x1="381" y1="40" x2="404" y2="60" stroke="#94a3b8" strokeWidth="1.2" />
+          <line x1="381" y1="80" x2="404" y2="60" stroke="#94a3b8" strokeWidth="1.2" />
+          <line x1="381" y1="80" x2="404" y2="100" stroke="#94a3b8" strokeWidth="1.2" />
+          <line x1="381" y1="120" x2="404" y2="100" stroke="#94a3b8" strokeWidth="1.2" />
+          <line x1="381" y1="160" x2="404" y2="140" stroke="#94a3b8" strokeWidth="1.2" />
+          <line x1="426" y1="60" x2="449" y2="60" stroke="#94a3b8" strokeWidth="1.2" />
+          <line x1="426" y1="100" x2="449" y2="100" stroke="#94a3b8" strokeWidth="1.2" />
+          <line x1="426" y1="140" x2="449" y2="140" stroke="#94a3b8" strokeWidth="1.2" />
         </g>
 
         {/* Forward Arrow to Prediction */}
         <g className={styles.flowNode} onMouseEnter={() => setActiveStage('train_forward')} onClick={() => setActiveStage('train_forward')}>
-          <line x1="480" y1="85" x2="600" y2="85" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
-          <text x="515" y="75" fill="#3b82f6" fontSize="13" fontWeight="700">Forward</text>
-          <text x="610" y="90" fill="#0f172a" fontSize="16" fontWeight="800">&quot;Strawberry&quot;</text>
+          <line x1="480" y1="85" x2="600" y2="85" stroke="#3b82f6" strokeWidth="3.5" markerEnd="url(#arrowBlue)" />
+          <text x="515" y="75" fill="#3b82f6" fontSize="13" fontWeight="800">Forward</text>
+          <text x="610" y="92" fill="#0f172a" fontSize="17" fontWeight="800">&quot;Strawberry&quot;</text>
         </g>
 
         {/* Ground Truth Label Box */}
-        <rect x="780" y="25" width="90" height="70" rx="6" fill="#ffffff" stroke="#334155" strokeWidth="2" />
-        <circle cx="825" cy="50" r="14" fill="#fef3c7" stroke="#d97706" strokeWidth="2" />
-        <text x="800" y="115" fill="#0f172a" fontSize="14" fontWeight="800">&quot;Bicycle&quot;</text>
+        <g className={styles.flowNode} onMouseEnter={() => setActiveStage('error_calc')} onClick={() => setActiveStage('error_calc')}>
+          <rect x="780" y="20" width="105" height="90" rx="8" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <BicycleSvg x={800} y={35} color="#d97706" scale={1.1} />
+          <text x="805" y="100" fill="#0f172a" fontSize="14" fontWeight="800">&quot;Bicycle&quot;</text>
+        </g>
 
         {/* Ground Truth Arrow to Loss Diamond */}
-        <line x1="790" y1="85" x2="755" y2="85" stroke="#3b82f6" strokeWidth="2.5" markerEnd="url(#arrowBlue)" />
-        <line x1="700" y1="85" x2="725" y2="85" stroke="#3b82f6" strokeWidth="2.5" />
+        <line x1="780" y1="65" x2="755" y2="65" stroke="#3b82f6" strokeWidth="2.5" markerEnd="url(#arrowBlue)" />
+        <line x1="700" y1="65" x2="725" y2="65" stroke="#3b82f6" strokeWidth="2.5" />
 
         {/* Loss Evaluation Diamond Node */}
         <g className={styles.flowNode} onMouseEnter={() => setActiveStage('error_calc')} onClick={() => setActiveStage('error_calc')}>
-          <polygon points="740,70 760,85 740,100 720,85" fill="#ffffff" stroke="#334155" strokeWidth="2" />
-          <text x="736" y="90" fill="#0f172a" fontSize="16" fontWeight="800">?</text>
-          <text x="725" y="118" fill="#475569" fontSize="12" fontWeight="700">Error</text>
+          <polygon points="740,50 760,65 740,80 720,65" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <text x="736" y="70" fill="#0f172a" fontSize="16" fontWeight="800">?</text>
+          <text x="725" y="98" fill="#475569" fontSize="12" fontWeight="700">Error</text>
         </g>
 
         {/* Backpropagation Line */}
         <g className={styles.flowNode} onMouseEnter={() => setActiveStage('backprop')} onClick={() => setActiveStage('backprop')}>
-          <path d="M 740,122 L 740,145 L 350,145" fill="none" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
-          <text x="515" y="162" fill="#3b82f6" fontSize="13" fontWeight="700">Backward (Backpropagation)</text>
+          <path d="M 740,102 L 740,145 L 350,145" fill="none" stroke="#3b82f6" strokeWidth="3.5" markerEnd="url(#arrowBlue)" />
+          <text x="500" y="162" fill="#3b82f6" fontSize="13" fontWeight="800">Backward (Backpropagation)</text>
         </g>
 
         {/* Model Weights Transfer Downward Arrow */}
         <g className={styles.flowNode} onMouseEnter={() => setActiveStage('model_weights')} onClick={() => setActiveStage('model_weights')}>
-          <line x1="415" y1="185" x2="415" y2="245" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
-          <text x="425" y="215" fill="#3b82f6" fontSize="13" fontWeight="700">Model weights</text>
+          <line x1="415" y1="185" x2="415" y2="245" stroke="#3b82f6" strokeWidth="3.5" markerEnd="url(#arrowBlue)" />
+          <text x="425" y="215" fill="#3b82f6" fontSize="13" fontWeight="800">Model weights</text>
         </g>
 
         {/* BOTTOM HALF: INFERENCE */}
         {/* Unseen Input Box */}
         <g className={styles.flowNode} onMouseEnter={() => setActiveStage('unseen_data')} onClick={() => setActiveStage('unseen_data')}>
-          <rect x="130" y="310" width="140" height="110" rx="8" fill="#ffffff" stroke="#334155" strokeWidth="2" />
-          <circle cx="200" cy="355" r="20" fill="#ecfdf5" stroke="#059669" strokeWidth="2" />
-          <text x="175" y="405" fill="#047857" fontSize="14" fontStyle="italic" fontWeight="800">??????</text>
+          <rect x="130" y="300" width="140" height="120" rx="10" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <BicycleSvg x={165} y={320} color="#65a30d" scale={1.25} />
+          <text x="172" y="405" fill="#047857" fontSize="15" fontStyle="italic" fontWeight="800">??????</text>
         </g>
 
         {/* Arrow Unseen Input -> Inference Net */}
-        <line x1="270" y1="365" x2="345" y2="365" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
+        <line x1="270" y1="365" x2="345" y2="365" stroke="#3b82f6" strokeWidth="3.5" markerEnd="url(#arrowBlue)" />
 
         {/* Inference Neural Network (Frozen Weights) */}
         <g className={styles.flowNode} onMouseEnter={() => setActiveStage('inference_pass')} onClick={() => setActiveStage('inference_pass')}>
-          <rect x="350" y="250" width="130" height="170" rx="12" fill="#eff6ff" stroke="#3b82f6" strokeWidth="2" />
+          <rect x="350" y="250" width="130" height="170" rx="14" fill="#eff6ff" stroke="#3b82f6" strokeWidth="2" />
           
-          <circle cx="370" cy="275" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
-          <circle cx="370" cy="315" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
-          <circle cx="370" cy="355" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
-          <circle cx="370" cy="395" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+          <circle cx="370" cy="275" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2.5" />
+          <circle cx="370" cy="315" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2.5" />
+          <circle cx="370" cy="355" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2.5" />
+          <circle cx="370" cy="395" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2.5" />
 
-          <circle cx="415" cy="295" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
-          <circle cx="415" cy="335" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
-          <circle cx="415" cy="375" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+          <circle cx="415" cy="295" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2.5" />
+          <circle cx="415" cy="335" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2.5" />
+          <circle cx="415" cy="375" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2.5" />
 
-          <circle cx="460" cy="295" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
-          <circle cx="460" cy="335" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
-          <circle cx="460" cy="375" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+          <circle cx="460" cy="295" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2.5" />
+          <circle cx="460" cy="335" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2.5" />
+          <circle cx="460" cy="375" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2.5" />
 
-          <line x1="381" y1="275" x2="404" y2="295" stroke="#60a5fa" strokeWidth="1.5" />
-          <line x1="381" y1="315" x2="404" y2="295" stroke="#60a5fa" strokeWidth="1.5" />
-          <line x1="381" y1="315" x2="404" y2="335" stroke="#60a5fa" strokeWidth="1.5" />
-          <line x1="381" y1="355" x2="404" y2="335" stroke="#60a5fa" strokeWidth="1.5" />
-          <line x1="381" y1="395" x2="404" y2="375" stroke="#60a5fa" strokeWidth="1.5" />
-          <line x1="426" y1="295" x2="449" y2="295" stroke="#60a5fa" strokeWidth="1.5" />
-          <line x1="426" y1="335" x2="449" y2="335" stroke="#60a5fa" strokeWidth="1.5" />
-          <line x1="426" y1="375" x2="449" y2="375" stroke="#60a5fa" strokeWidth="1.5" />
+          <line x1="381" y1="275" x2="404" y2="295" stroke="#3b82f6" strokeWidth="1.5" />
+          <line x1="381" y1="315" x2="404" y2="295" stroke="#3b82f6" strokeWidth="1.5" />
+          <line x1="381" y1="315" x2="404" y2="335" stroke="#3b82f6" strokeWidth="1.5" />
+          <line x1="381" y1="355" x2="404" y2="335" stroke="#3b82f6" strokeWidth="1.5" />
+          <line x1="381" y1="395" x2="404" y2="375" stroke="#3b82f6" strokeWidth="1.5" />
+          <line x1="426" y1="295" x2="449" y2="295" stroke="#3b82f6" strokeWidth="1.5" />
+          <line x1="426" y1="335" x2="449" y2="335" stroke="#3b82f6" strokeWidth="1.5" />
+          <line x1="426" y1="375" x2="449" y2="375" stroke="#3b82f6" strokeWidth="1.5" />
         </g>
 
         {/* Forward Arrow to Final Inference Prediction */}
         <g className={styles.flowNode} onMouseEnter={() => setActiveStage('inference_pass')} onClick={() => setActiveStage('inference_pass')}>
-          <line x1="480" y1="335" x2="600" y2="335" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
-          <text x="515" y="325" fill="#3b82f6" fontSize="13" fontWeight="700">Forward</text>
-          <text x="610" y="340" fill="#15803d" fontSize="18" fontWeight="800">&quot;Bicycle&quot;</text>
+          <line x1="480" y1="335" x2="600" y2="335" stroke="#3b82f6" strokeWidth="3.5" markerEnd="url(#arrowBlue)" />
+          <text x="515" y="325" fill="#3b82f6" fontSize="13" fontWeight="800">Forward</text>
+          <text x="610" y="342" fill="#15803d" fontSize="19" fontWeight="900">&quot;Bicycle&quot;</text>
         </g>
       </svg>
 
