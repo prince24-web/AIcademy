@@ -291,8 +291,198 @@ const LLMFlowchartDiagram = () => {
   );
 };
 
+// Training vs Inference Diagram Component (Matching User Reference Diagram Image)
+const TrainingInferenceDiagram = () => {
+  const [activeStage, setActiveStage] = useState(null);
+
+  const stages = {
+    labeled_data: {
+      title: '1. Training Data (Labeled Dataset)',
+      desc: 'Massive amounts of input data labeled with correct answers (e.g. photos tagged as Person, Bicycle, Strawberry). Used to teach the neural network.'
+    },
+    train_forward: {
+      title: '2. Training Forward Pass',
+      desc: 'The input image passes forward through the neural network layers, producing an initial probabilistic prediction (e.g., guessing "Strawberry").'
+    },
+    error_calc: {
+      title: '3. Loss & Error Calculation (?)',
+      desc: 'Compares the model prediction ("Strawberry") with the actual ground truth ("Bicycle"). The difference represents the error/loss.'
+    },
+    backprop: {
+      title: '4. Backward Pass (Backpropagation)',
+      desc: 'The calculated error flows backward through the network, updating weights and biases to reduce future prediction mistakes.'
+    },
+    model_weights: {
+      title: '5. Model Weights Transfer (Frozen Parameters)',
+      desc: 'Once training achieves high accuracy, parameter updating stops. The final optimized weights are saved and transferred to production.'
+    },
+    unseen_data: {
+      title: '6. Unseen Inference Input',
+      desc: 'An end user submits a new, unlabeled input (e.g. a new photo of a bicycle or a prompt). The model has never seen this specific image before.'
+    },
+    inference_pass: {
+      title: '7. Real-Time Inference Forward Pass',
+      desc: 'The unseen input passes forward through the locked/frozen weights in milliseconds, instantly outputting the accurate prediction: "Bicycle"!'
+    }
+  };
+
+  return (
+    <div className={styles.flowchartContainer}>
+      <svg viewBox="0 0 900 480" className={styles.flowchartSvg} style={{ maxWidth: '780px' }}>
+        <defs>
+          <marker id="arrowBlue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+          </marker>
+        </defs>
+
+        {/* SECTION HEADINGS */}
+        <text x="30" y="140" fill="#1d4ed8" fontSize="24" fontWeight="800">Training</text>
+        <text x="30" y="380" fill="#1d4ed8" fontSize="24" fontWeight="800">Inference</text>
+
+        {/* TOP HALF: TRAINING */}
+        {/* 1. Labeled Data Stack */}
+        <g className={styles.flowNode} onMouseEnter={() => setActiveStage('labeled_data')} onClick={() => setActiveStage('labeled_data')}>
+          <rect x="150" y="45" width="130" height="150" rx="8" fill="#ffffff" stroke="#475569" strokeWidth="2" />
+          <rect x="140" y="35" width="130" height="150" rx="8" fill="#ffffff" stroke="#475569" strokeWidth="2" />
+          <rect x="130" y="25" width="130" height="150" rx="8" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          
+          <text x="140" y="45" fill="#1e3a8a" fontSize="13" fontStyle="italic" fontWeight="700">Person</text>
+          <text x="210" y="45" fill="#1e3a8a" fontSize="13" fontStyle="italic" fontWeight="700">Bicycle</text>
+
+          <circle cx="170" cy="115" r="16" fill="#fecdd3" stroke="#e11d48" strokeWidth="2" />
+          <text x="140" y="150" fill="#9f1239" fontSize="13" fontStyle="italic" fontWeight="700">Strawberry</text>
+
+          <text x="220" y="165" fill="#475569" fontSize="11" fontWeight="600" transform="rotate(-30 220 165)">Lots of labeled data!</text>
+        </g>
+
+        {/* Arrow Data -> Training Net */}
+        <line x1="285" y1="100" x2="345" y2="100" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
+
+        {/* 2. Training Neural Network */}
+        <g className={styles.flowNode} onMouseEnter={() => setActiveStage('train_forward')} onClick={() => setActiveStage('train_forward')}>
+          <rect x="350" y="15" width="130" height="170" rx="12" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="4 4" />
+          <circle cx="370" cy="40" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <circle cx="370" cy="80" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <circle cx="370" cy="120" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <circle cx="370" cy="160" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+
+          <circle cx="415" cy="60" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <circle cx="415" cy="100" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <circle cx="415" cy="140" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+
+          <circle cx="460" cy="60" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <circle cx="460" cy="100" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <circle cx="460" cy="140" r="11" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+
+          <line x1="381" y1="40" x2="404" y2="60" stroke="#94a3b8" strokeWidth="1" />
+          <line x1="381" y1="80" x2="404" y2="60" stroke="#94a3b8" strokeWidth="1" />
+          <line x1="381" y1="80" x2="404" y2="100" stroke="#94a3b8" strokeWidth="1" />
+          <line x1="381" y1="120" x2="404" y2="100" stroke="#94a3b8" strokeWidth="1" />
+          <line x1="381" y1="160" x2="404" y2="140" stroke="#94a3b8" strokeWidth="1" />
+          <line x1="426" y1="60" x2="449" y2="60" stroke="#94a3b8" strokeWidth="1" />
+          <line x1="426" y1="100" x2="449" y2="100" stroke="#94a3b8" strokeWidth="1" />
+          <line x1="426" y1="140" x2="449" y2="140" stroke="#94a3b8" strokeWidth="1" />
+        </g>
+
+        {/* Forward Arrow to Prediction */}
+        <g className={styles.flowNode} onMouseEnter={() => setActiveStage('train_forward')} onClick={() => setActiveStage('train_forward')}>
+          <line x1="480" y1="85" x2="600" y2="85" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
+          <text x="515" y="75" fill="#3b82f6" fontSize="13" fontWeight="700">Forward</text>
+          <text x="610" y="90" fill="#0f172a" fontSize="16" fontWeight="800">&quot;Strawberry&quot;</text>
+        </g>
+
+        {/* Ground Truth Label Box */}
+        <rect x="780" y="25" width="90" height="70" rx="6" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+        <circle cx="825" cy="50" r="14" fill="#fef3c7" stroke="#d97706" strokeWidth="2" />
+        <text x="800" y="115" fill="#0f172a" fontSize="14" fontWeight="800">&quot;Bicycle&quot;</text>
+
+        {/* Ground Truth Arrow to Loss Diamond */}
+        <line x1="790" y1="85" x2="755" y2="85" stroke="#3b82f6" strokeWidth="2.5" markerEnd="url(#arrowBlue)" />
+        <line x1="700" y1="85" x2="725" y2="85" stroke="#3b82f6" strokeWidth="2.5" />
+
+        {/* Loss Evaluation Diamond Node */}
+        <g className={styles.flowNode} onMouseEnter={() => setActiveStage('error_calc')} onClick={() => setActiveStage('error_calc')}>
+          <polygon points="740,70 760,85 740,100 720,85" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <text x="736" y="90" fill="#0f172a" fontSize="16" fontWeight="800">?</text>
+          <text x="725" y="118" fill="#475569" fontSize="12" fontWeight="700">Error</text>
+        </g>
+
+        {/* Backpropagation Line */}
+        <g className={styles.flowNode} onMouseEnter={() => setActiveStage('backprop')} onClick={() => setActiveStage('backprop')}>
+          <path d="M 740,122 L 740,145 L 350,145" fill="none" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
+          <text x="515" y="162" fill="#3b82f6" fontSize="13" fontWeight="700">Backward (Backpropagation)</text>
+        </g>
+
+        {/* Model Weights Transfer Downward Arrow */}
+        <g className={styles.flowNode} onMouseEnter={() => setActiveStage('model_weights')} onClick={() => setActiveStage('model_weights')}>
+          <line x1="415" y1="185" x2="415" y2="245" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
+          <text x="425" y="215" fill="#3b82f6" fontSize="13" fontWeight="700">Model weights</text>
+        </g>
+
+        {/* BOTTOM HALF: INFERENCE */}
+        {/* Unseen Input Box */}
+        <g className={styles.flowNode} onMouseEnter={() => setActiveStage('unseen_data')} onClick={() => setActiveStage('unseen_data')}>
+          <rect x="130" y="310" width="140" height="110" rx="8" fill="#ffffff" stroke="#334155" strokeWidth="2" />
+          <circle cx="200" cy="355" r="20" fill="#ecfdf5" stroke="#059669" strokeWidth="2" />
+          <text x="175" y="405" fill="#047857" fontSize="14" fontStyle="italic" fontWeight="800">??????</text>
+        </g>
+
+        {/* Arrow Unseen Input -> Inference Net */}
+        <line x1="270" y1="365" x2="345" y2="365" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
+
+        {/* Inference Neural Network (Frozen Weights) */}
+        <g className={styles.flowNode} onMouseEnter={() => setActiveStage('inference_pass')} onClick={() => setActiveStage('inference_pass')}>
+          <rect x="350" y="250" width="130" height="170" rx="12" fill="#eff6ff" stroke="#3b82f6" strokeWidth="2" />
+          
+          <circle cx="370" cy="275" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+          <circle cx="370" cy="315" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+          <circle cx="370" cy="355" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+          <circle cx="370" cy="395" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+
+          <circle cx="415" cy="295" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+          <circle cx="415" cy="335" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+          <circle cx="415" cy="375" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+
+          <circle cx="460" cy="295" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+          <circle cx="460" cy="335" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+          <circle cx="460" cy="375" r="11" fill="#ffffff" stroke="#1d4ed8" strokeWidth="2" />
+
+          <line x1="381" y1="275" x2="404" y2="295" stroke="#60a5fa" strokeWidth="1.5" />
+          <line x1="381" y1="315" x2="404" y2="295" stroke="#60a5fa" strokeWidth="1.5" />
+          <line x1="381" y1="315" x2="404" y2="335" stroke="#60a5fa" strokeWidth="1.5" />
+          <line x1="381" y1="355" x2="404" y2="335" stroke="#60a5fa" strokeWidth="1.5" />
+          <line x1="381" y1="395" x2="404" y2="375" stroke="#60a5fa" strokeWidth="1.5" />
+          <line x1="426" y1="295" x2="449" y2="295" stroke="#60a5fa" strokeWidth="1.5" />
+          <line x1="426" y1="335" x2="449" y2="335" stroke="#60a5fa" strokeWidth="1.5" />
+          <line x1="426" y1="375" x2="449" y2="375" stroke="#60a5fa" strokeWidth="1.5" />
+        </g>
+
+        {/* Forward Arrow to Final Inference Prediction */}
+        <g className={styles.flowNode} onMouseEnter={() => setActiveStage('inference_pass')} onClick={() => setActiveStage('inference_pass')}>
+          <line x1="480" y1="335" x2="600" y2="335" stroke="#3b82f6" strokeWidth="3" markerEnd="url(#arrowBlue)" />
+          <text x="515" y="325" fill="#3b82f6" fontSize="13" fontWeight="700">Forward</text>
+          <text x="610" y="340" fill="#15803d" fontSize="18" fontWeight="800">&quot;Bicycle&quot;</text>
+        </g>
+      </svg>
+
+      {/* Interactive Step Callout Description Box */}
+      <div className={styles.flowchartInfoBox} style={{ background: '#eff6ff', borderColor: '#93c5fd', color: '#1e3a8a' }}>
+        {activeStage ? (
+          <div>
+            <strong>{stages[activeStage].title}</strong>: {stages[activeStage].desc}
+          </div>
+        ) : (
+          <div>
+            <em>Hover over or click any node in the diagram above to inspect how Training (Backpropagation) vs. Inference (Frozen Weights) operates!</em>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -424,6 +614,11 @@ export default function AILessonArticlePage() {
             {/* LLM Architecture Flowchart Diagram */}
             {lesson.diagram.type === 'llm_flowchart' && (
               <LLMFlowchartDiagram />
+            )}
+
+            {/* Training vs Inference Diagram */}
+            {lesson.diagram.type === 'training_vs_inference' && (
+              <TrainingInferenceDiagram />
             )}
 
             {/* Industry Grid Diagram */}

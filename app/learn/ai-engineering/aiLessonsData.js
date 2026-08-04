@@ -398,5 +398,79 @@ export const aiLessonsData = {
       correctIndex: 1,
       explanation: 'Spot on! Self-attention allows the model to analyze every word in a sentence and calculate how strongly each word relates to other words in context (e.g. knowing "bank" refers to a river vs money).'
     }
+  },
+
+  'ai-2-2': {
+    id: 'ai-2-2',
+    title: 'Training vs. Inference: Teaching AI vs. Putting It to Work',
+    subtitle: 'Understanding the Two Core Phases of the Machine Learning Lifecycle',
+    section: 'Module 2 · Chapter 2',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://www.cloudflare.com/learning/ai/inference-vs-training/',
+    videoUrl: 'https://www.youtube.com/embed/XtT5i0ZeHHE',
+
+    badgeText: 'MODULE 2 • LLM LIFECYCLE',
+    badgeColor: '#3b82f6',
+
+    sections: [
+      {
+        heading: 'The Two Fundamental Phases of AI Development',
+        paragraphs: [
+          'Every artificial intelligence model operates in two completely distinct lifecycle phases: Training and Inference.',
+          'To understand modern AI infrastructure, Cloudflare breaks this down simply: Training is "creating the capability" (learning from past data), while Inference is "delivering the capability" (applying learned knowledge to new, unseen user requests in real time).',
+          'A model cannot answer a user query during inference until it has first completed thousands of hours of compute-heavy training!'
+        ]
+      },
+      {
+        heading: 'Phase 1: AI Training (Creating Capability)',
+        paragraphs: [
+          'Training is the initial development phase where a blank neural network is fed massive amounts of labeled data (such as millions of images of bicycles, people, and strawberries).',
+          '1. Forward Pass: The model receives an image (e.g., a bicycle) and makes an initial random guess (e.g., "Strawberry").',
+          '2. Error Evaluation (Loss Calculation): The system compares its guess against the ground truth label ("Bicycle") and calculates the mathematical error.',
+          '3. Backward Pass (Backpropagation): The error signal is sent backwards through all layers of the neural network, adjusting billions of internal parameters (weights and biases) to reduce future mistakes.',
+          'Characteristics: Training is extremely compute-intensive, requiring thousands of GPUs running continuously for weeks or months. However, it is an offline process that is latency-tolerant.'
+        ]
+      },
+      {
+        heading: 'Phase 2: AI Inference (Delivering Capability)',
+        paragraphs: [
+          'Inference occurs when the trained model is deployed to production for end users. The model weights are frozen—meaning the network no longer updates its parameters during this phase.',
+          '1. Unseen Input: A user uploads a new, unseen image of a bicycle or types a ChatGPT prompt.',
+          '2. Single Forward Pass: The neural network processes the input through its frozen weights in a single forward direction.',
+          '3. Instant Prediction: The model outputs its prediction ("Bicycle") immediately without any backpropagation or weight modification.',
+          'Characteristics: Inference is continuous, user-facing, and latency-critical. Users expect responses in under 100 milliseconds, requiring global edge networks (like Cloudflare Workers AI) to run models close to users.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Medical School vs. An ER Doctor on Shift',
+      text: 'AI Training is like attending 8 years of Medical School: you study thousands of medical textbooks (data), take practice exams, get graded on your mistakes (backpropagation), and adjust your knowledge. AI Inference is like being an ER Doctor on shift: a patient enters with symptoms (new input), and using your fixed, frozen medical knowledge, you immediately diagnose them (output) in seconds!'
+    },
+
+    diagram: {
+      type: 'training_vs_inference',
+      title: 'Interactive Pipeline: Training (Forward/Backward Loss Update) vs. Inference (Frozen Weight Forward Pass)'
+    },
+
+    takeaways: [
+      'Training is the offline development phase that teaches a model using labeled data, forward passes, loss calculation, and backpropagation.',
+      'Backpropagation updates internal model weights and biases during training to minimize prediction error.',
+      'Inference is the real-time production phase where a model with frozen weights processes unseen user inputs in a single forward pass.',
+      'Training prioritizes massive GPU compute throughput over weeks, while Inference prioritizes ultra-low latency (<100ms) for real-time applications.',
+      'Over a model\'s lifecycle, 65% to 80% of total compute costs are spent on Inference because it runs continuously 24/7 for millions of end users.'
+    ],
+
+    quiz: {
+      question: 'What happens to a Neural Network\'s weights during the AI Inference phase?',
+      options: [
+        'They are continuously recalculated using backpropagation after every user prompt',
+        'They are completely deleted to save server memory',
+        'They are frozen and remain fixed while processing new inputs in a single forward pass',
+        'They double in size every time a user asks a question'
+      ],
+      correctIndex: 2,
+      explanation: 'Correct! During inference, model weights are locked/frozen. The network evaluates new user inputs in a single fast forward pass without making parameter updates.'
+    }
   }
 };
