@@ -144,25 +144,39 @@ export const aiLessonsData = {
     title: 'Types of AI: Narrow AI vs AGI',
     subtitle: 'Where We Are Today vs Where Science is Heading',
     section: 'Module 1 · Chapter 3',
-    estimatedTime: '5 min read',
+    estimatedTime: '6 min read',
     gfgUrl: 'https://www.geeksforgeeks.org/types-of-artificial-intelligence/',
+    videoUrl: 'https://www.youtube.com/embed/XFZ-rQ8eeR8',
 
     badgeText: 'CONCEPT LESSON',
     badgeColor: '#059669',
 
     sections: [
       {
-        heading: 'Narrow AI (ANI) — The AI of Today',
+        heading: 'Artificial Narrow Intelligence (ANI) — The AI of Today',
         paragraphs: [
-          'Artificial Narrow Intelligence (ANI), also known as "Weak AI", refers to AI systems designed to perform one specific task with high proficiency.',
-          'Every AI system in existence today—from Apple\'s Siri, Google Translate, and Tesla Autopilot to ChatGPT—is Narrow AI! While ChatGPT feels amazingly versatile, it is still a narrow language model designed specifically to predict text tokens.'
+          'Artificial Narrow Intelligence (ANI), often referred to as "Weak AI", is designed to master one single specific task or a narrow domain of expertise.',
+          'Every AI tool operating in the world today—including Siri, Google Search, Tesla Autopilot, Midjourney, and Large Language Models like ChatGPT—is Narrow AI!',
+          'Key Characteristics of Narrow AI:',
+          '• Hyper-Specialized: It performs its single designated task (like playing chess or predicting the next word) faster and more accurately than any human.',
+          '• Domain-Bound: If you ask AlphaGo (an AI that defeated world champions at the game of Go) to write a essay on history or diagnose a medical scan, it will completely fail because it lacks general reasoning outside its narrow code.'
         ]
       },
       {
-        heading: 'Artificial General Intelligence (AGI) — The Future Goal',
+        heading: 'Artificial General Intelligence (AGI) — The Future Milestone',
         paragraphs: [
-          'Artificial General Intelligence (AGI), often called "Strong AI", refers to a hypothetical AI system that possesses human-level intellect across all domains.',
-          'An AGI could learn physics, compose music, diagnose medical conditions, build software, and understand human emotion seamlessly, adapting to completely new tasks without needing to be retrained from scratch. AGI does not exist yet!'
+          'Artificial General Intelligence (AGI), also called "Strong AI", refers to a hypothetical machine that possesses human-level cognitive intelligence across every intellectual domain.',
+          'Unlike Narrow AI, an AGI would not need to be retrained for new tasks. It would demonstrate human flexibility:',
+          '• Cross-Domain Reasoning: It could learn physics, compose music, negotiate business contracts, write software, and understand human emotion seamlessly.',
+          '• Autonomous Problem-Solving: It can confront completely unseen problems, formulate novel scientific hypotheses, and adapt to changing environments without human intervention.',
+          'Status: AGI remains a theoretical scientific milestone currently being actively researched by leading AI labs worldwide.'
+        ]
+      },
+      {
+        heading: 'Artificial Superintelligence (ASI) — Beyond Human Capabilities',
+        paragraphs: [
+          'Artificial Superintelligence (ASI) represents a theoretical future stage where AI surpasses human intelligence across all fields—including scientific creativity, general wisdom, and social skills.',
+          'An ASI would possess processing speeds, memory capacity, and analytical capabilities millions of times greater than the combined cognitive power of all human brains.'
         ]
       }
     ],
@@ -186,21 +200,22 @@ export const aiLessonsData = {
     },
 
     takeaways: [
-      'All current AI tools in existence (including ChatGPT, Gemini, and Midjourney) are Narrow AI (ANI).',
+      'All current AI systems operating today (including Large Language Models like ChatGPT) are Artificial Narrow Intelligence (ANI).',
       'Narrow AI excels at specific tasks but cannot operate outside its trained domain.',
-      'AGI (Artificial General Intelligence) represents future AI capable of human-level reasoning across all fields.'
+      'Artificial General Intelligence (AGI) is future theoretical AI capable of human-level adaptability across any domain.',
+      'Artificial Superintelligence (ASI) represents a hypothetical stage surpassing human intelligence in every field.'
     ],
 
     quiz: {
       question: 'Why is ChatGPT classified as Narrow AI (ANI) rather than Artificial General Intelligence (AGI)?',
       options: [
         'Because ChatGPT is bad at spelling',
-        'Because it is trained specifically on language processing and lacks true general human reasoning',
+        'Because it is trained specifically on language processing and lacks true general human reasoning across arbitrary tasks',
         'Because it cannot connect to the internet',
         'Because it was built by a small team'
       ],
       correctIndex: 1,
-      explanation: 'Correct! Even though ChatGPT is remarkably capable, it is still a specialized probabilistic language model (Narrow AI), not a conscious, general-reasoning entity (AGI).'
+      explanation: 'Correct! Even though ChatGPT is remarkably capable, it is still a specialized probabilistic language model (Narrow AI), not a general-reasoning entity (AGI).'
     }
   },
 
