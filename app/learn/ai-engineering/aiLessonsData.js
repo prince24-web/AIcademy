@@ -593,5 +593,110 @@ export const aiLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! RNNs processed words one-at-a-time in sequence, which meant they forgot early context in long passages and could not be parallelized efficiently across GPU clusters. Transformers solved both problems by processing all words simultaneously and using attention to maintain context across any distance.'
     }
+  },
+
+  'ai-2-4': {
+    id: 'ai-2-4',
+    title: 'Tokens & Tokenization',
+    subtitle: 'LLMs Do Not Read Words — They Read Tokens. Here Is Why That Matters.',
+    section: 'Module 2 · Chapter 4',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://huggingface.co/docs/transformers/tokenizer_summary',
+    videoUrl: 'https://www.youtube.com/embed/bNjVxUDZQfM',
+
+    badgeText: 'CORE CONCEPT',
+    badgeColor: '#0ea5e9',
+
+    sections: [
+      {
+        heading: 'LLMs Do Not Predict Words — They Predict Tokens',
+        paragraphs: [
+          'You have probably heard that ChatGPT, Gemini, or any other Large Language Model is trained to "predict the next word." That is a helpful simplification, but it is not technically accurate.',
+          'Modern LLMs are trained to predict something called tokens — and tokens are not always the same thing as words. Understanding this distinction is one of the most important (and most overlooked) ideas in how LLMs actually work.',
+          'Tokenization is the process of breaking a block of text into a sequence of discrete units called tokens. These tokens form the model\'s vocabulary — the complete set of things the model can recognize as input and produce as output. Before training can even begin, every design decision about what a "token" means must be made.'
+        ]
+      },
+      {
+        heading: 'Why Tokenization Is Necessary: Computers Do Not Know What Words Are',
+        paragraphs: [
+          'To a computer, a sentence like "The quick brown fox jumped over the lazy dog" is just one long unbroken chain of Unicode characters. A program does not automatically know where one word ends and another begins — you have to tell it.',
+          'Tokenization solves this problem by splitting the input string into a list of discrete units. Take the sentence above:',
+          '• Word-level tokenization splits on spaces: ["The", "quick", "brown", "fox", "jumped", "over", "the", "lazy", "dog"]',
+          '• Each word is then assigned a unique integer ID. The word "the" gets ID 1996 in BERT\'s vocabulary. Both occurrences of "the" in a sentence map to the same ID: 1996.',
+          '• Those IDs are then looked up in an embedding table — converting each token into a vector of numbers that the model can actually process.'
+        ]
+      },
+      {
+        heading: 'The Three Approaches: Word, Character, and Subword Tokenization',
+        paragraphs: [
+          'There are three main philosophies for deciding what a "token" should be, and each has serious trade-offs.',
+          'Approach 1 — Word-Level Tokenization: Split text on spaces. Simple, but creates an enormous vocabulary with hundreds of thousands of entries — one for every unique word. Worse, any word the model has never seen before ("out-of-vocabulary" words, OOV) breaks the system entirely, because there is no ID for it.',
+          'Approach 2 — Character-Level Tokenization: Treat each individual character as a token. The vocabulary shrinks to just ~100 characters, so OOV words are never a problem. But it creates a new problem: the model must now predict meaning from tiny character fragments. To "remember" what happened three words ago, the model needs a context window of ~15 characters instead of 3 words. Everything becomes harder to learn.',
+          'Approach 3 — Subword Tokenization: The modern standard. Common words stay as a single token; rare or unfamiliar words are split into smaller, frequently-occurring substrings. This captures the best of both worlds: a manageable vocabulary and flexibility for unknown words.'
+        ]
+      },
+      {
+        heading: 'Byte-Pair Encoding (BPE): How Modern LLMs Build Their Vocabulary',
+        paragraphs: [
+          'The most widely used subword tokenization algorithm is Byte-Pair Encoding (BPE), which is used by GPT-2, GPT-3, GPT-4, and many other major models.',
+          'BPE works through a progressive merging process:',
+          '• Step 1 — Start with individual characters: The initial vocabulary contains every individual character that appears in the training text: "d", "o", "g", "s", etc.',
+          '• Step 2 — Find the most frequent pair and merge it: The algorithm scans the entire training corpus and finds the most frequently occurring pair of adjacent symbols. If "d" and "o" appear together most often, they are merged into a new token "do". The vocabulary now contains individual characters plus the string "do".',
+          '• Step 3 — Repeat: This process continues iteratively. Next, "do" might merge with "g" to form "dog". Common words build up into single tokens; rare words stay fragmented into subwords.',
+          '• Step 4 — Stop at a target vocabulary size: A researcher sets a vocabulary size limit upfront — for example, 50,000 tokens. BPE keeps merging until that limit is reached. GPT-3 uses a vocabulary of approximately 50,257 tokens.',
+          'The intuition: very common words like "the", "is", "a" each get their own single token. Less common words like "tokenization" might be split as "token" + "ization". Very rare or invented words like "xyzplort" might be split character by character.'
+        ]
+      },
+      {
+        heading: 'Subwords and Morphemes: A Surprising Connection to Human Language',
+        paragraphs: [
+          'Linguists who study human language recognize a concept called a morpheme — the smallest meaningful unit of a word. "Unhappiness" consists of three morphemes: "un-" (negation), "happy" (the root), and "-ness" (a suffix that turns adjectives into nouns).',
+          'Subword tokenization, it turns out, often recovers something very close to morphemes — not because it was designed to, but because morphemes tend to be frequent substrings that recur across many words.',
+          'For example, BERT\'s tokenizer decomposes "racket" as ["rack", "##et"]. The "##" prefix means "this token continues a word, it is not the start of a new one." These subword tokens are assigned their own unique embeddings, just like full words.',
+          'However, the alignment is not perfect. The tokenizer splits by frequency, not by linguistic meaning. The word "vanquish" might become ["van", "##qui", "##sh"] — which has no meaningful linguistic decomposition. The algorithm does not know what a morpheme is; it only knows what is statistically common.'
+        ]
+      },
+      {
+        heading: 'How Tokenization Causes Surprising LLM Failures',
+        paragraphs: [
+          'Tokenization is not just a behind-the-scenes detail — it directly causes specific, observable failure modes that you have probably encountered when using ChatGPT or other LLMs.',
+          'Counting characters: Ask an LLM "How many letters are in the word strawberry?" and it will often get it wrong. This is because the model sees "strawberry" as a single opaque token, not a sequence of individual letters. It cannot reliably count the letters inside a token it has never needed to decompose.',
+          'Arithmetic: LLMs often struggle with basic arithmetic on numbers like 12,456,789. Because numbers are split into arbitrary subword tokens rather than individual digits, the model does not see each digit as a separate, countable unit.',
+          'Rare words and names: Proper nouns from minority languages or unusual personal names often get fragmented into many small subword tokens. The model has seen these fragments rarely and in unrelated contexts, so it builds poor representations of what they mean.',
+          'Tokenization is a deliberate engineering trade-off, not a limitation to be ashamed of. But understanding it helps you understand why LLMs sometimes fail in weirdly specific, counterintuitive ways.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Bricks, Sand, and Prefab Panels',
+      text: 'Imagine building a house. Character-level tokenization is like building with individual grains of sand — incredibly flexible, but impossibly slow. Word-level tokenization is like using pre-built rooms — fast and precise for common designs, but useless if you need a room shape you have never built before. Subword tokenization is like using bricks of different sizes: small bricks for unusual shapes, large prefab panels for standard parts. You get efficiency where you need it and flexibility where you need that.'
+    },
+
+    diagram: {
+      type: 'tokenization',
+      title: 'Interactive Tokenization: Word, Character, and Subword Approaches Compared'
+    },
+
+    takeaways: [
+      'LLMs predict tokens, not words. Tokens can be whole words, word fragments (subwords), or individual characters.',
+      'Word-level tokenization creates huge vocabularies and fails on any word not seen during training (OOV problem).',
+      'Character-level tokenization has a tiny vocabulary but makes it harder to learn meaning, and requires far longer context windows.',
+      'Subword tokenization (the modern standard) keeps common words as single tokens and breaks rare words into frequent substrings.',
+      'Byte-Pair Encoding (BPE) builds a vocabulary by iteratively merging the most frequent character pairs until a target vocabulary size is reached.',
+      'Tokenization causes real LLM failures: counting letters, arithmetic, and rare proper nouns all suffer because of how tokens are assigned.'
+    ],
+
+    quiz: {
+      question: 'Why does asking an LLM "how many letters are in the word strawberry?" often produce a wrong answer?',
+      options: [
+        'LLMs are not designed to process English spelling at all',
+        'The word "strawberry" is likely a single opaque token — the model never sees its individual letters as separate countable units',
+        'LLMs always get counting questions wrong because they cannot do math',
+        'The word "strawberry" is not in any LLM training dataset'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! Because "strawberry" is often a single token, the model does not process its internal letter structure. It sees the whole word as an atomic unit and cannot reliably count the characters inside it — a direct consequence of how subword tokenization works.'
+    }
   }
 };

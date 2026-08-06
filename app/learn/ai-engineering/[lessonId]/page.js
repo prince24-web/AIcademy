@@ -703,8 +703,225 @@ const TransformerDiagram = () => {
   );
 };
 
+// ─── TOKENIZATION DIAGRAM ───────────────────────────────────────────────────
+const TokenizationDiagram = () => {
+  const [activeTab, setActiveTab] = useState('subword');
+  const [bpeStep, setBpeStep] = useState(0);
+  const [hoverToken, setHoverToken] = useState(null);
+
+  const sentence = 'The quick brown fox';
+
+  const wordTokens = [
+    { text: 'The', id: 1996, color: '#06b6d4' },
+    { text: 'quick', id: 4248, color: '#8b5cf6' },
+    { text: 'brown', id: 2829, color: '#f59e0b' },
+    { text: 'fox', id: 4419, color: '#10b981' },
+  ];
+
+  const charTokens = ['T','h','e',' ','q','u','i','c','k',' ','b','r','o','w','n',' ','f','o','x'];
+
+  const subwordTokens = [
+    { text: 'The', note: 'common word → single token', color: '#06b6d4' },
+    { text: 'quick', note: 'common word → single token', color: '#8b5cf6' },
+    { text: 'bro', note: 'frequent subword', color: '#f59e0b' },
+    { text: '##wn', note: 'continuation subword', color: '#f59e0b' },
+    { text: 'fox', note: 'common word → single token', color: '#10b981' },
+  ];
+
+  const bpeSteps = [
+    { vocab: ['d', 'o', 'g', 's', 'c', 'a', 't'], merge: null, desc: 'Start: vocabulary = individual characters only.' },
+    { vocab: ['d', 'o', 'g', 's', 'c', 'a', 't', 'do'], merge: 'd+o → do', desc: '"d" and "o" are the most frequent pair. Merge them into "do".' },
+    { vocab: ['d', 'o', 'g', 's', 'c', 'a', 't', 'do', 'dog'], merge: 'do+g → dog', desc: '"do" and "g" are now the most frequent pair. Merge into "dog".' },
+    { vocab: ['d', 'o', 'g', 's', 'c', 'a', 't', 'do', 'dog', 'dogs'], merge: 'dog+s → dogs', desc: '"dog" + "s" merge. Plural form "dogs" is now a single token.' },
+    { vocab: ['d', 'o', 'g', 's', 'c', 'a', 't', 'do', 'dog', 'dogs', 'cat'], merge: 'c+a+t → cat', desc: '"cat" assembles from characters. All common words become single tokens.' },
+  ];
+
+  const failureExamples = [
+    { input: 'How many letters in "strawberry"?', issue: '"strawberry" is 1 opaque token', result: 'Model often says 8 or 9 (wrong — it is 10)', color: '#f87171' },
+    { input: '12,456,789 + 1 = ?', issue: 'Numbers split into arbitrary subword tokens', result: 'Digit-by-digit arithmetic breaks down', color: '#fb923c' },
+    { input: 'Translate the name "Dzintars"', issue: 'Rare name splits into 4+ unusual subword fragments', result: 'Poor embedding quality, inaccurate translation', color: '#fbbf24' },
+  ];
+
+  const tabs = [
+    { id: 'word', label: 'Word-Level', color: '#f87171' },
+    { id: 'char', label: 'Character-Level', color: '#fb923c' },
+    { id: 'subword', label: 'Subword (BPE)', color: '#a78bfa' },
+    { id: 'bpe', label: 'BPE Animation', color: '#34d399' },
+    { id: 'fail', label: 'LLM Failures', color: '#f59e0b' },
+  ];
+
+  return (
+    <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+      {/* TAB BAR */}
+      <div style={{ display: 'flex', gap: '0.5rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            padding: '0.4rem 0.9rem', borderRadius: '999px', border: `1.5px solid ${t.color}`,
+            background: activeTab === t.id ? t.color : 'transparent',
+            color: activeTab === t.id ? '#0f172a' : t.color,
+            fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* WORD LEVEL */}
+      {activeTab === 'word' && (
+        <div style={{ padding: '1.25rem 1.5rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>Sentence: <em style={{ color: '#e2e8f0' }}>"The quick brown fox"</em></p>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            {wordTokens.map((t, i) => (
+              <div key={i} onMouseEnter={() => setHoverToken(i)} onMouseLeave={() => setHoverToken(null)}
+                style={{ background: hoverToken === i ? `${t.color}30` : `${t.color}15`, border: `2px solid ${t.color}`,
+                  borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: 'pointer', transition: 'all 0.2s' }}>
+                <div style={{ color: t.color, fontWeight: 700, fontSize: '1rem' }}>{t.text}</div>
+                <div style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '0.2rem' }}>ID: {t.id}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: '#1e293b', borderRadius: '8px', padding: '0.75rem 1rem', border: '1px solid #334155' }}>
+            <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginBottom: '0.3rem' }}>Token IDs fed into model:</div>
+            <code style={{ color: '#67e8f9', fontSize: '0.9rem' }}>[1996, 4248, 2829, 4419]</code>
+          </div>
+          <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: '#3f1818', border: '1px solid #f87171', borderRadius: '8px' }}>
+            <strong style={{ color: '#f87171', fontSize: '0.8rem' }}>Trade-off:</strong>
+            <span style={{ color: '#fca5a5', fontSize: '0.8rem' }}> Huge vocabulary (100k+ words). Any unseen word = system failure (OOV problem).</span>
+          </div>
+        </div>
+      )}
+
+      {/* CHARACTER LEVEL */}
+      {activeTab === 'char' && (
+        <div style={{ padding: '1.25rem 1.5rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>Every individual character becomes its own token:</p>
+          <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            {charTokens.map((c, i) => (
+              <div key={i} style={{ background: c === ' ' ? '#1e293b' : '#1c1040', border: `1.5px solid ${c === ' ' ? '#334155' : '#8b5cf6'}`,
+                borderRadius: '5px', padding: '0.3rem 0.45rem', minWidth: '2rem', textAlign: 'center' }}>
+                <span style={{ color: c === ' ' ? '#475569' : '#c4b5fd', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'monospace' }}>
+                  {c === ' ' ? '\u2423' : c}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: '#1e293b', borderRadius: '8px', padding: '0.75rem 1rem', border: '1px solid #334155', marginBottom: '1rem' }}>
+            <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>19 tokens for 4 words (vs. 4 tokens word-level). Context window cost is ~5x larger.</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div style={{ padding: '0.6rem 0.8rem', background: '#0c2a1f', border: '1px solid #34d399', borderRadius: '7px' }}>
+              <strong style={{ color: '#34d399', fontSize: '0.78rem' }}>Pro:</strong>
+              <span style={{ color: '#6ee7b7', fontSize: '0.78rem' }}> Tiny vocabulary (~100). No OOV words ever.</span>
+            </div>
+            <div style={{ padding: '0.6rem 0.8rem', background: '#3f1818', border: '1px solid #f87171', borderRadius: '7px' }}>
+              <strong style={{ color: '#f87171', fontSize: '0.78rem' }}>Con:</strong>
+              <span style={{ color: '#fca5a5', fontSize: '0.78rem' }}> Learning meaning from characters is extremely hard. Needs huge context window.</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUBWORD */}
+      {activeTab === 'subword' && (
+        <div style={{ padding: '1.25rem 1.5rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>Hover each token to see how it was assigned:</p>
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+            {subwordTokens.map((t, i) => (
+              <div key={i} onMouseEnter={() => setHoverToken(i)} onMouseLeave={() => setHoverToken(null)}
+                style={{ background: hoverToken === i ? `${t.color}25` : `${t.color}12`, border: `2px solid ${t.color}`,
+                  borderRadius: '8px', padding: '0.45rem 0.75rem', cursor: 'pointer', transition: 'all 0.2s', minWidth: '2.5rem', textAlign: 'center' }}>
+                <div style={{ color: t.color, fontWeight: 700, fontSize: '1rem', fontFamily: 'monospace' }}>{t.text}</div>
+                {hoverToken === i && (
+                  <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginTop: '0.2rem', whiteSpace: 'nowrap' }}>{t.note}</div>
+                )}
+              </div>
+            ))}
+          </div>
+          <svg viewBox="0 0 680 100" style={{ width: '100%', maxHeight: 100, display: 'block', marginBottom: '1rem' }}>
+            <defs>
+              <linearGradient id="freqGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#a78bfa" /><stop offset="100%" stopColor="#34d399" />
+              </linearGradient>
+            </defs>
+            <rect x="20" y="20" width="640" height="18" rx="9" fill="#1e293b" />
+            <rect x="20" y="20" width="500" height="18" rx="9" fill="url(#freqGrad)" />
+            <text x="20" y="56" fill="#94a3b8" fontSize="11">Rare / long words</text>
+            <text x="560" y="56" fill="#94a3b8" fontSize="11" textAnchor="end">Common words</text>
+            <text x="20" y="72" fill="#c4b5fd" fontSize="10">split into many subword tokens</text>
+            <text x="560" y="72" fill="#6ee7b7" fontSize="10" textAnchor="end">single token each</text>
+          </svg>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div style={{ padding: '0.6rem 0.8rem', background: '#0c2a1f', border: '1px solid #34d399', borderRadius: '7px' }}>
+              <strong style={{ color: '#34d399', fontSize: '0.78rem' }}>Pro:</strong>
+              <span style={{ color: '#6ee7b7', fontSize: '0.78rem' }}> Manageable vocabulary (30k–50k). Handles unknown words gracefully.</span>
+            </div>
+            <div style={{ padding: '0.6rem 0.8rem', background: '#1c1200', border: '1px solid #f59e0b', borderRadius: '7px' }}>
+              <strong style={{ color: '#f59e0b', fontSize: '0.78rem' }}>Con:</strong>
+              <span style={{ color: '#fcd34d', fontSize: '0.78rem' }}> Rare words still get weird splits. Tokenization affects LLM reasoning ability.</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BPE ANIMATION */}
+      {activeTab === 'bpe' && (
+        <div style={{ padding: '1.25rem 1.5rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>Click "Next Step" to watch Byte-Pair Encoding build a vocabulary:</p>
+          <div style={{ background: '#0c1a2e', border: '1px solid #0ea5e9', borderRadius: '10px', padding: '1rem', marginBottom: '1rem' }}>
+            <div style={{ color: '#7dd3fc', fontSize: '0.8rem', marginBottom: '0.5rem', fontWeight: 700 }}>Step {bpeStep + 1} of {bpeSteps.length}</div>
+            {bpeSteps[bpeStep].merge && (
+              <div style={{ color: '#34d399', fontSize: '0.85rem', marginBottom: '0.5rem', fontFamily: 'monospace' }}>Merge: {bpeSteps[bpeStep].merge}</div>
+            )}
+            <div style={{ color: '#e2e8f0', fontSize: '0.85rem' }}>{bpeSteps[bpeStep].desc}</div>
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ color: '#64748b', fontSize: '0.75rem', marginBottom: '0.4rem' }}>Current vocabulary:</div>
+            <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+              {bpeSteps[bpeStep].vocab.map((v, i) => {
+                const isNew = bpeStep > 0 && !bpeSteps[bpeStep - 1].vocab.includes(v);
+                return (
+                  <span key={i} style={{ background: isNew ? '#0c2a1f' : '#1e293b', border: `1.5px solid ${isNew ? '#34d399' : '#334155'}`,
+                    color: isNew ? '#34d399' : '#94a3b8', borderRadius: '5px', padding: '0.2rem 0.45rem',
+                    fontSize: '0.82rem', fontFamily: 'monospace', fontWeight: isNew ? 700 : 400 }}>{v}</span>
+                );
+              })}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button onClick={() => setBpeStep(s => Math.max(0, s - 1))} disabled={bpeStep === 0}
+              style={{ padding: '0.4rem 1rem', borderRadius: '7px', border: '1.5px solid #475569',
+                background: bpeStep === 0 ? 'transparent' : '#1e293b', color: '#94a3b8', cursor: bpeStep === 0 ? 'not-allowed' : 'pointer', fontSize: '0.82rem' }}>Back</button>
+            <button onClick={() => setBpeStep(s => Math.min(bpeSteps.length - 1, s + 1))} disabled={bpeStep === bpeSteps.length - 1}
+              style={{ padding: '0.4rem 1rem', borderRadius: '7px', border: '1.5px solid #34d399',
+                background: bpeStep === bpeSteps.length - 1 ? 'transparent' : '#0c2a1f',
+                color: '#34d399', cursor: bpeStep === bpeSteps.length - 1 ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: '0.82rem' }}>Next Step</button>
+          </div>
+        </div>
+      )}
+
+      {/* LLM FAILURES */}
+      {activeTab === 'fail' && (
+        <div style={{ padding: '1.25rem 1.5rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>Tokenization causes real, observable LLM failure modes:</p>
+          {failureExamples.map((f, i) => (
+            <div key={i} style={{ background: `${f.color}0f`, border: `1.5px solid ${f.color}50`, borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '0.65rem' }}>
+              <div style={{ color: f.color, fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.3rem' }}>Input: "{f.input}"</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.25rem' }}>Token issue: {f.issue}</div>
+              <div style={{ color: '#cbd5e1', fontSize: '0.8rem' }}>Result: {f.result}</div>
+            </div>
+          ))}
+          <div style={{ marginTop: '0.75rem', padding: '0.75rem 1rem', background: '#1a1000', border: '1px solid #f59e0b', borderRadius: '8px' }}>
+            <strong style={{ color: '#f59e0b', fontSize: '0.8rem' }}>Key insight:</strong>
+            <span style={{ color: '#fcd34d', fontSize: '0.8rem' }}> These failures are not bugs — they are the expected consequence of how tokenization works. Once you understand tokens, you can predict exactly when and why an LLM will struggle.</span>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -846,6 +1063,11 @@ export default function AILessonArticlePage() {
             {/* Transformer Architecture Diagram */}
             {lesson.diagram.type === 'transformer_architecture' && (
               <TransformerDiagram />
+            )}
+
+            {/* Tokenization Diagram */}
+            {lesson.diagram.type === 'tokenization' && (
+              <TokenizationDiagram />
             )}
 
             {/* Industry Grid Diagram */}
