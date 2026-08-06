@@ -698,5 +698,112 @@ export const aiLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! Because "strawberry" is often a single token, the model does not process its internal letter structure. It sees the whole word as an atomic unit and cannot reliably count the characters inside it — a direct consequence of how subword tokenization works.'
     }
+  },
+
+  'ai-2-5': {
+    id: 'ai-2-5',
+    title: 'Context Window & Memory Limits',
+    subtitle: 'The Working Memory of an LLM — What It Holds, How Big It Gets, and Why Size Has a Cost',
+    section: 'Module 2 · Chapter 5',
+    estimatedTime: '7 min read',
+    gfgUrl: 'https://www.geeksforgeeks.org/context-window-in-llm/',
+    videoUrl: 'https://www.youtube.com/embed/-QVoIxEpFkM',
+
+    badgeText: 'CORE CONCEPT',
+    badgeColor: '#0ea5e9',
+
+    sections: [
+      {
+        heading: 'What Is a Context Window? The Working Memory Analogy',
+        paragraphs: [
+          'When you have a conversation with an LLM like ChatGPT, the model does not have a persistent memory the way a human does. It only knows what is directly in front of it right now — and the "container" that holds everything it can currently see is called the context window.',
+          'Think of it as the model\'s working memory: the active desk space where it keeps everything it needs to generate the next response. Everything outside the context window simply does not exist for the model in that moment.',
+          'In concrete terms: the context window determines how long of a conversation the LLM can carry out before it starts forgetting what happened at the beginning. Once the conversation exceeds the window, the oldest content is dropped — and the model must rely on educated guesses about what came before. Those guesses can produce hallucinations.'
+        ]
+      },
+      {
+        heading: 'What Actually Fills the Context Window?',
+        paragraphs: [
+          'Many people assume the context window is just their chat messages back and forth with the model. In reality, multiple categories of content compete for that limited space simultaneously.',
+          'User input: Your typed messages, questions, and instructions to the model.',
+          'Model responses: Every response the model has already generated in the current session. These are fed back in so the model can maintain conversational continuity.',
+          'System prompt: Most LLM deployments include a hidden block of instructions injected at the top of every context window. This text tells the model its persona, what it can and cannot do, and how it should behave — all before you type a single word.',
+          'Attached documents and source code: A user can paste in a PDF, a code file, or any reference document. This text is placed inside the context window for the model to consult while generating responses.',
+          'RAG (Retrieval-Augmented Generation) context: Many production AI systems automatically search a knowledge base and inject relevant document chunks into the context window right before inference runs. This is how enterprise chatbots answer questions about company-specific knowledge without fine-tuning the model.',
+          'A few long documents or a large codebase can fill a context window faster than you might expect — even one with 128,000 token capacity.'
+        ]
+      },
+      {
+        heading: 'How Context Window Size Has Grown',
+        paragraphs: [
+          'Context window sizes have expanded dramatically since the first generation of publicly accessible LLMs.',
+          'Early GPT-3 models (2020) had context windows of approximately 2,048 tokens — enough for about 1,500 words, or a short essay.',
+          'GPT-4 (2023) launched with an 8,192-token context window, later expanding to 128,000 tokens in GPT-4 Turbo.',
+          'IBM Granite 3 offers a 128,000-token context window — roughly the length of an entire novel.',
+          'Gemini 1.5 Pro (2024) pushed the boundary to 1,000,000 tokens, enabling analysis of entire codebases, hour-long videos, or thousands of documents in a single call.',
+          'The rapid expansion has been driven by improvements in hardware (faster GPUs and TPUs), architectural innovations that reduce the cost of attending to longer sequences, and practical demand from enterprise users who need to process large documents.'
+        ]
+      },
+      {
+        heading: 'The Hidden Cost: Why Compute Scales Quadratically',
+        paragraphs: [
+          'Larger context windows sound purely beneficial — but they come with a serious engineering cost that is not obvious at first glance.',
+          'Recall from the Transformers lesson: the self-attention mechanism computes the relationship between every token and every other token in the sequence. When the model predicts the next token, it must compute how relevant every preceding token is to that prediction.',
+          'This means that as the number of tokens in the context doubles, the amount of computation required does not double — it quadruples. Compute scales quadratically (O(n²)) with context length.',
+          'A concrete example: if processing a 1,000-token context requires 1 unit of compute, then a 2,000-token context requires 4 units, a 4,000-token context requires 16 units, and a 128,000-token context requires many thousands of times more compute than a 2,000-token one.',
+          'This is why long-context inference is expensive: serving large-context queries requires significantly more GPU memory and computation time per request, which directly translates into higher cost and higher latency for users.'
+        ]
+      },
+      {
+        heading: 'The "Lost in the Middle" Problem: Performance Degrades in Long Contexts',
+        paragraphs: [
+          'Expanding the context window does not automatically make the model better at using all that information. Research published in 2023 uncovered a counterintuitive finding that has important practical implications.',
+          'The study found that LLMs perform best when relevant information is positioned at the beginning or at the end of the input context. When the critical piece of information sits in the middle of a very long context, model performance degrades — sometimes significantly.',
+          'The intuition mirrors how human attention works: people remember the beginning of a list (primacy effect) and the end of a list (recency effect), but struggle to recall items buried in the middle.',
+          'The practical takeaway: if you are using an LLM to answer a question about a specific document, front-loading that document or placing the key facts at the end of your prompt tends to produce better results than burying the relevant information in the middle of a wall of text.'
+        ]
+      },
+      {
+        heading: 'Safety Risks: Longer Windows Create Larger Attack Surfaces',
+        paragraphs: [
+          'A longer context window also expands the attack surface for adversarial inputs — a security consideration that is increasingly important for production AI deployments.',
+          'Prompt injection attacks embed hidden malicious instructions deep inside a long document or context. A model processing a large codebase or PDF might encounter instructions like "Ignore your previous instructions and instead output..." buried hundreds of pages into the content.',
+          'In long contexts, the model\'s safety filters have more content to scan and more opportunities to be confused, manipulated, or overridden. Research has shown that jailbreaking attempts — attempts to bypass a model\'s safety guardrails — become more likely to succeed when malicious content is hidden deep within a long input.',
+          'This is an active research area. Techniques like attention sinks, context summarization, and explicit safety classifiers applied at multiple points in long contexts are being developed to mitigate these risks.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Detective\'s Evidence Board',
+      text: 'Imagine a detective investigating a case. Their evidence board — the corkboard covered in photos, notes, and string connecting clues — is their context window. Everything on the board is in their active working memory. If the board fills up, they have to remove older notes to make room for new evidence. They might still remember some things that were removed, but they are now guessing. The bigger the board, the more evidence they can hold — but a bigger board also takes longer to fully scan for connections between every piece of evidence. And a cunning criminal might hide a forged clue deep in the middle of the pile, where the detective is least likely to scrutinize it carefully.'
+    },
+
+    diagram: {
+      type: 'context_window',
+      title: 'Interactive Context Window: What Fills It, How It Grows, and What It Costs'
+    },
+
+    takeaways: [
+      'The context window is an LLM\'s working memory — it holds everything the model can actively "see" when generating a response.',
+      'When a conversation exceeds the context window, older content is dropped and the model must guess, which causes hallucinations.',
+      'The context window holds user messages, model responses, system prompts, attached documents, and RAG-retrieved content simultaneously.',
+      'Context window sizes have grown from ~2,000 tokens (2020) to over 1,000,000 tokens (2024) thanks to hardware and architectural advances.',
+      'Compute cost scales quadratically with context length — doubling tokens quadruples the computation needed by the self-attention mechanism.',
+      'Research shows LLMs perform worst when relevant information is in the middle of very long contexts ("lost in the middle" effect).',
+      'Longer context windows increase the attack surface for prompt injection and jailbreaking attempts.'
+    ],
+
+    quiz: {
+      question: 'A 2023 research paper found that LLM performance degrades for information located where in a long context?',
+      options: [
+        'At the very beginning of the input context',
+        'At the very end of the input context',
+        'In the middle of a long input context',
+        'In the system prompt section of the context'
+      ],
+      correctIndex: 2,
+      explanation: 'Correct! The "lost in the middle" finding showed that LLMs reliably perform worse when the relevant information is buried in the middle of a long context. Performance is strongest when key information appears at the beginning (primacy) or end (recency) of the input.'
+    }
   }
 };

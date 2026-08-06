@@ -920,8 +920,234 @@ const TokenizationDiagram = () => {
   );
 };
 
+// ─── CONTEXT WINDOW DIAGRAM ───────────────────────────────────────────────────
+const ContextWindowDiagram = () => {
+  const [activeTab, setActiveTab] = useState('fill');
+  const [tokensCount, setTokensCount] = useState(4000);
+  const [selectedFill, setSelectedFill] = useState(null);
+
+  const fillItems = [
+    { name: 'System Prompt', pct: 15, color: '#ec4899', desc: 'Hidden instructions specifying persona, safety guardrails & output rules.' },
+    { name: 'Document / Code / RAG', pct: 45, color: '#8b5cf6', desc: 'Attached files, PDF content, pasted code snippets, or RAG retrieval chunks.' },
+    { name: 'Conversation History', pct: 25, color: '#0ea5e9', desc: 'Previous back-and-forth prompts & model responses in the current session.' },
+    { name: 'Current User Prompt', pct: 5, color: '#10b981', desc: 'Your active question/request sent right now.' },
+    { name: 'Remaining Headroom', pct: 10, color: '#334155', desc: 'Space available for the model to generate its response.' },
+  ];
+
+  const timeline = [
+    { year: '2020', model: 'GPT-3', size: '2,048 tokens', words: '~1,500 words', desc: 'Basic chat sessions, single short articles.' },
+    { year: '2023', model: 'GPT-4', size: '8,192 tokens', words: '~6,000 words', desc: 'Multi-turn conversations, standard essays.' },
+    { year: '2023', model: 'GPT-4 Turbo / Granite 3', size: '128,000 tokens', words: '~96,000 words', desc: 'Full novel length, entire code repositories.' },
+    { year: '2024+', model: 'Gemini 1.5 Pro', size: '1,000,000+ tokens', words: '~750,000 words', desc: 'Hour-long video analysis, massive codebase ingestion.' },
+  ];
+
+  // Compute quadratic scaling cost relative to 1k tokens = 1 unit
+  const computeUnits = Math.pow(tokensCount / 1000, 2).toFixed(1);
+
+  const tabs = [
+    { id: 'fill', label: 'Window Breakdown', color: '#0ea5e9' },
+    { id: 'evolution', label: 'Context Timeline', color: '#a78bfa' },
+    { id: 'quadratic', label: 'O(n²) Cost Calculator', color: '#f43f5e' },
+    { id: 'middle', label: 'Lost in Middle', color: '#f59e0b' },
+  ];
+
+  return (
+    <div className={styles.diagramBox} style={{ padding: 0 }}>
+      {/* TAB BAR */}
+      <div style={{ display: 'flex', gap: '0.5rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            padding: '0.4rem 0.9rem', borderRadius: '999px', border: `1.5px solid ${t.color}`,
+            background: activeTab === t.id ? t.color : 'transparent',
+            color: activeTab === t.id ? '#0f172a' : t.color,
+            fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* TAB 1: WINDOW BREAKDOWN */}
+      {activeTab === 'fill' && (
+        <div style={{ padding: '1.25rem 1.5rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>
+            Click any section of the context window to see what occupies it:
+          </p>
+          
+          {/* BAR VISUALIZER */}
+          <div style={{ display: 'flex', height: '40px', borderRadius: '10px', overflow: 'hidden', border: '2px solid #334155', marginBottom: '1.25rem' }}>
+            {fillItems.map((item, idx) => (
+              <div
+                key={idx}
+                onClick={() => setSelectedFill(idx)}
+                style={{
+                  width: `${item.pct}%`,
+                  background: item.color,
+                  cursor: 'pointer',
+                  opacity: selectedFill === null || selectedFill === idx ? 1 : 0.4,
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#0f172a',
+                  fontWeight: 700,
+                  fontSize: '0.75rem'
+                }}
+                title={`${item.name} (${item.pct}%)`}
+              >
+                {item.pct >= 10 ? `${item.pct}%` : ''}
+              </div>
+            ))}
+          </div>
+
+          {/* LEGEND / DETAILS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
+            {fillItems.map((item, idx) => (
+              <div
+                key={idx}
+                onClick={() => setSelectedFill(idx)}
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '8px',
+                  border: `1.5px solid ${selectedFill === idx ? item.color : '#334155'}`,
+                  background: selectedFill === idx ? `${item.color}20` : '#1e293b',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: item.color, fontWeight: 700, fontSize: '0.8rem' }}>
+                  <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: item.color }} />
+                  {item.name} ({item.pct}%)
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {selectedFill !== null && (
+            <div style={{ background: `${fillItems[selectedFill].color}15`, border: `1.5px solid ${fillItems[selectedFill].color}`, borderRadius: '10px', padding: '0.85rem 1rem' }}>
+              <div style={{ color: fillItems[selectedFill].color, fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                {fillItems[selectedFill].name}
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: '0.82rem' }}>
+                {fillItems[selectedFill].desc}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: TIMELINE */}
+      {activeTab === 'evolution' && (
+        <div style={{ padding: '1.25rem 1.5rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>
+            Rapid expansion of context windows across model generations:
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {timeline.map((item, idx) => (
+              <div key={idx} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '0.85rem 1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ background: '#0ea5e920', border: '1px solid #0ea5e9', borderRadius: '8px', padding: '0.4rem 0.75rem', textAlign: 'center', minWidth: '70px' }}>
+                  <div style={{ color: '#0ea5e9', fontWeight: 800, fontSize: '0.85rem' }}>{item.year}</div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.68rem' }}>{item.model}</div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.9rem' }}>
+                    {item.size} <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 400 }}>({item.words})</span>
+                  </div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.2rem' }}>{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: O(N²) QUADRATIC COST */}
+      {activeTab === 'quadratic' && (
+        <div style={{ padding: '1.25rem 1.5rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>
+            Self-attention computes every token against every other token. Slide to see quadratic scaling:
+          </p>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#e2e8f0', fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: 700 }}>
+              <span>Context Length: <span style={{ color: '#f43f5e' }}>{tokensCount.toLocaleString()} tokens</span></span>
+              <span>Compute Scale: <span style={{ color: '#f43f5e' }}>{computeUnits}x</span></span>
+            </div>
+            <input
+              type="range"
+              min="1000"
+              max="16000"
+              step="1000"
+              value={tokensCount}
+              onChange={(e) => setTokensCount(Number(e.target.value))}
+              style={{ width: '100%', accentColor: '#f43f5e', cursor: 'pointer' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '0.72rem', marginTop: '0.25rem' }}>
+              <span>1k tokens (1x)</span>
+              <span>4k tokens (16x)</span>
+              <span>8k tokens (64x)</span>
+              <span>16k tokens (256x)</span>
+            </div>
+          </div>
+
+          <div style={{ background: '#1e1b2e', border: '1px solid #f43f5e50', borderRadius: '10px', padding: '1rem' }}>
+            <div style={{ color: '#fda4af', fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+              Attention Matrix Operations: {(tokensCount * tokensCount).toLocaleString()} dot-products
+            </div>
+            <div style={{ color: '#cbd5e1', fontSize: '0.8rem' }}>
+              Doubling tokens quadruples computational requirements. That is why processing massive long-context inputs requires huge GPU memory bandwidth and specialized FlashAttention algorithms.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: LOST IN THE MIDDLE */}
+      {activeTab === 'middle' && (
+        <div style={{ padding: '1.25rem 1.5rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>
+            LLMs retrieve key facts accurately at the beginning or end of a prompt, but accuracy dips in the middle:
+          </p>
+
+          <svg viewBox="0 0 600 160" style={{ width: '100%', display: 'block', marginBottom: '1rem' }}>
+            {/* Grid lines */}
+            <line x1="50" y1="30" x2="550" y2="30" stroke="#334155" strokeDasharray="3 3" />
+            <line x1="50" y1="80" x2="550" y2="80" stroke="#334155" strokeDasharray="3 3" />
+            <line x1="50" y1="130" x2="550" y2="130" stroke="#334155" />
+
+            {/* U-Shape Curve */}
+            <path
+              d="M 60 40 Q 300 140 540 40"
+              fill="none"
+              stroke="#f59e0b"
+              strokeWidth="4"
+            />
+
+            {/* Data points */}
+            <circle cx="60" cy="40" r="6" fill="#34d399" />
+            <circle cx="300" cy="120" r="6" fill="#f87171" />
+            <circle cx="540" cy="40" r="6" fill="#34d399" />
+
+            {/* Labels */}
+            <text x="60" y="24" fill="#34d399" fontSize="11" textAnchor="middle" fontWeight="bold">Primacy (High Accuracy)</text>
+            <text x="300" y="145" fill="#f87171" fontSize="11" textAnchor="middle" fontWeight="bold">Middle (Degraded Performance)</text>
+            <text x="540" y="24" fill="#34d399" fontSize="11" textAnchor="middle" fontWeight="bold">Recency (High Accuracy)</text>
+
+            <text x="50" y="150" fill="#64748b" fontSize="10">Beginning of Prompt</text>
+            <text x="550" y="150" fill="#64748b" fontSize="10" textAnchor="end">End of Prompt</text>
+          </svg>
+
+          <div style={{ background: '#1c1200', border: '1px solid #f59e0b', borderRadius: '8px', padding: '0.75rem 1rem' }}>
+            <strong style={{ color: '#f59e0b', fontSize: '0.8rem' }}>Prompting Tip: </strong>
+            <span style={{ color: '#fcd34d', fontSize: '0.8rem' }}>
+              Place your core questions or essential document context at the very start or end of your prompt for best accuracy.
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -1068,6 +1294,11 @@ export default function AILessonArticlePage() {
             {/* Tokenization Diagram */}
             {lesson.diagram.type === 'tokenization' && (
               <TokenizationDiagram />
+            )}
+
+            {/* Context Window Diagram */}
+            {lesson.diagram.type === 'context_window' && (
+              <ContextWindowDiagram />
             )}
 
             {/* Industry Grid Diagram */}
