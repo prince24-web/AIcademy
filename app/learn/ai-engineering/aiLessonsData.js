@@ -487,5 +487,111 @@ export const aiLessonsData = {
       correctIndex: 2,
       explanation: 'Correct! During inference, model weights are locked/frozen. The network evaluates new user inputs in a single fast forward pass without making parameter updates.'
     }
+  },
+
+  'ai-2-3': {
+    id: 'ai-2-3',
+    title: 'Transformers & Attention (High Level)',
+    subtitle: 'The Architecture Behind GPT, BERT, and Every Modern AI Model',
+    section: 'Module 2 · Chapter 3',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://www.geeksforgeeks.org/transformer-neural-network/',
+    videoUrl: 'https://www.youtube.com/embed/SZorAJ4I-sA',
+
+    badgeText: 'CORE ARCHITECTURE',
+    badgeColor: '#7c3aed',
+
+    sections: [
+      {
+        heading: 'The Problem That Transformers Solved',
+        paragraphs: [
+          'Every few years, someone in machine learning invents something so unexpected it forces the entire field to reconsider what is possible. The Transformer is one of those inventions.',
+          'Before Transformers arrived in 2017, the standard tool for processing language was called a Recurrent Neural Network (RNN). RNNs were the best we had, but they came with a fundamental flaw baked into their design: they processed words one at a time, in sequence — left to right, word by word, like reading with a ruler.',
+          'This created two serious problems:',
+          '• Long-range forgetting: By the time an RNN finished analyzing the end of a long paragraph, it had effectively "forgotten" the context from the beginning — similar to how you might forget the start of a very long sentence by the time you reach the period.',
+          '• Slow training (no parallelism): Because each word had to wait for the previous one to finish, RNNs could not process many words simultaneously. You could not simply throw more GPUs at the problem to speed things up. Slow training means you cannot train on much data. Less data means a weaker model.'
+        ]
+      },
+      {
+        heading: 'Enter the Transformer (2017)',
+        paragraphs: [
+          'The Transformer was developed in 2017 by researchers at Google Brain and the University of Toronto. Their paper was titled "Attention Is All You Need" — which turned out to be a remarkably accurate description.',
+          'The key breakthrough: Transformers process all the words in a sentence simultaneously, in parallel, instead of one at a time. This meant you could train on vastly more data using powerful GPU clusters.',
+          'The result was explosive. GPT-3, one of the most famous Transformer-based models, was trained on almost 45 terabytes of text data — nearly the entire public web. That kind of scale was simply impossible with RNNs.',
+          'If you remember only one thing about Transformers: a model that scales well, trained on an enormous dataset, produces results that seem almost like magic.'
+        ]
+      },
+      {
+        heading: 'Innovation 1: Positional Encodings — Solving Word Order Without Sequence',
+        paragraphs: [
+          'Since the Transformer processes all words at once (in parallel), it faces a problem: how does it know what order the words appear in? Word order is critical — "Jane went looking for trouble" means something completely different from "Trouble went looking for Jane."',
+          'The solution is called Positional Encoding. Instead of processing words one by one to preserve order (like RNNs), the Transformer simply tags each word with a number representing its position in the sentence before feeding it into the network.',
+          'Think of it like numbering the seats in a cinema before the audience arrives: word 1 gets tag #1, word 2 gets tag #2, and so on. The network stores information about word order inside the data itself, not in the structure of the network.',
+          'As the Transformer trains on thousands of examples, it learns how to interpret these position tags and what word order means for the task at hand. This is simpler and faster than the RNN approach of enforcing order by sequential processing.'
+        ]
+      },
+      {
+        heading: 'Innovation 2: Attention — Looking at the Whole Sentence at Once',
+        paragraphs: [
+          'Consider this sentence, which was the original example from the Transformer paper: "The agreement on the European economic area was signed in August 1992."',
+          'If you tried to translate this to French word-by-word (word 1 in English → word 1 in French), you would get a poor translation. French has different word order rules and grammatical gender agreement between words. For example, in the French translation, "European" comes before "economic" — the reverse of English.',
+          'The attention mechanism solves this by allowing the model to look at every single word in the original sentence when deciding how to translate any specific word in the output. Rather than producing one word in isolation, the model considers the full context every time.',
+          'Researchers visualized this as a heat map: when the model generates the word for "économique" (economic in French), it is simultaneously attending to — and drawing context from — both "European" and "economic" in the English input. The model learns which words to attend to through training on thousands of example sentence pairs.'
+        ]
+      },
+      {
+        heading: 'Innovation 3: Self-Attention — Understanding Language from Within',
+        paragraphs: [
+          'Regular attention (aligning two languages for translation) had actually been invented before the Transformer paper. The real innovation was a twist called self-attention.',
+          'Self-attention asks a different question: instead of aligning two sentences across languages, what if you turned this attention mechanism on the input sentence itself? What if the model asked "which other words in this same sentence should I look at to understand this word?"',
+          'Consider these two sentences:',
+          '"Server, can I have the check?"',
+          '"Looks like I just crashed the server."',
+          'The word "server" appears in both sentences, but it means two completely different things — a restaurant waiter in one, a computer machine in the other. A human knows the meaning from context. Self-attention gives neural networks this same ability.',
+          'When processing "server" in the first sentence, the model attends to the word "check" — which hints at a restaurant context. In the second sentence, it attends to "crashed" — which signals a computing context.',
+          'Self-attention lets the model disambiguate words, understand tense, recognize parts of speech, and detect grammatical gender — all automatically, from data, without any hand-coded linguistic rules. The better this internal understanding of language becomes, the better the model performs on any language task.'
+        ]
+      },
+      {
+        heading: 'Real-World Transformer Models: BERT, GPT-3, and T5',
+        paragraphs: [
+          'The Transformer architecture became the foundation for the most powerful AI models ever built. BERT (Bidirectional Encoder Representations from Transformers) was released by Google in 2018.',
+          'BERT was trained on a massive corpus of text — including Wikipedia and BooksCorpus — and became a general-purpose Swiss army knife for language tasks: text summarization, question answering, sentence similarity, and text classification. It powers Google Search to this day, helping it understand the intent behind ambiguous search queries.',
+          'BERT also proved something groundbreaking: you could build world-class models using unlabeled data — text scraped freely from the internet — without needing expensive human-labeled datasets. This approach is called semi-supervised learning, and it is now a cornerstone of modern AI.',
+          'GPT-3 (from OpenAI), T5 (from Google), and every Large Language Model you use today — including ChatGPT, Gemini, and Claude — are all Transformer-based architectures at their core. The Transformer is the engine underneath all of them.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Assembly Line vs. The Roundtable Discussion',
+      text: 'An RNN is like a factory assembly line: each worker passes the item to the next in strict sequence. If worker #1 is slow, everyone waits. A Transformer is like a roundtable meeting: all team members review every document simultaneously and can immediately cross-reference each other. Self-attention is each team member saying, "Before I give my opinion on this clause, let me re-read what everyone else said about related clauses." The roundtable finishes the project in a fraction of the time!'
+    },
+
+    diagram: {
+      type: 'transformer_architecture',
+      title: 'Transformer Architecture: How Input Text Becomes Model Understanding'
+    },
+
+    takeaways: [
+      'Transformers process all words in a sentence simultaneously (in parallel), unlike RNNs which process words one-at-a-time sequentially.',
+      'Positional Encodings tag each word with its position number so the model understands word order without needing sequential processing.',
+      'Attention allows the model to look at every word in a sentence when deciding how to interpret or translate any specific word.',
+      'Self-attention turns this mechanism on the input sentence itself — enabling the model to understand word meaning from surrounding context.',
+      'BERT, GPT-3, T5, ChatGPT, Gemini, and Claude are all Transformer-based architectures.',
+      'The original Transformer paper (2017) was titled "Attention Is All You Need" — and it proved to be exactly right.'
+    ],
+
+    quiz: {
+      question: 'What fundamental problem with Recurrent Neural Networks (RNNs) did the Transformer architecture solve?',
+      options: [
+        'RNNs could only process images, not text data',
+        'RNNs processed words sequentially, making them slow to train and poor at handling long-range context in long passages',
+        'RNNs required too much labeled data to function at all',
+        'RNNs could only work in the English language'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! RNNs processed words one-at-a-time in sequence, which meant they forgot early context in long passages and could not be parallelized efficiently across GPU clusters. Transformers solved both problems by processing all words simultaneously and using attention to maintain context across any distance.'
+    }
   }
 };

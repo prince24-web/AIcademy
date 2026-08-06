@@ -522,8 +522,189 @@ const TrainingInferenceDiagram = () => {
   );
 };
 
+// ─── TRANSFORMER DIAGRAM ────────────────────────────────────────────────────
+const TransformerDiagram = () => {
+  const [activeNode, setActiveNode] = useState(null);
+
+  const info = {
+    rnn:      { title: 'RNN (Old Approach)', desc: 'Words are fed in one at a time — word 1, then word 2, then word 3. By word 50, the model has nearly forgotten word 1. Training is also painfully slow because each step depends on the last.' },
+    parallel: { title: 'Transformer: Parallel Processing', desc: 'All words are fed into the model simultaneously in a single step. No waiting. No sequential bottleneck. This allows massive GPU parallelism and training on 45 TB of text data.' },
+    pos:      { title: 'Positional Encoding', desc: 'Since all words arrive at once, each word is tagged with its position number (1, 2, 3...) before entering the network. The model learns what position means from training data — word order is stored in the data itself, not the network structure.' },
+    attn:     { title: 'Attention Heat Map', desc: 'When translating a word, the model looks at every other word in the sentence simultaneously. Darker connections = higher attention weight. The model learns which words to attend to from thousands of training examples.' },
+    self:     { title: 'Self-Attention: Context Disambiguation', desc: '"Server" in Sentence 1 attends to "check" → waiter meaning. "Server" in Sentence 2 attends to "crashed" → computer meaning. Same word, different meaning, learned entirely from context.' },
+    bert:     { title: 'BERT, GPT-3, T5, ChatGPT', desc: 'All modern Large Language Models are built on the Transformer architecture. BERT powers Google Search. GPT-3 was trained on 45 TB of text. The Transformer is the engine underneath every LLM you use today.' },
+  };
+
+  const handleHover = (key) => setActiveNode(key);
+  const handleLeave = () => setActiveNode(null);
+
+  return (
+    <div className={styles.diagramBox} style={{ padding: '0' }}>
+
+      {/* ── SECTION 1: RNN vs TRANSFORMER ── */}
+      <div style={{ padding: '1.5rem 1.5rem 0' }}>
+        <h4 style={{ color: '#c4b5fd', fontWeight: 700, margin: '0 0 1rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Before vs. After: RNN Sequential vs. Transformer Parallel</h4>
+      </div>
+      <svg viewBox="0 0 760 180" style={{ width: '100%', maxHeight: 180, display: 'block' }}>
+        <defs>
+          <marker id="arrowT" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8" />
+          </marker>
+          <marker id="arrowP" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#a78bfa" />
+          </marker>
+        </defs>
+
+        {/* RNN side */}
+        <g onMouseEnter={() => handleHover('rnn')} onMouseLeave={handleLeave} style={{ cursor: 'pointer' }}>
+          <rect x="20" y="20" width="320" height="140" rx="12" fill={activeNode === 'rnn' ? '#3b1f4a' : '#1e1b2e'} stroke="#f87171" strokeWidth="1.5" />
+          <text x="180" y="44" textAnchor="middle" fill="#f87171" fontSize="12" fontWeight="700">RNN — Sequential (Slow)</text>
+          {['W1','W2','W3','W4'].map((w, i) => (
+            <g key={w}>
+              <rect x={36 + i * 70} y="62" width="44" height="28" rx="6" fill="#7f1d1d" stroke="#fca5a5" strokeWidth="1" />
+              <text x={58 + i * 70} y="81" textAnchor="middle" fill="#fca5a5" fontSize="11" fontWeight="600">{w}</text>
+              {i < 3 && <line x1={80 + i * 70} y1="76" x2={106 + i * 70} y2="76" stroke="#f87171" strokeWidth="1.5" markerEnd="url(#arrowT)" />}
+            </g>
+          ))}
+          <text x="180" y="118" textAnchor="middle" fill="#fca5a5" fontSize="10">One word at a time...</text>
+          <text x="180" y="135" textAnchor="middle" fill="#f87171" fontSize="10" fontWeight="600">Long context = forgotten by the end</text>
+          <text x="180" y="152" textAnchor="middle" fill="#9ca3af" fontSize="9.5">hover to learn more</text>
+        </g>
+
+        {/* VS badge */}
+        <g>
+          <circle cx="380" cy="90" r="18" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
+          <text x="380" y="95" textAnchor="middle" fill="#94a3b8" fontSize="11" fontWeight="700">VS</text>
+        </g>
+
+        {/* Transformer side */}
+        <g onMouseEnter={() => handleHover('parallel')} onMouseLeave={handleLeave} style={{ cursor: 'pointer' }}>
+          <rect x="418" y="20" width="322" height="140" rx="12" fill={activeNode === 'parallel' ? '#1e1f4a' : '#0f172a'} stroke="#a78bfa" strokeWidth="1.5" />
+          <text x="579" y="44" textAnchor="middle" fill="#a78bfa" fontSize="12" fontWeight="700">Transformer — Parallel (Fast)</text>
+          <g transform="translate(579, 85)">
+            {['W1','W2','W3','W4'].map((w, i) => {
+              const angle = (i / 4) * Math.PI * 2 - Math.PI / 2;
+              const cx = Math.cos(angle) * 44;
+              const cy = Math.sin(angle) * 30;
+              return (
+                <g key={w}>
+                  <line x1="0" y1="0" x2={cx * 0.6} y2={cy * 0.6} stroke="#a78bfa" strokeWidth="1" strokeDasharray="3 2" opacity="0.6" />
+                  <rect x={cx - 18} y={cy - 12} width="36" height="22" rx="5" fill="#3730a3" stroke="#818cf8" strokeWidth="1" />
+                  <text x={cx} y={cy + 4} textAnchor="middle" fill="#c7d2fe" fontSize="10" fontWeight="600">{w}</text>
+                </g>
+              );
+            })}
+            <circle cx="0" cy="0" r="14" fill="#4f46e5" stroke="#818cf8" strokeWidth="1.5" />
+            <text x="0" y="5" textAnchor="middle" fill="white" fontSize="9" fontWeight="700">ALL</text>
+          </g>
+          <text x="579" y="148" textAnchor="middle" fill="#818cf8" fontSize="9.5">hover to learn more</text>
+        </g>
+      </svg>
+
+      {/* ── SECTION 2: 3 INNOVATIONS ── */}
+      <div style={{ padding: '1.5rem 1.5rem 0' }}>
+        <h4 style={{ color: '#c4b5fd', fontWeight: 700, margin: '0 0 1rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>The 3 Key Innovations Inside a Transformer</h4>
+      </div>
+      <svg viewBox="0 0 760 200" style={{ width: '100%', maxHeight: 200, display: 'block' }}>
+        <defs>
+          <linearGradient id="posGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0ea5e9" /><stop offset="100%" stopColor="#0369a1" />
+          </linearGradient>
+          <linearGradient id="attnGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#a855f7" /><stop offset="100%" stopColor="#7c3aed" />
+          </linearGradient>
+          <linearGradient id="selfGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#f59e0b" /><stop offset="100%" stopColor="#b45309" />
+          </linearGradient>
+        </defs>
+
+        {/* Card 1: Positional Encoding */}
+        <g onMouseEnter={() => handleHover('pos')} onMouseLeave={handleLeave} style={{ cursor: 'pointer' }}>
+          <rect x="20" y="20" width="220" height="160" rx="14" fill={activeNode === 'pos' ? '#0c2a3a' : '#0f2332'} stroke="#0ea5e9" strokeWidth="1.5" />
+          <rect x="20" y="20" width="220" height="40" rx="14" fill="url(#posGrad)" />
+          <rect x="20" y="46" width="220" height="14" fill="url(#posGrad)" />
+          <text x="130" y="46" textAnchor="middle" fill="white" fontSize="12" fontWeight="800">1. Positional Encoding</text>
+          <text x="130" y="80" textAnchor="middle" fill="#7dd3fc" fontSize="10.5" fontWeight="600">Word Order in the Data</text>
+          {['Jane', 'went', 'looking', 'for'].map((w, i) => (
+            <g key={w}>
+              <rect x={30 + i * 50} y="100" width="40" height="22" rx="5" fill="#0c4a6e" stroke="#38bdf8" strokeWidth="1" />
+              <text x={50 + i * 50} y="115" textAnchor="middle" fill="#7dd3fc" fontSize="9.5">{w}</text>
+              <text x={50 + i * 50} y="138" textAnchor="middle" fill="#0ea5e9" fontSize="9" fontWeight="700">#{i + 1}</text>
+            </g>
+          ))}
+          <text x="130" y="168" textAnchor="middle" fill="#7dd3fc" fontSize="9">Each word tagged with its position</text>
+        </g>
+
+        {/* Card 2: Attention */}
+        <g onMouseEnter={() => handleHover('attn')} onMouseLeave={handleLeave} style={{ cursor: 'pointer' }}>
+          <rect x="268" y="20" width="224" height="160" rx="14" fill={activeNode === 'attn' ? '#2d1f50' : '#1a1040'} stroke="#a855f7" strokeWidth="1.5" />
+          <rect x="268" y="20" width="224" height="40" rx="14" fill="url(#attnGrad)" />
+          <rect x="268" y="46" width="224" height="14" fill="url(#attnGrad)" />
+          <text x="380" y="46" textAnchor="middle" fill="white" fontSize="12" fontWeight="800">2. Attention</text>
+          <text x="380" y="80" textAnchor="middle" fill="#d8b4fe" fontSize="10.5" fontWeight="600">Context from Every Word</text>
+          {[['European', 1.0], ['economic', 0.85], ['area', 0.3], ['signed', 0.15]].map(([w, weight], i) => (
+            <g key={w}>
+              <rect x={276} y={96 + i * 18} width="130" height="14" rx="3" fill={`rgba(168,85,247,${weight * 0.35})`} stroke={`rgba(168,85,247,${weight * 0.7})`} strokeWidth="1" />
+              <text x={284} y={107 + i * 18} fill="#e9d5ff" fontSize="8.5">{w}</text>
+              <rect x={414} y={97 + i * 18} width={Math.round(60 * weight)} height="12" rx="3" fill={`rgba(168,85,247,${0.4 + weight * 0.5})`} />
+            </g>
+          ))}
+          <text x="380" y="170" textAnchor="middle" fill="#d8b4fe" fontSize="9">Attention heat map — darker = higher weight</text>
+        </g>
+
+        {/* Card 3: Self-Attention */}
+        <g onMouseEnter={() => handleHover('self')} onMouseLeave={handleLeave} style={{ cursor: 'pointer' }}>
+          <rect x="516" y="20" width="224" height="160" rx="14" fill={activeNode === 'self' ? '#2c1b00' : '#1c1200'} stroke="#f59e0b" strokeWidth="1.5" />
+          <rect x="516" y="20" width="224" height="40" rx="14" fill="url(#selfGrad)" />
+          <rect x="516" y="46" width="224" height="14" fill="url(#selfGrad)" />
+          <text x="628" y="46" textAnchor="middle" fill="white" fontSize="12" fontWeight="800">3. Self-Attention</text>
+          <text x="628" y="80" textAnchor="middle" fill="#fcd34d" fontSize="10.5" fontWeight="600">Word Meaning from Context</text>
+          <rect x="524" y="95" width="208" height="22" rx="5" fill="#1c1a00" stroke="#fbbf24" strokeWidth="1" />
+          <text x="628" y="111" textAnchor="middle" fill="#fde68a" fontSize="9">"Server, can I have the check?" → waiter</text>
+          <line x1="628" y1="118" x2="628" y2="128" stroke="#f59e0b" strokeWidth="1" strokeDasharray="3 2" />
+          <rect x="524" y="128" width="208" height="22" rx="5" fill="#1c1a00" stroke="#fbbf24" strokeWidth="1" />
+          <text x="628" y="144" textAnchor="middle" fill="#fde68a" fontSize="9">"I just crashed the server" → machine</text>
+          <text x="628" y="170" textAnchor="middle" fill="#fcd34d" fontSize="9">Same word, different context = different meaning</text>
+        </g>
+      </svg>
+
+      {/* ── REAL MODELS BUILT ON TRANSFORMERS ── */}
+      <div style={{ padding: '1.5rem 1.5rem 0' }}>
+        <h4 style={{ color: '#c4b5fd', fontWeight: 700, margin: '0 0 0.75rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Real-World Models Built on Transformers</h4>
+      </div>
+      <svg viewBox="0 0 760 90" style={{ width: '100%', maxHeight: 90, display: 'block', marginBottom: '0.5rem' }}>
+        {[
+          { name: 'BERT', sub: 'Google Search', color: '#4285f4', x: 60 },
+          { name: 'GPT-3', sub: '45 TB of text', color: '#10a37f', x: 210 },
+          { name: 'T5', sub: 'Text-to-Text', color: '#f59e0b', x: 360 },
+          { name: 'ChatGPT', sub: 'OpenAI', color: '#06b6d4', x: 510 },
+          { name: 'Gemini', sub: 'Google DeepMind', color: '#8b5cf6', x: 660 },
+        ].map(({ name, sub, color, x }) => (
+          <g key={name} onMouseEnter={() => handleHover('bert')} onMouseLeave={handleLeave} style={{ cursor: 'pointer' }}>
+            <rect x={x - 55} y="10" width="110" height="64" rx="10"
+              fill={activeNode === 'bert' ? `${color}22` : `${color}11`}
+              stroke={color} strokeWidth="1.5" />
+            <text x={x} y="40" textAnchor="middle" fill={color} fontSize="13" fontWeight="800">{name}</text>
+            <text x={x} y="58" textAnchor="middle" fill="#94a3b8" fontSize="9.5">{sub}</text>
+            <text x={x} y="70" textAnchor="middle" fill="#64748b" fontSize="8.5">Transformer</text>
+          </g>
+        ))}
+      </svg>
+
+      {/* INFO BOX */}
+      <div className={styles.flowchartInfoBox} style={{ background: '#1e1040', borderColor: '#7c3aed', color: '#e9d5ff', margin: '0.75rem 1.5rem 1.5rem' }}>
+        {activeNode ? (
+          <div><strong style={{ color: '#c4b5fd' }}>{info[activeNode].title}:</strong> {info[activeNode].desc}</div>
+        ) : (
+          <div><em style={{ color: '#a78bfa' }}>Hover over any section above to explore how the Transformer works step by step.</em></div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -660,6 +841,11 @@ export default function AILessonArticlePage() {
             {/* Training vs Inference Diagram */}
             {lesson.diagram.type === 'training_vs_inference' && (
               <TrainingInferenceDiagram />
+            )}
+
+            {/* Transformer Architecture Diagram */}
+            {lesson.diagram.type === 'transformer_architecture' && (
+              <TransformerDiagram />
             )}
 
             {/* Industry Grid Diagram */}
