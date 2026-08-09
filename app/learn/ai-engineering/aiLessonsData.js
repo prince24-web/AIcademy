@@ -905,5 +905,108 @@ export const aiLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! The classic Word2Vec demonstration: king - man + woman ≈ queen. The vector from "man" to "king" captures the concept of royalty. Applying that same offset to "woman" lands near "queen". This shows that gender is encoded as a consistent geometric direction across the entire embedding space.'
     }
+  },
+
+  'ai-2-7': {
+    id: 'ai-2-7',
+    title: 'Model Parameters & Weights',
+    subtitle: 'The Knobs Inside Every AI — What Parameters Are, What They Do, and Why Their Count Matters',
+    section: 'Module 2 · Chapter 7',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://www.ibm.com/think/topics/model-parameters',
+    videoUrl: null,
+
+    badgeText: 'CORE CONCEPT',
+    badgeColor: '#f59e0b',
+
+    sections: [
+      {
+        heading: 'What Is a Model Parameter? The Honest Definition',
+        paragraphs: [
+          'A model parameter is a single number stored inside a neural network. That is it. Not a rule, not a formula — just a number. A model with 7 billion parameters contains literally 7,000,000,000 individual numbers, each stored as a float (typically 16-bit or 32-bit).',
+          'Before training begins, every one of those numbers is set randomly — the model has no knowledge at all. Training is the process of adjusting all those numbers, over and over, until the model\'s outputs get closer to the correct answers.',
+          'These numbers are what get saved to disk when you "download a model". When someone shares a 40 GB model file, that file is almost entirely a long list of parameter values. Loading the model = loading those numbers back into memory. Running inference = using those numbers to process new inputs.'
+        ]
+      },
+      {
+        heading: 'The Two Types: Weights and Biases',
+        paragraphs: [
+          'Every parameter in a neural network is either a weight or a bias. They play complementary roles and every neuron in the network has both.',
+          'Weights are multipliers. When data travels from one neuron to the next, it gets multiplied by a weight. A weight of 0.9 means "this input is very important — pass it along almost unchanged." A weight of 0.01 means "mostly ignore this input." A weight of -0.7 means "this input actively suppresses the output." The model learns, through training, which inputs deserve high weights and which deserve low ones.',
+          'Biases are offsets. After multiplying all the inputs by their weights and summing them, the bias is added to the total. This gives each neuron a baseline "preference" — it can fire even when all weighted inputs are small, or it can stay quiet even when inputs are large. Without biases, every neuron would be forced to output zero when inputs are zero, which would limit what the network can learn.',
+          'The full computation of a single neuron is: output = activation( (input₁ × weight₁) + (input₂ × weight₂) + … + bias ). This simple formula, repeated across billions of neurons, is what produces sophisticated language understanding.'
+        ]
+      },
+      {
+        heading: 'How Parameters Are Learned: The Training Loop',
+        paragraphs: [
+          'Parameters are not designed — they are discovered through a repeated cycle called the training loop. Here is exactly how it works:',
+          '1. Forward Pass: Feed a batch of training examples into the network. The current parameter values produce some output — a prediction about the next word, a sentiment classification, etc.',
+          '2. Measure the Error: Compare the model\'s prediction to the correct answer. The difference is measured by a loss function, which produces a single number representing how wrong the model was. Smaller is better.',
+          '3. Backward Pass (Backpropagation): Calculate how much each individual parameter contributed to the error. This is done using calculus (the chain rule of differentiation) — the algorithm traces the error backward through every layer and computes a "gradient" for each parameter. The gradient tells you: "if you increase this parameter slightly, does the error go up or down?"',
+          '4. Update: Nudge every parameter in the direction that reduces the error. The size of the nudge is controlled by the learning rate (a hyperparameter). Repeat the entire cycle across billions of training examples.',
+          'After enough repetitions, the parameters settle into values that let the model produce good outputs on the kinds of inputs it was trained on. The weights in GPT-4 or Llama were not written by hand — they emerged from this process applied across trillions of words of text.'
+        ]
+      },
+      {
+        heading: 'Parameter Count and Model Capability',
+        paragraphs: [
+          'The number of parameters a model has is probably the single most discussed number in the AI industry. But what does it actually mean?',
+          'More parameters = more capacity to store patterns. A model with 7 billion parameters can store far more nuanced relationships between words, facts, and concepts than one with 7 million. This is why larger models tend to perform better on difficult tasks — they have more "space" to encode knowledge.',
+          'Real-world parameter counts: GPT-2 (2019) had 1.5 billion parameters. GPT-3 (2020) had 175 billion. Estimates for GPT-4 range into the hundreds of billions to over a trillion. Meta\'s Llama 3 comes in variants of 8B, 70B, and 405B parameters. Google\'s Gemini 1.5 Pro is estimated at around 1 trillion.',
+          'But more parameters is not unconditionally better. More parameters require more memory to store (a 70B model at 16-bit precision needs ~140 GB of RAM), more compute to run inference, and more data and compute to train properly. A model with more parameters than the data and compute can properly train will actually perform worse — this is called over-parameterization without proportional data.',
+          'Efficiency research (like LoRA, quantization, and mixture-of-experts architectures) focuses on getting more capability from fewer active parameters — making models cheaper to serve without sacrificing quality.'
+        ]
+      },
+      {
+        heading: 'Parameters vs Hyperparameters: A Critical Distinction',
+        paragraphs: [
+          'These two terms sound similar but describe completely different things. Confusing them is one of the most common misconceptions for people new to AI.',
+          'Parameters are learned automatically from data during training. Nobody sets them by hand. They are the output of the training process — the knowledge the model acquired.',
+          'Hyperparameters are set manually by engineers before training begins. They control how training works, not what the model knows. Examples include: learning rate (how large each parameter update step is), batch size (how many examples are processed before each update), number of layers (how many transformation steps the model applies), embedding dimension (how wide each layer is), and training duration (how many passes over the data).',
+          'The analogy: parameters are like a student\'s actual knowledge — built up through studying. Hyperparameters are like the study conditions set by the teacher — how long each study session is, what difficulty of problems to practice on, whether to review material daily or weekly. The teacher\'s choices affect how well the student learns, but the knowledge itself comes from the student\'s practice.'
+        ]
+      },
+      {
+        heading: 'What Parameters Actually Encode in an LLM',
+        paragraphs: [
+          'In a large language model, the billions of parameters collectively encode an enormous amount of information — but it is not stored the way a database stores facts. There is no parameter that contains "The capital of France is Paris." Instead, that fact is spread diffusely across millions of weights that collectively make the model more likely to output "Paris" when given the right context.',
+          'The parameters in the embedding layer encode which words are semantically similar (as covered in the Embeddings lesson). The parameters in the attention layers encode how different words in a sentence relate to each other. The parameters in the feed-forward layers encode factual associations, grammar patterns, and reasoning shortcuts learned from training data.',
+          'This distributed storage is both a strength and a weakness. It makes LLMs extremely flexible and capable of handling nuanced language — but it also makes them hard to interpret (we cannot simply look at a parameter and know what fact it encodes), hard to edit (fixing one wrong belief might require updating millions of parameters), and prone to hallucinations when the pattern-matching fails.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: A Sound Mixing Board',
+      text: 'Imagine a professional audio mixing board with thousands of sliders. Each slider is a parameter. Before a sound engineer learns their craft, the sliders are set randomly — the output is noise. Through experience (training on lots of music), the engineer learns which sliders to raise and which to lower to get a great sound. By the end, the specific positions of all those sliders encode the engineer\'s entire musical knowledge. You cannot point to one slider and say "that one represents jazz" — the knowledge is spread across all of them working together. The learning rate is how aggressively the engineer moves sliders. The number of sliders is the parameter count. Hyperparameters are things like how long each practice session is and what kind of music to practice on.'
+    },
+
+    diagram: {
+      type: 'model_parameters',
+      title: 'Model Parameters — Four Interactive Illustrations'
+    },
+
+    takeaways: [
+      'A model parameter is a single learned number (weight or bias) stored inside a neural network.',
+      'Weights are multipliers that control how much each input influences the output. Biases are offsets that give neurons a baseline activation level.',
+      'Parameters start random and are adjusted during training using backpropagation — the process of measuring error and nudging every parameter in the direction that reduces it.',
+      'Parameter count measures model capacity: more parameters = more space to store patterns. GPT-3 has 175B, GPT-4 estimated 500B–1T+.',
+      'More parameters requires more memory (70B model ≈ 140 GB at 16-bit) and more compute for both training and inference.',
+      'Parameters are learned from data; hyperparameters (learning rate, batch size, number of layers) are set manually by engineers before training.',
+      'In LLMs, knowledge is stored diffusely across millions of parameters — there is no single parameter encoding a single fact.'
+    ],
+
+    quiz: {
+      question: 'What is the key difference between model parameters and hyperparameters?',
+      options: [
+        'Parameters control training speed; hyperparameters control model accuracy.',
+        'Parameters are set manually by engineers; hyperparameters are learned from data.',
+        'Parameters are learned automatically from training data; hyperparameters are set manually before training begins.',
+        'Parameters and hyperparameters are the same thing — just different names used by different frameworks.'
+      ],
+      correctIndex: 2,
+      explanation: 'Correct! Model parameters (weights and biases) are learned automatically during training — no human sets them. Hyperparameters like learning rate, batch size, and number of layers are set manually by engineers before training begins and control how the learning process itself works.'
+    }
   }
 };

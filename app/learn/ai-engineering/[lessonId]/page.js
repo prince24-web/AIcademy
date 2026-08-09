@@ -1510,8 +1510,329 @@ const EmbeddingsDiagram = () => {
   );
 };
 
+// ─── MODEL PARAMETERS DIAGRAM ──────────────────────────────────────────────────
+const ModelParametersDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [weight1, setWeight1] = useState(0.8);
+  const [weight2, setWeight2] = useState(0.5);
+  const [bias, setBias] = useState(0.2);
+  const [trainingStep, setTrainingStep] = useState(0);
+  const [hpTab, setHpTab] = useState('params');
+
+  const panels = [
+    { label: 'Neuron Calculator', color: '#f59e0b' },
+    { label: 'Training Loop', color: '#f87171' },
+    { label: 'Parameter Scale', color: '#a78bfa' },
+    { label: 'Params vs Hyperparams', color: '#34d399' },
+  ];
+
+  // Neuron output computation (ReLU activation)
+  const input1 = 0.6;
+  const input2 = 0.9;
+  const rawSum = input1 * weight1 + input2 * weight2 + bias;
+  const output = Math.max(0, rawSum).toFixed(3);
+
+  // Training loop steps
+  const trainingSteps = [
+    {
+      icon: '→', title: 'Forward Pass',
+      color: '#0ea5e9',
+      desc: 'Feed training data through the network. Current weights produce a prediction.'
+    },
+    {
+      icon: '✗', title: 'Measure Loss',
+      color: '#f87171',
+      desc: 'Compare prediction to correct answer. Loss function outputs a single error score.'
+    },
+    {
+      icon: '←', title: 'Backpropagation',
+      color: '#f59e0b',
+      desc: 'Trace error backwards. Calculus computes each weight\'s "gradient" — how much it contributed to the error.'
+    },
+    {
+      icon: '↑', title: 'Update Weights',
+      color: '#34d399',
+      desc: 'Nudge every weight in the direction that reduces loss. Step size = learning rate. Repeat billions of times.'
+    },
+  ];
+
+  // Model scale data
+  const models = [
+    { name: 'GPT-2', year: 2019, params: 1.5,  color: '#64748b', memGB: 3,   desc: 'Early open model, good at text generation' },
+    { name: 'GPT-3', year: 2020, params: 175,  color: '#0ea5e9', memGB: 350, desc: 'First model to show emergent few-shot learning' },
+    { name: 'Llama 3 70B', year: 2024, params: 70, color: '#a78bfa', memGB: 140, desc: 'Open weights, state-of-art efficiency' },
+    { name: 'GPT-4 (est.)', year: 2023, params: 600, color: '#f59e0b', memGB: 1200, desc: 'Industry leading reasoning capability' },
+    { name: 'Gemini 1.5 Pro (est.)', year: 2024, params: 1000, color: '#f87171', memGB: 2000, desc: 'Multimodal, 1M token context window' },
+  ];
+  const maxParams = 1000;
+
+  // Params vs Hyperparams table
+  const comparison = [
+    { aspect: 'Who sets it?',       param: 'Set automatically by training algorithm', hyper: 'Set manually by engineers' },
+    { aspect: 'When is it set?',    param: 'During training, updated continuously', hyper: 'Before training begins' },
+    { aspect: 'Examples',          param: 'Weights, biases', hyper: 'Learning rate, batch size, layers, epochs' },
+    { aspect: 'What it encodes',    param: 'Knowledge learned from data', hyper: 'Rules about how learning happens' },
+    { aspect: 'Stored in model?',   param: 'Yes — parameters ARE the model file', hyper: 'No — discarded after training' },
+    { aspect: 'Count in GPT-3',     param: '175,000,000,000 parameters', hyper: 'Dozens of hyperparameter choices' },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab bar */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: NEURON CALCULATOR ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Drag the sliders to change weights and bias. Watch how the neuron output changes in real time:
+            </p>
+
+            {/* SVG neuron diagram */}
+            <svg viewBox="0 0 520 140" style={{ width: '100%', display: 'block', marginBottom: '1.25rem' }}>
+              {/* Input nodes */}
+              <circle cx="60" cy="45" r="18" fill="#1e293b" stroke="#0ea5e9" strokeWidth="2" />
+              <text x="60" y="50" fill="#7dd3fc" fontSize="11" textAnchor="middle" fontWeight="bold">{input1}</text>
+              <text x="60" y="30" fill="#64748b" fontSize="9" textAnchor="middle">input₁</text>
+
+              <circle cx="60" cy="100" r="18" fill="#1e293b" stroke="#0ea5e9" strokeWidth="2" />
+              <text x="60" y="105" fill="#7dd3fc" fontSize="11" textAnchor="middle" fontWeight="bold">{input2}</text>
+              <text x="60" y="88" fill="#64748b" fontSize="9" textAnchor="middle">input₂</text>
+
+              {/* Weight lines */}
+              <line x1="78" y1="52" x2="220" y2="72" stroke="#f59e0b" strokeWidth={Math.abs(weight1) * 3 + 0.5} opacity="0.8" />
+              <text x="148" y="58" fill="#f59e0b" fontSize="10" fontWeight="bold">w₁={weight1.toFixed(2)}</text>
+
+              <line x1="78" y1="95" x2="220" y2="78" stroke="#ec4899" strokeWidth={Math.abs(weight2) * 3 + 0.5} opacity="0.8" />
+              <text x="148" y="102" fill="#ec4899" fontSize="10" fontWeight="bold">w₂={weight2.toFixed(2)}</text>
+
+              {/* Neuron body */}
+              <circle cx="255" cy="72" r="32" fill="#1e1040" stroke="#a78bfa" strokeWidth="2" />
+              <text x="255" y="67" fill="#a78bfa" fontSize="9" textAnchor="middle">Σ + bias</text>
+              <text x="255" y="80" fill="#c4b5fd" fontSize="10" textAnchor="middle" fontWeight="bold">{rawSum.toFixed(3)}</text>
+
+              {/* Bias label */}
+              <text x="255" y="115" fill="#64748b" fontSize="9" textAnchor="middle">bias={bias.toFixed(2)}</text>
+
+              {/* Arrow to activation */}
+              <line x1="287" y1="72" x2="340" y2="72" stroke="#64748b" strokeWidth="1.5" markerEnd="url(#arr2)" />
+              <defs><marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#64748b" /></marker></defs>
+              <text x="315" y="65" fill="#64748b" fontSize="8" textAnchor="middle">ReLU</text>
+
+              {/* Output node */}
+              <circle cx="385" cy="72" r="28" fill="#0c2a1f" stroke="#34d399" strokeWidth="2.5" />
+              <text x="385" y="68" fill="#34d399" fontSize="9" textAnchor="middle">output</text>
+              <text x="385" y="82" fill="#6ee7b7" fontSize="13" textAnchor="middle" fontWeight="bold">{output}</text>
+
+              {/* Formula */}
+              <text x="460" y="68" fill="#475569" fontSize="8" textAnchor="middle">max(0,</text>
+              <text x="460" y="78" fill="#475569" fontSize="8" textAnchor="middle">rawSum)</text>
+            </svg>
+
+            {/* Sliders */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              {[
+                { label: 'Weight 1 (w₁)', val: weight1, set: setWeight1, color: '#f59e0b' },
+                { label: 'Weight 2 (w₂)', val: weight2, set: setWeight2, color: '#ec4899' },
+                { label: 'Bias', val: bias, set: setBias, color: '#a78bfa' },
+              ].map((s, i) => (
+                <div key={i}>
+                  <div style={{ color: s.color, fontWeight: 700, fontSize: '0.78rem', marginBottom: '0.3rem' }}>
+                    {s.label}: <span style={{ fontFamily: 'monospace' }}>{s.val.toFixed(2)}</span>
+                  </div>
+                  <input type="range" min="-1" max="1" step="0.05" value={s.val}
+                    onChange={e => s.set(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: s.color, cursor: 'pointer' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontSize: '0.65rem' }}>
+                    <span>-1 (suppress)</span><span>+1 (amplify)</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '0.85rem', padding: '0.65rem 0.85rem', background: '#0c2a1f', border: '1px solid #34d399', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.8rem', color: '#6ee7b7' }}>
+              ({input1} × {weight1.toFixed(2)}) + ({input2} × {weight2.toFixed(2)}) + {bias.toFixed(2)} = {rawSum.toFixed(3)} → ReLU → <strong>{output}</strong>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: TRAINING LOOP ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Click each step to understand how parameters are discovered through training:
+            </p>
+
+            {/* Circular loop SVG */}
+            <svg viewBox="0 0 400 200" style={{ width: '100%', display: 'block', marginBottom: '1rem' }}>
+              {/* Loop arc indicators */}
+              <ellipse cx="200" cy="100" rx="140" ry="70" fill="none" stroke="#1e293b" strokeWidth="20" strokeDasharray="4 2" />
+
+              {/* Step circles */}
+              {trainingSteps.map((s, i) => {
+                const angles = [270, 0, 90, 180];
+                const rad = angles[i] * Math.PI / 180;
+                const cx = 200 + 140 * Math.cos(rad);
+                const cy = 100 + 70 * Math.sin(rad);
+                return (
+                  <g key={i} onClick={() => setTrainingStep(i)} style={{ cursor: 'pointer' }}>
+                    <circle cx={cx} cy={cy} r={trainingStep === i ? 26 : 20}
+                      fill={trainingStep === i ? s.color : '#1e293b'}
+                      stroke={s.color} strokeWidth="2"
+                      style={{ transition: 'all 0.2s' }}
+                    />
+                    <text x={cx} y={cy + 4} fill={trainingStep === i ? '#0f172a' : s.color}
+                      fontSize="14" textAnchor="middle" fontWeight="bold">{s.icon}</text>
+                    <text x={cx} y={cy + (cy < 100 ? -28 : 32)}
+                      fill={s.color} fontSize="9" textAnchor="middle" fontWeight="bold">{s.title}</text>
+                  </g>
+                );
+              })}
+
+              {/* Center label */}
+              <text x="200" y="97" fill="#475569" fontSize="10" textAnchor="middle">Training</text>
+              <text x="200" y="110" fill="#475569" fontSize="10" textAnchor="middle">Loop</text>
+            </svg>
+
+            <div style={{ padding: '0.85rem 1rem', background: `${trainingSteps[trainingStep].color}15`, border: `1.5px solid ${trainingSteps[trainingStep].color}`, borderRadius: '10px' }}>
+              <div style={{ color: trainingSteps[trainingStep].color, fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.35rem' }}>
+                {trainingSteps[trainingStep].icon} {trainingSteps[trainingStep].title}
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: '0.83rem' }}>{trainingSteps[trainingStep].desc}</div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 3: PARAMETER SCALE ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Real-world model parameter counts and their approximate memory footprint at 16-bit:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {models.map((m, i) => (
+                <div key={i} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '0.7rem 1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <div>
+                      <span style={{ color: m.color, fontWeight: 800, fontSize: '0.88rem' }}>{m.name}</span>
+                      <span style={{ color: '#475569', fontSize: '0.72rem', marginLeft: '0.5rem' }}>({m.year})</span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ color: m.color, fontWeight: 700, fontSize: '0.85rem' }}>{m.params}B params</span>
+                      <span style={{ color: '#64748b', fontSize: '0.72rem', marginLeft: '0.4rem' }}>~{m.memGB}GB RAM</span>
+                    </div>
+                  </div>
+                  <div style={{ height: '8px', background: '#0f172a', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${(m.params / maxParams) * 100}%`, height: '100%', background: m.color, borderRadius: '4px', transition: 'width 0.5s' }} />
+                  </div>
+                  <div style={{ color: '#64748b', fontSize: '0.73rem', marginTop: '0.3rem' }}>{m.desc}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: '0.75rem', padding: '0.6rem 0.85rem', background: '#1c1200', border: '1px solid #f59e0b', borderRadius: '8px', fontSize: '0.78rem', color: '#fcd34d' }}>
+              Memory rule of thumb: params × 2 bytes (16-bit) = minimum GPU RAM needed. A 70B model needs ~140 GB — more than most consumer GPUs combined.
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: PARAMS vs HYPERPARAMS ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button onClick={() => setHpTab('params')} style={{
+                padding: '0.4rem 0.9rem', borderRadius: '999px',
+                border: '1.5px solid #34d399',
+                background: hpTab === 'params' ? '#34d399' : 'transparent',
+                color: hpTab === 'params' ? '#0f172a' : '#34d399',
+                fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Parameters (learned)</button>
+              <button onClick={() => setHpTab('hyper')} style={{
+                padding: '0.4rem 0.9rem', borderRadius: '999px',
+                border: '1.5px solid #a78bfa',
+                background: hpTab === 'hyper' ? '#a78bfa' : 'transparent',
+                color: hpTab === 'hyper' ? '#0f172a' : '#a78bfa',
+                fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Hyperparameters (manual)</button>
+              <button onClick={() => setHpTab('table')} style={{
+                padding: '0.4rem 0.9rem', borderRadius: '999px',
+                border: '1.5px solid #f59e0b',
+                background: hpTab === 'table' ? '#f59e0b' : 'transparent',
+                color: hpTab === 'table' ? '#0f172a' : '#f59e0b',
+                fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Side-by-Side</button>
+            </div>
+
+            {hpTab === 'params' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {['Weights — multiply inputs to control their influence on the output.', 'Biases — add an offset so neurons can activate even with small inputs.', 'Embedding weights — map token IDs to dense vectors in embedding space.', 'Attention weights — learned Q, K, V matrices in every attention head.', 'Feed-forward weights — dense layers that transform attention outputs.'].map((t, i) => (
+                  <div key={i} style={{ padding: '0.55rem 0.85rem', background: '#0c2a1f', border: '1px solid #34d399', borderRadius: '8px', color: '#6ee7b7', fontSize: '0.82rem' }}>
+                    <strong style={{ color: '#34d399' }}>{t.split('—')[0]}</strong>{t.includes('—') ? '—' + t.split('—')[1] : ''}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {hpTab === 'hyper' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {[
+                  { name: 'Learning rate', desc: 'How big each parameter update step is. Too high = unstable. Too low = slow.', ex: '0.0001' },
+                  { name: 'Batch size', desc: 'How many examples are processed before each weight update.', ex: '32 – 2048' },
+                  { name: 'Number of layers', desc: 'How many transformer blocks deep the model is.', ex: '32 (Llama 70B)' },
+                  { name: 'Embedding dimension', desc: 'Width of each layer — how many features each token is represented by.', ex: '4096 (Llama 70B)' },
+                  { name: 'Training epochs', desc: 'How many passes through the entire training dataset.', ex: '1–3 for LLMs' },
+                ].map((h, i) => (
+                  <div key={i} style={{ padding: '0.55rem 0.85rem', background: '#1c0040', border: '1px solid #a78bfa', borderRadius: '8px' }}>
+                    <strong style={{ color: '#a78bfa', fontSize: '0.82rem' }}>{h.name} </strong>
+                    <span style={{ color: '#c4b5fd', fontSize: '0.78rem' }}>{h.desc}</span>
+                    <span style={{ color: '#475569', fontSize: '0.72rem', display: 'block', marginTop: '0.15rem' }}>Typical: {h.ex}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {hpTab === 'table' && (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ padding: '0.5rem', textAlign: 'left', color: '#94a3b8', borderBottom: '2px solid #334155' }}>Aspect</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left', color: '#34d399', borderBottom: '2px solid #334155' }}>Parameters</th>
+                      <th style={{ padding: '0.5rem', textAlign: 'left', color: '#a78bfa', borderBottom: '2px solid #334155' }}>Hyperparameters</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparison.map((row, i) => (
+                      <tr key={i} style={{ background: i % 2 === 0 ? '#1e293b' : '#0f172a' }}>
+                        <td style={{ padding: '0.5rem 0.6rem', color: '#94a3b8', fontWeight: 600, borderBottom: '1px solid #1e293b' }}>{row.aspect}</td>
+                        <td style={{ padding: '0.5rem 0.6rem', color: '#6ee7b7', borderBottom: '1px solid #1e293b' }}>{row.param}</td>
+                        <td style={{ padding: '0.5rem 0.6rem', color: '#c4b5fd', borderBottom: '1px solid #1e293b' }}>{row.hyper}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -1668,6 +1989,11 @@ export default function AILessonArticlePage() {
             {/* Embeddings Diagram */}
             {lesson.diagram.type === 'embeddings' && (
               <EmbeddingsDiagram />
+            )}
+
+            {/* Model Parameters Diagram */}
+            {lesson.diagram.type === 'model_parameters' && (
+              <ModelParametersDiagram />
             )}
 
             {/* Industry Grid Diagram */}
