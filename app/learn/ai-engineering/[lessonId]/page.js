@@ -1146,8 +1146,372 @@ const ContextWindowDiagram = () => {
   );
 };
 
+// ─── EMBEDDINGS DIAGRAM ───────────────────────────────────────────────────
+const EmbeddingsDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [arithmeticStep, setArithmeticStep] = useState(0);
+  const [cbowMode, setCbowMode] = useState('cbow');
+  const [hoveredWord, setHoveredWord] = useState(null);
+  const [posStep, setPosStep] = useState(0);
+
+  const panels = [
+    { label: 'One-Hot vs Dense', color: '#f87171' },
+    { label: 'Vector Space Map', color: '#a78bfa' },
+    { label: 'Vector Arithmetic', color: '#34d399' },
+    { label: 'Word2Vec Training', color: '#f59e0b' },
+    { label: 'Positional Encoding', color: '#0ea5e9' },
+  ];
+
+  // --- Panel 1: One-Hot vs Dense ---
+  const oneHotWords = ['cat', 'dog', 'king', 'queen', 'good', 'great'];
+  const denseVecs = [
+    { word: 'cat',   vec: [0.12, -0.34, 0.91, -0.05, 0.67], color: '#f87171' },
+    { word: 'dog',   vec: [0.14, -0.31, 0.88,  0.02, 0.71], color: '#fb923c' },
+    { word: 'king',  vec: [0.82,  0.91, 0.12,  0.95, 0.21], color: '#a78bfa' },
+    { word: 'queen', vec: [0.79,  0.87, 0.18,  0.93, -0.14], color: '#c084fc' },
+    { word: 'good',  vec: [-0.55, 0.63, -0.22, 0.41, 0.88], color: '#34d399' },
+    { word: 'great', vec: [-0.52, 0.61, -0.19, 0.44, 0.91], color: '#6ee7b7' },
+  ];
+
+  // --- Panel 2: 2D word map dots ---
+  const wordDots = [
+    { word: 'king',     x: 72, y: 25, color: '#a78bfa', cluster: 'royalty' },
+    { word: 'queen',    x: 85, y: 32, color: '#c084fc', cluster: 'royalty' },
+    { word: 'prince',   x: 76, y: 40, color: '#818cf8', cluster: 'royalty' },
+    { word: 'man',      x: 30, y: 28, color: '#38bdf8', cluster: 'people' },
+    { word: 'woman',    x: 44, y: 30, color: '#7dd3fc', cluster: 'people' },
+    { word: 'person',   x: 37, y: 42, color: '#93c5fd', cluster: 'people' },
+    { word: 'cat',      x: 20, y: 72, color: '#f87171', cluster: 'animals' },
+    { word: 'dog',      x: 30, y: 78, color: '#fb923c', cluster: 'animals' },
+    { word: 'lion',     x: 14, y: 82, color: '#fbbf24', cluster: 'animals' },
+    { word: 'tennis',   x: 68, y: 75, color: '#34d399', cluster: 'sport' },
+    { word: 'soccer',   x: 80, y: 82, color: '#6ee7b7', cluster: 'sport' },
+    { word: 'court',    x: 75, y: 68, color: '#a7f3d0', cluster: 'sport' },
+  ];
+  const clusterColors = { royalty: '#a78bfa', people: '#38bdf8', animals: '#f87171', sport: '#34d399' };
+
+  // --- Panel 3: Vector arithmetic steps ---
+  const arithmeticSteps = [
+    { eq: 'king', label: 'Start with vector for "king"', color: '#a78bfa',
+      desc: 'The embedding for "king" encodes concepts like royalty, power, and male gender.' },
+    { eq: 'king − man', label: 'Subtract vector for "man"', color: '#f87171',
+      desc: 'Removing "man" strips out the male-gender direction from the vector. What remains is roughly "royalty without gender".' },
+    { eq: 'king − man + woman', label: 'Add vector for "woman"', color: '#34d399',
+      desc: 'Adding "woman" injects the female-gender direction. The resulting vector points toward... "queen"!' },
+    { eq: '≈ queen', label: 'Result: closest word is "queen"', color: '#f59e0b',
+      desc: 'The arithmetic works because gender is a consistent geometric direction across the entire embedding space.' },
+  ];
+
+  // --- Panel 4: CBOW / Skip-gram ---
+  const sentence = ['The', 'quick', 'brown', 'fox', 'jumps'];
+  const centerIdx = 2; // 'brown'
+
+  // --- Panel 5: Positional encoding ---
+  const posSteps = [
+    { label: 'Step 1: Tokens are embedded', desc: 'Each token ID is looked up in the embedding table, producing a dense vector.', highlight: 'embed' },
+    { label: 'Step 2: Positional vectors are created', desc: 'For each position (1, 2, 3…) a unique positional vector is computed using sine/cosine waves at different frequencies.', highlight: 'pos' },
+    { label: 'Step 3: Vectors are summed', desc: 'The word embedding and positional vector are added element-wise. Shape is unchanged.', highlight: 'sum' },
+    { label: 'Step 4: Combined matrix enters attention', desc: 'The result encodes both WHAT the word means and WHERE it sits in the sequence.', highlight: 'out' },
+  ];
+  const posTokens = ['The', 'old', 'library', 'is', 'dark'];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+      {/* --- PANEL SWITCHER --- */}
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: ONE-HOT vs DENSE ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              {/* One-hot side */}
+              <div>
+                <div style={{ color: '#f87171', fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.75rem' }}>One-Hot Encoding (50,000-D)</div>
+                {oneHotWords.map((w, wi) => (
+                  <div key={wi} style={{ marginBottom: '0.4rem' }}>
+                    <span style={{ color: '#94a3b8', fontSize: '0.78rem', display: 'inline-block', width: '3.5rem' }}>{w}</span>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#64748b' }}>
+                      [{'0 '.repeat(wi)}<span style={{ color: '#f87171', fontWeight: 800 }}>1</span>{' 0'.repeat(oneHotWords.length - wi - 1)} ···]
+                    </span>
+                  </div>
+                ))}
+                <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', background: '#3f1818', border: '1px solid #f87171', borderRadius: '7px', fontSize: '0.75rem', color: '#fca5a5' }}>
+                  50,000 zeros per word. No similarity between words.
+                </div>
+              </div>
+              {/* Dense embedding side */}
+              <div>
+                <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.75rem' }}>Word Embedding (5-D shown)</div>
+                {denseVecs.map((d, di) => (
+                  <div key={di} style={{ marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ color: d.color, fontSize: '0.78rem', fontWeight: 700, width: '3.5rem' }}>{d.word}</span>
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      {d.vec.map((v, vi) => (
+                        <div key={vi} style={{
+                          width: '28px', height: '18px', borderRadius: '3px', fontSize: '0.6rem',
+                          background: v > 0 ? `rgba(139,92,246,${Math.abs(v) * 0.8})` : `rgba(248,113,113,${Math.abs(v) * 0.8})`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e2e8f0',
+                          border: '1px solid #334155'
+                        }}>{v.toFixed(2)}</div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', background: '#0c1040', border: '1px solid #a78bfa', borderRadius: '7px', fontSize: '0.75rem', color: '#c4b5fd' }}>
+                  Notice: cat & dog similar. king & queen similar. good & great similar.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: VECTOR SPACE MAP ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 0.75rem' }}>Hover any word to highlight its cluster. Similar words cluster together:</p>
+            <svg viewBox="0 0 100 100" style={{ width: '100%', maxHeight: '340px', background: '#0f172a', borderRadius: '10px', border: '1px solid #334155' }}>
+              {/* Cluster halos */}
+              <ellipse cx="78" cy="32" rx="16" ry="14" fill="#a78bfa15" stroke="#a78bfa30" strokeWidth="0.4" />
+              <ellipse cx="37" cy="33" rx="14" ry="12" fill="#38bdf815" stroke="#38bdf830" strokeWidth="0.4" />
+              <ellipse cx="22" cy="77" rx="12" ry="10" fill="#f8717115" stroke="#f8717130" strokeWidth="0.4" />
+              <ellipse cx="75" cy="75" rx="13" ry="10" fill="#34d39915" stroke="#34d39930" strokeWidth="0.4" />
+
+              {/* Axis labels */}
+              <text x="2" y="98" fill="#334155" fontSize="2.5">← less royal</text>
+              <text x="70" y="98" fill="#334155" fontSize="2.5">more royal →</text>
+              <text x="0" y="8" fill="#334155" fontSize="2.5" transform="rotate(-90,3,60)">fem ↑</text>
+
+              {/* Cluster labels */}
+              <text x="64" y="15" fill="#a78bfa" fontSize="3" fontWeight="bold">Royalty</text>
+              <text x="28" y="18" fill="#38bdf8" fontSize="3" fontWeight="bold">People</text>
+              <text x="8" y="66" fill="#f87171" fontSize="3" fontWeight="bold">Animals</text>
+              <text x="66" y="62" fill="#34d399" fontSize="3" fontWeight="bold">Sports</text>
+
+              {wordDots.map((d, i) => (
+                <g key={i} onMouseEnter={() => setHoveredWord(d.word)} onMouseLeave={() => setHoveredWord(null)} style={{ cursor: 'pointer' }}>
+                  <circle cx={d.x} cy={d.y} r={hoveredWord === d.word ? 3.5 : 2.2}
+                    fill={d.color} opacity={hoveredWord && hoveredWord !== d.word ? 0.3 : 1}
+                    style={{ transition: 'all 0.15s' }}
+                  />
+                  <text x={d.x + 2.5} y={d.y + 1} fill={d.color}
+                    fontSize={hoveredWord === d.word ? '3.5' : '2.8'}
+                    fontWeight={hoveredWord === d.word ? 'bold' : 'normal'}
+                    opacity={hoveredWord && hoveredWord !== d.word ? 0.3 : 1}
+                    style={{ transition: 'all 0.15s' }}
+                  >{d.word}</text>
+                </g>
+              ))}
+            </svg>
+            {hoveredWord && (
+              <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: '#1e293b', border: `1px solid ${clusterColors[wordDots.find(w => w.word === hoveredWord)?.cluster]}`, borderRadius: '7px', fontSize: '0.8rem', color: '#e2e8f0' }}>
+                <strong style={{ color: clusterColors[wordDots.find(w => w.word === hoveredWord)?.cluster] }}>{hoveredWord}</strong> — cluster: {wordDots.find(w => w.word === hoveredWord)?.cluster}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== PANEL 3: VECTOR ARITHMETIC ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>Click through the steps of the famous king − man + woman = queen analogy:</p>
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1.25rem', alignItems: 'center' }}>
+              {arithmeticSteps.map((s, i) => (
+                <button key={i} onClick={() => setArithmeticStep(i)}
+                  style={{
+                    padding: '0.35rem 0.8rem', borderRadius: '8px',
+                    border: `2px solid ${s.color}`,
+                    background: arithmeticStep === i ? `${s.color}25` : 'transparent',
+                    color: s.color, fontWeight: 700, fontSize: '0.82rem',
+                    cursor: 'pointer', transition: 'all 0.2s', fontFamily: 'monospace'
+                  }}>{s.eq}</button>
+              ))}
+            </div>
+
+            {/* SVG visualizer */}
+            <svg viewBox="0 0 500 160" style={{ width: '100%', display: 'block', marginBottom: '1rem' }}>
+              <defs>
+                <marker id="arrowK" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa" />
+                </marker>
+                <marker id="arrowM" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#f87171" />
+                </marker>
+                <marker id="arrowW" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#34d399" />
+                </marker>
+                <marker id="arrowQ" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+                </marker>
+              </defs>
+              {/* Axes */}
+              <line x1="40" y1="140" x2="460" y2="140" stroke="#334155" strokeWidth="1" />
+              <line x1="40" y1="140" x2="40" y2="20" stroke="#334155" strokeWidth="1" />
+              <text x="250" y="158" fill="#475569" fontSize="10" textAnchor="middle">gender axis</text>
+              <text x="15" y="80" fill="#475569" fontSize="10" textAnchor="middle" transform="rotate(-90,15,80)">royalty</text>
+
+              {/* Word dots */}
+              <circle cx="120" cy="50" r="6" fill="#38bdf8" />
+              <text x="122" y="44" fill="#38bdf8" fontSize="10">man</text>
+              <circle cx="340" cy="50" r="6" fill="#a78bfa" />
+              <text x="344" y="44" fill="#a78bfa" fontSize="10">king</text>
+              <circle cx="190" cy="50" r="6" fill="#ec4899" />
+              <text x="192" y="44" fill="#ec4899" fontSize="10">woman</text>
+              <circle cx="{arithmeticStep >= 3 ? 410 : 0}" cy="50" r="{arithmeticStep >= 3 ? 8 : 0}" fill="#f59e0b" />
+              {arithmeticStep >= 3 && <>
+                <circle cx="410" cy="50" r="8" fill="#f59e0b" />
+                <text x="414" y="44" fill="#f59e0b" fontSize="11" fontWeight="bold">queen</text>
+              </>}
+
+              {/* Arrows shown progressively */}
+              {arithmeticStep >= 0 && <line x1="120" y1="50" x2="335" y2="50" stroke="#a78bfa" strokeWidth="2" markerEnd="url(#arrowK)" strokeDasharray={arithmeticStep === 0 ? '5 3' : 'none'} />}
+              {arithmeticStep >= 1 && <line x1="340" y1="50" x2="195" y2="50" stroke="#f87171" strokeWidth="2" markerEnd="url(#arrowM)" />}
+              {arithmeticStep >= 2 && <line x1="190" y1="50" x2="402" y2="50" stroke="#34d399" strokeWidth="2" markerEnd="url(#arrowW)" />}
+            </svg>
+
+            <div style={{ padding: '0.85rem 1rem', background: `${arithmeticSteps[arithmeticStep].color}15`, border: `1.5px solid ${arithmeticSteps[arithmeticStep].color}`, borderRadius: '10px' }}>
+              <div style={{ color: arithmeticSteps[arithmeticStep].color, fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.25rem', fontFamily: 'monospace' }}>
+                {arithmeticSteps[arithmeticStep].eq}
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: '0.82rem' }}>{arithmeticSteps[arithmeticStep].desc}</div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: WORD2VEC ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button onClick={() => setCbowMode('cbow')} style={{
+                padding: '0.4rem 0.9rem', borderRadius: '999px',
+                border: '1.5px solid #f59e0b',
+                background: cbowMode === 'cbow' ? '#f59e0b' : 'transparent',
+                color: cbowMode === 'cbow' ? '#0f172a' : '#f59e0b',
+                fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+              }}>CBOW (predict center)</button>
+              <button onClick={() => setCbowMode('skipgram')} style={{
+                padding: '0.4rem 0.9rem', borderRadius: '999px',
+                border: '1.5px solid #34d399',
+                background: cbowMode === 'skipgram' ? '#34d399' : 'transparent',
+                color: cbowMode === 'skipgram' ? '#0f172a' : '#34d399',
+                fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Skip-gram (predict context)</button>
+            </div>
+
+            {/* Sentence display */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {sentence.map((w, i) => {
+                const isCenter = i === centerIdx;
+                const isContext = Math.abs(i - centerIdx) === 1;
+                let borderColor = '#334155';
+                let bg = '#1e293b';
+                let label = '';
+                if (cbowMode === 'cbow') {
+                  if (isCenter) { borderColor = '#f59e0b'; bg = '#f59e0b20'; label = 'TARGET'; }
+                  if (isContext) { borderColor = '#0ea5e9'; bg = '#0ea5e920'; label = 'INPUT'; }
+                } else {
+                  if (isCenter) { borderColor = '#34d399'; bg = '#34d39920'; label = 'INPUT'; }
+                  if (isContext) { borderColor = '#f87171'; bg = '#f8717120'; label = 'TARGET'; }
+                }
+                return (
+                  <div key={i} style={{ padding: '0.5rem 0.85rem', borderRadius: '8px', border: `2px solid ${borderColor}`, background: bg, textAlign: 'center' }}>
+                    <div style={{ color: '#f8fafc', fontWeight: 700 }}>{w}</div>
+                    {label && <div style={{ color: borderColor, fontSize: '0.65rem', fontWeight: 800, marginTop: '0.2rem' }}>{label}</div>}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ padding: '0.85rem 1rem', background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', fontSize: '0.82rem', color: '#94a3b8', marginBottom: '0.75rem' }}>
+              {cbowMode === 'cbow'
+                ? '"quick" and "fox" (context words) are fed as input. The model must predict "brown" (center word). After training, the hidden-layer weights become the embedding matrix.'
+                : '"brown" (center word) is the input. The model must predict "quick" and "fox" (context). Skip-gram works better for rare words and larger datasets.'}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <div style={{ padding: '0.6rem 0.8rem', background: '#1c1200', border: '1px solid #f59e0b', borderRadius: '7px' }}>
+                <strong style={{ color: '#f59e0b', fontSize: '0.78rem' }}>CBOW:</strong>
+                <span style={{ color: '#fcd34d', fontSize: '0.78rem' }}> Faster training. Works well on frequent words. Better for large datasets.</span>
+              </div>
+              <div style={{ padding: '0.6rem 0.8rem', background: '#0c2a1f', border: '1px solid #34d399', borderRadius: '7px' }}>
+                <strong style={{ color: '#34d399', fontSize: '0.78rem' }}>Skip-gram:</strong>
+                <span style={{ color: '#6ee7b7', fontSize: '0.78rem' }}> Slower but better with rare words. Produces richer embeddings.</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 5: POSITIONAL ENCODING ===== */}
+        {activePanel === 4 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Transformers process all tokens at once — positional encoding tells them the order. Step through:
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+              {posSteps.map((s, i) => (
+                <button key={i} onClick={() => setPosStep(i)} style={{
+                  padding: '0.35rem 0.75rem', borderRadius: '7px',
+                  border: `1.5px solid ${posStep === i ? '#0ea5e9' : '#334155'}`,
+                  background: posStep === i ? '#0ea5e920' : 'transparent',
+                  color: posStep === i ? '#7dd3fc' : '#64748b',
+                  fontWeight: posStep === i ? 700 : 400, fontSize: '0.75rem', cursor: 'pointer'
+                }}>{s.label}</button>
+              ))}
+            </div>
+
+            {/* Token row */}
+            <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+              {posTokens.map((t, i) => (
+                <div key={i} style={{ textAlign: 'center' }}>
+                  <div style={{ padding: '0.4rem 0.6rem', borderRadius: '7px', border: '1.5px solid #334155', background: posStep >= 0 ? '#0ea5e920' : '#1e293b', marginBottom: '0.25rem' }}>
+                    <div style={{ color: '#7dd3fc', fontWeight: 700, fontSize: '0.85rem' }}>{t}</div>
+                  </div>
+                  {posStep >= 1 && (
+                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontFamily: 'monospace' }}>pos {i+1}</div>
+                  )}
+                  {posStep >= 1 && (
+                    <div style={{ padding: '0.3rem 0.5rem', borderRadius: '5px', border: '1.5px solid #ec489960', background: '#ec489915', marginTop: '0.2rem' }}>
+                      <div style={{ color: '#f9a8d4', fontSize: '0.65rem', fontFamily: 'monospace' }}>sin/cos</div>
+                    </div>
+                  )}
+                  {posStep >= 2 && (
+                    <div style={{ fontSize: '0.7rem', color: '#34d399', fontWeight: 700 }}>+</div>
+                  )}
+                  {posStep >= 2 && (
+                    <div style={{ padding: '0.3rem 0.5rem', borderRadius: '5px', border: '1.5px solid #34d39960', background: '#34d39915', marginTop: '0.2rem' }}>
+                      <div style={{ color: '#6ee7b7', fontSize: '0.65rem', fontFamily: 'monospace' }}>embed</div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: '0.85rem 1rem', background: '#0c1a2e', border: `1.5px solid ${posStep >= 3 ? '#34d399' : '#0ea5e9'}`, borderRadius: '10px' }}>
+              <div style={{ color: posStep >= 3 ? '#34d399' : '#7dd3fc', fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.25rem' }}>
+                {posSteps[posStep].label}
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: '0.82rem' }}>{posSteps[posStep].desc}</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -1299,6 +1663,11 @@ export default function AILessonArticlePage() {
             {/* Context Window Diagram */}
             {lesson.diagram.type === 'context_window' && (
               <ContextWindowDiagram />
+            )}
+
+            {/* Embeddings Diagram */}
+            {lesson.diagram.type === 'embeddings' && (
+              <EmbeddingsDiagram />
             )}
 
             {/* Industry Grid Diagram */}

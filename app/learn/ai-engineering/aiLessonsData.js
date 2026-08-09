@@ -805,5 +805,105 @@ export const aiLessonsData = {
       correctIndex: 2,
       explanation: 'Correct! The "lost in the middle" finding showed that LLMs reliably perform worse when the relevant information is buried in the middle of a long context. Performance is strongest when key information appears at the beginning (primacy) or end (recency) of the input.'
     }
+  },
+
+  'ai-2-6': {
+    id: 'ai-2-6',
+    title: 'Embeddings & Vector Space',
+    subtitle: 'How LLMs Turn Words Into Meaning — The Math Behind Semantic Understanding',
+    section: 'Module 2 · Chapter 6',
+    estimatedTime: '10 min read',
+    gfgUrl: 'https://www.geeksforgeeks.org/word-embeddings-in-nlp/',
+    videoUrl: 'https://www.youtube.com/embed/hVM8qGRTaOA',
+
+    badgeText: 'CORE CONCEPT',
+    badgeColor: '#8b5cf6',
+
+    sections: [
+      {
+        heading: 'Why Numbers Alone Are Not Enough',
+        paragraphs: [
+          'The first rule of training any machine learning model is: convert every input into numbers. Images are easy — a grayscale pixel is just a value between 0 and 1. Text is harder. How do you turn words into numbers in a way that actually preserves meaning?',
+          'The naive approach is to assign each unique word a unique integer. "good" = 6, "bad" = 22, "great" = 21. But notice the problem: 21 and 22 are numerically close, so the model might conclude that "bad" and "great" are similar words — when in reality "good" and "great" are similar. The numbers are misleading.',
+          'One-hot encoding tries to fix this. Every word becomes a binary vector as long as the entire vocabulary. If the vocabulary has 50,000 words, every word becomes a vector of 49,999 zeros and a single 1. This eliminates fake numerical relationships, but creates two new problems: the vectors are astronomically large and sparse, and they still carry no information about meaning. "good" and "great" are still completely unrelated — they are just two different 1s in a sea of zeros.'
+        ]
+      },
+      {
+        heading: 'What Is a Word Embedding?',
+        paragraphs: [
+          'A word embedding is a technique where every word is represented as a dense numerical vector in a continuous vector space. Unlike one-hot encoding, these vectors are short (hundreds of dimensions, not tens of thousands) and every position carries learned information.',
+          'The key insight is: similar words end up with similar vectors. The vectors for "king" and "queen" will be close to each other in this space. The vectors for "cat" and "automobile" will be far apart. Meaning is encoded in geometry.',
+          'The direction and distance between vectors also carries meaning. The vector for "king" minus the vector for "man" plus the vector for "woman" produces a vector that lands very close to "queen". The relationship between genders is encoded as a consistent geometric offset throughout the entire space.',
+          'Another example from the transcript: Beijing - China + Japan ≈ Tokyo. The embedding space learned that Beijing is the capital of China, so subtracting China and adding Japan points you to Japan\'s capital.'
+        ]
+      },
+      {
+        heading: 'Visualizing the Embedding Space',
+        paragraphs: [
+          'Embeddings typically have hundreds or thousands of dimensions, which we cannot visualize directly. But mathematical tools like Principal Component Analysis (PCA) and t-SNE can project them down to 2D or 3D while preserving the most important structure.',
+          'When you project a trained embedding model to 2D, you see clear clusters: all words related to tennis cluster together, all words related to cats cluster together, all words representing the digit one cluster together. The geometry is not random — it reflects genuine semantic relationships learned from billions of words of text.',
+          'Importantly, the model does not "decide" what each dimension means. A dimension might loosely correspond to "royalty", "gender", "animateness", or something far more abstract. The features emerge from training — from seeing how words appear together across massive amounts of text.'
+        ]
+      },
+      {
+        heading: 'How Embeddings Are Trained: Word2Vec',
+        paragraphs: [
+          'Word2Vec, introduced by Google, is the classic algorithm for training word embeddings. The core idea is elegant: train a simple neural network to predict words from their context, then throw away the prediction — and use the learned weights as your embeddings.',
+          'Continuous Bag of Words (CBOW): Given the surrounding context words, predict the center word. For the sentence "The quick brown fox jumps", with a context window of 1, you feed in "quick" and "jumps" and ask the model to predict "fox". The hidden layer weights that emerge from this training become the embedding matrix.',
+          'Skip-gram: The opposite of CBOW. Given the center word, predict the surrounding context words. You feed in "fox" and ask the model to predict "quick" and "jumps". Skip-gram tends to work better for rare words.',
+          'In both cases, the embedding matrix is a lookup table: after training, each word has a unique row in the matrix that serves as its dense vector representation. The matrix has as many rows as the vocabulary size, and as many columns as the embedding dimension you chose (typically 100–1000).'
+        ]
+      },
+      {
+        heading: 'Embeddings in Transformers: The Embedding Layer',
+        paragraphs: [
+          'Modern LLMs do not use Word2Vec directly. They train their own embedding layer end-to-end as part of the whole model.',
+          'After tokenization, every token ID is passed through an embedding layer — essentially a learned lookup table. Each token ID maps to a dense vector of the model\'s embedding dimension (e.g., 768 for BERT, 4096 for GPT-4). For a sequence of 6 tokens, you get a 6 × embedding_dim matrix.',
+          'The key difference from Word2Vec: in a Transformer, the embedding layer is not trained separately. It is trained simultaneously with the attention layers, the feed-forward layers, and every other part of the model. The embeddings and the model\'s reasoning capability co-evolve.',
+          'These embeddings are called static in the sense that the same token always starts with the same vector — but the attention mechanism then transforms them into context-aware representations. The word "bank" starts with one embedding vector, but after attention it becomes different depending on whether it appeared near "river" or "money".'
+        ]
+      },
+      {
+        heading: 'Positional Encoding: Adding Order to a Parallel System',
+        paragraphs: [
+          'There is one subtle but critical detail. Unlike RNNs that process tokens one at a time in sequence, Transformers process all tokens in parallel simultaneously. This is what makes them so fast — but it means the model has no inherent sense of which token came first.',
+          'The solution is positional encoding. After computing the embedding vector for each token, a second vector encoding the token\'s position is added to it. Token 1 gets a positional vector for position 1, token 2 for position 2, and so on.',
+          'This positional vector can be a fixed mathematical formula (the original Transformer uses sine and cosine functions at different frequencies) or another learned set of parameters. Either way, the result is the same: the embedding now carries both the meaning of the word and its location in the sequence.',
+          'Crucially, the shape of the embedding matrix does not change — it is still 6 × embedding_dim. The positional information is baked into the values of that matrix, not added as extra dimensions. This combined matrix is then handed off to the attention mechanism.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: GPS Coordinates for Words',
+      text: 'Think of the embedding space as a giant city map. Each word is a building with GPS coordinates. Similar buildings (libraries, bookstores) are in the same neighborhood. The distance between buildings reflects how related those words are. And if you know that the Town Hall is 3 blocks north of the Central Park, you can predict that every Town Hall in every city is probably 3 blocks north of its own Central Park — because the relationship is consistent. That geometric consistency is exactly what lets embeddings do vector arithmetic: king - man + woman = queen.'
+    },
+
+    diagram: {
+      type: 'embeddings',
+      title: 'Embeddings & Vector Space — Five Interactive Illustrations'
+    },
+
+    takeaways: [
+      'Assigning raw integers to words fails because it creates false numerical relationships (bad = 22, great = 21 makes them look similar).',
+      'One-hot encoding eliminates false relationships but creates huge sparse vectors with no semantic content.',
+      'Word embeddings are dense vectors where similar words cluster together in vector space — meaning is encoded as geometry.',
+      'Vector arithmetic on embeddings works: king - man + woman ≈ queen. Geographic analogies work too: Beijing - China + Japan ≈ Tokyo.',
+      'Word2Vec trains embeddings using two tasks: CBOW (predict center word from context) and Skip-gram (predict context from center word).',
+      'In Transformers, embeddings are trained end-to-end with the whole model, not separately.',
+      'Positional encoding adds order information to embeddings by summing a position-specific vector — Transformers process all tokens in parallel so they need this to know token order.'
+    ],
+
+    quiz: {
+      question: 'What vector operation approximately gives you "queen" if you start from the word embeddings?',
+      options: [
+        'king + man + woman',
+        'king - man + woman',
+        'queen - woman + man',
+        'king + queen - man'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! The classic Word2Vec demonstration: king - man + woman ≈ queen. The vector from "man" to "king" captures the concept of royalty. Applying that same offset to "woman" lands near "queen". This shows that gender is encoded as a consistent geometric direction across the entire embedding space.'
+    }
   }
 };
