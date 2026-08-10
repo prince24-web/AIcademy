@@ -1447,14 +1447,14 @@ def calculate_cost(input_tokens, output_tokens, model_name):
 # Test: send 500-token prompt, receive 200-token response
 result = calculate_cost(500, 200, "GPT-4o")
 print(f"Model:  {result['model']}")
-print(f"Input:  ${result['input_cost']:.6f}")
-print(f"Output: ${result['output_cost']:.6f}")
-print(f"Total:  ${result['total_cost']:.6f}")
+print(f"Input:  \${result['input_cost']:.6f}")
+print(f"Output: \${result['output_cost']:.6f}")
+print(f"Total:  \${result['total_cost']:.6f}")
 
 print("\\n--- Compare all models (500 in, 200 out) ---")
 for model in MODEL_PRICING:
     r = calculate_cost(500, 200, model)
-    print(f"{model:20s}  ${r['total_cost']:.6f}")`,
+    print(f"{model:20s}  \${r['total_cost']:.6f}")`,
         hints: [
           'The pricing is per 1,000 tokens. So for 500 tokens: (500 / 1000) = 0.5 "units".',
           'Multiply that by the price: (input_tokens / 1000) * pricing["input_per_1k"]',
@@ -1474,14 +1474,14 @@ def calculate_cost(input_tokens, output_tokens, model_name):
 
 result = calculate_cost(500, 200, "GPT-4o")
 print(f"Model:  {result['model']}")
-print(f"Input:  ${result['input_cost']:.6f}")
-print(f"Output: ${result['output_cost']:.6f}")
-print(f"Total:  ${result['total_cost']:.6f}")
+print(f"Input:  \${result['input_cost']:.6f}")
+print(f"Output: \${result['output_cost']:.6f}")
+print(f"Total:  \${result['total_cost']:.6f}")
 print("\\n--- Compare all models (500 in, 200 out) ---")
 for model in MODEL_PRICING:
     r = calculate_cost(500, 200, model)
-    print(f"{model:20s}  ${r['total_cost']:.6f}")`,
-        expectedOutputContains: '$0.005500',
+    print(f"{model:20s}  \${r['total_cost']:.6f}")`,
+        expectedOutputContains: '0.005500',
         conceptCallout: 'GPT-3.5-Turbo is ~10x cheaper than GPT-4o for the same call. For tasks that don\'t require advanced reasoning (FAQs, summarization, classification), GPT-3.5 saves significant cost at scale.',
       },
       {
@@ -1600,7 +1600,7 @@ def token_audit(prompt_text, expected_output_tokens=150):
         cost = calculate_cost(token_count, expected_output_tokens, model_name)
         
         # TODO: Remove the # at the start of the next line to enable output
-        # print(f"{model_name:<20} {fits:<10} {pct:<9.1f}%  ${cost:.6f}")
+        # print(f"{model_name:<20} {fits:<10} {pct:<9.1f}%  \${cost:.6f}")
     
     print("=" * 62)
     print("\\nTip: Use low temperature (0.0-0.2) for factual tasks.")
@@ -1650,7 +1650,7 @@ def token_audit(prompt_text, expected_output_tokens=150):
         pct = (token_count / info["context_window"]) * 100
         fits = "Fits" if token_count <= info["context_window"] else "TOO LONG"
         cost = calculate_cost(token_count, expected_output_tokens, model_name)
-        print(f"{model_name:<20} {fits:<10} {pct:<9.1f}%  ${cost:.6f}")
+        print(f"{model_name:<20} {fits:<10} {pct:<9.1f}%  \${cost:.6f}")
     print("=" * 62)
     print("\\nTip: Use low temperature (0.0-0.2) for factual tasks.")
     print("     Use higher temperature (0.7-1.2) for creative tasks.")
