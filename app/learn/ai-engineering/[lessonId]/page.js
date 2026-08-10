@@ -44,6 +44,142 @@ const IconVideo = ({ size = 22 }) => (
   </svg>
 );
 
+const IconPython = ({ size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+    <path d="M11.87 2c-4.32 0-4.04 1.88-4.04 1.88l.01 1.95h4.08v.58H6.18S2 5.92 2 10.3c0 4.37 3.65 4.22 3.65 4.22h1.09v-1.55s-.06-1.88 1.88-1.88h3.76s1.8 0 1.8-1.76V5.64s.28-3.64-4.31-3.64zm-2.12 1.18a.71.71 0 1 1 0 1.42.71.71 0 0 1 0-1.42z" fill="#38bdf8"/>
+    <path d="M12.13 22c4.32 0 4.04-1.88 4.04-1.88l-.01-1.95h-4.08v-.58h5.75S22 18.08 22 13.7c0-4.37-3.65-4.22-3.65-4.22h-1.09v1.55s.06 1.88-1.88 1.88h-3.76s-1.8 0-1.8 1.76v3.67s-.28 3.64 4.31 3.64zm2.12-1.18a.71.71 0 1 1 0-1.42.71.71 0 0 1 0 1.42z" fill="#fde047"/>
+  </svg>
+);
+
+const IconClock = ({ size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+  </svg>
+);
+
+const IconList = ({ size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+  </svg>
+);
+
+const IconGlobe = ({ size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+  </svg>
+);
+
+const IconTerminal = ({ size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+  </svg>
+);
+
+const IconTarget = ({ size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+  </svg>
+);
+
+const IconLightbulb = ({ size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5.76.76 1.23 1.52 1.41 2.5"/>
+  </svg>
+);
+
+const IconPlay = ({ size = 14, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" style={style}>
+    <polygon points="5 3 19 12 5 21 5 3"/>
+  </svg>
+);
+
+const IconSpinner = ({ size = 14, className = '', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+    <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+  </svg>
+);
+
+const IconEye = ({ size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+  </svg>
+);
+
+const IconEyeOff = ({ size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>
+);
+
+const IconBrain = ({ size = 18, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04Z"/>
+  </svg>
+);
+
+const IconTrophy = ({ size = 28, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2"/><path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+  </svg>
+);
+
+// ─── PYTHON SYNTAX HIGHLIGHTER LEXER ──────────────────────────────────────
+function highlightPythonCode(code) {
+  if (!code) return '';
+
+  const escapeHtml = (str) =>
+    str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const combinedRegex = new RegExp(
+    [
+      '(#[^\\n]*)', // 1. Comments
+      '("""[\\s\\S]*?"""|\'\'\'[\\s\\S]*?\'\'\')', // 2. Triple strings
+      '((?:f|F)?(?:"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'))', // 3. Strings
+      '(\\b(?:def|class|return|if|elif|else|for|while|try|except|finally|raise|import|from|as|with|in|is|not|and|or|True|False|None|pass|break|continue|yield|lambda)\\b)', // 4. Keywords
+      '(\\b(?:print|len|range|str|int|float|list|dict|set|tuple|sum|max|min|round|abs|type|zip|enumerate|map|filter|input|open)\\b)', // 5. Builtins
+      '(\\b[a-zA-Z_]\\w*(?=\\s*\\())', // 6. Function names
+      '(\\b\\d+(?:\\.\\d+)?\\b)', // 7. Numbers
+    ].join('|'),
+    'g'
+  );
+
+  let result = '';
+  let lastIndex = 0;
+  let match;
+
+  while ((match = combinedRegex.exec(code)) !== null) {
+    if (match.index > lastIndex) {
+      result += escapeHtml(code.slice(lastIndex, match.index));
+    }
+
+    const [full, comment, tripleStr, str, keyword, builtin, funcName, number] = match;
+
+    if (comment) {
+      result += `<span style="color: #64748b; font-style: italic;">${escapeHtml(comment)}</span>`;
+    } else if (tripleStr) {
+      result += `<span style="color: #86efac;">${escapeHtml(tripleStr)}</span>`;
+    } else if (str) {
+      result += `<span style="color: #93c5fd;">${escapeHtml(str)}</span>`;
+    } else if (keyword) {
+      result += `<span style="color: #c084fc; font-weight: 600;">${escapeHtml(keyword)}</span>`;
+    } else if (builtin) {
+      result += `<span style="color: #38bdf8;">${escapeHtml(builtin)}</span>`;
+    } else if (funcName) {
+      result += `<span style="color: #4ade80;">${escapeHtml(funcName)}</span>`;
+    } else if (number) {
+      result += `<span style="color: #fde047;">${escapeHtml(number)}</span>`;
+    }
+
+    lastIndex = combinedRegex.lastIndex;
+  }
+
+  if (lastIndex < code.length) {
+    result += escapeHtml(code.slice(lastIndex));
+  }
+
+  return result;
+}
+
 // Nested Circles SVG Diagram Component (Matching User Reference Image Style)
 const NestedCirclesDiagram = () => {
   const [activeCircle, setActiveCircle] = useState(null);
@@ -2503,7 +2639,10 @@ const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
   const [showSolution, setShowSolution] = useState(false);
   const [pyodideReady, setPyodideReady] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(new Set());
-  const pyodideRef = useState(null);
+
+  const highlightRef = useRef(null);
+  const lineNumbersRef = useRef(null);
+  const textareaRef = useRef(null);
 
   const steps = lesson.steps || [];
   const step = steps[currentStep];
@@ -2572,15 +2711,83 @@ sys.stdout = _stdout_capture
     setIsRunning(false);
   };
 
+  const handleScroll = (e) => {
+    if (highlightRef.current) {
+      highlightRef.current.scrollTop = e.target.scrollTop;
+      highlightRef.current.scrollLeft = e.target.scrollLeft;
+    }
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = e.target.scrollTop;
+    }
+  };
+
   const handleKeyDown = (e) => {
+    if (showSolution) return;
+    const ta = e.target;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+
     if (e.key === 'Tab') {
       e.preventDefault();
-      const ta = e.target;
-      const start = ta.selectionStart;
-      const end = ta.selectionEnd;
-      const newCode = code.substring(0, start) + '    ' + code.substring(end);
+      if (e.shiftKey) {
+        // Shift+Tab: Unindent line by up to 4 spaces
+        const textBefore = code.substring(0, start);
+        const lastLineBreak = textBefore.lastIndexOf('\n');
+        const lineStart = lastLineBreak + 1;
+        const currentLine = code.substring(lineStart);
+        const spacesToRemove = currentLine.match(/^ {1,4}/);
+        if (spacesToRemove) {
+          const removeCount = spacesToRemove[0].length;
+          const newCode = code.substring(0, lineStart) + currentLine.substring(removeCount);
+          setCode(newCode);
+          setTimeout(() => {
+            ta.selectionStart = ta.selectionEnd = Math.max(lineStart, start - removeCount);
+          }, 0);
+        }
+      } else {
+        // Tab: Insert 4 spaces
+        const newCode = code.substring(0, start) + '    ' + code.substring(end);
+        setCode(newCode);
+        setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + 4; }, 0);
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      // Smart Auto-Indentation (e.g. def greet(): -> auto add 4 spaces)
+      const textBefore = code.substring(0, start);
+      const textAfter = code.substring(end);
+      const lastLineBreak = textBefore.lastIndexOf('\n');
+      const currentLine = textBefore.substring(lastLineBreak + 1);
+
+      // Extract existing leading spaces/tabs
+      const indentMatch = currentLine.match(/^[ \t]*/);
+      let newIndent = indentMatch ? indentMatch[0] : '';
+
+      // If current line ends with a colon (ignoring comments/whitespace), add 4 extra spaces
+      const lineWithoutComment = currentLine.replace(/#.*/, '').trimEnd();
+      if (lineWithoutComment.endsWith(':')) {
+        newIndent += '    ';
+      }
+
+      const insertion = '\n' + newIndent;
+      const newCode = textBefore + insertion + textAfter;
       setCode(newCode);
-      setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + 4; }, 0);
+      setTimeout(() => {
+        ta.selectionStart = ta.selectionEnd = start + insertion.length;
+      }, 0);
+    } else if (e.key === 'Backspace') {
+      if (start === end && start > 0) {
+        const textBefore = code.substring(0, start);
+        const lastLineBreak = textBefore.lastIndexOf('\n');
+        const lineBeforeCursor = textBefore.substring(lastLineBreak + 1);
+        if (/^ +$/.test(lineBeforeCursor) && lineBeforeCursor.length % 4 === 0) {
+          e.preventDefault();
+          const newCode = code.substring(0, start - 4) + code.substring(end);
+          setCode(newCode);
+          setTimeout(() => {
+            ta.selectionStart = ta.selectionEnd = start - 4;
+          }, 0);
+        }
+      }
     }
   };
 
@@ -2602,6 +2809,12 @@ sys.stdout = _stdout_capture
 
   const isLastStep = currentStep === steps.length - 1;
   const isProjectDone = isLastStep && completedSteps.has(currentStep);
+
+  const displayCode = showSolution ? step.solutionCode : code;
+  const highlightedCode = highlightPythonCode(displayCode);
+  const lines = (displayCode || '').split('\n');
+  const lineCount = Math.max(lines.length, 1);
+  const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
 
   return (
     <div className={styles.container}>
@@ -2626,19 +2839,31 @@ sys.stdout = _stdout_capture
 
           {/* Mobile notice */}
           <div className={styles.mobileNotice}>
-            💡 This coding project is best experienced on a desktop browser for the full editor experience.
+            <IconLightbulb size={16} style={{ color: '#eab308', marginRight: '6px', flexShrink: 0 }} />
+            This coding project is best experienced on a desktop browser for the full editor experience.
           </div>
 
           {/* Project Header */}
           <div className={styles.projectHeader}>
-            <div className={styles.projectBadge}>⚙️ {lesson.badgeText || 'CODING PROJECT'}</div>
+            <div className={styles.projectBadge}>
+              <IconTerminal size={13} style={{ marginRight: '4px' }} />
+              {lesson.badgeText || 'CODING PROJECT'}
+            </div>
             <h1 className={styles.projectTitle}>{lesson.title}</h1>
             <p className={styles.projectSubtitle}>{lesson.subtitle}</p>
             <div className={styles.projectMeta}>
-              <span className={styles.projectMetaChip}>🐍 Python</span>
-              <span className={styles.projectMetaChip}>⏱ {lesson.estimatedTime}</span>
-              <span className={styles.projectMetaChip}>📋 {steps.length} Steps</span>
-              <span className={styles.projectMetaChip}>🌐 Runs in browser</span>
+              <span className={styles.projectMetaChip}>
+                <IconPython size={14} style={{ marginRight: '5px' }} /> Python 3
+              </span>
+              <span className={styles.projectMetaChip}>
+                <IconClock size={14} style={{ marginRight: '5px' }} /> {lesson.estimatedTime}
+              </span>
+              <span className={styles.projectMetaChip}>
+                <IconList size={14} style={{ marginRight: '5px' }} /> {steps.length} Steps
+              </span>
+              <span className={styles.projectMetaChip}>
+                <IconGlobe size={14} style={{ marginRight: '5px' }} /> Runs in browser
+              </span>
             </div>
           </div>
 
@@ -2685,18 +2910,22 @@ sys.stdout = _stdout_capture
               <div className={styles.instructionsPanel}>
                 <p className={styles.instructionsConcept}>{step.concept}</p>
                 <div className={styles.instructionsGoalRow}>
-                  <span className={styles.instructionsGoalLabel}>🎯 Goal</span>
+                  <span className={styles.instructionsGoalLabel}>
+                    <IconTarget size={14} style={{ color: '#7c3aed', marginRight: '4px', verticalAlign: 'middle' }} /> Goal
+                  </span>
                   <span className={styles.instructionsGoalText}>{step.goal}</span>
                 </div>
                 {step.whyItMatters && (
                   <div className={styles.whyItMatters}>
-                    <span className={styles.whyIcon}>💡</span>
+                    <span className={styles.whyIcon}>
+                      <IconLightbulb size={16} style={{ color: '#d97706' }} />
+                    </span>
                     <span className={styles.whyText}><strong>Why this matters:</strong> {step.whyItMatters}</span>
                   </div>
                 )}
               </div>
 
-              {/* Code Editor */}
+              {/* Syntax Highlighted Code Editor */}
               <div className={styles.codeEditorSection}>
                 <div className={styles.codeEditorTopBar}>
                   <div className={styles.codeEditorDots}>
@@ -2704,19 +2933,39 @@ sys.stdout = _stdout_capture
                     <span style={{ background: '#f59e0b' }} />
                     <span style={{ background: '#22c55e' }} />
                   </div>
-                  <span className={styles.codeEditorLabel}>Python · Step {currentStep + 1}</span>
-                  <span style={{ fontSize: '11px', color: '#475569' }}>Tab = 4 spaces</span>
+                  <span className={styles.codeEditorLabel} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <IconPython size={14} /> main.py · Step {currentStep + 1}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>Tab = 4 spaces</span>
                 </div>
-                <textarea
-                  className={styles.codeArea}
-                  value={showSolution ? step.solutionCode : code}
-                  onChange={(e) => { if (!showSolution) setCode(e.target.value); }}
-                  onKeyDown={handleKeyDown}
-                  spellCheck={false}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                />
+
+                <div className={styles.editorContainer}>
+                  {/* Line Numbers Gutter */}
+                  <div className={styles.lineNumbers} ref={lineNumbersRef} aria-hidden="true">
+                    {lineNumbers.map((num) => (
+                      <span key={num}>{num}</span>
+                    ))}
+                  </div>
+
+                  {/* Code Window with Syntax Overlay */}
+                  <div className={styles.codeWindow}>
+                    <pre className={styles.highlightLayer} ref={highlightRef} aria-hidden="true">
+                      <code dangerouslySetInnerHTML={{ __html: highlightedCode + '\n' }} />
+                    </pre>
+                    <textarea
+                      ref={textareaRef}
+                      className={styles.codeArea}
+                      value={displayCode}
+                      onChange={(e) => { if (!showSolution) setCode(e.target.value); }}
+                      onKeyDown={handleKeyDown}
+                      onScroll={handleScroll}
+                      spellCheck={false}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -2726,12 +2975,21 @@ sys.stdout = _stdout_capture
                   onClick={runCode}
                   disabled={isRunning}
                 >
-                  {isRunning ? '⏳ Running...' : '▶ Run Code'}
+                  {isRunning ? (
+                    <>
+                      <IconSpinner size={15} className={styles.spin} /> Running...
+                    </>
+                  ) : (
+                    <>
+                      <IconPlay size={14} /> Run Code
+                    </>
+                  )}
                 </button>
 
                 {step.hints && step.hints.length > 0 && (
                   <button className={styles.hintBtn} onClick={revealNextHint}>
-                    💡 {showHints ? (hintsRevealed < step.hints.length ? 'Next Hint' : 'All Hints Shown') : 'Hint'}
+                    <IconSparkles size={15} style={{ color: '#d97706' }} />
+                    {showHints ? (hintsRevealed < step.hints.length ? 'Next Hint' : 'All Hints Shown') : 'Hint'}
                   </button>
                 )}
 
@@ -2739,7 +2997,15 @@ sys.stdout = _stdout_capture
                   className={styles.solutionBtn}
                   onClick={() => setShowSolution(s => !s)}
                 >
-                  {showSolution ? '🙈 Hide Solution' : '👁 Show Solution'}
+                  {showSolution ? (
+                    <>
+                      <IconEyeOff size={15} /> Hide Solution
+                    </>
+                  ) : (
+                    <>
+                      <IconEye size={15} /> Show Solution
+                    </>
+                  )}
                 </button>
               </div>
 
@@ -2770,7 +3036,9 @@ sys.stdout = _stdout_capture
               {/* Concept Callout after success */}
               {outputType === 'success' && step.conceptCallout && (
                 <div className={styles.conceptCallout}>
-                  <span className={styles.conceptCalloutIcon}>🧠</span>
+                  <span className={styles.conceptCalloutIcon} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <IconBrain size={20} style={{ color: '#8b5cf6' }} />
+                  </span>
                   <div>
                     <div className={styles.conceptCalloutLabel}>Key Insight</div>
                     <div className={styles.conceptCalloutText}>{step.conceptCallout}</div>
@@ -2781,7 +3049,9 @@ sys.stdout = _stdout_capture
               {/* Completion Banner on last step */}
               {isProjectDone && (
                 <div className={styles.completionBanner}>
-                  <span className={styles.completionEmoji}>🎉</span>
+                  <span className={styles.completionEmoji} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <IconTrophy size={36} style={{ color: '#eab308' }} />
+                  </span>
                   <div className={styles.completionTitle}>Project Complete!</div>
                   <p className={styles.completionText}>
                     You built a real Token Counter & Cost Calculator from scratch — the same tool LLM engineers use in production.
