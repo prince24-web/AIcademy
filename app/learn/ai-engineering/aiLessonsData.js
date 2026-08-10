@@ -1135,5 +1135,101 @@ export const aiLessonsData = {
       correctIndex: 2,
       explanation: 'Correct! For extracting structured data from documents, you want accuracy and consistency — not creativity. A very low temperature (0.0–0.2) makes the model confident and deterministic, always choosing the most probable tokens. Creative temperature settings would introduce random variation that leads to incorrect extractions.'
     }
+  },
+
+  'ai-2-9': {
+    id: 'ai-2-9',
+    title: 'LLM Hallucinations & Limitations',
+    subtitle: 'Why AI Makes Things Up, The 4 Granularity Types, Root Causes, and Mitigation Techniques',
+    section: 'Module 2 · Chapter 9',
+    estimatedTime: '10 min read',
+    gfgUrl: null,
+    videoUrl: 'https://www.youtube.com/embed/cfqtFvWOfg0',
+
+    badgeText: 'CRITICAL CONCEPT',
+    badgeColor: '#ef4444',
+
+    sections: [
+      {
+        heading: 'What Is an LLM Hallucination? Three Famous Examples',
+        paragraphs: [
+          'Large Language Models can generate incredibly fluent, eloquent text on almost any topic. But they have a dangerous flaw: they are also prone to "making stuff up" with absolute confidence — producing plausible-sounding nonsense.',
+          'In AI engineering, a hallucination is defined as any LLM output that deviates from established world facts, reality, or contextual logic. Hallucinations range from subtle inconsistencies to completely fabricated statements.',
+          'Consider these three real-world examples:',
+          '1. Distance Miscalculation: "The distance from Earth to the Moon is 54 million kilometers." (False! 54 million km is the average distance to Mars. The Moon is only ~384,400 km away).',
+          '2. Personal Context Mix-Up: "Before working at IBM, I worked at a major Australian airline." (False! The presenter\'s brother worked at the airline, not him — the model blended related family facts together).',
+          '3. The Infamous Google Bard Launch: During Google\'s first public demonstration of Bard, the AI claimed the James Webb Space Telescope took the very first picture of an exoplanet outside our solar system. In reality, the first exoplanet image was captured in 2004 by the Very Large Telescope (VLT) — 17 years before JWST launched! This single hallucination wiped out $100 billion in market value in one day.'
+        ]
+      },
+      {
+        heading: 'Categorizing Hallucinations by Granularity',
+        paragraphs: [
+          'Hallucinations are not all identical. Researchers and engineers categorize them across four levels of granularity:',
+          '1. Sentence Contradiction: The model generates a sentence that directly contradicts a sentence it wrote just moments earlier in the same output. Example: "The sky is clear and blue today." followed two sentences later by "The sky is dark green today."',
+          '2. Prompt Contradiction: The output directly contradicts the explicit constraints or premises given in the user\'s input prompt. Example: You ask the model to "Write a positive 5-star review of this restaurant", and it returns "The food was terrible and the service was extremely rude."',
+          '3. Factual Contradictions (Errors): The model outputs statements that directly violate well-established world facts. Example: Claiming "Barack Obama was the first President of the United States" or "Water boils at 50°C at sea level."',
+          '4. Nonsensical or Irrelevant Insertions: The model inserts completely unrelated tangents or random facts that have no business being in the response. Example: "The capital of France is Paris. Paris is also the name of a famous pop singer." While true, it is completely irrelevant to a geography context.'
+        ]
+      },
+      {
+        heading: 'Why Do LLMs Hallucinate? The Root Causes',
+        paragraphs: [
+          'Why does a multi-billion parameter model get simple facts wrong? Because LLMs do not "know" facts the way humans or databases do. They are statistical pattern-matching engines trained to predict the next token. There are three primary root causes:',
+          'Root Cause 1: Data Quality & Web Scrapes — LLMs are trained on massive datasets scraped from the internet (Wikipedia, Reddit, forums, news). The web contains errors, sarcasm, outdated info, and unverified claims. Even if training data were 100% accurate, it cannot cover every niche topic. When encountering gaps, the model generalizes from patterns — and sometimes generalizes incorrectly.',
+          'Root Cause 2: Generation Objectives & Sampling Tradeoffs — Text generation algorithms (Beam Search, Top-K, Temperature) balance fluency vs accuracy, and coherence vs creativity. For instance, Beam Search often favors high-probability generic words over low-probability specific facts. High temperature settings force the model to pick less probable tokens, increasing chances of error.',
+          'Root Cause 3: Under-Specified Input Context — Prompts without clear background context mislead the model. Example: Asking "Can cats speak English?" should yield "No". But if the context is the Garfield comic strip, the answer is "Yes, and he loves lasagna!" Without explicit context, the model makes assumptions that may violate your expectations.'
+        ]
+      },
+      {
+        heading: 'Active Mitigation: How to Stop Hallucinations',
+        paragraphs: [
+          'While hallucinations cannot be 100% eliminated in base LLMs, developers use three key strategies to minimize them:',
+          'Strategy 1: Clear & Specific Prompts — Provide detailed, explicit instructions, output boundaries, and background context. Instead of asking "What happened in World War 2?", ask "Summarize the major events of World War 2, including key allied countries, Axis powers, and primary causes of the conflict."',
+          'Strategy 2: Active Parameter Control — Tune sampling parameters based on task type. Lower the temperature (e.g. T = 0.0 to 0.2) for factual, analytical, or extraction tasks to keep the model focused on the highest-probability factual tokens.',
+          'Strategy 3: Multi-Shot (Few-Shot) Prompting — Give the model multiple concrete examples of the input format and desired output before asking your question. This primes the model to follow exact structural and factual patterns.',
+          'Strategy 4: Grounding with RAG (Retrieval-Augmented Generation) — Provide external verified source text directly in the prompt context and instruct the model to "Answer ONLY using the provided reference text." This grounds the LLM in real data.'
+        ]
+      },
+      {
+        heading: 'Limitations of LLMs Beyond Hallucinations',
+        paragraphs: [
+          'Besides hallucinations, AI engineers must navigate several fundamental limitations of current LLM architectures:',
+          '1. Static Knowledge Cutoff: Models only know what was in their training dataset up to a specific date. They do not know today\'s news unless connected to real-time search.',
+          '2. Lack of True Reasoning & World Models: LLMs do not simulate physics or formal logic; they match statistical text patterns. This causes failures in complex multi-step math or spatial reasoning.',
+          '3. Sycophancy: LLMs often greedily agree with whatever the user says, even if the user introduces a false premise (e.g., "Why did Shakespeare write Harry Potter?").',
+          'Understanding these limitations allows developers to design robust guardrails, validation checks, and fallback mechanisms in production AI applications.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Overconfident Storyteller',
+      text: 'Imagine an articulate friend who has read millions of books, but sometimes mixes up plot details. When you ask them a question, they never say "I don\'t know" — their brain automatically constructs the smoothest, most plausible-sounding sentence to complete the story. Because they speak with 100% confidence, you believe them until you double-check the facts! Hallucination is not lying (there is no intent); it is smooth autocomplete running without a fact-checker.'
+    },
+
+    diagram: {
+      type: 'hallucinations',
+      title: 'LLM Hallucinations — Types, Causes & Mitigation Lab'
+    },
+
+    takeaways: [
+      'A hallucination is an LLM output that deviates from facts, reality, or contextual logic.',
+      'The 4 types of hallucinations are: Sentence Contradictions, Prompt Contradictions, Factual Errors, and Irrelevant Insertions.',
+      'Famous real-world hallucinations: Earth-to-Moon distance mix-ups (54M km), personal bio errors, and the Google Bard JWST telescope incident.',
+      'Root causes include noisy web training data, generation sampling tradeoffs (temperature/beam search), and ambiguous prompt context.',
+      'Mitigation strategies: specific prompt framing, low temperature settings (0.0–0.2), multi-shot examples, and RAG grounding.'
+    ],
+
+    quiz: {
+      question: 'Which of the following represents a Prompt Contradiction hallucination?',
+      options: [
+        'The model outputs "The capital of France is Paris. Paris is also a famous pop singer."',
+        'You ask the model to "Write a positive 5-star review of this product", and it outputs "This product broke immediately and customer service was awful."',
+        'The model claims the James Webb Space Telescope took the first picture of an exoplanet.',
+        'The model claims the distance from Earth to the Moon is 54 million kilometers.'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! A Prompt Contradiction occurs when the model generates an output that directly violates the explicit instructions or premise given in the input prompt (e.g. asking for a positive review and receiving a negative one).'
+    }
   }
 };

@@ -2159,8 +2159,340 @@ const TemperatureSamplingDiagram = () => {
   );
 };
 
+// ─── HALLUCINATIONS & LIMITATIONS DIAGRAM ──────────────────────────────────────
+const HallucinationsDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [famousExampleIdx, setFamousExampleIdx] = useState(0);
+  const [granularityIdx, setGranularityIdx] = useState(0);
+  const [causeIdx, setCauseIdx] = useState(0);
+  
+  // Mitigation Lab state
+  const [promptQuality, setPromptQuality] = useState('vague'); // 'vague' | 'precise'
+  const [labTemp, setLabTemp] = useState(1.2);
+  const [useRAG, setUseRAG] = useState(false);
+
+  const panels = [
+    { label: '3 Famous Examples', color: '#ef4444' },
+    { label: '4 Granularity Types', color: '#f59e0b' },
+    { label: 'Root Cause Explorer', color: '#a78bfa' },
+    { label: 'Mitigation Lab', color: '#34d399' },
+  ];
+
+  // Panel 1: Famous Examples
+  const famousExamples = [
+    {
+      title: '1. Earth-to-Moon Distance',
+      claim: '"The distance from Earth to the Moon is 54 million kilometers."',
+      truth: '54 million km is the average distance to MARS! The Moon is only ~384,400 km away.',
+      reason: 'The model confused two space numbers stored closely together in embedding space.',
+      badge: 'Factual Error',
+      color: '#f87171'
+    },
+    {
+      title: '2. Career Biography Swap',
+      claim: '"Before working at IBM, I worked at a major Australian airline."',
+      truth: 'The presenter never worked at an airline — his brother did! The LLM blended related family bio facts.',
+      reason: 'Entity confusion when multi-person details are co-located in training text.',
+      badge: 'Context Blending',
+      color: '#fb923c'
+    },
+    {
+      title: '3. Google Bard JWST Launch ($100B Mistake)',
+      claim: '"The James Webb Space Telescope took the first picture of an exoplanet."',
+      truth: 'The first direct image of an exoplanet (2M1207b) was captured in 2004 by the VLT, 17 years before JWST.',
+      reason: 'High co-occurrence of "JWST", "exoplanet", and "first image" in recent news created a false associative completion.',
+      badge: 'High Impact Error',
+      color: '#ec4899'
+    }
+  ];
+
+  // Panel 2: 4 Granularity Types
+  const granularityTypes = [
+    {
+      name: 'Sentence Contradiction',
+      desc: 'A sentence in the output directly contradicts a sentence generated moments earlier.',
+      exampleInput: 'Describe today\'s weather in London.',
+      exampleOutput: 'The sky is clear and blue today in London. [...] Bring a raincoat as the sky is dark green and storming.',
+      badgeColor: '#f87171'
+    },
+    {
+      name: 'Prompt Contradiction',
+      desc: 'The generated output directly violates the explicit instructions in the prompt.',
+      exampleInput: 'Write a positive 5-star review of Bella Italia restaurant.',
+      exampleOutput: 'The pasta was cold, the wine tasted stale, and the service was extremely rude.',
+      badgeColor: '#fb923c'
+    },
+    {
+      name: 'Factual Contradiction',
+      desc: 'Statements that directly violate well-established world facts.',
+      exampleInput: 'Who was the first President of the United States?',
+      exampleOutput: 'Barack Obama was elected as the first President of the United States in 1789.',
+      badgeColor: '#ec4899'
+    },
+    {
+      name: 'Irrelevant Tangent',
+      desc: 'Inserting random, completely unrelated facts that clutter the response.',
+      exampleInput: 'What is the capital of France?',
+      exampleOutput: 'The capital of France is Paris. Paris is also the name of a famous pop singer who released an album in 2006.',
+      badgeColor: '#a78bfa'
+    }
+  ];
+
+  // Panel 3: Root Causes
+  const rootCauses = [
+    {
+      title: '1. Web Data Noise & Gaps',
+      icon: '🌐',
+      desc: 'LLMs are trained on massive web scrapes (Reddit, Wikipedia, forums). The internet contains sarcasm, errors, and unverified claims. When data is missing, models fill gaps with statistical guesses.',
+      color: '#38bdf8'
+    },
+    {
+      title: '2. Sampling & Generation Objectives',
+      icon: '🎲',
+      desc: 'Beam search and high temperature sampling introduce tradeoffs between fluency and accuracy. Pushing for high creativity forces the model to sample low-probability tokens that may be factual errors.',
+      color: '#f59e0b'
+    },
+    {
+      title: '3. Input Context Ambiguity',
+      icon: '❓',
+      desc: 'Without explicit background context, prompts confuse the model. Asking "Can cats speak English?" without mentioning the "Garfield comic strip" leads the model to make wrong contextual assumptions.',
+      color: '#a78bfa'
+    }
+  ];
+
+  // Computed lab output based on controls
+  const getLabResult = () => {
+    if (useRAG) {
+      return {
+        status: 'Grounded & Accurately Verified',
+        color: '#34d399',
+        output: 'Based on the provided document: The James Webb Space Telescope (JWST) was launched in December 2021. The first image of an exoplanet was captured in 2004 by the Very Large Telescope (VLT).',
+        explanation: 'RAG grounding provided external verified source text. Hallucination rate = 0%.'
+      };
+    }
+    if (promptQuality === 'vague' && labTemp > 0.8) {
+      return {
+        status: 'Severe Hallucination Risk',
+        color: '#ef4444',
+        output: 'JWST took the very first image of an exoplanet in 1998, which orbited Alpha Centauri at a distance of 54 million kilometers.',
+        explanation: 'Vague prompt + high temperature (T=' + labTemp + ') caused random associative token sampling and factual blending.'
+      };
+    }
+    if (promptQuality === 'vague' && labTemp <= 0.3) {
+      return {
+        status: 'Minor Factual Drift',
+        color: '#f59e0b',
+        output: 'JWST discovered the first exoplanet in space history shortly after its 2021 launch.',
+        explanation: 'Low temperature reduced randomness, but vague prompt without grounding still led to historical inaccuracy.'
+      };
+    }
+    return {
+      status: 'High Accuracy & Focused Output',
+      color: '#38bdf8',
+      output: 'The James Webb Space Telescope has imaged several exoplanets (such as HIP 65426 b). However, the first-ever direct image of an exoplanet was taken in 2004 by the VLT.',
+      explanation: 'Precise prompt constraints guided token probabilities toward factual precision.'
+    };
+  };
+
+  const labResult = getLabResult();
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: 3 FAMOUS EXAMPLES ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Click through the three famous real-world hallucinations discussed in the transcript:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {famousExamples.map((ex, i) => (
+                <button key={i} onClick={() => setFamousExampleIdx(i)} style={{
+                  padding: '0.35rem 0.75rem', borderRadius: '8px',
+                  border: `1.5px solid ${famousExampleIdx === i ? ex.color : '#334155'}`,
+                  background: famousExampleIdx === i ? `${ex.color}20` : 'transparent',
+                  color: famousExampleIdx === i ? ex.color : '#64748b',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{ex.title.split('.')[1]}</button>
+              ))}
+            </div>
+
+            {/* Example Card */}
+            <div style={{ background: '#1e293b', border: `1.5px solid ${famousExamples[famousExampleIdx].color}`, borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ color: famousExamples[famousExampleIdx].color, margin: 0, fontSize: '1rem', fontWeight: 800 }}>
+                  {famousExamples[famousExampleIdx].title}
+                </h4>
+                <span style={{ background: `${famousExamples[famousExampleIdx].color}25`, color: famousExamples[famousExampleIdx].color, border: `1px solid ${famousExamples[famousExampleIdx].color}`, padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 700 }}>
+                  {famousExamples[famousExampleIdx].badge}
+                </span>
+              </div>
+
+              <div style={{ marginBottom: '0.85rem', padding: '0.75rem', background: '#3f1818', border: '1px solid #ef4444', borderRadius: '8px' }}>
+                <div style={{ color: '#fca5a5', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>❌ AI Hallucination Output:</div>
+                <div style={{ color: '#f87171', fontSize: '0.88rem', fontFamily: 'monospace' }}>{famousExamples[famousExampleIdx].claim}</div>
+              </div>
+
+              <div style={{ marginBottom: '0.85rem', padding: '0.75rem', background: '#0c2a1f', border: '1px solid #34d399', borderRadius: '8px' }}>
+                <div style={{ color: '#6ee7b7', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>✓ Actual Ground Truth Fact:</div>
+                <div style={{ color: '#a7f3d0', fontSize: '0.85rem' }}>{famousExamples[famousExampleIdx].truth}</div>
+              </div>
+
+              <div style={{ padding: '0.65rem 0.85rem', background: '#0f172a', borderRadius: '8px', border: '1px solid #334155', fontSize: '0.78rem', color: '#94a3b8' }}>
+                <strong style={{ color: '#cbd5e1' }}>Why it happened:</strong> {famousExamples[famousExampleIdx].reason}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: 4 GRANULARITY TYPES ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Select a hallucination granularity level to inspect its mechanics:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1rem' }}>
+              {granularityTypes.map((gt, i) => (
+                <button key={i} onClick={() => setGranularityIdx(i)} style={{
+                  padding: '0.6rem 0.75rem', borderRadius: '8px',
+                  border: `1.5px solid ${granularityIdx === i ? gt.badgeColor : '#334155'}`,
+                  background: granularityIdx === i ? `${gt.badgeColor}15` : '#1e293b',
+                  color: granularityIdx === i ? gt.badgeColor : '#cbd5e1',
+                  fontWeight: 700, fontSize: '0.78rem', textAlign: 'left', cursor: 'pointer'
+                }}>
+                  {i + 1}. {gt.name}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${granularityTypes[granularityIdx].badgeColor}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ color: granularityTypes[granularityIdx].badgeColor, fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.4rem' }}>
+                {granularityTypes[granularityIdx].name}
+              </div>
+              <p style={{ color: '#cbd5e1', fontSize: '0.82rem', margin: '0 0 0.85rem' }}>
+                {granularityTypes[granularityIdx].desc}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ padding: '0.6rem 0.8rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '7px' }}>
+                  <span style={{ color: '#38bdf8', fontSize: '0.7rem', fontWeight: 800, display: 'block' }}>USER PROMPT:</span>
+                  <span style={{ color: '#e2e8f0', fontSize: '0.8rem', fontFamily: 'monospace' }}>"{granularityTypes[granularityIdx].exampleInput}"</span>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.8rem', background: '#2d1515', border: '1px solid #ef4444', borderRadius: '7px' }}>
+                  <span style={{ color: '#f87171', fontSize: '0.7rem', fontWeight: 800, display: 'block' }}>HALLUCINATED OUTPUT:</span>
+                  <span style={{ color: '#fca5a5', fontSize: '0.8rem', fontFamily: 'monospace' }}>"{granularityTypes[granularityIdx].exampleOutput}"</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 3: ROOT CAUSE EXPLORER ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Explore the three core architectural reasons why LLMs hallucinate:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {rootCauses.map((rc, i) => (
+                <div key={i} onClick={() => setCauseIdx(i)} style={{
+                  padding: '0.9rem 1.1rem', borderRadius: '10px',
+                  border: `1.5px solid ${rc.color}`,
+                  background: causeIdx === i ? `${rc.color}15` : '#1e293b',
+                  cursor: 'pointer', transition: 'all 0.2s'
+                }}>
+                  <div style={{ color: rc.color, fontWeight: 800, fontSize: '0.9rem', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>{rc.icon}</span> {rc.title}
+                  </div>
+                  <div style={{ color: '#cbd5e1', fontSize: '0.82rem', lineHeight: '1.4' }}>{rc.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: MITIGATION LAB ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Test how prompt clarity, temperature tuning, and RAG grounding eliminate hallucinations:
+            </p>
+
+            {/* Controls Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              {/* Prompt framing toggle */}
+              <div style={{ background: '#1e293b', padding: '0.75rem', borderRadius: '8px', border: '1px solid #334155' }}>
+                <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700, display: 'block', marginBottom: '0.4rem' }}>PROMPT FRAMING</label>
+                <div style={{ display: 'flex', gap: '0.3rem' }}>
+                  <button onClick={() => setPromptQuality('vague')} style={{ flex: 1, padding: '0.3rem', borderRadius: '4px', border: 'none', background: promptQuality === 'vague' ? '#ef4444' : '#0f172a', color: '#fff', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>Vague</button>
+                  <button onClick={() => setPromptQuality('precise')} style={{ flex: 1, padding: '0.3rem', borderRadius: '4px', border: 'none', background: promptQuality === 'precise' ? '#38bdf8' : '#0f172a', color: '#fff', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>Precise</button>
+                </div>
+              </div>
+
+              {/* Temp slider */}
+              <div style={{ background: '#1e293b', padding: '0.75rem', borderRadius: '8px', border: '1px solid #334155' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                  <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700 }}>TEMP</label>
+                  <span style={{ color: labTemp > 0.8 ? '#f87171' : '#34d399', fontSize: '0.75rem', fontWeight: 800, fontFamily: 'monospace' }}>T={labTemp.toFixed(1)}</span>
+                </div>
+                <input type="range" min="0.1" max="1.5" step="0.2" value={labTemp} onChange={e => setLabTemp(Number(e.target.value))} style={{ width: '100%', accentColor: labTemp > 0.8 ? '#f87171' : '#34d399', cursor: 'pointer' }} />
+              </div>
+
+              {/* RAG Toggle */}
+              <div style={{ background: '#1e293b', padding: '0.75rem', borderRadius: '8px', border: '1px solid #334155' }}>
+                <label style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700, display: 'block', marginBottom: '0.4rem' }}>RAG GROUNDING</label>
+                <button onClick={() => setUseRAG(!useRAG)} style={{ width: '100%', padding: '0.3rem', borderRadius: '4px', border: 'none', background: useRAG ? '#34d399' : '#0f172a', color: useRAG ? '#0f172a' : '#64748b', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}>
+                  {useRAG ? '✓ RAG ON' : 'OFF'}
+                </button>
+              </div>
+            </div>
+
+            {/* Live Result Box */}
+            <div style={{ background: '#0f172a', border: `2px solid ${labResult.color}`, borderRadius: '10px', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ color: labResult.color, fontWeight: 800, fontSize: '0.85rem' }}>
+                  {labResult.status}
+                </span>
+                <span style={{ background: `${labResult.color}20`, color: labResult.color, padding: '0.1rem 0.5rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
+                  SIMULATED RESPONSE
+                </span>
+              </div>
+
+              <div style={{ padding: '0.65rem 0.85rem', background: '#1e293b', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.8rem', color: '#e2e8f0', marginBottom: '0.6rem' }}>
+                "{labResult.output}"
+              </div>
+
+              <div style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+                <strong style={{ color: '#cbd5e1' }}>Analysis:</strong> {labResult.explanation}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -2327,6 +2659,11 @@ export default function AILessonArticlePage() {
             {/* Temperature & Sampling Diagram */}
             {lesson.diagram.type === 'temperature_sampling' && (
               <TemperatureSamplingDiagram />
+            )}
+
+            {/* Hallucinations & Limitations Diagram */}
+            {lesson.diagram.type === 'hallucinations' && (
+              <HallucinationsDiagram />
             )}
 
             {/* Industry Grid Diagram */}
