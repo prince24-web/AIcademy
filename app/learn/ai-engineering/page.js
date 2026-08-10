@@ -165,7 +165,7 @@ const aiModules = [
       { id: 'ai-2-7', name: 'Parameters & Model Weights', nodeType: 'concept', status: 'locked' },
       { id: 'ai-2-8', name: 'Temperature & Sampling', nodeType: 'star', status: 'locked' },
       { id: 'ai-2-9', name: 'Hallucinations & Limitations', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-2-10', name: 'Mini Project: Token Counter & Cost Calc', nodeType: 'project', status: 'locked', isProject: true },
+      { id: 'ai-2-p1', name: 'Mini Project: Token Counter & Cost Calc', nodeType: 'project', status: 'locked', isProject: true },
     ]
   },
   {

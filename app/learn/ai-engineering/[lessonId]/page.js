@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import styles from './page.module.css';
@@ -2651,14 +2651,14 @@ sys.stdout = _stdout_capture
               if (isActive) dotClass += ' ' + styles.stepDotActive;
               else if (isDone) dotClass += ' ' + styles.stepDotDone;
               return (
-                <>
-                  <button key={idx} className={dotClass} onClick={() => goToStep(idx)} title={`Step ${idx + 1}`}>
+                <React.Fragment key={idx}>
+                  <button className={dotClass} onClick={() => goToStep(idx)} title={`Step ${idx + 1}`}>
                     {isDone ? '✓' : idx + 1}
                   </button>
                   {idx < steps.length - 1 && (
-                    <div className={`${styles.stepConnector} ${isDone ? styles.stepConnectorDone : ''}`} key={`c${idx}`} />
+                    <div className={`${styles.stepConnector} ${isDone ? styles.stepConnectorDone : ''}`} />
                   )}
-                </>
+                </React.Fragment>
               );
             })}
           </div>
