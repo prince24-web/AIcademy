@@ -1231,5 +1231,438 @@ export const aiLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! A Prompt Contradiction occurs when the model generates an output that directly violates the explicit instructions or premise given in the input prompt (e.g. asking for a positive review and receiving a negative one).'
     }
+  },
+
+  'ai-2-p1': {
+    id: 'ai-2-p1',
+    title: 'Mini Project: Token Counter & Cost Calc',
+    subtitle: 'Build a real Python tool used by LLM engineers — step by step in your browser',
+    section: 'Module 2 · Mini Project',
+    estimatedTime: '25 min',
+    isProject: true,
+    badgeText: 'CODING PROJECT',
+    badgeColor: '#8b5cf6',
+    videoUrl: null,
+    gfgUrl: null,
+    diagram: { type: 'mini_project_editor', projectId: 'token_counter' },
+    projectMeta: {
+      language: 'python',
+      runtime: 'pyodide',
+      finalTool: 'Token Counter & API Cost Calculator',
+      skills: ['functions', 'dictionaries', 'f-strings', 'loops', 'string manipulation'],
+    },
+    steps: [
+      {
+        id: 1,
+        title: 'Step 1 — Your First Tokenizer',
+        concept: 'Tokenization splits text into smaller units called tokens. Before diving into complex algorithms, let\'s understand the simplest possible approach: splitting on whitespace.',
+        goal: 'Fill in the two TODO lines so the program prints the list of tokens and the count.',
+        whyItMatters: 'Every LLM converts your text into tokens before it can process a single word. The number of tokens directly controls your API cost and whether your text fits in the context window.',
+        starterCode: `# Step 1: Your First Tokenizer
+# Tokenization splits text into smaller units called "tokens"
+# Let's start simple: split on whitespace
+
+text = "The quick brown fox jumps over the lazy dog"
+
+# TODO: Split the text into tokens using Python's built-in split()
+tokens = None  # Replace None with the correct code
+
+# TODO: Count how many tokens there are
+token_count = None  # Replace None
+
+print(f"Original text: {text}")
+print(f"Tokens: {tokens}")
+print(f"Token count: {token_count}")`,
+        hints: [
+          'Python strings have a built-in method called .split() that splits on whitespace by default.',
+          'Try: tokens = text.split()',
+          'For token_count, use the len() function: token_count = len(tokens)',
+        ],
+        solutionCode: `text = "The quick brown fox jumps over the lazy dog"
+tokens = text.split()
+token_count = len(tokens)
+print(f"Original text: {text}")
+print(f"Tokens: {tokens}")
+print(f"Token count: {token_count}")`,
+        expectedOutputContains: 'Token count: 9',
+        conceptCallout: 'Notice 9 words = 9 tokens here. But real LLMs use BPE (Byte-Pair Encoding) — "running" might become ["run", "ning"]. So 1 word ≠ 1 token.',
+      },
+      {
+        id: 2,
+        title: 'Step 2 — Why Spaces Are Not Enough',
+        concept: 'Whitespace splitting has a critical flaw: it glues punctuation to words. "Hello," becomes one token instead of "Hello" + ",". Real tokenizers solve this with Byte-Pair Encoding.',
+        goal: 'Run the code and observe how punctuation sticks to words. Then read the insight about BPE below the output.',
+        whyItMatters: 'Understanding this flaw motivates why we need to build a smarter tokenizer in Step 3. It also explains why "1 word ≈ 1.3 tokens" in English — punctuation and word pieces all count separately.',
+        starterCode: `# Step 2: Where whitespace splitting breaks
+
+sentences = [
+    "Hello, how are you?",
+    "It's a beautiful day!",
+    "GPT-4 costs $0.03 per 1,000 tokens.",
+    "Email: user@example.com"
+]
+
+for sentence in sentences:
+    simple_tokens = sentence.split()
+    print(f"Text:   {sentence}")
+    print(f"Tokens: {simple_tokens}")
+    print(f"Count:  {len(simple_tokens)}")
+    print("-" * 50)
+
+# No TODOs — just run this and observe the output!
+# Notice: "Hello," is ONE token, but should be "Hello" + ","
+print("\\nProblem: punctuation is glued to words!")
+print("Real LLMs handle this with Byte-Pair Encoding (BPE).")`,
+        hints: [
+          'This step has no TODOs — just click Run and read the output carefully.',
+          'Notice how "Hello," appears as a single item instead of two separate tokens.',
+          'GPT-4 would tokenize "Hello," as ["Hello", ","] — 2 tokens, not 1.',
+        ],
+        solutionCode: `sentences = [
+    "Hello, how are you?",
+    "It's a beautiful day!",
+    "GPT-4 costs $0.03 per 1,000 tokens.",
+    "Email: user@example.com"
+]
+for sentence in sentences:
+    simple_tokens = sentence.split()
+    print(f"Text:   {sentence}")
+    print(f"Tokens: {simple_tokens}")
+    print(f"Count:  {len(simple_tokens)}")
+    print("-" * 50)
+print("\\nProblem: punctuation is glued to words!")
+print("Real LLMs handle this with Byte-Pair Encoding (BPE).")`,
+        expectedOutputContains: 'Problem: punctuation',
+        conceptCallout: 'GPT-4 uses BPE. "tokenization" becomes ["token", "ization"]. On average, 1 English word ≈ 1.3 tokens. Always estimate with padding!',
+      },
+      {
+        id: 3,
+        title: 'Step 3 — Build a BPE-Style Approximation',
+        concept: 'We cannot run tiktoken in the browser, so we build our own approximation using the "4 characters per token" rule — a real industry heuristic used by developers daily.',
+        goal: 'Fix the one None on the highlighted line to complete the token estimator function.',
+        whyItMatters: 'This 4-char heuristic is used in production cost estimators across the industry. OpenAI themselves publish it as a rule of thumb. Your approximation will be within ~10% of tiktoken results.',
+        starterCode: `import string
+import math
+
+def approximate_token_count(text):
+    """Approximate BPE token count using character heuristics."""
+    if not text:
+        return 0
+    
+    # Each punctuation character = ~1 separate token
+    punctuation_count = sum(1 for c in text if c in string.punctuation)
+    
+    # Strip punctuation and split into words
+    clean_text = ''.join(c if c not in string.punctuation else ' ' for c in text)
+    words = [w for w in clean_text.split() if w]
+    
+    word_token_estimate = 0
+    for word in words:
+        if len(word) <= 4:
+            word_token_estimate += 1  # Short words = 1 token
+        else:
+            # TODO: Longer words need more tokens
+            # Divide the word length by 4 and round UP (use math.ceil)
+            word_token_estimate += None  # Fix this!
+    
+    return word_token_estimate + punctuation_count
+
+# Test it!
+tests = [
+    "Hello!",
+    "The quick brown fox",
+    "Tokenization is a fundamental step in natural language processing."
+]
+
+for text in tests:
+    count = approximate_token_count(text)
+    print(f"'{text}'")
+    print(f"  Approx tokens: {count}")
+    print()`,
+        hints: [
+          'You need to calculate how many ~4-character chunks a long word produces.',
+          'Use math.ceil() to always round UP (partial chunks still cost a full token).',
+          'The formula is: math.ceil(len(word) / 4)',
+        ],
+        solutionCode: `import string, math
+
+def approximate_token_count(text):
+    if not text:
+        return 0
+    punctuation_count = sum(1 for c in text if c in string.punctuation)
+    clean_text = ''.join(c if c not in string.punctuation else ' ' for c in text)
+    words = [w for w in clean_text.split() if w]
+    word_token_estimate = 0
+    for word in words:
+        if len(word) <= 4:
+            word_token_estimate += 1
+        else:
+            word_token_estimate += math.ceil(len(word) / 4)
+    return word_token_estimate + punctuation_count
+
+tests = ["Hello!", "The quick brown fox",
+         "Tokenization is a fundamental step in natural language processing."]
+for text in tests:
+    count = approximate_token_count(text)
+    print(f"'{text}'")
+    print(f"  Approx tokens: {count}")
+    print()`,
+        expectedOutputContains: 'Approx tokens: 2',
+        conceptCallout: 'This function is within ~10% of tiktoken for English prose. For code or non-English text, accuracy varies — real engineers validate with the actual tokenizer before deployment.',
+      },
+      {
+        id: 4,
+        title: 'Step 4 — LLM Pricing & Cost Calculator',
+        concept: 'Every LLM API charges per 1,000 tokens — separately for input (your prompt) and output (the response). Building a cost calculator lets you compare models before making API calls.',
+        goal: 'Fix the two None lines to compute input_cost and output_cost correctly.',
+        whyItMatters: 'Cost estimation is a core production engineering skill. A prompt with 10,000 tokens on GPT-4o costs 20x more than on GPT-3.5-Turbo. Choosing the right model for the right task can reduce bills by 90%.',
+        starterCode: `# Step 4: LLM Cost Calculator
+# Real pricing data (per 1,000 tokens, USD) - as of 2024
+
+MODEL_PRICING = {
+    "GPT-4o":          {"input_per_1k": 0.005,   "output_per_1k": 0.015,  "context_window": 128_000},
+    "GPT-3.5-Turbo":   {"input_per_1k": 0.0005,  "output_per_1k": 0.0015, "context_window": 16_385},
+    "Claude-3-Sonnet": {"input_per_1k": 0.003,   "output_per_1k": 0.015,  "context_window": 200_000},
+    "Gemini-1.5-Pro":  {"input_per_1k": 0.00125, "output_per_1k": 0.005,  "context_window": 1_000_000},
+}
+
+def calculate_cost(input_tokens, output_tokens, model_name):
+    """Calculate the USD cost of one LLM API call."""
+    pricing = MODEL_PRICING[model_name]
+    
+    # TODO: Calculate input cost
+    # Formula: (number_of_tokens / 1000) * price_per_1k_tokens
+    input_cost = None   # Fix this!
+    
+    # TODO: Calculate output cost (same formula, different price key)
+    output_cost = None  # Fix this!
+    
+    return {
+        "model":       model_name,
+        "input_cost":  input_cost,
+        "output_cost": output_cost,
+        "total_cost":  input_cost + output_cost
+    }
+
+# Test: send 500-token prompt, receive 200-token response
+result = calculate_cost(500, 200, "GPT-4o")
+print(f"Model:  {result['model']}")
+print(f"Input:  ${result['input_cost']:.6f}")
+print(f"Output: ${result['output_cost']:.6f}")
+print(f"Total:  ${result['total_cost']:.6f}")
+
+print("\\n--- Compare all models (500 in, 200 out) ---")
+for model in MODEL_PRICING:
+    r = calculate_cost(500, 200, model)
+    print(f"{model:20s}  ${r['total_cost']:.6f}")`,
+        hints: [
+          'The pricing is per 1,000 tokens. So for 500 tokens: (500 / 1000) = 0.5 "units".',
+          'Multiply that by the price: (input_tokens / 1000) * pricing["input_per_1k"]',
+          'Output cost uses the same formula but with pricing["output_per_1k"]',
+        ],
+        solutionCode: `MODEL_PRICING = {
+    "GPT-4o":          {"input_per_1k": 0.005,   "output_per_1k": 0.015,  "context_window": 128_000},
+    "GPT-3.5-Turbo":   {"input_per_1k": 0.0005,  "output_per_1k": 0.0015, "context_window": 16_385},
+    "Claude-3-Sonnet": {"input_per_1k": 0.003,   "output_per_1k": 0.015,  "context_window": 200_000},
+    "Gemini-1.5-Pro":  {"input_per_1k": 0.00125, "output_per_1k": 0.005,  "context_window": 1_000_000},
+}
+def calculate_cost(input_tokens, output_tokens, model_name):
+    pricing = MODEL_PRICING[model_name]
+    input_cost  = (input_tokens  / 1000) * pricing["input_per_1k"]
+    output_cost = (output_tokens / 1000) * pricing["output_per_1k"]
+    return {"model": model_name, "input_cost": input_cost, "output_cost": output_cost, "total_cost": input_cost + output_cost}
+
+result = calculate_cost(500, 200, "GPT-4o")
+print(f"Model:  {result['model']}")
+print(f"Input:  ${result['input_cost']:.6f}")
+print(f"Output: ${result['output_cost']:.6f}")
+print(f"Total:  ${result['total_cost']:.6f}")
+print("\\n--- Compare all models (500 in, 200 out) ---")
+for model in MODEL_PRICING:
+    r = calculate_cost(500, 200, model)
+    print(f"{model:20s}  ${r['total_cost']:.6f}")`,
+        expectedOutputContains: '$0.005500',
+        conceptCallout: 'GPT-3.5-Turbo is ~10x cheaper than GPT-4o for the same call. For tasks that don\'t require advanced reasoning (FAQs, summarization, classification), GPT-3.5 saves significant cost at scale.',
+      },
+      {
+        id: 5,
+        title: 'Step 5 — Context Window Validation',
+        concept: 'Every LLM has a hard token limit. Exceed it and the API returns an error — no output, and you still might get charged. A context window validator prevents this in production.',
+        goal: 'Fill in the None to write a warning message when the context window is more than 80% full.',
+        whyItMatters: 'A 90% full context window leaves very little room for the model\'s output. Engineers add this check before every large API call to prevent runtime errors and unexpected truncation.',
+        starterCode: `MODEL_PRICING = {
+    "GPT-4o":          {"context_window": 128_000},
+    "GPT-3.5-Turbo":   {"context_window": 16_385},
+    "Claude-3-Sonnet": {"context_window": 200_000},
+    "Gemini-1.5-Pro":  {"context_window": 1_000_000},
+}
+
+def check_context_window(token_count, model_name):
+    """Check if a token count fits and warn if near the limit."""
+    max_tokens = MODEL_PRICING[model_name]["context_window"]
+    fits = token_count <= max_tokens
+    percent_used = (token_count / max_tokens) * 100
+    tokens_remaining = max_tokens - token_count
+    
+    warning = None
+    if percent_used > 80:
+        # TODO: Write a helpful warning message!
+        # Include the percent_used value so the user knows how serious it is
+        warning = None  # Replace with a useful string
+
+    return {
+        "fits": fits,
+        "percent_used": round(percent_used, 1),
+        "tokens_remaining": max(0, tokens_remaining),
+        "warning": warning
+    }
+
+# Test with 15,000 tokens (nearly fills GPT-3.5's 16k window)
+for model in MODEL_PRICING:
+    r = check_context_window(15_000, model)
+    status = "FITS    " if r["fits"] else "EXCEEDS "
+    print(f"{model:20s}: {status} | {r['percent_used']}% full | {r['tokens_remaining']:,} remaining")
+    if r["warning"]:
+        print(f"  WARNING: {r['warning']}")`,
+        hints: [
+          'The warning variable should be a string (text), not None.',
+          'Use an f-string to include the percent_used value in the message.',
+          'Example: warning = f"{round(percent_used, 1)}% of context window used — consider chunking!"',
+        ],
+        solutionCode: `MODEL_PRICING = {
+    "GPT-4o": {"context_window": 128_000}, "GPT-3.5-Turbo": {"context_window": 16_385},
+    "Claude-3-Sonnet": {"context_window": 200_000}, "Gemini-1.5-Pro": {"context_window": 1_000_000},
+}
+def check_context_window(token_count, model_name):
+    max_tokens = MODEL_PRICING[model_name]["context_window"]
+    fits = token_count <= max_tokens
+    percent_used = (token_count / max_tokens) * 100
+    tokens_remaining = max_tokens - token_count
+    warning = None
+    if percent_used > 80:
+        warning = f"{round(percent_used, 1)}% of context window used — consider chunking your input!"
+    return {"fits": fits, "percent_used": round(percent_used, 1),
+            "tokens_remaining": max(0, tokens_remaining), "warning": warning}
+
+for model in MODEL_PRICING:
+    r = check_context_window(15_000, model)
+    status = "FITS    " if r["fits"] else "EXCEEDS "
+    print(f"{model:20s}: {status} | {r['percent_used']}% full | {r['tokens_remaining']:,} remaining")
+    if r["warning"]:
+        print(f"  WARNING: {r['warning']}")`,
+        expectedOutputContains: 'WARNING',
+        conceptCallout: 'In production, engineers add this check in a wrapper function that runs before every API call. If the check fails, the system automatically chunks the input into smaller pieces.',
+      },
+      {
+        id: 6,
+        title: 'Step 6 — Assemble the Full Token Audit Tool',
+        concept: 'Combine all five previous functions into one complete, production-ready tool. This is exactly the kind of utility LLM engineers keep in their toolbox.',
+        goal: 'Find and fix the one commented-out print line (remove the #) to complete the full audit table.',
+        whyItMatters: 'This tool will help you make smart decisions about which LLM to use, how much a feature will cost at scale, and whether your prompts will fit before spending money on API calls.',
+        starterCode: `import string, math
+
+MODEL_PRICING = {
+    "GPT-4o":          {"input_per_1k": 0.005,   "output_per_1k": 0.015,  "context_window": 128_000},
+    "GPT-3.5-Turbo":   {"input_per_1k": 0.0005,  "output_per_1k": 0.0015, "context_window": 16_385},
+    "Claude-3-Sonnet": {"input_per_1k": 0.003,   "output_per_1k": 0.015,  "context_window": 200_000},
+    "Gemini-1.5-Pro":  {"input_per_1k": 0.00125, "output_per_1k": 0.005,  "context_window": 1_000_000},
+}
+
+def count_tokens(text):
+    punct = sum(1 for c in text if c in string.punctuation)
+    clean = ''.join(c if c not in string.punctuation else ' ' for c in text)
+    words = [w for w in clean.split() if w]
+    word_tokens = sum(1 if len(w) <= 4 else math.ceil(len(w) / 4) for w in words)
+    return word_tokens + punct
+
+def calculate_cost(input_tokens, output_tokens, model):
+    p = MODEL_PRICING[model]
+    return (input_tokens / 1000) * p["input_per_1k"] + (output_tokens / 1000) * p["output_per_1k"]
+
+def token_audit(prompt_text, expected_output_tokens=150):
+    token_count = count_tokens(prompt_text)
+    
+    print("=" * 62)
+    print("  TOKEN AUDIT REPORT")
+    print("=" * 62)
+    preview = prompt_text.strip()[:60] + ("..." if len(prompt_text.strip()) > 60 else "")
+    print(f"\\nPrompt:         \\"{preview}\\"")
+    print(f"Characters:     {len(prompt_text):,}")
+    print(f"Tokens (input): {token_count:,}")
+    print(f"Est. output:    {expected_output_tokens:,} tokens\\n")
+    
+    print(f"{'Model':<20} {'Fits?':<10} {'Used%':<10} {'Est. Cost':<15}")
+    print("-" * 62)
+    
+    for model_name, info in MODEL_PRICING.items():
+        pct = (token_count / info["context_window"]) * 100
+        fits = "Fits" if token_count <= info["context_window"] else "TOO LONG"
+        cost = calculate_cost(token_count, expected_output_tokens, model_name)
+        
+        # TODO: Remove the # at the start of the next line to enable output
+        # print(f"{model_name:<20} {fits:<10} {pct:<9.1f}%  ${cost:.6f}")
+    
+    print("=" * 62)
+    print("\\nTip: Use low temperature (0.0-0.2) for factual tasks.")
+    print("     Use higher temperature (0.7-1.2) for creative tasks.")
+
+# === Change MY_PROMPT and see the numbers update! ===
+MY_PROMPT = """
+You are an expert Python tutor. Explain the concept of recursion
+to a beginner programmer using a real-world analogy.
+Include a simple working code example. Be concise but thorough.
+"""
+
+token_audit(MY_PROMPT, expected_output_tokens=300)`,
+        hints: [
+          'Find the commented-out print line (the one starting with # print(...))',
+          'Remove just the # and the space before "print" to uncomment it.',
+          'After that, try changing MY_PROMPT to your own text and re-run!',
+        ],
+        solutionCode: `import string, math
+MODEL_PRICING = {
+    "GPT-4o":          {"input_per_1k": 0.005,   "output_per_1k": 0.015,  "context_window": 128_000},
+    "GPT-3.5-Turbo":   {"input_per_1k": 0.0005,  "output_per_1k": 0.0015, "context_window": 16_385},
+    "Claude-3-Sonnet": {"input_per_1k": 0.003,   "output_per_1k": 0.015,  "context_window": 200_000},
+    "Gemini-1.5-Pro":  {"input_per_1k": 0.00125, "output_per_1k": 0.005,  "context_window": 1_000_000},
+}
+def count_tokens(text):
+    punct = sum(1 for c in text if c in string.punctuation)
+    clean = ''.join(c if c not in string.punctuation else ' ' for c in text)
+    words = [w for w in clean.split() if w]
+    return sum(1 if len(w) <= 4 else math.ceil(len(w) / 4) for w in words) + punct
+def calculate_cost(input_tokens, output_tokens, model):
+    p = MODEL_PRICING[model]
+    return (input_tokens / 1000) * p["input_per_1k"] + (output_tokens / 1000) * p["output_per_1k"]
+def token_audit(prompt_text, expected_output_tokens=150):
+    token_count = count_tokens(prompt_text)
+    print("=" * 62)
+    print("  TOKEN AUDIT REPORT")
+    print("=" * 62)
+    preview = prompt_text.strip()[:60] + ("..." if len(prompt_text.strip()) > 60 else "")
+    print(f"\\nPrompt:         \\"{preview}\\"")
+    print(f"Characters:     {len(prompt_text):,}")
+    print(f"Tokens (input): {token_count:,}")
+    print(f"Est. output:    {expected_output_tokens:,} tokens\\n")
+    print(f"{'Model':<20} {'Fits?':<10} {'Used%':<10} {'Est. Cost':<15}")
+    print("-" * 62)
+    for model_name, info in MODEL_PRICING.items():
+        pct = (token_count / info["context_window"]) * 100
+        fits = "Fits" if token_count <= info["context_window"] else "TOO LONG"
+        cost = calculate_cost(token_count, expected_output_tokens, model_name)
+        print(f"{model_name:<20} {fits:<10} {pct:<9.1f}%  ${cost:.6f}")
+    print("=" * 62)
+    print("\\nTip: Use low temperature (0.0-0.2) for factual tasks.")
+    print("     Use higher temperature (0.7-1.2) for creative tasks.")
+MY_PROMPT = """
+You are an expert Python tutor. Explain the concept of recursion
+to a beginner programmer using a real-world analogy.
+Include a simple working code example. Be concise but thorough.
+"""
+token_audit(MY_PROMPT, expected_output_tokens=300)`,
+        expectedOutputContains: 'TOKEN AUDIT REPORT',
+        conceptCallout: 'Congratulations! You have built a real LLM engineering tool from scratch. Try changing MY_PROMPT to your own text and see the costs update live. This is exactly how engineers estimate costs before deploying features.',
+      },
+    ],
   }
 };

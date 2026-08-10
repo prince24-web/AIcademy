@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import styles from './page.module.css';
@@ -2491,8 +2491,349 @@ const HallucinationsDiagram = () => {
   );
 };
 
+// ─── MINI PROJECT EDITOR ───────────────────────────────────────────────────
+const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [code, setCode] = useState('');
+  const [output, setOutput] = useState(null);
+  const [outputType, setOutputType] = useState('idle'); // idle | success | error
+  const [isRunning, setIsRunning] = useState(false);
+  const [showHints, setShowHints] = useState(false);
+  const [hintsRevealed, setHintsRevealed] = useState(0);
+  const [showSolution, setShowSolution] = useState(false);
+  const [pyodideReady, setPyodideReady] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState(new Set());
+  const pyodideRef = useState(null);
+
+  const steps = lesson.steps || [];
+  const step = steps[currentStep];
+
+  // Load Pyodide once on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.pyodide) { setPyodideReady(true); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
+    script.onload = async () => {
+      try {
+        const py = await window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/' });
+        window.pyodide = py;
+        setPyodideReady(true);
+      } catch (e) { console.error('Pyodide load error:', e); }
+    };
+    document.head.appendChild(script);
+  }, []);
+
+  // Set starter code when step changes
+  useEffect(() => {
+    if (step) {
+      setCode(step.starterCode);
+      setOutput(null);
+      setOutputType('idle');
+      setShowHints(false);
+      setHintsRevealed(0);
+      setShowSolution(false);
+    }
+  }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const runCode = async () => {
+    if (!pyodideReady || isRunning) return;
+    setIsRunning(true);
+    setOutput(null);
+    setOutputType('idle');
+    try {
+      const py = window.pyodide;
+      // Capture stdout
+      await py.runPythonAsync(`
+import sys, io
+_stdout_capture = io.StringIO()
+sys.stdout = _stdout_capture
+`);
+      try {
+        await py.runPythonAsync(code);
+        const captured = await py.runPythonAsync(`_stdout_capture.getvalue()`);
+        const outText = String(captured);
+        setOutput(outText || '(no output)');
+        setOutputType('success');
+        // Mark step done if expected output found
+        if (step.expectedOutputContains && outText.includes(step.expectedOutputContains)) {
+          setCompletedSteps(prev => new Set([...prev, currentStep]));
+        }
+      } catch (pyErr) {
+        setOutput(String(pyErr));
+        setOutputType('error');
+      } finally {
+        await py.runPythonAsync(`sys.stdout = sys.__stdout__`);
+      }
+    } catch (e) {
+      setOutput('Runtime error: ' + String(e));
+      setOutputType('error');
+    }
+    setIsRunning(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const ta = e.target;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const newCode = code.substring(0, start) + '    ' + code.substring(end);
+      setCode(newCode);
+      setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + 4; }, 0);
+    }
+  };
+
+  const goToStep = (idx) => {
+    if (idx < 0 || idx >= steps.length) return;
+    setCurrentStep(idx);
+    setCode(steps[idx].starterCode);
+    setOutput(null);
+    setOutputType('idle');
+    setShowHints(false);
+    setHintsRevealed(0);
+    setShowSolution(false);
+  };
+
+  const revealNextHint = () => {
+    if (!showHints) { setShowHints(true); setHintsRevealed(1); return; }
+    if (hintsRevealed < (step.hints?.length || 0)) setHintsRevealed(h => h + 1);
+  };
+
+  const isLastStep = currentStep === steps.length - 1;
+  const isProjectDone = isLastStep && completedSteps.has(currentStep);
+
+  return (
+    <div className={styles.container}>
+      {/* Top Nav */}
+      <header className={styles.topNav}>
+        <div className={styles.navLeft}>
+          <Link href="/learn/ai-engineering" className={styles.btnBack}>
+            <IconArrowLeft size={16} /> Roadmap
+          </Link>
+          <div className={styles.navTitleGroup}>
+            <span className={styles.navSectionTag}>{lesson.section}</span>
+            <span className={styles.navLessonTitle}>{lesson.title}</span>
+          </div>
+        </div>
+        <div className={styles.navRight}>
+          <span className={styles.readTimeBadge}>{lesson.estimatedTime}</span>
+        </div>
+      </header>
+
+      <main className={styles.articleWrapper} style={{ background: '#f8fafc', padding: '0' }}>
+        <div className={styles.projectWrapper}>
+
+          {/* Mobile notice */}
+          <div className={styles.mobileNotice}>
+            💡 This coding project is best experienced on a desktop browser for the full editor experience.
+          </div>
+
+          {/* Project Header */}
+          <div className={styles.projectHeader}>
+            <div className={styles.projectBadge}>⚙️ {lesson.badgeText || 'CODING PROJECT'}</div>
+            <h1 className={styles.projectTitle}>{lesson.title}</h1>
+            <p className={styles.projectSubtitle}>{lesson.subtitle}</p>
+            <div className={styles.projectMeta}>
+              <span className={styles.projectMetaChip}>🐍 Python</span>
+              <span className={styles.projectMetaChip}>⏱ {lesson.estimatedTime}</span>
+              <span className={styles.projectMetaChip}>📋 {steps.length} Steps</span>
+              <span className={styles.projectMetaChip}>🌐 Runs in browser</span>
+            </div>
+          </div>
+
+          {/* Step Progress Bar */}
+          <div className={styles.stepProgressBar}>
+            {steps.map((s, idx) => {
+              const isDone = completedSteps.has(idx);
+              const isActive = idx === currentStep;
+              let dotClass = styles.stepDot;
+              if (isActive) dotClass += ' ' + styles.stepDotActive;
+              else if (isDone) dotClass += ' ' + styles.stepDotDone;
+              return (
+                <>
+                  <button key={idx} className={dotClass} onClick={() => goToStep(idx)} title={`Step ${idx + 1}`}>
+                    {isDone ? '✓' : idx + 1}
+                  </button>
+                  {idx < steps.length - 1 && (
+                    <div className={`${styles.stepConnector} ${isDone ? styles.stepConnectorDone : ''}`} key={`c${idx}`} />
+                  )}
+                </>
+              );
+            })}
+          </div>
+
+          {/* Step label */}
+          {step && (
+            <div className={styles.stepLabel}>
+              Step {currentStep + 1} of {steps.length} — <span className={styles.stepLabelTitle}>{step.title}</span>
+            </div>
+          )}
+
+          {/* Pyodide Loading */}
+          {!pyodideReady && (
+            <div className={styles.pyodideLoader}>
+              <div className={styles.pyodideLoaderSpinner} />
+              <div className={styles.pyodideLoaderText}>Loading Python Runtime...</div>
+              <div className={styles.pyodideLoaderSub}>Pyodide (WebAssembly) · ~10MB · one-time download</div>
+            </div>
+          )}
+
+          {pyodideReady && step && (
+            <>
+              {/* Instructions Panel */}
+              <div className={styles.instructionsPanel}>
+                <p className={styles.instructionsConcept}>{step.concept}</p>
+                <div className={styles.instructionsGoalRow}>
+                  <span className={styles.instructionsGoalLabel}>🎯 Goal</span>
+                  <span className={styles.instructionsGoalText}>{step.goal}</span>
+                </div>
+                {step.whyItMatters && (
+                  <div className={styles.whyItMatters}>
+                    <span className={styles.whyIcon}>💡</span>
+                    <span className={styles.whyText}><strong>Why this matters:</strong> {step.whyItMatters}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Code Editor */}
+              <div className={styles.codeEditorSection}>
+                <div className={styles.codeEditorTopBar}>
+                  <div className={styles.codeEditorDots}>
+                    <span style={{ background: '#ef4444' }} />
+                    <span style={{ background: '#f59e0b' }} />
+                    <span style={{ background: '#22c55e' }} />
+                  </div>
+                  <span className={styles.codeEditorLabel}>Python · Step {currentStep + 1}</span>
+                  <span style={{ fontSize: '11px', color: '#475569' }}>Tab = 4 spaces</span>
+                </div>
+                <textarea
+                  className={styles.codeArea}
+                  value={showSolution ? step.solutionCode : code}
+                  onChange={(e) => { if (!showSolution) setCode(e.target.value); }}
+                  onKeyDown={handleKeyDown}
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className={styles.editorActions}>
+                <button
+                  className={`${styles.runBtn} ${isRunning ? styles.runBtnLoading : ''}`}
+                  onClick={runCode}
+                  disabled={isRunning}
+                >
+                  {isRunning ? '⏳ Running...' : '▶ Run Code'}
+                </button>
+
+                {step.hints && step.hints.length > 0 && (
+                  <button className={styles.hintBtn} onClick={revealNextHint}>
+                    💡 {showHints ? (hintsRevealed < step.hints.length ? 'Next Hint' : 'All Hints Shown') : 'Hint'}
+                  </button>
+                )}
+
+                <button
+                  className={styles.solutionBtn}
+                  onClick={() => setShowSolution(s => !s)}
+                >
+                  {showSolution ? '🙈 Hide Solution' : '👁 Show Solution'}
+                </button>
+              </div>
+
+              {/* Hints */}
+              {showHints && hintsRevealed > 0 && (
+                <div className={styles.hintBox}>
+                  <div className={styles.hintBoxTitle}>Hints</div>
+                  {step.hints.slice(0, hintsRevealed).map((hint, hIdx) => (
+                    <div key={hIdx} className={styles.hintItem}>
+                      <span className={styles.hintItemNum}>{hIdx + 1}.</span>
+                      <span>{hint}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Output Panel */}
+              <div className={styles.outputPanel}>
+                <div className={styles.outputTopBar}>
+                  <span className={styles.outputLabel}>Output</span>
+                  <span className={`${styles.outputStatusDot} ${outputType === 'success' ? styles.outputStatusDotSuccess : outputType === 'error' ? styles.outputStatusDotError : ''}`} />
+                </div>
+                <div className={`${styles.outputContent} ${outputType === 'success' ? styles.outputContentSuccess : outputType === 'error' ? styles.outputContentError : ''}`}>
+                  {output !== null ? output : <span className={styles.outputPlaceholder}>Click "Run Code" to see output here...</span>}
+                </div>
+              </div>
+
+              {/* Concept Callout after success */}
+              {outputType === 'success' && step.conceptCallout && (
+                <div className={styles.conceptCallout}>
+                  <span className={styles.conceptCalloutIcon}>🧠</span>
+                  <div>
+                    <div className={styles.conceptCalloutLabel}>Key Insight</div>
+                    <div className={styles.conceptCalloutText}>{step.conceptCallout}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Completion Banner on last step */}
+              {isProjectDone && (
+                <div className={styles.completionBanner}>
+                  <span className={styles.completionEmoji}>🎉</span>
+                  <div className={styles.completionTitle}>Project Complete!</div>
+                  <p className={styles.completionText}>
+                    You built a real Token Counter & Cost Calculator from scratch — the same tool LLM engineers use in production.
+                    You can now estimate API costs, count tokens accurately, and validate context window limits for any LLM.
+                  </p>
+                  <div className={styles.completionSkills}>
+                    {(lesson.projectMeta?.skills || []).map((skill, sIdx) => (
+                      <span key={sIdx} className={styles.completionSkillChip}>{skill}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step Navigation */}
+              <div className={styles.stepNav}>
+                <button
+                  className={`${styles.stepNavBtn} ${styles.stepNavBtnPrev} ${currentStep === 0 ? styles.stepNavBtnDisabled : ''}`}
+                  onClick={() => goToStep(currentStep - 1)}
+                  disabled={currentStep === 0}
+                >
+                  <IconArrowLeft size={15} /> Previous Step
+                </button>
+
+                {!isLastStep ? (
+                  <button
+                    className={`${styles.stepNavBtn} ${styles.stepNavBtnNext}`}
+                    onClick={() => goToStep(currentStep + 1)}
+                  >
+                    Next Step <IconArrowRight size={15} />
+                  </button>
+                ) : (
+                  nextLessonId ? (
+                    <Link href={`/learn/ai-engineering/${nextLessonId}`} className={`${styles.stepNavBtn} ${styles.stepNavBtnNext}`}>
+                      Next Lesson <IconArrowRight size={15} />
+                    </Link>
+                  ) : (
+                    <Link href="/learn/ai-engineering" className={`${styles.stepNavBtn} ${styles.stepNavBtnNext}`}>
+                      Back to Roadmap
+                    </Link>
+                  )
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9', 'ai-2-p1'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -2519,6 +2860,11 @@ export default function AILessonArticlePage() {
   const handleMultiSelect = (qId, optionIdx) => {
     setMultiAnswers((prev) => ({ ...prev, [qId]: optionIdx }));
   };
+
+  // Early return for project lessons — render the code editor instead
+  if (lesson.isProject) {
+    return <MiniProjectEditor lesson={lesson} prevLessonId={prevLessonId} nextLessonId={nextLessonId} />;
+  }
 
   return (
     <div className={styles.container}>
