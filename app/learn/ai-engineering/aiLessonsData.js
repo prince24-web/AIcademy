@@ -1008,5 +1008,132 @@ export const aiLessonsData = {
       correctIndex: 2,
       explanation: 'Correct! Model parameters (weights and biases) are learned automatically during training — no human sets them. Hyperparameters like learning rate, batch size, and number of layers are set manually by engineers before training begins and control how the learning process itself works.'
     }
+  },
+
+  'ai-2-8': {
+    id: 'ai-2-8',
+    title: 'Temperature & Sampling',
+    subtitle: 'Why AI Gives Different Answers Every Time — Randomness, Probability, and How to Control It',
+    section: 'Module 2 · Chapter 8',
+    estimatedTime: '9 min read',
+    gfgUrl: null,
+    videoUrl: 'https://www.youtube.com/embed/jnikMver_CE',
+
+    badgeText: 'HANDS-ON CONCEPT',
+    badgeColor: '#0ea5e9',
+
+    sections: [
+      {
+        heading: 'Why Does the AI Give a Different Answer Every Time?',
+        paragraphs: [
+          'You ask a chatbot "Write me a poem about rain" and you get one poem. You ask the exact same question again — you get a completely different poem. Same AI, same question, different output. What is going on?',
+          'The answer is sampling. After an LLM decides which words could come next, it does not always pick the most obvious one. Instead, it rolls a weighted dice — and the settings that control how that dice is loaded are called sampling parameters. Temperature is the most important of these settings.',
+          'To understand temperature, you first need to understand what an LLM actually produces internally before it outputs a word — and that starts with something called logits.'
+        ]
+      },
+      {
+        heading: 'Logits and Softmax: How the Model Thinks in Probabilities',
+        paragraphs: [
+          'Every time an LLM processes your prompt, it does not immediately output a word. Instead, it produces a raw score for every word in its vocabulary — these scores are called logits. A logit is not a probability yet; it is just a number that represents how "confident" the model is about each possible next token.',
+          'For example, if you type "The sky is", the model might assign logits like: "blue" → 4.2, "clear" → 3.1, "falling" → 0.8, "banana" → -3.5. These raw numbers need to be converted into actual probabilities that add up to 100%.',
+          'That conversion is done by a function called softmax. Softmax takes the logits and squishes them into a probability distribution — every token gets a probability between 0 and 1, and they all add up to exactly 1.0. After softmax, "blue" might have 55% probability, "clear" 35%, "falling" 8%, "banana" 0.1%, and so on for every word in the vocabulary.',
+          'This probability distribution is what gets sampled to pick the next token. And the key question is: how do we sample from it?'
+        ]
+      },
+      {
+        heading: 'Greedy Sampling: Always Picking the Most Likely Word',
+        paragraphs: [
+          'The simplest approach is called greedy sampling: just always pick the token with the highest probability. If "blue" has 55%, always output "blue". Always the top pick, every single time.',
+          'The result is completely deterministic — given the same input, you always get the exact same output. There is no randomness at all.',
+          'But greedy sampling has a serious problem: the responses become boring, repetitive, and robotic. If you ask it to write a story, it will always write the most average, predictable story possible. Creative tasks become bland. The model sounds like it is reciting from memory rather than actually thinking.',
+          'This is why greedy sampling is almost never used in practice for chatbots or creative applications. You need some randomness — but not too much. That is where temperature comes in.'
+        ]
+      },
+      {
+        heading: 'Temperature: The Dial That Controls Randomness',
+        paragraphs: [
+          'Temperature is a number applied before the softmax function to scale the logits up or down. The effect on the resulting probability distribution is dramatic and completely predictable.',
+          'The formula is simple: divide all logits by the temperature value, then apply softmax normally. Temperature = 1.0 is the default — no change to the distribution.',
+          'Low temperature (0 < T < 1): When you divide logits by a number less than 1, the large logits get larger relative to the small ones. After softmax, the top tokens get even higher probabilities and everything else gets crushed toward zero. The distribution becomes spiky and peaked. The model becomes very confident and almost always picks from the top few tokens. At temperature → 0, it is essentially greedy sampling.',
+          'High temperature (T > 1): When you divide logits by a number greater than 1, all the logits shrink and become closer together. After softmax, the distribution flattens — the top token loses probability and the lower-ranked tokens gain probability. At temperature = 5 or higher, the distribution becomes nearly uniform, meaning every token has almost the same probability of being picked. The output becomes wild and incoherent.',
+          'The practical range most providers use is 0.0 to 2.0. Below 0.3 = very focused and factual. Around 0.7 = conversational sweet spot. Above 1.2 = creative and sometimes surprising. Above 2.0 = usually degrades into nonsense.'
+        ]
+      },
+      {
+        heading: 'Real-World Temperature Use Cases',
+        paragraphs: [
+          'Choosing the right temperature is one of the most practical decisions when building with LLMs. Here is how it maps to real tasks:',
+          'Temperature 0.0 – 0.3 (Very focused): SQL query generation, mathematical calculations, extracting structured data from text, medical or legal summaries, answering factual questions. You want the most correct answer, not a creative one. Randomness here would introduce errors.',
+          'Temperature 0.5 – 0.8 (Balanced): General chatbot responses, customer support answers, summarizing documents, answering emails. You want coherent, readable outputs that still feel natural — not robotic, but not chaotic.',
+          'Temperature 0.9 – 1.2 (Creative): Story writing, marketing copy, brainstorming ideas, generating product descriptions, drafting catchy headlines. You want the model to explore less obvious word choices.',
+          'Temperature 1.3 – 2.0 (Wild creativity): Poetry with unusual structure, generating highly diverse options for A/B testing, comedy writing, games. The model surprises you — sometimes brilliantly, sometimes nonsensically.',
+          'Most production LLM APIs (OpenAI, Anthropic, Google) default to temperature = 1.0 and let developers set it per request. Knowing how to tune this is one of the most valuable prompt engineering skills.'
+        ]
+      },
+      {
+        heading: 'Top-K Sampling: Limiting the Candidate Pool',
+        paragraphs: [
+          'Even with temperature set, you might want to prevent truly terrible tokens from ever being picked — no matter how flat the distribution gets. That is the job of Top-K sampling.',
+          'Top-K sampling works by taking the full probability distribution after softmax and keeping only the K tokens with the highest probability. All other tokens are set to zero probability. Then the probabilities are renormalized to sum to 1.0, and the next token is sampled from this smaller pool.',
+          'Example: K = 5 means only the top 5 most probable tokens are eligible. Even if temperature is set high and the distribution is quite flat, you will never accidentally sample a rare nonsense word that happens to have a 0.3% probability.',
+          'Top-K can be combined with temperature: first scale the logits by temperature, then apply softmax, then filter to Top-K, then sample. Setting K = 1 is equivalent to greedy sampling. Large K (like 50 or 100) gives the model more diversity to explore.'
+        ]
+      },
+      {
+        heading: 'Top-P (Nucleus) Sampling: Dynamic Candidate Selection',
+        paragraphs: [
+          'Top-K has a limitation: the right number K is different depending on the situation. Sometimes the top 5 tokens together have 99% of the probability mass — keeping 5 is fine. But other times, the probability is spread more evenly and you might need the top 50 tokens to cover 90% of the mass. A fixed K cannot adapt.',
+          'Top-P sampling (also called nucleus sampling) solves this by using a cumulative probability threshold instead of a fixed count. You set P = 0.9, for example. The algorithm sorts all tokens by probability (highest first) and keeps adding tokens until their cumulative probability reaches 0.9. Then it discards everything after.',
+          'The result is a dynamic pool — sometimes just 3 tokens, sometimes 20 — that always covers a consistent slice of the model\'s confidence. The remaining tokens are renormalized and sampled.',
+          'P = 0 means greedy sampling (only the top token, since its own probability exceeds any threshold). P = 1.0 means sample from all tokens (no filtering at all). P = 0.9 is a very common practical value.',
+          'Top-P is generally preferred over Top-K in modern LLMs because it adapts to the shape of the distribution. Many systems use Top-P and temperature together, skipping Top-K entirely.'
+        ]
+      },
+      {
+        heading: 'Combining All Three: The Full Pipeline',
+        paragraphs: [
+          'In practice, most LLM providers use temperature, Top-K, and Top-P together in a pipeline. The order matters:',
+          '1. Scale logits by temperature. This adjusts how peaked or flat the raw distribution is.',
+          '2. Apply softmax to get the probability distribution from the scaled logits.',
+          '3. Apply Top-K filtering: keep only the K tokens with the highest probability, discard the rest, renormalize.',
+          '4. Apply Top-P filtering: from the Top-K tokens, keep only those whose cumulative probability reaches P, discard the rest, renormalize.',
+          '5. Sample the next token from this final filtered distribution.',
+          'A typical production setting might be: temperature = 0.8, top-K = 50, top-P = 0.9. Starting from 50,000+ vocabulary tokens, Top-K cuts it to 50, and Top-P might further cut it to 15–20 tokens. The model then samples randomly from those 15–20 — which is why you get variety without gibberish.',
+          'Each new token is generated using this exact same pipeline, repeated until the model outputs a stop token or hits the max length. This is how a single sentence of 20 words requires the pipeline to run 20 separate times.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Restaurant Menu',
+      text: 'Imagine a chef (the LLM) who has to suggest what to cook next. At temperature 0, the chef always suggests the house special — the most popular dish, guaranteed to satisfy. At temperature 1, the chef picks from a normal menu, sometimes the house special, sometimes something seasonal. At temperature 2, the chef starts suggesting weird fusion experiments that might be brilliant or might be inedible. Top-K is like limiting the menu to only 10 dishes — no matter what. Top-P is like saying "suggest only from dishes that together make up 90% of what customers order" — which might be 5 popular dishes or 20 medium-popularity ones depending on the day.'
+    },
+
+    diagram: {
+      type: 'temperature_sampling',
+      title: 'Temperature & Sampling — Interactive Visualizer'
+    },
+
+    takeaways: [
+      'LLMs produce raw logits (scores) for every possible next token. Softmax converts these into a probability distribution that sums to 1.0.',
+      'Greedy sampling always picks the highest-probability token — deterministic but boring and repetitive.',
+      'Temperature divides logits before softmax. Low temperature (< 1) makes the distribution spiky and confident. High temperature (> 1) flattens it, giving rare tokens a chance.',
+      'Low temperature (0–0.3) is best for factual, accurate tasks. High temperature (0.8–1.5) is better for creative tasks.',
+      'Top-K sampling limits candidates to the K most probable tokens, regardless of temperature.',
+      'Top-P (nucleus) sampling keeps only tokens whose cumulative probability reaches threshold P — dynamically adapting the pool size to the distribution shape.',
+      'In production, all three are used together: temperature → softmax → Top-K → Top-P → sample. This runs once per output token.'
+    ],
+
+    quiz: {
+      question: 'You are building a system to extract structured data (dates, names, amounts) from legal documents. Which temperature setting should you use?',
+      options: [
+        'Temperature 1.5 — you want the model to be creative and explore many possible interpretations.',
+        'Temperature 0.8 — a moderate balance between creativity and accuracy.',
+        'Temperature 0.1 — you want the model to be highly focused and deterministic, always picking the most likely token.',
+        'Temperature 2.0 — high randomness helps the model notice unusual patterns in legal text.'
+      ],
+      correctIndex: 2,
+      explanation: 'Correct! For extracting structured data from documents, you want accuracy and consistency — not creativity. A very low temperature (0.0–0.2) makes the model confident and deterministic, always choosing the most probable tokens. Creative temperature settings would introduce random variation that leads to incorrect extractions.'
+    }
   }
 };

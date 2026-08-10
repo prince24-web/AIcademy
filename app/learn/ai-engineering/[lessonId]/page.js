@@ -1831,8 +1831,336 @@ const ModelParametersDiagram = () => {
   );
 };
 
+// ─── TEMPERATURE & SAMPLING DIAGRAM ──────────────────────────────────────────────
+const TemperatureSamplingDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [temperature, setTemperature] = useState(1.0);
+  const [topK, setTopK] = useState(5);
+  const [topP, setTopP] = useState(0.9);
+  const [pipelineStep, setPipelineStep] = useState(0);
+
+  const panels = [
+    { label: 'Temperature Effect', color: '#f87171' },
+    { label: 'Top-K Sampling', color: '#f59e0b' },
+    { label: 'Top-P (Nucleus)', color: '#a78bfa' },
+    { label: 'Full Pipeline', color: '#34d399' },
+  ];
+
+  // Raw logits for 8 tokens — fixed
+  const tokens = [
+    { word: 'blue',   logit: 4.2, color: '#38bdf8' },
+    { word: 'clear',  logit: 3.1, color: '#0ea5e9' },
+    { word: 'bright', logit: 2.4, color: '#6366f1' },
+    { word: 'dark',   logit: 1.8, color: '#8b5cf6' },
+    { word: 'falling',logit: 0.8, color: '#a78bfa' },
+    { word: 'always', logit: 0.2, color: '#c084fc' },
+    { word: 'not',    logit: -0.9, color: '#f87171' },
+    { word: 'banana', logit: -3.5, color: '#ef4444' },
+  ];
+
+  // Apply temperature and compute softmax
+  const computeProbs = (temp) => {
+    const scaled = tokens.map(t => t.logit / Math.max(temp, 0.01));
+    const maxVal = Math.max(...scaled);
+    const exps = scaled.map(s => Math.exp(s - maxVal));
+    const sumExp = exps.reduce((a, b) => a + b, 0);
+    return exps.map(e => e / sumExp);
+  };
+
+  const probs = computeProbs(temperature);
+  const maxProb = Math.max(...probs);
+
+  // Top-K: keep only top K tokens, renormalize
+  const sortedByProb = [...tokens.map((t, i) => ({ ...t, prob: probs[i], origIdx: i }))]
+    .sort((a, b) => b.prob - a.prob);
+  const topKTokens = sortedByProb.slice(0, topK);
+  const topKSum = topKTokens.reduce((s, t) => s + t.prob, 0);
+  const topKNorm = topKTokens.map(t => ({ ...t, normProb: t.prob / topKSum }));
+
+  // Top-P: cumulative sum until P reached
+  let cumSum = 0;
+  const topPTokens = [];
+  for (const t of sortedByProb) {
+    cumSum += t.prob;
+    topPTokens.push({ ...t, cumSum: Math.min(cumSum, 1) });
+    if (cumSum >= topP) break;
+  }
+  const topPSum = topPTokens.reduce((s, t) => s + t.prob, 0);
+  const topPNorm = topPTokens.map(t => ({ ...t, normProb: t.prob / topPSum }));
+
+  // Pipeline steps
+  const pipelineSteps = [
+    {
+      label: 'Raw Logits', color: '#94a3b8',
+      desc: 'The LLM processes your prompt and outputs a raw score (logit) for every token in its vocabulary. These are not probabilities yet.',
+      subset: tokens.map((t, i) => ({ ...t, displayVal: t.logit.toFixed(1), barVal: (t.logit + 4) / 8 }))
+    },
+    {
+      label: '÷ Temperature + Softmax', color: '#f87171',
+      desc: `Divide all logits by temperature (${temperature.toFixed(1)}), then apply softmax. Low temp → spiky. High temp → flat.`,
+      subset: tokens.map((t, i) => ({ ...t, displayVal: (probs[i] * 100).toFixed(1) + '%', barVal: probs[i] / maxProb }))
+    },
+    {
+      label: `Top-K (K=${topK})`, color: '#f59e0b',
+      desc: `Keep only the top ${topK} tokens by probability. Discard the rest. Renormalize to sum to 1.0.`,
+      subset: sortedByProb.map((t, i) => ({ ...t, displayVal: i < topK ? (topKNorm.find(x => x.word === t.word)?.normProb * 100).toFixed(1) + '%' : '✕', barVal: i < topK ? (topKNorm.find(x => x.word === t.word)?.normProb / (topKNorm[0]?.normProb || 1)) : 0, kept: i < topK }))
+    },
+    {
+      label: `Top-P (P=${topP})`, color: '#a78bfa',
+      desc: `From the Top-K set, keep tokens until cumulative probability reaches ${topP}. Renormalize. Sample from this final set.`,
+      subset: sortedByProb.map((t, i) => {
+        const inTopP = topPNorm.find(x => x.word === t.word);
+        const inTopK = i < topK;
+        return { ...t, displayVal: inTopP ? (inTopP.normProb * 100).toFixed(1) + '%' : inTopK ? 'cut' : '✕', barVal: inTopP ? (inTopP.normProb / (topPNorm[0]?.normProb || 1)) : 0, kept: !!inTopP };
+      })
+    },
+  ];
+
+  const tempLabels = [
+    { t: 0.1, label: 'Near-greedy', color: '#ef4444' },
+    { t: 0.5, label: 'Focused', color: '#f97316' },
+    { t: 1.0, label: 'Default', color: '#22c55e' },
+    { t: 1.5, label: 'Creative', color: '#a78bfa' },
+    { t: 2.0, label: 'Wild', color: '#ec4899' },
+  ];
+  const currentLabel = tempLabels.reduce((prev, curr) => Math.abs(curr.t - temperature) < Math.abs(prev.t - temperature) ? curr : prev);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab bar */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: TEMPERATURE EFFECT ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Drag the temperature slider to see how the probability distribution over the next tokens changes. Prompt context: <em style={{ color: '#7dd3fc' }}>"The sky is..."</em>
+            </p>
+
+            {/* Temperature slider */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Temperature</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ color: currentLabel.color, fontWeight: 800, fontSize: '1.1rem', fontFamily: 'monospace' }}>{temperature.toFixed(2)}</span>
+                  <span style={{ color: currentLabel.color, fontSize: '0.75rem', border: `1px solid ${currentLabel.color}`, borderRadius: '999px', padding: '0.1rem 0.5rem' }}>{currentLabel.label}</span>
+                </div>
+              </div>
+              <input type="range" min="0.05" max="3" step="0.05" value={temperature}
+                onChange={e => setTemperature(Number(e.target.value))}
+                style={{ width: '100%', accentColor: currentLabel.color, cursor: 'pointer' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontSize: '0.65rem', marginTop: '0.15rem' }}>
+                <span>0 → Greedy (deterministic)</span>
+                <span>3 → Near-uniform (chaotic)</span>
+              </div>
+            </div>
+
+            {/* Bar chart */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              {tokens.map((tok, i) => {
+                const p = probs[i];
+                const pct = (p * 100).toFixed(1);
+                const barW = (p / maxProb) * 100;
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '52px', color: tok.color, fontWeight: 700, fontSize: '0.78rem', textAlign: 'right', flexShrink: 0 }}>{tok.word}</div>
+                    <div style={{ flex: 1, background: '#0f172a', borderRadius: '4px', height: '20px', overflow: 'hidden' }}>
+                      <div style={{ width: `${barW}%`, height: '100%', background: tok.color, borderRadius: '4px', transition: 'width 0.15s ease', display: 'flex', alignItems: 'center', paddingLeft: '6px' }}>
+                        {barW > 20 && <span style={{ color: '#0f172a', fontSize: '0.68rem', fontWeight: 800 }}>{pct}%</span>}
+                      </div>
+                    </div>
+                    {barW <= 20 && <span style={{ color: tok.color, fontSize: '0.68rem', width: '36px', flexShrink: 0 }}>{pct}%</span>}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Insight box */}
+            <div style={{ marginTop: '1rem', padding: '0.65rem 0.85rem', background: `${currentLabel.color}12`, border: `1px solid ${currentLabel.color}40`, borderRadius: '8px', fontSize: '0.78rem', color: '#cbd5e1' }}>
+              {temperature < 0.3 && 'Near-greedy mode: "blue" dominates the distribution. The model will almost always output "blue" — very deterministic.'}
+              {temperature >= 0.3 && temperature < 0.8 && 'Focused mode: top 2–3 tokens have most of the probability mass. Responses are coherent and predictable.'}
+              {temperature >= 0.8 && temperature < 1.3 && 'Balanced mode: good spread across top tokens. Model feels natural — creative but not erratic.'}
+              {temperature >= 1.3 && temperature < 2.0 && 'Creative mode: even low-probability tokens like "falling" get a real chance. Output will vary significantly.'}
+              {temperature >= 2.0 && 'Chaotic mode: distribution is nearly flat — even "banana" could be sampled. Output quality degrades significantly.'}
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: TOP-K ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Top-K keeps only the <strong style={{ color: '#f59e0b' }}>K most probable tokens</strong> and discards the rest. Adjust K:
+            </p>
+
+            {/* K slider */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Top-K value</span>
+                <span style={{ color: '#f59e0b', fontWeight: 800, fontSize: '1.1rem', fontFamily: 'monospace' }}>K = {topK}</span>
+              </div>
+              <input type="range" min="1" max="8" step="1" value={topK}
+                onChange={e => setTopK(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#f59e0b', cursor: 'pointer' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontSize: '0.65rem', marginTop: '0.15rem' }}>
+                <span>K=1 (greedy)</span><span>K=8 (all tokens)</span>
+              </div>
+            </div>
+
+            {/* Tokens sorted by prob */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+              {sortedByProb.map((tok, i) => {
+                const kept = i < topK;
+                const normProbEntry = topKNorm.find(x => x.word === tok.word);
+                const displayProb = kept ? (normProbEntry?.normProb * 100).toFixed(1) + '%' : 'removed';
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: kept ? 1 : 0.35 }}>
+                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: kept ? '#f59e0b' : '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: kept ? '#0f172a' : '#64748b', fontWeight: 800, flexShrink: 0 }}>{i + 1}</div>
+                    <div style={{ width: '52px', color: tok.color, fontWeight: 700, fontSize: '0.78rem', flexShrink: 0 }}>{tok.word}</div>
+                    <div style={{ flex: 1, background: '#0f172a', borderRadius: '4px', height: '18px', overflow: 'hidden' }}>
+                      {kept && <div style={{ width: `${(normProbEntry?.normProb / topKNorm[0]?.normProb) * 100}%`, height: '100%', background: tok.color, borderRadius: '4px', transition: 'width 0.2s' }} />}
+                    </div>
+                    <span style={{ color: kept ? tok.color : '#475569', fontSize: '0.72rem', width: '60px', textAlign: 'right', flexShrink: 0 }}>{displayProb}</span>
+                    {kept && <span style={{ color: '#34d399', fontSize: '0.72rem' }}>✓</span>}
+                    {!kept && <span style={{ color: '#f87171', fontSize: '0.72rem' }}>✕</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ marginTop: '0.85rem', padding: '0.6rem 0.85rem', background: '#1c1200', border: '1px solid #f59e0b', borderRadius: '8px', fontSize: '0.78rem', color: '#fcd34d' }}>
+              {topK === 1 ? 'K=1 is greedy sampling — only the top token is eligible, always the same pick.' : `Top ${topK} tokens kept. Their probabilities are renormalized to sum to 100%. Sampling happens from these ${topK} options only.`}
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 3: TOP-P ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Top-P keeps tokens until their <strong style={{ color: '#a78bfa' }}>cumulative probability reaches P</strong>. The pool size adapts dynamically:
+            </p>
+
+            {/* P slider */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Top-P value</span>
+                <span style={{ color: '#a78bfa', fontWeight: 800, fontSize: '1.1rem', fontFamily: 'monospace' }}>P = {topP.toFixed(2)}</span>
+              </div>
+              <input type="range" min="0.1" max="1.0" step="0.05" value={topP}
+                onChange={e => setTopP(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#a78bfa', cursor: 'pointer' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontSize: '0.65rem', marginTop: '0.15rem' }}>
+                <span>0 (greedy)</span><span>1.0 (all tokens)</span>
+              </div>
+            </div>
+
+            {/* Cumulative prob visualization */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+              {sortedByProb.map((tok, i) => {
+                let cumProbHere = 0;
+                for (let j = 0; j <= i; j++) cumProbHere += probs[sortedByProb[j].origIdx];
+                const kept = topPNorm.find(x => x.word === tok.word);
+                const normEntry = topPNorm.find(x => x.word === tok.word);
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: kept ? 1 : 0.35 }}>
+                    <div style={{ width: '52px', color: tok.color, fontWeight: 700, fontSize: '0.78rem', flexShrink: 0 }}>{tok.word}</div>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <div style={{ background: '#0f172a', borderRadius: '4px', height: '20px', overflow: 'hidden' }}>
+                        <div style={{ width: `${(probs[tok.origIdx] / maxProb) * 100}%`, height: '100%', background: kept ? tok.color : '#334155', borderRadius: '4px' }} />
+                      </div>
+                    </div>
+                    <span style={{ color: '#64748b', fontSize: '0.7rem', width: '80px', textAlign: 'right', flexShrink: 0 }}>cum: {(Math.min(cumProbHere, 1) * 100).toFixed(1)}%</span>
+                    {kept ? <span style={{ color: '#34d399', fontSize: '0.72rem' }}>✓</span> : <span style={{ color: '#f87171', fontSize: '0.72rem' }}>✕</span>}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Cumulative progress bar */}
+            <div style={{ marginTop: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+                <span>Cumulative coverage of kept tokens</span>
+                <span style={{ color: '#a78bfa' }}>{Math.min(topPSum * 100, 100).toFixed(1)}% / target {topP * 100}%</span>
+              </div>
+              <div style={{ background: '#0f172a', borderRadius: '4px', height: '10px', overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(topPSum, 1) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #a78bfa, #c084fc)', transition: 'width 0.2s' }} />
+              </div>
+            </div>
+            <div style={{ marginTop: '0.6rem', padding: '0.55rem 0.85rem', background: '#1c0040', border: '1px solid #a78bfa', borderRadius: '8px', fontSize: '0.78rem', color: '#c4b5fd' }}>
+              {topPNorm.length} token{topPNorm.length !== 1 ? 's' : ''} selected to reach P={topP}. {topP === 1.0 ? 'P=1.0 keeps all tokens — no filtering.' : `The model samples from these ${topPNorm.length} options after renormalization.`}
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: FULL PIPELINE ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              The full pipeline combining all three. Click each step to see what the token pool looks like at that stage:
+            </p>
+
+            {/* Step buttons */}
+            <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+              {pipelineSteps.map((s, i) => (
+                <button key={i} onClick={() => setPipelineStep(i)} style={{
+                  padding: '0.4rem 0.75rem', borderRadius: '8px',
+                  border: `1.5px solid ${s.color}`,
+                  background: pipelineStep === i ? `${s.color}20` : 'transparent',
+                  color: pipelineStep === i ? s.color : '#64748b',
+                  fontWeight: pipelineStep === i ? 700 : 400, fontSize: '0.75rem', cursor: 'pointer'
+                }}>{i + 1}. {s.label}</button>
+              ))}
+            </div>
+
+            {/* Token bars at current step */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '1rem' }}>
+              {pipelineSteps[pipelineStep].subset.map((tok, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: tok.kept === false ? 0.3 : 1 }}>
+                  <div style={{ width: '52px', color: tok.color, fontWeight: 700, fontSize: '0.78rem', flexShrink: 0 }}>{tok.word}</div>
+                  <div style={{ flex: 1, background: '#0f172a', borderRadius: '4px', height: '18px', overflow: 'hidden' }}>
+                    <div style={{ width: `${(tok.barVal || 0) * 100}%`, height: '100%', background: tok.kept === false ? '#334155' : tok.color, borderRadius: '4px', transition: 'width 0.2s' }} />
+                  </div>
+                  <span style={{ color: tok.kept === false ? '#475569' : tok.color, fontSize: '0.72rem', width: '55px', textAlign: 'right', flexShrink: 0 }}>{tok.displayVal}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: '0.75rem 0.9rem', background: `${pipelineSteps[pipelineStep].color}12`, border: `1.5px solid ${pipelineSteps[pipelineStep].color}`, borderRadius: '10px' }}>
+              <div style={{ color: pipelineSteps[pipelineStep].color, fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.3rem' }}>Step {pipelineStep + 1}: {pipelineSteps[pipelineStep].label}</div>
+              <div style={{ color: '#cbd5e1', fontSize: '0.82rem' }}>{pipelineSteps[pipelineStep].desc}</div>
+            </div>
+
+            {/* Settings reminder */}
+            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {[{ label: 'Temp', val: temperature.toFixed(1), color: '#f87171' }, { label: 'Top-K', val: topK, color: '#f59e0b' }, { label: 'Top-P', val: topP.toFixed(2), color: '#a78bfa' }].map((s, i) => (
+                <div key={i} style={{ padding: '0.3rem 0.65rem', background: '#1e293b', border: `1px solid ${s.color}40`, borderRadius: '6px', fontSize: '0.75rem' }}>
+                  <span style={{ color: '#64748b' }}>{s.label}: </span>
+                  <span style={{ color: s.color, fontWeight: 700 }}>{s.val}</span>
+                </div>
+              ))}
+              <span style={{ color: '#475569', fontSize: '0.72rem', alignSelf: 'center' }}>(adjust in other panels)</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -1994,6 +2322,11 @@ export default function AILessonArticlePage() {
             {/* Model Parameters Diagram */}
             {lesson.diagram.type === 'model_parameters' && (
               <ModelParametersDiagram />
+            )}
+
+            {/* Temperature & Sampling Diagram */}
+            {lesson.diagram.type === 'temperature_sampling' && (
+              <TemperatureSamplingDiagram />
             )}
 
             {/* Industry Grid Diagram */}
