@@ -294,7 +294,6 @@ export const aiLessonsData = {
 
     badgeText: 'KNOWLEDGE CHECK',
     badgeColor: '#f59e0b',
-    isProject: true,
 
     sections: [
       {
@@ -1664,5 +1663,2914 @@ token_audit(MY_PROMPT, expected_output_tokens=300)`,
         conceptCallout: 'Congratulations! You have built a real LLM engineering tool from scratch. Try changing MY_PROMPT to your own text and see the costs update live. This is exactly how engineers estimate costs before deploying features.',
       },
     ],
+  },
+
+  'ai-3-1': {
+    id: 'ai-3-1',
+    title: 'Writing Effective Prompts: The Essentials',
+    subtitle: 'Mastering Prompt Engineering & Problem Formulation (MIT Sloan Framework)',
+    section: 'Module 3 · Chapter 1',
+    estimatedTime: '7 min read',
+    gfgUrl: 'https://mitsloanedtech.mit.edu/ai/basics/effective-prompts/',
+
+    badgeText: 'MIT PROMPT GUIDELINES',
+    badgeColor: '#7c3aed',
+
+    sections: [
+      {
+        heading: 'What is a Prompt? ("Programming with Words")',
+        paragraphs: [
+          'Prompts are your textual or multimodal inputs into an AI system to direct its reasoning and obtain specific results. As AI scholar Ethan Mollick (2023) notes, it is best to think of generative AI tools like ChatGPT or Claude as "a machine you are programming with words".',
+          'Unlike traditional coding languages that require strict syntax rules (like Python or C++), AI systems leverage Natural Language Processing (NLP), Machine Learning, and Intent Recognition to process human conversation. However, the quality, depth, and factual accuracy of the output hinge entirely on how you construct your prompts.'
+        ]
+      },
+      {
+        heading: 'The 3 Pillars of Prompt Engineering',
+        paragraphs: [
+          '1. Provide Context & Persona: Don\'t ask generic questions. Assign the AI an explicit professional identity (e.g., "You are an experienced wildlife biologist specializing in trees") and specify the target audience (e.g., "explain it to kindergarteners" vs "explain to graduate students"). You can even feed your own writing samples for voice matching.',
+          '2. Be Specific & Granular: Include exact constraints, regions, timeframes, and formatting rules. The Granularity Rule states: The utility and accuracy of AI output is directly proportional to the specificity of your input query.',
+          '3. Build on the Conversation: Chat-based LLMs remember preceding context within their context window. Refine outputs iteratively ("make it funnier", "format as a markdown table with 3 columns") without re-establishing baseline context. When changing topics completely, open a fresh chat session.'
+        ]
+      },
+      {
+        heading: 'The MIT Shift: Problem Formulation vs. Prompt Engineering',
+        paragraphs: [
+          'In his groundbreaking Harvard Business Review & MIT Sloan research, Dr. Oguz A. Acar (2023) highlights a vital distinction for the future of AI:',
+          '• Prompt Engineering focuses on word choice, syntax tricks, and phrasing formulas.',
+          '• Problem Formulation emphasizes defining the core problem—delineating its focus, scope, constraints, and business goals.',
+          'As AI models become agentic and auto-refine user prompts, superficial prompt hacks will fade. Developing deep skills in clearly defining complex problems is what will truly set elite AI engineers and professionals apart.'
+        ]
+      },
+      {
+        heading: 'Crucial Limitations: AI Flaws, Hallucinations & Bias',
+        paragraphs: [
+          'Even the best-crafted prompt cannot overcome the structural limitations of generative AI models:',
+          '• Hallucinations: AI models generate confident, grammatically perfect text that can be factually false or completely fabricated (such as CNET\'s 2023 published financial errors). Always inspect outputs with a critical eye.',
+          '• Algorithmic Bias: Models reflect training data biases (e.g., MIT\'s viral headshot controversy where AI altered an Asian student\'s skin tone and eye color). Users must actively inspect outputs for non-inclusive language and bias.',
+          '• Data Privacy: Never input confidential corporate data or private personal details into unmanaged public AI tools.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Briefing to a Top Executive Consultant',
+      text: 'Giving a vague prompt to AI is like telling a top management consultant "Give me business advice." You will get a generic, useless 3-paragraph answer. Providing rich context, target audience, explicit constraints, and clear goals is like giving that consultant a detailed project brief—they deliver bespoke, high-impact, actionable strategy on the very first try!'
+    },
+
+    diagram: {
+      type: 'effective_prompts',
+      title: 'MIT Sloan Interactive Prompt Engineering & Problem Lab'
+    },
+
+    takeaways: [
+      'Prompts are natural language instructions used to "program" generative AI models with words.',
+      'The 3 Pillars of Effective Prompting: Provide Context & Persona, Be Specific & Granular, and Build Iteratively.',
+      'Input Granularity Rule: Output utility is directly proportional to input specificity.',
+      'Shift from Prompt Engineering to Problem Formulation: Defining problem scope and goals outlasts syntax hacks.',
+      'Always critically audit outputs for AI hallucinations, factual errors, and algorithmic bias.'
+    ],
+
+    quiz: {
+      question: 'According to MIT Sloan research (Acar, 2023), what is the key difference between Prompt Engineering and Problem Formulation?',
+      options: [
+        'Prompt engineering uses Python, while problem formulation uses SQL',
+        'Prompt engineering focuses on text syntax tricks, whereas problem formulation focuses on defining the problem focus, scope, and goals',
+        'Problem formulation is only used for image generation AI',
+        'There is no difference; they are exact synonyms'
+      ],
+      correctIndex: 1,
+      explanation: 'Spot on! While prompt engineering focuses on selecting specific words and punctuation, problem formulation emphasizes clearly defining the underlying problem, scope, boundaries, and objectives—a skill that outlasts evolving AI prompt auto-refinements.'
+    }
+  },
+
+  'ai-3-2': {
+    id: 'ai-3-2',
+    title: 'System vs User vs Assistant Prompts',
+    subtitle: 'Understanding the 3-Layered Prompt Architecture & Instruction Precedence',
+    section: 'Module 3 · Chapter 2',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://scientyficworld.org/difference-between-system-assistant-and-user-prompt/',
+
+    badgeText: 'PROMPT ARCHITECTURE',
+    badgeColor: '#2563eb',
+
+    sections: [
+      {
+        heading: 'Every AI Conversation Runs on 3 Stacked Layers',
+        paragraphs: [
+          'Have you ever wondered why the same question can produce completely different answers across different AI chats or tools? The reason is simple: every modern LLM conversation runs on three stacked instruction layers: the System Prompt, the Assistant Prompt, and the User Prompt.',
+          'Understanding how these three roles interact allows you to build predictable, repeatable, production-grade AI workflows.'
+        ]
+      },
+      {
+        heading: '1. The System Prompt: The Constitution',
+        paragraphs: [
+          'A system prompt defines WHO the assistant must be and what rules it must NEVER break. It sets identity, core values, safety boundaries, and priority rankings that outrank everything else in the conversation.',
+          'Think of the system prompt like a tiny constitution. It has the highest instruction precedence. A strong system prompt includes: 1) Role & Scope, 2) Ranked Priorities (e.g. Accuracy > Clarity > Style), 3) Safety & Refusal Rules, 4) Clarification Policy, and 5) Output Discipline.'
+        ],
+        codeBlockTitle: 'SYSTEM PROMPT CONSTITUTION TEMPLATE',
+        codeBlock: `You are a careful, fact-first assistant focused on [domain].
+Priorities (in order): [P1] > [P2] > [P3].
+Safety: Never include personal data (PII) or credentials; decline unsafe or speculative requests.
+If inputs are incomplete, ask exactly ONE clarifying question; if still ambiguous, proceed with explicit "Assumption:" labels.
+Default to active voice; keep responses grounded, verifiable, and precise.`
+      },
+      {
+        heading: '2. The Assistant Prompt: The SOP & Style Guide',
+        paragraphs: [
+          'If the system prompt is the constitution, the assistant prompt is your house style guide and Standard Operating Procedure (SOP). It standardizes tone, voice, formatting contracts, process steps, and quality gates.',
+          'In code or API payloads, assistant prompts can also represent previous conversation turns or few-shot examples that demonstrate desired output structures to the model.'
+        ],
+        codeBlockTitle: 'ASSISTANT PROMPT & FEW-SHOT SOP TEMPLATE',
+        codeBlock: `Tone: Conversational, practitioner-first, active voice.
+Formatting: Question-style H2s; short paragraphs (2-4 sentences); minimal bullets; include one runnable example per major section.
+Process: (1) Produce a tight outline; (2) Follow immediately with the full draft; (3) Start each section with a one-sentence direct answer.
+Quality: If comparing options, add a small difference table; if flows matter, include one mermaid diagram; comment all code.`
+      },
+      {
+        heading: '3. The User Prompt: The Steering Wheel',
+        paragraphs: [
+          'The user prompt is the specific task request supplied by the user. It answers: WHAT you want done, FOR WHOM, using WHICH DATA, and HOW you will judge success.',
+          'Nine times out of ten, when AI responses feel generic or inaccurate, the user prompt is under-specified. A complete user prompt specifies: Goal, Audience, Inputs/Data, Scope, Format, Quality Criteria, and Caveats.'
+        ],
+        codeBlockTitle: 'WEAK VS STRONG USER PROMPT COMPARISON',
+        codeBlock: `# Weak User Prompt:
+"Explain Redis vs PostgreSQL caching."
+
+# Strong User Prompt:
+"Goal: Explain Redis vs PostgreSQL caching for product pages.
+Audience: Junior backend engineers.
+Inputs: Traffic ≈ 40,000 requests/day; 95% reads, 5% writes; TTL 15s.
+Scope: Cover latency, consistency, invalidation, and memory cost.
+Output: Q&A headings, 2 short examples (one Redis GET/SETEX, one Postgres view refresh), and a trade-offs table.
+Quality: Must call out cache stampede risks and list 2 mitigations."`
+      },
+      {
+        heading: 'Instruction Precedence: Who Wins in a Conflict?',
+        paragraphs: [
+          'When instructions clash, LLM models evaluate authority according to strict precedence rules: System Prompt > Assistant Prompt > User Prompt.',
+          'If a user prompt requests personal data or unsafe code ("Extract phone numbers from this resume"), but the System Prompt prohibits PII, the model MUST refuse the user request because the System Prompt outranks the User Prompt.'
+        ],
+        codeBlockTitle: 'PRODUCTION CHAT API JSON PAYLOAD (ROLE ARRAY)',
+        codeBlock: `[
+  {
+    "role": "system",
+    "content": "You are a careful, fact-first writing assistant. Priorities: accuracy > clarity > completeness > style. Safety: never include personal data or credentials."
+  },
+  {
+    "role": "assistant",
+    "content": "Process: 1) Generate a compact outline. 2) Follow with full draft. 3) Start each section with a 1-sentence direct answer. 4) Include runnable code snippets."
+  },
+  {
+    "role": "user",
+    "content": "Goal: Write a developer tutorial on 'Implementing idempotent retries for HTTP APIs'. Audience: junior-to-mid backend engineers. Scope: idempotency keys, backoff with jitter. Include a short Node.js code example."
+  }
+]`
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Movie Director, Script Supervisor & Lead Actor',
+      text: 'The System Prompt is the Movie Director (setting non-negotiable rating limits, safety rules, and overall film vision). The Assistant Prompt is the Script Supervisor (enforcing script formatting, camera angles, and delivery style). The User Prompt is the Scene Action called on set ("Action! Scene 4, Take 1 in the rain!"). Everything comes together seamlessly because the rules are set before action begins!'
+    },
+
+    diagram: {
+      type: 'system_user_assistant',
+      title: 'Interactive 3-Layer Prompt Stack & Code Payload Visualizer'
+    },
+
+    takeaways: [
+      'Every chat conversation runs on 3 stacked layers: System Prompt (Constitution), Assistant Prompt (Style Guide/SOP), and User Prompt (Task Request).',
+      'Instruction Precedence Rule: System Prompt > Assistant Prompt > User Prompt.',
+      'System Prompts set role, ranked priorities (Accuracy > Clarity > Style), and refusal boundaries.',
+      'Assistant Prompts enforce voice, formatting contracts, process steps, and quality gates.',
+      'User Prompts must specify Goal, Audience, Inputs, Scope, Constraints, and Success Criteria.',
+      'In API code payloads, prompts are passed as an ordered array of message objects with "role" keys.'
+    ],
+
+    quiz: {
+      question: 'When instructions conflict between the System Prompt and the User Prompt (e.g. User asks for private emails, System forbids PII), which instruction takes priority?',
+      options: [
+        'The User Prompt always takes priority because the user pays for the API',
+        'The Assistant Prompt overrides both',
+        'The System Prompt takes highest priority and the model must refuse the user request',
+        'The model chooses randomly depending on temperature'
+      ],
+      correctIndex: 2,
+      explanation: 'Spot on! The instruction hierarchy is strictly System Prompt > Assistant Prompt > User Prompt. The System Prompt sets non-negotiable constitution-level rules and safety boundaries that outrank user asks.'
+    }
+  },
+
+  'ai-3-3': {
+    id: 'ai-3-3',
+    title: 'Few-Shot Prompting: Teaching by Example',
+    subtitle: 'From Zero-Shot to Few-Shot: Guiding LLMs with Pattern Matching & Exemplars (Google AI Essentials)',
+    section: 'Module 3 · Chapter 3',
+    estimatedTime: '6 min read',
+    videoUrl: 'https://www.youtube.com/embed/9qdgEBVkWR4',
+    gfgUrl: 'https://www.promptingguide.ai/techniques/fewshot',
+
+    badgeText: 'GOOGLE AI ESSENTIALS',
+    badgeColor: '#0ea5e9',
+
+    sections: [
+      {
+        heading: 'The Power of Learning from Examples',
+        paragraphs: [
+          'Have you ever created something new by building upon previous examples? Perhaps you used a well-received report as a reference when drafting a project summary, or used a clean, engaging website as a visual model when designing your own user interface. LLMs operate on the exact same principle.',
+          'Including concrete examples directly within your prompt provides immediate ground truth for tone, structure, phrasing, and formatting. It helps the model align with your intended output without needing pages of abstract rules.'
+        ]
+      },
+      {
+        heading: 'What is a "Shot"? The Prompting Spectrum',
+        paragraphs: [
+          'In artificial intelligence and prompt engineering, the technical term "shot" is simply a synonym for an "example". Prompting strategies are categorized by the number of demonstration examples provided:',
+          '1. Zero-Shot Prompting: Providing zero examples in the prompt. The model performs the task based entirely on its pre-trained weights and the task description. Best for simple, straightforward, direct requests.',
+          '2. One-Shot Prompting: Providing exactly one demonstration example. Establishes a baseline format or schema.',
+          '3. Few-Shot Prompting: Providing two or more demonstration examples (typically 2 to 5). Teaches nuanced patterns, custom classification schemas, stylistic voice, and strict formatting contracts.'
+        ],
+        codeBlockTitle: 'ZERO-SHOT VS FEW-SHOT SPECTRUM',
+        codeBlock: `# Zero-Shot (No examples provided)
+Classify the sentiment of this review:
+"The battery life on this laptop exceeded all my expectations!"
+Sentiment:
+
+# Few-Shot (2 examples demonstrate the exact output format)
+Review: "The screen flickers intermittently." -> Sentiment: NEGATIVE [Hardware]
+Review: "Delivery was fast and customer service was polite." -> Sentiment: POSITIVE [Service]
+Review: "The battery life on this laptop exceeded all my expectations!" -> Sentiment:`
+      },
+      {
+        heading: 'Google Retail Case Study: Skateboard Product Descriptions',
+        paragraphs: [
+          'Consider a practical e-commerce workflow: You work for an online retailer and need to write a product description for a newly listed skateboard. You already have approved descriptions for existing products (a bicycle and rollerblades) written in an exact house style: one sentence long, containing exactly two descriptive adjectives.',
+          'Instead of attempting to describe grammatical rules in abstract text, you provide the existing descriptions as few-shot examples and leave the target item blank for the model to complete.'
+        ],
+        codeBlockTitle: 'FEW-SHOT RETAIL COPYWRITING TEMPLATE',
+        codeBlock: `Write a one-sentence product description. Review the examples below and write the skateboard description in the exact same style.
+
+Product: Bicycle
+Description: A sleek and durable bicycle built for city commuting.
+
+Product: Rollerblades
+Description: Smooth and stylish rollerblades designed for effortless glide.
+
+Product: Skateboard
+Description:`
+      },
+      {
+        heading: 'Why Few-Shot Prompting Works: In-Context Learning',
+        paragraphs: [
+          'Under the hood, few-shot prompting leverages In-Context Learning (ICL). The model does not alter its underlying neural weights or require costly fine-tuning. Instead, its attention mechanism dynamically conditions on the demonstrated patterns within the active context window.',
+          'This makes few-shot prompting the fastest, most cost-effective method to enforce custom JSON payloads, domain-specific categorization taxonomies, and precise brand voice.'
+        ]
+      },
+      {
+        heading: 'How Many Examples Are Optimal? Avoiding Overfitting & Bloat',
+        paragraphs: [
+          'While few-shot prompting is powerful, there is no single universal rule for the exact number of examples to include. Modern foundation models can accurately reproduce patterns with just 2 to 4 high-quality exemplars.',
+          'Beware of diminishing returns: If you include too many examples (e.g. 20+), you consume valuable context window space, increase latency and API token costs, and risk making the model over-rigid and less adaptable to edge cases. Experiment to discover the sweet spot for your task.'
+        ],
+        codeBlockTitle: 'PRODUCTION FEW-SHOT BEST PRACTICES',
+        codeBlock: `1. Diversity: Provide examples that cover different edge cases and label classes.
+2. Label Balance: Keep class distributions balanced (e.g. 1 positive, 1 neutral, 1 negative).
+3. Formatting Consistency: Maintain identical delimiters (e.g. Input: / Output:) across all shots.
+4. Density: 2 to 5 high-quality examples are usually optimal for modern LLMs.`
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Apprentice & The Approved Portfolio',
+      text: 'Imagine onboarding a junior copywriter. If you say "Write a product description" (Zero-Shot), they will guess based on whatever ads they remember seeing in their life. If you hand them 2 finished, approved company product cards (Few-Shot) and say "Make the next one match this layout and voice," they capture the exact adjective count, tone, and brand identity on the very first try!'
+    },
+
+    diagram: {
+      type: 'few_shot_prompting',
+      title: 'Interactive Few-Shot Prompting Lab & Shot Spectrum Visualizer'
+    },
+
+    takeaways: [
+      'In prompt engineering, a "shot" is a synonym for an example included in the prompt.',
+      'Zero-Shot provides 0 examples; One-Shot provides 1 example; Few-Shot provides 2 or more examples.',
+      'Few-shot prompting teaches desired format, phrasing, and style through concrete demonstration rather than abstract instructions.',
+      'Few-shot works through In-Context Learning (ICL) without updating model weights.',
+      'The optimal density is typically 2 to 5 high-quality examples; excessive examples waste context tokens and can reduce creative adaptability.'
+    ],
+
+    quiz: {
+      question: 'What is the primary advantage of using Few-Shot Prompting over Zero-Shot Prompting when generating structured product descriptions?',
+      options: [
+        'Few-shot permanently modifies and retrains the underlying model weights',
+        'Few-shot provides concrete demonstration examples that clarify desired structure, tone, and constraints without ambiguous explanations',
+        'Few-shot guarantees zero token cost because examples are free in LLM APIs',
+        'Few-shot makes the model run 10x faster by bypassing the context window'
+      ],
+      correctIndex: 1,
+      explanation: 'Spot on! Few-shot prompting provides 2 or more concrete input-output examples, allowing the model to mirror the exact desired structure, stylistic tone, and constraints through in-context learning without requiring fine-tuning.'
+    }
+  },
+
+  'ai-3-4': {
+    id: 'ai-3-4',
+    title: 'Chain-of-Thought Reasoning (CoT)',
+    subtitle: 'Eliciting Step-by-Step Logic, Self-Consistency & Emergent Reasoning in LLMs (IBM Guide)',
+    section: 'Module 3 · Chapter 4',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://www.ibm.com/think/topics/chain-of-thoughts',
+
+    badgeText: 'IBM AI THINK',
+    badgeColor: '#0f62fe',
+
+    sections: [
+      {
+        heading: 'What is Chain-of-Thought (CoT) Prompting?',
+        paragraphs: [
+          'Chain-of-Thought (CoT) is a prompt engineering technique that dramatically enhances the problem-solving capabilities of Large Language Models (LLMs) on complex tasks involving multistep reasoning.',
+          'Instead of asking an LLM to jump immediately from a prompt question to a final output, CoT prompts the model to generate a coherent sequence of intermediate logical reasoning steps that progressively lead to the final conclusion.',
+          'Seminal AI research (Wei et al., 2022; IBM Research) demonstrates that eliciting intermediate reasoning enables models to tackle intricate arithmetic, symbolic deduction, common-sense reasoning, and enterprise decision workflows with significantly higher accuracy.'
+        ]
+      },
+      {
+        heading: 'The Mechanics: Why Thinking Step-by-Step Works',
+        paragraphs: [
+          'Under standard prompting, an LLM attempts to predict the final token directly from the input prompt in a single forward pass. For multistep problems (like calculating polynomial roots or resolving complex scheduling constraints), calculating the answer in one step requires compressing multiple logical transformations into a single token prediction, frequently resulting in hallucinations.',
+          'By generating intermediate reasoning steps, the model produces intermediate tokens that feed back into its own attention context window. Each reasoning step acts as a memory buffer and computational scaffold for subsequent deduction steps.'
+        ],
+        codeBlockTitle: 'STANDARD VS CHAIN-OF-THOUGHT COMPARISON',
+        codeBlock: `# Standard Prompting (Prone to calculation error)
+Input: "Solve the quadratic equation: x^2 - 5x + 6 = 0"
+Standard Output: "x = 5"  # INCORRECT (Jumped to conclusion)
+
+# Chain-of-Thought Prompting (Step-by-Step Logic)
+Input: "Solve the quadratic equation: x^2 - 5x + 6 = 0. Show your step-by-step reasoning."
+CoT Output:
+"Step 1: Identify coefficients in ax^2 + bx + c = 0: a = 1, b = -5, c = 6.
+Step 2: Find two numbers that multiply to 6 and add up to -5: (-2) and (-3).
+Step 3: Factor the polynomial: (x - 2)(x - 3) = 0.
+Step 4: Set each factor to zero: x - 2 = 0 or x - 3 = 0.
+Final Answer: The solutions are x = 2 and x = 3."  # CORRECT & VERIFIABLE`
+      },
+      {
+        heading: 'Prompt Chaining vs. Chain-of-Thought',
+        paragraphs: [
+          'It is critical for AI engineers to distinguish between two foundational reasoning architectures:',
+          '1. Chain-of-Thought (CoT): Elicits the entire step-by-step reasoning process within a single model inference turn. Highly efficient for mathematical deduction, classification logic, and code generation.',
+          '2. Prompt Chaining: Breaks a complex business process into multiple distinct API calls, where the output of Prompt A is validated, transformed, and passed as the input payload to Prompt B. Ideal for multi-agent workflows, tool execution, and modular production pipelines.'
+        ],
+        codeBlockTitle: 'ARCHITECTURAL DISTINCTION',
+        codeBlock: `# 1. Chain-of-Thought (Single Turn Internal Reasoning):
+[User Prompt] -> [LLM generates: Step 1 -> Step 2 -> Step 3 -> Final Result]
+
+# 2. Prompt Chaining (Multi-turn Orchestration):
+[User Goal] -> [LLM Call 1: Extract Entities]
+            -> [Python validation / Database lookup]
+            -> [LLM Call 2: Draft Action Plan]
+            -> [LLM Call 3: Security & Policy Audit]`
+      },
+      {
+        heading: 'Key Variants of Chain-of-Thought Prompting',
+        paragraphs: [
+          'According to IBM AI Research and modern benchmarks, CoT has evolved into several high-performance variants:',
+          '• Zero-Shot CoT (Kojima et al., 2022): Appending the trigger phrase "Let\'s think step by step" to the prompt. This simple prompt modifier unlocks latent reasoning pathways without requiring manual few-shot examples.',
+          '• Few-Shot / Manual CoT: Supplying 2 to 4 exemplar problems complete with human-authored step-by-step reasoning chains. Provides strict control over reasoning methodology.',
+          '• Self-Consistency CoT (Wang et al., 2022): Generating multiple diverse reasoning paths at higher temperature and selecting the final consensus answer via majority vote, reducing variance and calculation drift.',
+          '• Auto-CoT (Zhang et al., 2022): Automatically clustering questions in a dataset and generating synthetic reasoning chains to eliminate manual prompt engineering effort.',
+          '• Multimodal CoT: Combining visual cues (diagrams, UI mockups, charts) with textual step-by-step deduction.'
+        ]
+      },
+      {
+        heading: 'Advantages, Trade-offs & Production Considerations',
+        paragraphs: [
+          'Advantages: Superior accuracy on reasoning benchmarks, complete interpretability and observability (you can inspect the exact step where logic broke down), and improved educational value.',
+          'Trade-offs: Higher token generation costs (generating 150 reasoning tokens per query increases API costs) and higher inference latency. For simple lookup queries, standard prompting remains more economical.'
+        ],
+        codeBlockTitle: 'PRODUCTION BEST PRACTICES FOR COT',
+        codeBlock: `1. Use Zero-Shot CoT ("Let's think step by step") as your first baseline for logic tasks.
+2. For high-stakes arithmetic or code generation, use Self-Consistency CoT with majority voting.
+3. Keep reasoning steps concise to manage token costs while preserving logical integrity.
+4. If an output is incorrect, inspect intermediate steps to identify whether the flaw was premise understanding, arithmetic, or conclusion synthesis.`
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Mental Math vs. Showing Your Work on Paper',
+      text: 'If a student tries to solve a 4-step algebra problem entirely in their head and immediately blurt out a number, they are prone to silly mental calculation errors. If the teacher instructs them to "Show your work step-by-step on paper," the student writes down intermediate values, catches arithmetic slips in real-time, and consistently arrives at the correct solution. CoT is simply showing the AI\'s work on paper!'
+    },
+
+    diagram: {
+      type: 'chain_of_thought',
+      title: 'Interactive Chain-of-Thought Reasoning & Architecture Lab'
+    },
+
+    takeaways: [
+      'Chain-of-Thought (CoT) prompts LLMs to generate intermediate reasoning steps before arriving at a final answer.',
+      'Intermediate tokens act as an active working memory scaffold in the context window for subsequent logical deductions.',
+      'Zero-Shot CoT activates reasoning simply by appending "Let\'s think step by step" to the prompt.',
+      'Prompt Chaining uses multiple sequential API calls, whereas CoT executes step-by-step reasoning within a single call.',
+      'Self-Consistency CoT samples multiple reasoning paths and uses majority voting to achieve maximum accuracy on complex tasks.'
+    ],
+
+    quiz: {
+      question: 'What is the primary difference between Prompt Chaining and Chain-of-Thought (CoT) prompting according to IBM AI engineering standards?',
+      options: [
+        'Prompt Chaining requires fine-tuning model weights, while CoT only works on pretrained models',
+        'Prompt Chaining sequences multiple distinct API calls where outputs feed into subsequent prompts, while CoT elicits step-by-step reasoning within a single prompt',
+        'Prompt Chaining is only used for Python code, while CoT is only used for math equations',
+        'There is no difference; they are exact technical synonyms'
+      ],
+      correctIndex: 1,
+      explanation: 'Spot on! CoT generates an internal step-by-step reasoning trajectory within a single prompt inference turn, whereas Prompt Chaining orchestrates multiple distinct, sequential API prompts that pass state between each other.'
+    }
+  },
+
+  'ai-3-5': {
+    id: 'ai-3-5',
+    title: 'Structured Outputs & JSON Schema',
+    subtitle: 'Guaranteed 100% Schema Reliability with Constrained Decoding & Pydantic (Humanloop Guide)',
+    section: 'Module 3 · Chapter 5',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://humanloop.com/blog/structured-outputs',
+
+    badgeText: 'STRUCTURED OUTPUTS / GEMINI',
+    badgeColor: '#10b981',
+
+    sections: [
+      {
+        heading: 'The Problem: Unreliable Free-Form Outputs',
+        paragraphs: [
+          'By default, Large Language Models produce unstructured, free-form text. When building production software, APIs, database pipelines, or user interfaces, applications require deterministic, machine-readable data structures such as JSON or TypedDict objects.',
+          'Historically, getting LLMs to output valid JSON purely through prompt engineering ("Return only JSON: ...") was notoriously unreliable — achieving only ~35.9% format consistency on complex schemas. Models routinely added conversational preamble ("Here is your JSON:"), wrapped outputs in Markdown code fences (```json ... ```), omitted required keys, or invented unexpected fields that crashed downstream parsers.'
+        ]
+      },
+      {
+        heading: 'The Evolution: Prompting vs. JSON Mode vs. Structured Outputs',
+        paragraphs: [
+          'The AI industry has evolved through three distinct stages of output formatting:',
+          '1. Prompt-Engineered JSON (2022): Asking the model in natural language to output JSON. High hallucination rate and requires brittle regex post-processing.',
+          '2. JSON Mode (2023): Instructs the model\'s generation layer to guarantee valid JSON syntax (opening and closing brackets match). However, JSON Mode DOES NOT validate schema structure — it may still miss required fields or alter property data types.',
+          '3. Structured Outputs (2024+): Guarantees 100% adherence to a provided JSON Schema or Pydantic model. If strict mode is enabled, the model mathematically cannot produce a response that deviates from your schema.'
+        ],
+        codeBlockTitle: 'JSON MODE VS STRUCTURED OUTPUTS COMPARISON',
+        codeBlock: `# 1. JSON Mode (Syntax guaranteed, Schema NOT guaranteed):
+{
+  "user": "Alice",
+  "score": "95"  # FAILED: String instead of Integer, omitted "id" field!
+}
+
+# 2. Structured Outputs with Strict Schema (100% Guaranteed):
+{
+  "id": 1042,
+  "user": "Alice",
+  "score": 95,
+  "status": "ACTIVE"  # Guaranteed exact schema, correct types & required keys
+}`
+      },
+      {
+        heading: 'How Structured Outputs Work Under the Hood: Constrained Decoding',
+        paragraphs: [
+          'Standard LLMs generate text token by token by computing a probability distribution across their entire vocabulary (e.g. 100,000+ tokens).',
+          'Structured Outputs use Constrained Decoding powered by Finite State Machines (FSMs) or Context-Free Grammars (CFGs). At each token step, the FSM determines which tokens in the vocabulary are syntactically and semantically valid according to the JSON Schema. Any token that would violate the schema is dynamically masked (logit probability set to -infinity), making it physically impossible for the model to emit an invalid character or hallucinated key.'
+        ]
+      },
+      {
+        heading: 'Implementing Structured Outputs in Google Gemini',
+        paragraphs: [
+          'Google Gemini provides first-class native SDK support for structured outputs through response_schema and response_mime_type:',
+          '• Google Gemini SDK: Pass your Pydantic BaseModel or TypedDict directly into generation_config=genai.GenerationConfig(response_mime_type="application/json", response_schema=MySchema). Gemini dynamically restricts token decoding to guarantee 100% adherence to your defined schema.'
+        ],
+        codeBlockTitle: 'PRODUCTION PYTHON IMPLEMENTATION (PYDANTIC + GOOGLE GEMINI)',
+        codeBlock: `from pydantic import BaseModel, Field
+import google.generativeai as genai
+import os
+
+class CustomerTicketAnalysis(BaseModel):
+    summary: str = Field(description="One-sentence executive summary of the issue")
+    category: str = Field(description="Department: BILLING | TECH_SUPPORT | ACCOUNT")
+    urgency_score: int = Field(ge=1, le=5, description="Urgency rating from 1 to 5")
+    requires_escalation: bool
+
+# Initialize Gemini with your API Key
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-pro",
+    generation_config=genai.GenerationConfig(
+        response_mime_type="application/json",
+        response_schema=CustomerTicketAnalysis
+    )
+)
+
+response = model.generate_content("My credit card was charged $499 twice for invoice #8812.")
+print(response.text)
+# Guaranteed 100% compliant JSON string matching CustomerTicketAnalysis schema!`
+      },
+      {
+        heading: 'Production Trade-offs: The Reasoning-in-Schema Pattern',
+        paragraphs: [
+          'While Structured Outputs eliminate formatting bugs, AI researchers (Rui Tam et al., Humanloop) discovered an important trade-off: forcing an LLM directly into a compact JSON schema can slightly reduce its multi-step reasoning performance if the model is forced to output final numbers without working space.',
+          'The Production Solution (The Reasoning-in-Schema Pattern): Always include a reasoning_steps or chain_of_thought string field at the very top of your Pydantic schema. This allows the model to "think out loud" in structured fields before populating the final classification fields.'
+        ],
+        codeBlockTitle: 'THE REASONING-IN-SCHEMA PATTERN',
+        codeBlock: `class VerifiedDecision(BaseModel):
+    # Step 1: Give the LLM working memory space to reason inside the JSON
+    chain_of_thought: str = Field(description="Step-by-step logical deductions")
+    confidence: float = Field(ge=0.0, le=1.0)
+    
+    # Step 2: Final machine-readable verdict
+    is_approved: bool
+    action_items: list[str]`
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Free-Form Paper Form vs. Strict Online Form Validation',
+      text: 'Prompting for JSON without structured outputs is like giving someone a blank piece of paper and asking them to write down their tax information. They might misspell fields, skip required boxes, or write "ten" instead of the number 10. Structured Outputs is like a modern digital form with strict input masks: dropdowns only allow valid enum options, date fields enforce ISO formats, and the form physically cannot be submitted until every required field matches the exact schema!'
+    },
+
+    diagram: {
+      type: 'structured_outputs',
+      title: 'Interactive Structured Outputs, JSON Schema & Constrained Decoding Lab'
+    },
+
+    takeaways: [
+      'Structured Outputs guarantees 100% schema reliability by enforcing JSON Schema at the token generation layer.',
+      'Constrained decoding uses Finite State Machines (FSMs) to mask invalid tokens dynamically at each generation step.',
+      'JSON Mode only guarantees valid JSON syntax, whereas Structured Outputs enforces exact property keys, data types, and required fields.',
+      'Modern SDKs (OpenAI Pydantic parse and Gemini response_schema) directly deserialize outputs into type-safe objects.',
+      'The Reasoning-in-Schema Pattern: Add a chain_of_thought field at the top of your schema to prevent reasoning degradation.'
+    ],
+
+    quiz: {
+      question: 'Why is Structured Outputs superior to legacy JSON Mode when integrating LLM responses into production databases or backend APIs?',
+      options: [
+        'Structured Outputs permanently deletes the model weights on the server',
+        'Structured Outputs enforces 100% compliance with exact property names, types, enums, and required fields, whereas JSON Mode only guarantees valid JSON syntax',
+        'Structured Outputs makes API requests completely free of charge',
+        'JSON Mode is 100% strict, while Structured Outputs allows random text'
+      ],
+      correctIndex: 1,
+      explanation: 'Spot on! While legacy JSON Mode only guarantees that opening and closing brackets create valid JSON syntax, Structured Outputs uses constrained decoding to guarantee 100% strict adherence to your exact schema, types, enums, and required properties.'
+    }
+  },
+
+  'ai-3-6': {
+    id: 'ai-3-6',
+    title: 'Iterative Prompt Refinement',
+    subtitle: 'The 4-Step Engineering Cycle: Design, Test, Evaluate, Refine (IBM Think Guide)',
+    section: 'Module 3 · Chapter 6',
+    estimatedTime: '9 min read',
+    gfgUrl: 'https://www.ibm.com/think/topics/iterative-prompting',
+
+    badgeText: 'IBM THINK / WATSONX',
+    badgeColor: '#1d4ed8',
+
+    sections: [
+      {
+        heading: 'Why Prompt Engineering is a Cyclical Engineering Discipline',
+        paragraphs: [
+          'In production AI engineering, prompts are rarely perfect on the first attempt. Treating prompt creation as a "one-and-done" task leads to brittle systems that fail on unforeseen edge cases, drift in tone, or hallucinate facts when user inputs vary.',
+          'According to IBM AI Research (watsonx), Iterative Prompting is a structured, systematic methodology that replaces guesswork with a disciplined feedback loop. By breaking development into four distinct phases—Design, Test, Evaluate, and Refine—engineers systematically converge on prompts that meet strict enterprise accuracy, latency, and compliance benchmarks.'
+        ]
+      },
+      {
+        heading: 'The 4-Phase Iterative Prompt Engineering Cycle',
+        paragraphs: [
+          'The IBM framework outlines four core phases in every iteration:',
+          '1. Design (Baseline Formulation): Define clear roles, task objectives, input data placeholders, formatting instructions, and explicit constraints.',
+          '2. Test (Execution & Sampling): Execute the prompt against a diverse test suite containing standard inputs, noisy real-world data, and adversarial edge cases.',
+          '3. Evaluate (Diagnostic Analysis): Quantitatively and qualitatively measure model outputs. Track key failure modes: factual hallucination, instruction drift, schema violation, verbosity, and latency.',
+          '4. Refine (Targeted Intervention): Apply surgical modifications (e.g. adding few-shot exemplars, tightening guardrails, adjusting temperature, or structuring the output) before re-testing.'
+        ],
+        codeBlockTitle: 'IBM ITERATIVE PROMPT CYCLE ALGORITHM',
+        codeBlock: `def iterative_prompt_optimization(test_dataset, target_accuracy=0.95):
+    prompt_version = 1
+    current_prompt = load_initial_prompt()
+
+    while True:
+        results = evaluate_prompt(current_prompt, test_dataset)
+        accuracy = results.accuracy_score
+        print(f"Iteration {prompt_version}: Pass Rate = {accuracy * 100:.1f}%")
+
+        if accuracy >= target_accuracy and results.zero_schema_errors:
+            print("Convergence reached: Prompt is production-ready.")
+            return current_prompt
+
+        # Diagnose root cause of failure cases
+        failure_modes = analyze_failure_modes(results.failed_samples)
+        
+        # Apply targeted prompt engineering levers
+        current_prompt = apply_refinements(current_prompt, failure_modes)
+        prompt_version += 1`
+      },
+      {
+        heading: 'Case Study: 4 Iterations of an Enterprise IT Incident Triage Prompt',
+        paragraphs: [
+          'Consider an enterprise IT incident analysis prompt deployed in IBM watsonx Orchestrate:',
+          '• Iteration 1 (Vague Baseline): "Analyze this server error log and tell me what is wrong." Result: Unfocused, verbose, and suggests irrelevant generic troubleshooting steps (~40% utility).',
+          '• Iteration 2 (Role & Scope Grounding): Added persona ("Senior Site Reliability Engineer") and 3 structured output categories (Root Cause, Impact Severity, Action Plan). Result: Improved clarity, but format fluctuates across runs (~68% utility).',
+          '• Iteration 3 (Few-Shot Exemplars & Negative Constraints): Injected 2 gold-standard log-to-incident exemplars and negative guardrails ("Do NOT suggest restarting the primary cluster"). Result: High accuracy with zero hallucinated actions (~88% utility).',
+          '• Iteration 4 (Strict Structured JSON Schema & Automated CI/CD Regression): Enforced Pydantic schema with automated evaluation checks. Result: 100% reliable machine-readable dispatching ready for automated PagerDuty workflows (~99% utility).'
+        ],
+        codeBlockTitle: 'FOUR-STAGE PROMPT REFINEMENT PROGRESSION',
+        codeBlock: `# Iteration 1 (Vague Baseline - 40% Pass Rate):
+Analyze this server error log: {log_snippet}
+
+# Iteration 2 (+ Role & Structured Checklist - 68% Pass Rate):
+You are a Senior Site Reliability Engineer. Analyze {log_snippet}.
+Provide: 1. Root Cause 2. Severity (LOW/HIGH/CRITICAL) 3. Next Steps.
+
+# Iteration 3 (+ Few-Shot Exemplars & Guardrails - 88% Pass Rate):
+You are a Senior SRE. Analyze the log. Follow the format of the examples below.
+Constraint: Do NOT suggest manual database locks. Always verify replica health first.
+[Example 1] Log -> Triage Report
+
+# Iteration 4 (+ Structured Pydantic Schema - 99% Pass Rate):
+response_format=IncidentReportSchema(strict=True)`
+      },
+      {
+        heading: 'The 5 Core Prompt Refinement Levers',
+        paragraphs: [
+          'When an evaluation reveals prompt deficiencies, IBM engineers pull one of five specific refinement levers:',
+          '1. The Specificity Lever: Replace ambiguous words ("summarize shortly") with exact numeric boundaries ("summarize in exactly 2 bullet points under 30 words total").',
+          '2. The Context & Grounding Lever: Provide reference documents or RAG context to eliminate guesswork.',
+          '3. The Few-Shot Exemplar Lever: Inject 2-3 input-output pairs that demonstrate complex edge cases.',
+          '4. The Negative Constraint Lever: Explicitly list unallowed behaviors, obsolete APIs, or prohibited terms.',
+          '5. The Decomposition Lever: Split an overloaded single prompt into a multi-step chain (e.g. Prompt A extracts entities, Prompt B scores risk).'
+        ]
+      },
+      {
+        heading: 'Establishing Stopping Conditions & Convergence Metrics',
+        paragraphs: [
+          'A common pitfall is endless subjective tweaking. Enterprise prompt engineering requires objective stopping conditions:',
+          '• Quantitative Benchmark: Achieving predefined threshold metrics (e.g. >95% accuracy on an evaluation dataset of 100+ representative cases).',
+          '• Deterministic Serialization: 0% schema validation errors across all test permutations.',
+          '• Cost & Latency Budget: Token consumption and time-to-first-token within SLA boundaries.',
+          'Once convergence is achieved, version-control the prompt artifact (e.g. prompt-v4.2.json) and integrate it into automated CI/CD evaluation pipelines.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Sculpting a Statue from a Rough Marble Block',
+      text: 'You cannot chisel a finished Renaissance masterpiece in a single strike. Iteration 1 is the rough cut that shapes the general outline. Iteration 2 carves out major anatomical features (role and structure). Iteration 3 refines the muscle contours and details (few-shot exemplars and constraints). Iteration 4 polishes the marble to perfection (strict schemas and automated evaluation). Prompt engineering is the art of deliberate, disciplined refinement!'
+    },
+
+    diagram: {
+      type: 'iterative_prompting',
+      title: 'Interactive Iterative Prompt Refinement & Optimization Lab'
+    },
+
+    takeaways: [
+      'Iterative prompting replaces intuitive guesswork with a disciplined engineering feedback loop: Design, Test, Evaluate, Refine.',
+      'Always test prompts against a diverse evaluation dataset containing edge cases and noise, not just happy-path inputs.',
+      'Progressive refinement levers include specificity, role grounding, few-shot exemplars, negative constraints, and decomposition.',
+      'Establish objective stopping conditions (e.g. >95% pass rate and 0% schema errors) to prevent endless subjective tweaking.',
+      'Version-control prompt templates and integrate them into automated CI/CD regression suites to prevent prompt regression.'
+    ],
+
+    quiz: {
+      question: 'According to IBM AI engineering methodology, what is the primary purpose of the "Evaluate" phase in the iterative prompting cycle?',
+      options: [
+        'To delete the model context and restart the server from scratch',
+        'To diagnose specific failure modes (hallucinations, formatting drift, missing constraints) across test datasets to guide targeted prompt adjustments',
+        'To increase token sampling temperature to maximum randomness',
+        'To replace all prompt text with natural language translations'
+      ],
+      correctIndex: 1,
+      explanation: 'Spot on! The Evaluate phase systematically analyzes test outputs against quality and safety benchmarks, identifying specific failure modes to inform surgical refinements rather than random guesswork.'
+    }
+  },
+
+  'ai-3-7': {
+    id: 'ai-3-7',
+    title: 'Mini Project: Prompt Optimizer Tool',
+    subtitle: 'Build a production-grade prompt evaluation and refinement engine — step by step in your browser',
+    section: 'Module 3 · Mini Project',
+    estimatedTime: '30 min',
+    isProject: true,
+    badgeText: 'CODING PROJECT',
+    badgeColor: '#8b5cf6',
+    videoUrl: null,
+    gfgUrl: null,
+    diagram: { type: 'mini_project_editor', projectId: 'prompt_optimizer' },
+    projectMeta: {
+      language: 'python',
+      runtime: 'pyodide',
+      finalTool: 'Production Prompt Optimizer & Evaluator',
+      skills: ['functions', 'dictionaries', 'lists', 'f-strings', 'scoring algorithms', 'iterative refinement'],
+    },
+    steps: [
+      {
+        id: 1,
+        title: 'Step 1 — Anatomy of a Well-Structured Prompt',
+        concept: 'Every enterprise-grade prompt has four mandatory building blocks: a Role (who the AI is), a Task (what to do), Constraints (what NOT to do), and an Output Format (how to structure the response). Missing any one of these causes failure modes.',
+        goal: 'Fill in the four TODO lines to complete the prompt_anatomy() function that breaks a prompt into its four components.',
+        whyItMatters: 'Understanding prompt anatomy is the foundation of systematic prompt engineering. Without a structured template, every prompt is a one-off guess. With it, you have a repeatable framework that scales across any domain or use case.',
+        starterCode: `# Step 1: Anatomy of a Well-Structured Prompt
+# Every great prompt has 4 core building blocks.
+
+def build_prompt(role, task, constraints, output_format):
+    """Assemble a structured prompt from its four components."""
+    
+    # TODO 1: Create the role line using an f-string
+    # It should look like: "ROLE: You are a {role}."
+    role_line = None  # Fix this!
+    
+    # TODO 2: Create the task line
+    # It should look like: "TASK: {task}"
+    task_line = None  # Fix this!
+    
+    # TODO 3: Create the constraints line
+    # It should look like: "CONSTRAINTS: {constraints}"
+    constraints_line = None  # Fix this!
+    
+    # TODO 4: Create the output format line
+    # It should look like: "OUTPUT FORMAT: {output_format}"
+    format_line = None  # Fix this!
+    
+    # Join all lines with a newline separator
+    return "\\n".join([role_line, task_line, constraints_line, format_line])
+
+# Test it!
+prompt = build_prompt(
+    role="Senior data analyst with 10 years of experience",
+    task="Analyze the following sales data and identify the top 3 revenue trends",
+    constraints="Do NOT speculate beyond the data. Do NOT use jargon. Keep under 200 words.",
+    output_format="Return exactly 3 bullet points, each starting with a bold trend name."
+)
+
+print(prompt)
+print("\\n--- Prompt length:", len(prompt), "characters ---")`,
+        hints: [
+          'An f-string looks like: f"ROLE: You are a {role}."',
+          'For role_line: role_line = f"ROLE: You are a {role}."',
+          'For task_line: task_line = f"TASK: {task}"',
+          'For constraints_line: constraints_line = f"CONSTRAINTS: {constraints}"',
+          'For format_line: format_line = f"OUTPUT FORMAT: {output_format}"',
+        ],
+        solutionCode: `def build_prompt(role, task, constraints, output_format):
+    role_line = f"ROLE: You are a {role}."
+    task_line = f"TASK: {task}"
+    constraints_line = f"CONSTRAINTS: {constraints}"
+    format_line = f"OUTPUT FORMAT: {output_format}"
+    return "\\n".join([role_line, task_line, constraints_line, format_line])
+
+prompt = build_prompt(
+    role="Senior data analyst with 10 years of experience",
+    task="Analyze the following sales data and identify the top 3 revenue trends",
+    constraints="Do NOT speculate beyond the data. Do NOT use jargon. Keep under 200 words.",
+    output_format="Return exactly 3 bullet points, each starting with a bold trend name."
+)
+print(prompt)
+print("\\n--- Prompt length:", len(prompt), "characters ---")`,
+        expectedOutputContains: 'ROLE: You are a',
+        conceptCallout: 'This four-part structure (Role, Task, Constraints, Output Format) maps directly to IBM\'s enterprise prompt design framework and is the foundation of every well-engineered production prompt.',
+      },
+      {
+        id: 2,
+        title: 'Step 2 — Detect Prompt Weaknesses with a Scorer',
+        concept: 'A prompt scorer is a diagnostic function that evaluates a prompt\'s quality by checking for the presence of key engineering signals: role grounding, specificity, output constraints, negative guardrails, and few-shot examples.',
+        goal: 'Fix the five None values inside score_prompt() so it correctly awards points for each quality signal.',
+        whyItMatters: 'Manual eyeballing of prompts does not scale. A quantitative scorer lets you programmatically evaluate hundreds of prompt variants, track improvements across iterations, and set a minimum quality gate before deployment.',
+        starterCode: `# Step 2: Prompt Quality Scorer
+# We award points for each engineering best-practice present in the prompt.
+
+def score_prompt(prompt_text):
+    """Score a prompt 0-100 based on engineering best practices."""
+    prompt_lower = prompt_text.lower()
+    score = 0
+    feedback = []
+
+    # Check 1: Does it define a role? (20 points)
+    has_role = "you are" in prompt_lower or "act as" in prompt_lower or "role:" in prompt_lower
+    # TODO 1: Add 20 to score if has_role is True
+    if has_role:
+        score += None  # Fix this! Should be 20
+        feedback.append("[PASS] Role definition found (+20 pts)")
+    else:
+        feedback.append("[FAIL] No role defined. Add 'You are a [expert]...' (-20 pts)")
+
+    # Check 2: Is there a specific task? (20 points)
+    has_task = len(prompt_text.split()) > 15  # More than 15 words = specific enough
+    # TODO 2: Add 20 to score if has_task is True
+    if has_task:
+        score += None  # Fix this! Should be 20
+        feedback.append("[PASS] Task is specific enough (+20 pts)")
+    else:
+        feedback.append("[FAIL] Prompt is too vague or short. Add more detail (-20 pts)")
+
+    # Check 3: Does it have output format instructions? (20 points)
+    has_format = any(w in prompt_lower for w in ["bullet", "list", "json", "table", "format", "structure", "return"])
+    # TODO 3: Add 20 to score if has_format is True
+    if has_format:
+        score += None  # Fix this! Should be 20
+        feedback.append("[PASS] Output format specified (+20 pts)")
+    else:
+        feedback.append("[FAIL] No output format. Specify 'Return as JSON' or 'Use bullet points' (-20 pts)")
+
+    # Check 4: Are there negative constraints? (20 points)
+    has_constraints = any(w in prompt_lower for w in ["do not", "don't", "avoid", "never", "without", "constraint"])
+    # TODO 4: Add 20 to score if has_constraints is True
+    if has_constraints:
+        score += None  # Fix this! Should be 20
+        feedback.append("[PASS] Negative constraints found (+20 pts)")
+    else:
+        feedback.append("[FAIL] No guardrails. Add 'Do NOT...' constraints (-20 pts)")
+
+    # Check 5: Are there few-shot examples? (20 points)
+    has_examples = any(w in prompt_lower for w in ["example", "for instance", "e.g.", "input:", "output:", "sample"])
+    # TODO 5: Add 20 to score if has_examples is True
+    if has_examples:
+        score += None  # Fix this! Should be 20
+        feedback.append("[PASS] Few-shot examples detected (+20 pts)")
+    else:
+        feedback.append("[WARN] No examples provided. Consider adding 1-2 input/output pairs (-20 pts)")
+
+    return score, feedback
+
+# Test with a weak prompt
+weak_prompt = "Write a summary of this article."
+score, feedback = score_prompt(weak_prompt)
+print(f"Prompt: '{weak_prompt}'")
+print(f"Quality Score: {score}/100\\n")
+for line in feedback:
+    print(line)`,
+        hints: [
+          'Each TODO is the same pattern — just replace None with the number of points for that check.',
+          'Check 1 awards 20 points: score += 20',
+          'All five checks award 20 points each, so a perfect prompt scores 100.',
+        ],
+        solutionCode: `def score_prompt(prompt_text):
+    prompt_lower = prompt_text.lower()
+    score = 0
+    feedback = []
+    has_role = "you are" in prompt_lower or "act as" in prompt_lower or "role:" in prompt_lower
+    if has_role:
+        score += 20
+        feedback.append("[PASS] Role definition found (+20 pts)")
+    else:
+        feedback.append("[FAIL] No role defined. Add 'You are a [expert]...' (-20 pts)")
+    has_task = len(prompt_text.split()) > 15
+    if has_task:
+        score += 20
+        feedback.append("[PASS] Task is specific enough (+20 pts)")
+    else:
+        feedback.append("[FAIL] Prompt is too vague or short. Add more detail (-20 pts)")
+    has_format = any(w in prompt_lower for w in ["bullet", "list", "json", "table", "format", "structure", "return"])
+    if has_format:
+        score += 20
+        feedback.append("[PASS] Output format specified (+20 pts)")
+    else:
+        feedback.append("[FAIL] No output format. Specify 'Return as JSON' or 'Use bullet points' (-20 pts)")
+    has_constraints = any(w in prompt_lower for w in ["do not", "don't", "avoid", "never", "without", "constraint"])
+    if has_constraints:
+        score += 20
+        feedback.append("[PASS] Negative constraints found (+20 pts)")
+    else:
+        feedback.append("[FAIL] No guardrails. Add 'Do NOT...' constraints (-20 pts)")
+    has_examples = any(w in prompt_lower for w in ["example", "for instance", "e.g.", "input:", "output:", "sample"])
+    if has_examples:
+        score += 20
+        feedback.append("[PASS] Few-shot examples detected (+20 pts)")
+    else:
+        feedback.append("[WARN] No examples provided. Consider adding 1-2 input/output pairs (-20 pts)")
+    return score, feedback
+
+weak_prompt = "Write a summary of this article."
+score, feedback = score_prompt(weak_prompt)
+print(f"Prompt: '{weak_prompt}'")
+print(f"Quality Score: {score}/100\\n")
+for line in feedback:
+    print(line)`,
+        expectedOutputContains: 'Quality Score: 0/100',
+        conceptCallout: 'This scorer mimics what enterprise "LLM-as-a-Judge" systems do automatically. Tools like promptfoo, OpenAI Evals, and IBM watsonx.governance use quantitative rubrics exactly like this to gate prompt quality before production deployment.',
+      },
+      {
+        id: 3,
+        title: 'Step 3 — Auto-Refine a Weak Prompt',
+        concept: 'A prompt refiner automatically detects which quality signals are missing from a weak baseline prompt and surgically injects the missing components — role grounding, output format, constraints — without changing the user\'s original intent.',
+        goal: 'Fix the three TODO lines inside auto_refine() to append the correct improvement strings when each check fails.',
+        whyItMatters: 'This is the "Refine" phase of IBM\'s 4-step iterative cycle, automated in code. In production systems, LLM-as-a-Judge pipelines use this approach to auto-correct user prompts before they hit the main model, reducing API retry costs.',
+        starterCode: `# Step 3: Automatic Prompt Refiner
+# Detects weaknesses and injects fixes automatically.
+
+def auto_refine(prompt_text, domain="general"):
+    """Auto-improve a prompt by injecting missing engineering components."""
+    prompt_lower = prompt_text.lower()
+    improvements = []
+    refined = prompt_text.strip()
+
+    # Fix 1: Inject a role if missing
+    has_role = "you are" in prompt_lower or "act as" in prompt_lower
+    if not has_role:
+        role_prefix = f"You are an expert {domain} specialist. "
+        # TODO 1: Set refined = role_prefix + refined  (prepend the role to the prompt)
+        refined = None  # Fix this!
+        improvements.append(f"+ Injected role: 'Expert {domain} specialist'")
+
+    # Fix 2: Inject output format if missing
+    has_format = any(w in prompt_lower for w in ["bullet", "list", "json", "format", "return", "structure"])
+    if not has_format:
+        format_suffix = " Return your answer as a numbered list with a maximum of 5 items."
+        # TODO 2: Set refined = refined + format_suffix  (append the format to the prompt)
+        refined = None  # Fix this!
+        improvements.append("+ Injected output format: numbered list, max 5 items")
+
+    # Fix 3: Inject a constraint if missing
+    has_constraint = any(w in prompt_lower for w in ["do not", "don't", "avoid", "never"])
+    if not has_constraint:
+        constraint_suffix = " Do NOT speculate or add information not present in the input."
+        # TODO 3: Set refined = refined + constraint_suffix
+        refined = None  # Fix this!
+        improvements.append("+ Injected guardrail: no speculation beyond input data")
+
+    return refined, improvements
+
+# Test: refine a weak prompt
+original = "Explain machine learning to me."
+refined, improvements = auto_refine(original, domain="AI/ML")
+
+print("ORIGINAL PROMPT:")
+print(f"  '{original}'")
+print("\\nREFINED PROMPT:")
+print(f"  '{refined}'")
+print("\\nIMPROVEMENTS APPLIED:")
+for imp in improvements:
+    print(f"  {imp}")`,
+        hints: [
+          'TODO 1: You want to ADD the role at the FRONT. Use: refined = role_prefix + refined',
+          'TODO 2: You want to ADD the format at the END. Use: refined = refined + format_suffix',
+          'TODO 3: Same pattern — append to end: refined = refined + constraint_suffix',
+        ],
+        solutionCode: `def auto_refine(prompt_text, domain="general"):
+    prompt_lower = prompt_text.lower()
+    improvements = []
+    refined = prompt_text.strip()
+    has_role = "you are" in prompt_lower or "act as" in prompt_lower
+    if not has_role:
+        role_prefix = f"You are an expert {domain} specialist. "
+        refined = role_prefix + refined
+        improvements.append(f"+ Injected role: 'Expert {domain} specialist'")
+    has_format = any(w in prompt_lower for w in ["bullet", "list", "json", "format", "return", "structure"])
+    if not has_format:
+        format_suffix = " Return your answer as a numbered list with a maximum of 5 items."
+        refined = refined + format_suffix
+        improvements.append("+ Injected output format: numbered list, max 5 items")
+    has_constraint = any(w in prompt_lower for w in ["do not", "don't", "avoid", "never"])
+    if not has_constraint:
+        constraint_suffix = " Do NOT speculate or add information not present in the input."
+        refined = refined + constraint_suffix
+        improvements.append("+ Injected guardrail: no speculation beyond input data")
+    return refined, improvements
+
+original = "Explain machine learning to me."
+refined, improvements = auto_refine(original, domain="AI/ML")
+print("ORIGINAL PROMPT:")
+print(f"  '{original}'")
+print("\\nREFINED PROMPT:")
+print(f"  '{refined}'")
+print("\\nIMPROVEMENTS APPLIED:")
+for imp in improvements:
+    print(f"  {imp}")`,
+        expectedOutputContains: 'IMPROVEMENTS APPLIED',
+        conceptCallout: 'Automated prompt refiners are used in agentic AI systems (like LangChain, AutoGPT, and watsonx Orchestrate) to silently improve user-written prompts before forwarding them to the underlying model — completely transparently.',
+      },
+      {
+        id: 4,
+        title: 'Step 4 — Build a Few-Shot Exemplar Injector',
+        concept: 'Few-shot prompting (in-context learning) dramatically improves model accuracy by showing 2-3 concrete input-output examples inside the prompt. An exemplar injector programmatically formats and prepends these examples to any base prompt.',
+        goal: 'Fix the one TODO inside format_exemplar() to assemble each example in the correct INPUT / OUTPUT format.',
+        whyItMatters: 'Few-shot injection is one of the highest-ROI prompt engineering techniques. Studies show adding just 3 well-chosen exemplars can increase task accuracy by 20-40% without any model fine-tuning or extra API cost.',
+        starterCode: `# Step 4: Few-Shot Exemplar Injector
+# Adds concrete input/output examples to a base prompt.
+
+def format_exemplar(input_text, output_text, index):
+    """Format a single few-shot example pair."""
+    # TODO: Return a multi-line string in this exact format:
+    #   Example {index}:
+    #   Input: {input_text}
+    #   Output: {output_text}
+    # Hint: use a triple-quoted f-string or \\n to join the lines
+    return None  # Fix this!
+
+def inject_few_shot(base_prompt, examples):
+    """Prepend formatted exemplars to a base prompt."""
+    if not examples:
+        return base_prompt
+    
+    header = "--- FEW-SHOT EXAMPLES (follow this exact format) ---"
+    formatted = [format_exemplar(ex["input"], ex["output"], i + 1)
+                 for i, ex in enumerate(examples)]
+    separator = "--- END EXAMPLES. Now process the actual input below. ---"
+    
+    return header + "\\n" + "\\n".join(formatted) + "\\n" + separator + "\\n\\n" + base_prompt
+
+# Test it with a sentiment classifier
+base = "You are a sentiment analyst. Classify the following customer review as POSITIVE, NEGATIVE, or NEUTRAL."
+examples = [
+    {"input": "The delivery was super fast and the product works perfectly!",
+     "output": "POSITIVE"},
+    {"input": "Item arrived broken and customer service never responded.",
+     "output": "NEGATIVE"},
+    {"input": "Package arrived on time. Product is okay.",
+     "output": "NEUTRAL"},
+]
+
+final_prompt = inject_few_shot(base, examples)
+print(final_prompt)`,
+        hints: [
+          'You need to return a string with three lines joined by newline characters.',
+          'Use an f-string with \\n: return f"Example {index}:\\nInput: {input_text}\\nOutput: {output_text}"',
+          'Make sure each line label matches exactly: "Example", "Input:", "Output:"',
+        ],
+        solutionCode: `def format_exemplar(input_text, output_text, index):
+    return f"Example {index}:\\nInput: {input_text}\\nOutput: {output_text}"
+
+def inject_few_shot(base_prompt, examples):
+    if not examples:
+        return base_prompt
+    header = "--- FEW-SHOT EXAMPLES (follow this exact format) ---"
+    formatted = [format_exemplar(ex["input"], ex["output"], i + 1)
+                 for i, ex in enumerate(examples)]
+    separator = "--- END EXAMPLES. Now process the actual input below. ---"
+    return header + "\\n" + "\\n".join(formatted) + "\\n" + separator + "\\n\\n" + base_prompt
+
+base = "You are a sentiment analyst. Classify the following customer review as POSITIVE, NEGATIVE, or NEUTRAL."
+examples = [
+    {"input": "The delivery was super fast and the product works perfectly!", "output": "POSITIVE"},
+    {"input": "Item arrived broken and customer service never responded.", "output": "NEGATIVE"},
+    {"input": "Package arrived on time. Product is okay.", "output": "NEUTRAL"},
+]
+final_prompt = inject_few_shot(base, examples)
+print(final_prompt)`,
+        expectedOutputContains: 'Example 1:',
+        conceptCallout: 'The order of your examples matters. Research from Zhao et al. (2021) shows placing the most representative example LAST (closest to the actual query) produces the highest accuracy — a technique called "proximity ordering".',
+      },
+      {
+        id: 5,
+        title: 'Step 5 — Run the Iterative Evaluation Loop',
+        concept: 'The evaluation loop is the core of the IBM 4-step iterative cycle. It tests a prompt against a dataset of ground-truth test cases, computes a pass rate, and returns a diagnostic report identifying which test cases failed and why.',
+        goal: 'Fix the two TODO lines — one to record a PASS, one to record a FAIL — so the evaluator correctly tracks results.',
+        whyItMatters: 'Without a structured evaluation loop, prompt "improvement" is subjective guesswork. A quantitative eval suite with ground-truth labels is the only way to know if Iteration 3 is genuinely better than Iteration 2 — or just differently wrong.',
+        starterCode: `# Step 5: Iterative Evaluation Loop
+# Tests a prompt template against a labeled dataset of test cases.
+
+def evaluate_prompt(prompt_template, test_cases, model_output_fn):
+    """
+    Evaluate a prompt against test cases.
+    prompt_template: string with {input} placeholder
+    test_cases: list of {"input": ..., "expected": ...} dicts
+    model_output_fn: function(prompt) -> response string (simulated here)
+    """
+    results = []
+    passed = 0
+    failed = 0
+
+    for i, case in enumerate(test_cases):
+        filled_prompt = prompt_template.replace("{input}", case["input"])
+        actual_output = model_output_fn(filled_prompt)
+        
+        # Check if expected answer appears in the output
+        is_correct = case["expected"].upper() in actual_output.upper()
+        
+        if is_correct:
+            # TODO 1: Increment passed by 1
+            passed = None  # Fix this!
+            results.append({"case": i+1, "status": "PASS", "input": case["input"],
+                            "expected": case["expected"], "got": actual_output})
+        else:
+            # TODO 2: Increment failed by 1
+            failed = None  # Fix this!
+            results.append({"case": i+1, "status": "FAIL", "input": case["input"],
+                            "expected": case["expected"], "got": actual_output})
+
+    total = len(test_cases)
+    pass_rate = (passed / total) * 100 if total > 0 else 0
+    return {"pass_rate": round(pass_rate, 1), "passed": passed, "failed": failed, "results": results}
+
+# Simulated model (in real code this calls OpenAI/Gemini API)
+def simulated_model(prompt):
+    if "fast" in prompt or "perfect" in prompt or "love" in prompt:
+        return "POSITIVE"
+    if "broken" in prompt or "terrible" in prompt or "never" in prompt:
+        return "NEGATIVE"
+    return "NEUTRAL"
+
+prompt_v1 = "Classify this review as POSITIVE, NEGATIVE, or NEUTRAL: {input}"
+test_dataset = [
+    {"input": "Delivery was super fast!", "expected": "POSITIVE"},
+    {"input": "Product arrived broken.", "expected": "NEGATIVE"},
+    {"input": "It arrived on time.", "expected": "NEUTRAL"},
+    {"input": "I love this product!", "expected": "POSITIVE"},
+    {"input": "Terrible quality, never buying again.", "expected": "NEGATIVE"},
+]
+
+report = evaluate_prompt(prompt_v1, test_dataset, simulated_model)
+print(f"Pass Rate: {report['pass_rate']}% ({report['passed']}/{report['passed']+report['failed']} passed)\\n")
+for r in report["results"]:
+    print(f"  Case {r['case']}: {r['status']} | Expected: {r['expected']} | Got: {r['got']}")`,
+        hints: [
+          'TODO 1: passed needs to go up by 1. Use: passed = passed + 1  (or the shorthand: passed += 1)',
+          'TODO 2: Same pattern for failed: failed = failed + 1',
+          'In Python, +=1 is a shortcut for variable = variable + 1',
+        ],
+        solutionCode: `def evaluate_prompt(prompt_template, test_cases, model_output_fn):
+    results = []
+    passed = 0
+    failed = 0
+    for i, case in enumerate(test_cases):
+        filled_prompt = prompt_template.replace("{input}", case["input"])
+        actual_output = model_output_fn(filled_prompt)
+        is_correct = case["expected"].upper() in actual_output.upper()
+        if is_correct:
+            passed += 1
+            results.append({"case": i+1, "status": "PASS", "input": case["input"],
+                            "expected": case["expected"], "got": actual_output})
+        else:
+            failed += 1
+            results.append({"case": i+1, "status": "FAIL", "input": case["input"],
+                            "expected": case["expected"], "got": actual_output})
+    total = len(test_cases)
+    pass_rate = (passed / total) * 100 if total > 0 else 0
+    return {"pass_rate": round(pass_rate, 1), "passed": passed, "failed": failed, "results": results}
+
+def simulated_model(prompt):
+    if "fast" in prompt or "perfect" in prompt or "love" in prompt:
+        return "POSITIVE"
+    if "broken" in prompt or "terrible" in prompt or "never" in prompt:
+        return "NEGATIVE"
+    return "NEUTRAL"
+
+prompt_v1 = "Classify this review as POSITIVE, NEGATIVE, or NEUTRAL: {input}"
+test_dataset = [
+    {"input": "Delivery was super fast!", "expected": "POSITIVE"},
+    {"input": "Product arrived broken.", "expected": "NEGATIVE"},
+    {"input": "It arrived on time.", "expected": "NEUTRAL"},
+    {"input": "I love this product!", "expected": "POSITIVE"},
+    {"input": "Terrible quality, never buying again.", "expected": "NEGATIVE"},
+]
+report = evaluate_prompt(prompt_v1, test_dataset, simulated_model)
+print(f"Pass Rate: {report['pass_rate']}% ({report['passed']}/{report['passed']+report['failed']} passed)\\n")
+for r in report["results"]:
+    print(f"  Case {r['case']}: {r['status']} | Expected: {r['expected']} | Got: {r['got']}")`,
+        expectedOutputContains: 'Pass Rate:',
+        conceptCallout: 'A 60-80% pass rate on iteration 1 is normal. The goal is not perfection immediately — it is identifying exactly WHICH cases fail so you can apply targeted refinements in the next iteration.',
+      },
+      {
+        id: 6,
+        title: 'Step 6 — Assemble the Full Prompt Optimizer Engine',
+        concept: 'Combine all five modules into a complete Production Prompt Optimizer: it takes any raw user prompt, scores it, auto-refines it, injects few-shot examples, runs an evaluation loop, and prints a full diagnostic report — all in one call.',
+        goal: 'Find the one commented-out line (starts with # print) and uncomment it to activate the final quality gate check in the report.',
+        whyItMatters: 'This is the exact architecture used in production AI systems like IBM watsonx.governance and Anthropic\'s Constitutional AI — a prompt quality pipeline that automatically gates, refines, and evaluates before any token hits the deployed model.',
+        starterCode: `# Step 6: Full Production Prompt Optimizer
+# Combines all 5 modules into a single pipeline.
+import math, string
+
+def score_prompt(prompt_text):
+    p = prompt_text.lower()
+    score = 0
+    flags = []
+    if "you are" in p or "act as" in p: score += 20; flags.append("[PASS] Role defined")
+    else: flags.append("[FAIL] No role")
+    if len(prompt_text.split()) > 15: score += 20; flags.append("[PASS] Task specific")
+    else: flags.append("[FAIL] Too vague")
+    if any(w in p for w in ["bullet","list","json","format","return"]): score += 20; flags.append("[PASS] Format specified")
+    else: flags.append("[FAIL] No output format")
+    if any(w in p for w in ["do not","don't","avoid","never"]): score += 20; flags.append("[PASS] Constraints present")
+    else: flags.append("[FAIL] No constraints")
+    if any(w in p for w in ["example","e.g.","input:","output:","sample"]): score += 20; flags.append("[PASS] Examples present")
+    else: flags.append("[WARN] No examples")
+    return score, flags
+
+def auto_refine(prompt_text, domain="general"):
+    p = prompt_text.lower(); refined = prompt_text.strip(); improvements = []
+    if "you are" not in p and "act as" not in p:
+        refined = f"You are an expert {domain} specialist. " + refined
+        improvements.append(f"Injected role: {domain} specialist")
+    if not any(w in p for w in ["bullet","list","json","format","return"]):
+        refined += " Return your answer as a numbered list, max 5 items."
+        improvements.append("Injected output format: numbered list")
+    if not any(w in p for w in ["do not","don't","avoid","never"]):
+        refined += " Do NOT speculate or fabricate information."
+        improvements.append("Injected guardrail: no speculation")
+    return refined, improvements
+
+def inject_few_shot(base_prompt, examples):
+    if not examples: return base_prompt
+    parts = ["--- FEW-SHOT EXAMPLES ---"]
+    for i, ex in enumerate(examples):
+        parts.append(f"Example {i+1}:\\nInput: {ex['input']}\\nOutput: {ex['output']}")
+    parts.append("--- END EXAMPLES ---\\n")
+    return "\\n".join(parts) + "\\n" + base_prompt
+
+def evaluate_prompt(prompt_template, test_cases, model_fn):
+    passed = 0; results = []
+    for i, case in enumerate(test_cases):
+        out = model_fn(prompt_template.replace("{input}", case["input"]))
+        ok = case["expected"].upper() in out.upper()
+        if ok: passed += 1
+        results.append({"case": i+1, "status": "PASS" if ok else "FAIL",
+                        "expected": case["expected"], "got": out})
+    rate = round((passed / len(test_cases)) * 100, 1) if test_cases else 0
+    return {"pass_rate": rate, "passed": passed, "failed": len(test_cases)-passed, "results": results}
+
+def simulated_model(prompt):
+    p = prompt.lower()
+    if any(w in p for w in ["fast","great","love","perfect","excellent"]): return "POSITIVE"
+    if any(w in p for w in ["broken","terrible","never","awful","refund"]): return "NEGATIVE"
+    return "NEUTRAL"
+
+# =============================================
+#  FULL PROMPT OPTIMIZER PIPELINE
+# =============================================
+def optimize_prompt(raw_prompt, domain, examples, test_cases):
+    print("=" * 60)
+    print("  PRODUCTION PROMPT OPTIMIZER REPORT")
+    print("=" * 60)
+
+    # Phase 1: Score the original
+    original_score, flags = score_prompt(raw_prompt)
+    print(f"\\n[1] BASELINE QUALITY SCORE: {original_score}/100")
+    for f in flags: print(f"    {f}")
+
+    # Phase 2: Auto-refine
+    refined, improvements = auto_refine(raw_prompt, domain)
+    refined_score, _ = score_prompt(refined)
+    print(f"\\n[2] AUTO-REFINEMENT APPLIED ({len(improvements)} fixes):")
+    for imp in improvements: print(f"    + {imp}")
+    print(f"    New score: {refined_score}/100")
+
+    # Phase 3: Inject few-shot examples
+    final_prompt = inject_few_shot(refined + " {input}", examples)
+    final_score, _ = score_prompt(final_prompt)
+    print(f"\\n[3] FEW-SHOT EXAMPLES INJECTED: {len(examples)} examples added")
+
+    # Phase 4: Evaluate
+    report = evaluate_prompt(final_prompt, test_cases, simulated_model)
+    print(f"\\n[4] EVALUATION RESULTS: {report['pass_rate']}% pass rate ({report['passed']}/{len(test_cases)} cases)")
+    for r in report["results"]:
+        print(f"    Case {r['case']}: {r['status']} (expected {r['expected']}, got {r['got']})")
+
+    # Phase 5: Final quality gate
+    print("\\n[5] FINAL QUALITY GATE:")
+    # TODO: Remove the # from the start of the next line to activate the gate check
+    # print(f"    {'PRODUCTION READY' if report['pass_rate'] >= 80 else 'NEEDS MORE ITERATION'} — Pass Rate: {report['pass_rate']}%")
+    print("=" * 60)
+
+# === Run the optimizer ===
+raw = "Classify customer reviews."
+examples = [
+    {"input": "Arrived fast, works great!", "output": "POSITIVE"},
+    {"input": "Broken on arrival, awful support.", "output": "NEGATIVE"},
+]
+tests = [
+    {"input": "I love this product so much!", "expected": "POSITIVE"},
+    {"input": "Terrible, want a refund.", "expected": "NEGATIVE"},
+    {"input": "It came in the mail.", "expected": "NEUTRAL"},
+]
+
+optimize_prompt(raw, domain="customer service", examples=examples, test_cases=tests)`,
+        hints: [
+          'Find the line that starts with # print(f"    {\'PRODUCTION READY\'...',
+          'Remove the # and the space after it to uncomment the line.',
+          'After fixing it, try changing the raw prompt at the bottom and re-run to see different results!',
+        ],
+        solutionCode: `import math, string
+
+def score_prompt(prompt_text):
+    p = prompt_text.lower(); score = 0; flags = []
+    if "you are" in p or "act as" in p: score += 20; flags.append("[PASS] Role defined")
+    else: flags.append("[FAIL] No role")
+    if len(prompt_text.split()) > 15: score += 20; flags.append("[PASS] Task specific")
+    else: flags.append("[FAIL] Too vague")
+    if any(w in p for w in ["bullet","list","json","format","return"]): score += 20; flags.append("[PASS] Format specified")
+    else: flags.append("[FAIL] No output format")
+    if any(w in p for w in ["do not","don't","avoid","never"]): score += 20; flags.append("[PASS] Constraints present")
+    else: flags.append("[FAIL] No constraints")
+    if any(w in p for w in ["example","e.g.","input:","output:","sample"]): score += 20; flags.append("[PASS] Examples present")
+    else: flags.append("[WARN] No examples")
+    return score, flags
+
+def auto_refine(prompt_text, domain="general"):
+    p = prompt_text.lower(); refined = prompt_text.strip(); improvements = []
+    if "you are" not in p and "act as" not in p:
+        refined = f"You are an expert {domain} specialist. " + refined
+        improvements.append(f"Injected role: {domain} specialist")
+    if not any(w in p for w in ["bullet","list","json","format","return"]):
+        refined += " Return your answer as a numbered list, max 5 items."
+        improvements.append("Injected output format: numbered list")
+    if not any(w in p for w in ["do not","don't","avoid","never"]):
+        refined += " Do NOT speculate or fabricate information."
+        improvements.append("Injected guardrail: no speculation")
+    return refined, improvements
+
+def inject_few_shot(base_prompt, examples):
+    if not examples: return base_prompt
+    parts = ["--- FEW-SHOT EXAMPLES ---"]
+    for i, ex in enumerate(examples):
+        parts.append(f"Example {i+1}:\\nInput: {ex['input']}\\nOutput: {ex['output']}")
+    parts.append("--- END EXAMPLES ---\\n")
+    return "\\n".join(parts) + "\\n" + base_prompt
+
+def evaluate_prompt(prompt_template, test_cases, model_fn):
+    passed = 0; results = []
+    for i, case in enumerate(test_cases):
+        out = model_fn(prompt_template.replace("{input}", case["input"]))
+        ok = case["expected"].upper() in out.upper()
+        if ok: passed += 1
+        results.append({"case": i+1, "status": "PASS" if ok else "FAIL",
+                        "expected": case["expected"], "got": out})
+    rate = round((passed / len(test_cases)) * 100, 1) if test_cases else 0
+    return {"pass_rate": rate, "passed": passed, "failed": len(test_cases)-passed, "results": results}
+
+def simulated_model(prompt):
+    p = prompt.lower()
+    if any(w in p for w in ["fast","great","love","perfect","excellent"]): return "POSITIVE"
+    if any(w in p for w in ["broken","terrible","never","awful","refund"]): return "NEGATIVE"
+    return "NEUTRAL"
+
+def optimize_prompt(raw_prompt, domain, examples, test_cases):
+    print("=" * 60)
+    print("  PRODUCTION PROMPT OPTIMIZER REPORT")
+    print("=" * 60)
+    original_score, flags = score_prompt(raw_prompt)
+    print(f"\\n[1] BASELINE QUALITY SCORE: {original_score}/100")
+    for f in flags: print(f"    {f}")
+    refined, improvements = auto_refine(raw_prompt, domain)
+    refined_score, _ = score_prompt(refined)
+    print(f"\\n[2] AUTO-REFINEMENT APPLIED ({len(improvements)} fixes):")
+    for imp in improvements: print(f"    + {imp}")
+    print(f"    New score: {refined_score}/100")
+    final_prompt = inject_few_shot(refined + " {input}", examples)
+    print(f"\\n[3] FEW-SHOT EXAMPLES INJECTED: {len(examples)} examples added")
+    report = evaluate_prompt(final_prompt, test_cases, simulated_model)
+    print(f"\\n[4] EVALUATION RESULTS: {report['pass_rate']}% pass rate ({report['passed']}/{len(test_cases)} cases)")
+    for r in report["results"]:
+        print(f"    Case {r['case']}: {r['status']} (expected {r['expected']}, got {r['got']})")
+    print("\\n[5] FINAL QUALITY GATE:")
+    print(f"    {'PRODUCTION READY' if report['pass_rate'] >= 80 else 'NEEDS MORE ITERATION'} - Pass Rate: {report['pass_rate']}%")
+    print("=" * 60)
+
+raw = "Classify customer reviews."
+examples = [
+    {"input": "Arrived fast, works great!", "output": "POSITIVE"},
+    {"input": "Broken on arrival, awful support.", "output": "NEGATIVE"},
+]
+tests = [
+    {"input": "I love this product so much!", "expected": "POSITIVE"},
+    {"input": "Terrible, want a refund.", "expected": "NEGATIVE"},
+    {"input": "It came in the mail.", "expected": "NEUTRAL"},
+]
+optimize_prompt(raw, domain="customer service", examples=examples, test_cases=tests)`,
+        expectedOutputContains: 'PRODUCTION PROMPT OPTIMIZER REPORT',
+        conceptCallout: 'Congratulations! You have built a complete Production Prompt Optimizer from scratch — the same architecture powering enterprise AI systems. Try changing the raw prompt variable at the bottom to test any domain. This tool is genuinely useful for evaluating prompts before you spend real API credits.',
+      },
+    ],
+  },
+
+  'ai-4-1': {
+    id: 'ai-4-1',
+    title: 'What is an AI API?',
+    subtitle: 'How Modern Applications Connect to Frontier LLMs via REST, JSON & Stateless Protocols',
+    section: 'Module 4 · Chapter 1',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://www.ibm.com/think/topics/rest-apis',
+
+    badgeText: 'AI API FUNDAMENTALS',
+    badgeColor: '#0284c7',
+
+    sections: [
+      {
+        heading: 'From Supercomputers to a Single HTTP Request',
+        paragraphs: [
+          'Frontier Large Language Models (such as GPT-4o, Claude 3.5 Sonnet, or Gemini 1.5 Pro) are massive neural networks with hundreds of billions of parameters. Running or fine-tuning them locally requires specialized server clusters equipped with multi-million-dollar H100/A100 GPU arrays, complex model parallelism, and liquid-cooled data centers.',
+          'An AI API (Application Programming Interface) abstracts away all this infrastructure complexity. It provides a standardized programmatic gateway over the public internet, allowing any web app, mobile device, or backend service to tap into state-of-the-art artificial intelligence by sending a lightweight HTTP request and receiving a structured response in milliseconds.'
+        ]
+      },
+      {
+        heading: 'The Anatomy of an AI API Request',
+        paragraphs: [
+          'Almost all modern AI APIs follow the REST (Representational State Transfer) architectural pattern over HTTPS. An AI API call consists of four core components:',
+          '1. The Endpoint URL: The specific network address exposed by the provider (e.g. https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent).',
+          '2. The HTTP Method: Almost always POST, because you are sending a payload containing instructions and input data to generate a new completion.',
+          '3. Request Headers: Metadata that authenticates and describes the transmission. This includes x-goog-api-key: <key> and Content-Type: application/json.',
+          '4. The JSON Body (Payload): A structured dictionary specifying the model contents array, systemInstruction, and hyperparameters (such as temperature, maxOutputTokens, and response_mime_type).'
+        ],
+        codeBlockTitle: 'RAW REST HTTP REQUEST VS PYTHON SDK CALL (GOOGLE GEMINI)',
+        codeBlock: `# 1. Raw HTTP Request (as sent over the wire to Gemini endpoint):
+POST /v1beta/models/gemini-1.5-pro:generateContent HTTP/1.1
+Host: generativelanguage.googleapis.com
+x-goog-api-key: AIzaSyD94kK2801nLq...
+Content-Type: application/json
+
+{
+  "contents": [
+    {
+      "role": "user",
+      "parts": [{"text": "Calculate the compound interest on $10,000 at 7% over 5 years."}]
+    }
+  ],
+  "systemInstruction": {
+    "parts": [{"text": "You are an expert financial analyst."}]
+  },
+  "generationConfig": {
+    "temperature": 0.2,
+    "maxOutputTokens": 200
+  }
+}
+
+# 2. Equivalent Google Gemini Python SDK Implementation:
+import google.generativeai as genai
+import os
+
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-pro",
+    system_instruction="You are an expert financial analyst."
+)
+
+response = model.generate_content(
+    "Calculate the compound interest on $10,000 at 7% over 5 years.",
+    generation_config=genai.GenerationConfig(temperature=0.2, max_output_tokens=200)
+)
+print(response.text)`
+      },
+      {
+        heading: 'Statelessness: Why the Model Does Not Remember You',
+        paragraphs: [
+          'A fundamental architectural principle of AI APIs is that they are entirely stateless. The remote AI server retains zero memory of previous requests once a connection terminates.',
+          'If a user sends "Hi, my name is Alex" in Request 1, and then sends "What is my name?" in Request 2, the model will have no idea who they are unless the client application explicitly re-sends the entire preceding conversation history inside the contents / messages array.',
+          'This stateless design is deliberate: it allows cloud providers to load-balance millions of concurrent requests dynamically across tens of thousands of GPUs without needing sticky sessions or synchronized server-side memory caches.'
+        ]
+      },
+      {
+        heading: 'The Anatomy of an AI API Response & HTTP Status Codes',
+        paragraphs: [
+          'When the model finishes generating tokens, the API server sends back a JSON response containing the generated text, metadata, and token accounting statistics.',
+          'Key response fields include candidates (the generated completion parts and finishReason), and usageMetadata (exact count of promptTokenCount, candidatesTokenCount, and totalTokenCount used for billing).',
+          'Production applications must inspect HTTP status codes to handle failures gracefully:',
+          '• 200 OK: Request succeeded and complete completion generated.',
+          '• 400 Bad Request: Malformed JSON syntax or invalid parameter values.',
+          '• 401 / 403 Unauthorized: Invalid, expired, or missing API secret key.',
+          '• 429 Too Many Requests: Rate limit exceeded (Requests Per Minute or Tokens Per Minute) or quota depleted.',
+          '• 500 / 503 Server Error: Cloud provider infrastructure timeout or GPU capacity bottleneck.'
+        ],
+        codeBlockTitle: 'STANDARD GEMINI JSON RESPONSE PAYLOAD',
+        codeBlock: `{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "At a 7% annual interest rate compounded annually, $10,000 grows to $14,025.52 after 5 years."
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 34,
+    "candidatesTokenCount": 28,
+    "totalTokenCount": 62
+  }
+}`
+      },
+      {
+        heading: 'Major AI API Providers: Architecture Comparison',
+        paragraphs: [
+          'While REST and JSON are universal, major providers differ in authentication and client libraries:',
+          '• OpenAI: Uses Authorization: Bearer <sk-...> headers, project-scoped API keys, and standard /v1/chat/completions endpoints.',
+          '• Google Gemini API: Supports both quick API keys (via x-goog-api-key or URL parameters) and enterprise Google Cloud IAM / Application Default Credentials (ADC) for Vertex AI deployments.',
+          '• Anthropic Claude: Uses x-api-key headers, explicit anthropic-version headers, and a unified Messages API (/v1/messages).',
+          'Modern AI engineers frequently use unified routing clients (such as LiteLLM or LangChain) to switch between these providers seamlessly with minimal code refactoring.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Five-Star Restaurant & The Waiter',
+      text: 'You do not build an industrial kitchen, buy commercial ovens, and hire Michelin-star chefs in your living room just to eat dinner. Instead, you sit at a table, place an order with the waiter (the API request), the kitchen (the GPU cluster) cooks the meal according to your specifications, and the waiter brings the finished dish to your table (the JSON response). You only pay for what you ordered on the bill (token usage)!'
+    },
+
+    diagram: {
+      type: 'ai_api_anatomy',
+      title: 'Interactive AI API Request & Response Anatomy Lab'
+    },
+
+    takeaways: [
+      'AI APIs turn billion-dollar GPU clusters into a simple, pay-per-token HTTP POST request over standard HTTPS.',
+      'Core request components are the Endpoint URL, HTTP Method (POST), Authorization Headers, and the JSON payload.',
+      'AI APIs are strictly stateless: the client application is entirely responsible for maintaining and re-sending chat history.',
+      'API responses return the generated completion alongside precise token usage metrics (prompt_tokens and completion_tokens).',
+      'Robust AI applications must implement automated exponential backoff to handle 429 rate limit errors gracefully.'
+    ],
+
+    quiz: {
+      question: 'Why must a client application send the entire chat history in every new AI API request when building a multi-turn chatbot?',
+      options: [
+        'Because AI APIs are strictly stateless and the server does not retain memory of previous request-response turns',
+        'Because the model weights are deleted from the GPU after every request',
+        'To force the client to consume 10x more bandwidth on every turn',
+        'Because HTTP POST requests can only transmit one word per network packet'
+      ],
+      correctIndex: 0,
+      explanation: 'Spot on! AI APIs are fundamentally stateless. The provider does not persist conversation sessions on the server, so the client must supply previous messages in the messages array to maintain conversation context.'
+    }
+  },
+
+  'ai-4-2': {
+    id: 'ai-4-2',
+    title: 'Managing API Keys Safely',
+    subtitle: 'Environment Variables, Backend Proxies, Secret Managers & Leak Prevention',
+    section: 'Module 4 · Chapter 2',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_password',
+
+    badgeText: 'SECURITY & SECRETS',
+    badgeColor: '#e11d48',
+
+    sections: [
+      {
+        heading: 'The $10,000 Mistake: Why AI API Keys are High-Value Targets',
+        paragraphs: [
+          'An AI API key is not just an identifier—it is a direct authorization bearer token linked to your credit card with zero default spending throttles. If an attacker gains access to your secret key, they can run thousands of high-throughput model inferences, fine-tune massive models, or resell access on black-market proxy networks, racking up thousands of dollars in unauthorized charges within minutes.',
+          'Automated botnets continuously scrape public GitHub repositories and public Docker images, detecting exposed API keys in less than two seconds after a commit is pushed. Once a key is published to a Git commit, deleting the commit or deleting the repository is not enough—the secret is already compromised.'
+        ]
+      },
+      {
+        heading: 'The Local Development Standard: .env and .gitignore',
+        paragraphs: [
+          'The fundamental rule of modern software engineering is: NEVER hardcode secret keys in source files.',
+          'For local development, store secrets in a local .env file that is explicitly ignored by version control. Provide a sanitized .env.example file so team members know which variables are required without exposing actual credentials.',
+          'In Python, use the python-dotenv package to load environment variables into process memory seamlessly without exposing raw credentials in code.'
+        ],
+        codeBlockTitle: 'SECURE LOCAL SECRETS PATTERN (PYTHON & .ENV)',
+        codeBlock: `# 1. In your .gitignore file (MANDATORY):
+.env
+.env.local
+.env.*.local
+*.pem
+secrets/
+
+# 2. In your .env.example file (Safe to commit to Git):
+GEMINI_API_KEY="your-gemini-api-key-here"
+MAX_MONTHLY_BUDGET_USD=100
+
+# 3. In your Python application code (app.py):
+import os
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+# Load variables from local .env file into process memory
+load_dotenv()
+
+# Read key from secure process environment
+api_key = os.environ.get("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY environment variable is not configured.")
+
+# Initialize Google Gemini client using environment variable
+genai.configure(api_key=api_key)
+model = genai.GenerativeModel("gemini-1.5-flash")
+response = model.generate_content("Summarize this document.")
+`
+      },
+      {
+        heading: 'The Backend Proxy Architecture: Never Expose Keys to the Client',
+        paragraphs: [
+          'One of the most catastrophic beginner errors is importing an AI SDK directly into frontend browser code (such as React, Vue, or Next.js client components) or mobile applications.',
+          'Any code, variable, or network call executed in a client browser can be viewed by opening Developer Tools (F12) or inspecting the network waterfall. Prefixing a key with NEXT_PUBLIC_ or REACT_APP_ bakes the secret directly into the compiled JavaScript bundle downloaded by every user.',
+          'The industry-standard solution is the Backend Proxy Pattern: The browser only communicates with your own secure backend server route (e.g. /api/chat). The server verifies user authentication, rate-limits user sessions, holds the secret API key in memory, and makes the upstream call to Google Gemini.'
+        ],
+        codeBlockTitle: 'CLIENT LEAK ANTI-PATTERN VS SECURE BACKEND PROXY',
+        codeBlock: `// DANGEROUS ANTI-PATTERN (Exposes secret key to every visitor's browser!):
+// In React frontend:
+const model = genai.getGenerativeModel({ apiKey: process.env.NEXT_PUBLIC_GEMINI_KEY }); // LEAK!
+
+// SECURE BACKEND PROXY PATTERN:
+// 1. Frontend Client (Browser):
+async function askAI(userPrompt) {
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt: userPrompt })
+  });
+  return await res.json();
+}
+
+// 2. Backend Server Route (/api/chat - Node/Python):
+// Runs on private server where process.env is never exposed to browser
+export async function POST(req) {
+  const session = await authenticateUser(req);
+  if (!session) return new Response("Unauthorized", { status: 401 });
+
+  const { prompt } = await req.json();
+  const model = genai.getGenerativeModel({ model: "gemini-1.5-flash" }); // uses server process.env.GEMINI_API_KEY
+  const result = await model.generateContent(prompt);
+  return Response.json({ text: result.response.text() });
+}`
+      },
+      {
+        heading: 'Production Cloud Secrets Management & Account Hardening',
+        paragraphs: [
+          'In enterprise production environments (AWS, Google Cloud, Azure), raw .env files on servers are replaced by dedicated Secrets Managers (such as GCP Secret Manager, AWS Secrets Manager, or HashiCorp Vault).',
+          'Key hardening best practices every team must implement:',
+          '1. Set Hard Billing Limits: In the AI provider dashboard, configure soft alert thresholds (e.g. email alert at $50) and hard cutoffs (e.g. terminate all requests if charges reach $100).',
+          '2. Project-Scoped & Restricted Keys: Create dedicated keys for each microservice with granular permissions rather than sharing a root account key.',
+          '3. Install Pre-Commit Secret Scanners: Use automated git hooks (such as Gitleaks, TruffleHog, or git-secrets) to block accidental commits containing secret patterns before they ever leave your local machine.'
+        ]
+      },
+      {
+        heading: 'Emergency Incident Response: What to Do If a Key Leaks',
+        paragraphs: [
+          'If an API secret is ever accidentally pushed to a public repository or shared in public logs, execute this emergency runbook immediately:',
+          '1. Revoke the Key Immediately: Navigate to the provider dashboard and click Delete / Revoke. Do not waste time deleting the commit first—revoking the key invalidates all active bot access instantly.',
+          '2. Generate a Replacement Key: Create a new key and update your hosting environment settings (e.g. Vercel / AWS parameter store).',
+          '3. Audit Request & Billing Logs: Review real-time API logs for abnormal spikes in tokens or unfamiliar geographic IP ranges.',
+          '4. Purge Git History: Use git-filter-repo or BFG Repo-Cleaner if you need to scrub the historical commit tree clean.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Blank Check vs. The Bank Teller',
+      text: 'Hardcoding an API key in frontend code is like leaving a signed, blank credit card voucher on a public park bench—anyone who walks by can charge whatever they want to your account. Building a backend proxy is like having a bank teller: customers ask the teller for service, the teller validates their ID, and the teller securely accesses the vault in the back room without ever handing the master key to the customer!'
+    },
+
+    diagram: {
+      type: 'api_security_diagram',
+      title: 'Interactive API Key Security & Leak Prevention Architecture'
+    },
+
+    takeaways: [
+      'Never hardcode API keys in source files or push .env files to Git version control.',
+      'Always add .env, .env.local, and secrets/ to .gitignore and commit a sanitized .env.example template.',
+      'Frontend code must never hold API keys. Always route requests through a secure Backend Proxy (/api/chat).',
+      'Set hard monthly billing limits and alert thresholds in your provider dashboard to prevent runaway charges.',
+      'If a key is compromised, immediately revoke it in the dashboard before doing any Git history cleanups.'
+    ],
+
+    quiz: {
+      question: 'Why is setting NEXT_PUBLIC_GEMINI_API_KEY in a frontend Next.js or React application considered a critical security vulnerability?',
+      options: [
+        'Because frontend environment variables are bundled directly into client-side JavaScript, allowing any user to inspect and steal the secret key using browser DevTools',
+        'Because frontend requests run 10x slower than backend requests',
+        'Because the Gemini server rejects all requests originating from web browsers',
+        'Because React does not support string variables'
+      ],
+      correctIndex: 0,
+      explanation: 'Spot on! Any environment variable prefixed with NEXT_PUBLIC_ (or REACT_APP_) is bundled into the client-side JavaScript code. Any visitor can open browser DevTools, inspect the source or network requests, and extract the secret key to run unauthorized requests on your credit card.'
+    }
+  },
+
+  'ai-4-3': {
+    id: 'ai-4-3',
+    title: 'Making Your First AI Request',
+    subtitle: 'Step-by-Step Python Guide: SDK Installation, Model Selection, GenerationConfig & Response Handling',
+    section: 'Module 4 · Chapter 3',
+    estimatedTime: '7 min read',
+    gfgUrl: 'https://ai.google.dev/gemini-api/docs/quickstart?lang=python',
+
+    badgeText: 'GEMINI PYTHON SDK',
+    badgeColor: '#2563eb',
+
+    sections: [
+      {
+        heading: 'Setting Up Your Python Environment',
+        paragraphs: [
+          'Connecting your code to Google Gemini takes less than five lines of Python. First, install the official Google Generative AI client library in your terminal or virtual environment:',
+          'pip install -U google-generativeai python-dotenv',
+          'Next, acquire your API key from Google AI Studio (aistudio.google.com) and store it in your local .env file. With the key loaded, calling genai.configure(api_key=...) establishes the authenticated session for all downstream model invocations.'
+        ]
+      },
+      {
+        heading: 'Model Selection: Gemini 1.5 Flash vs Gemini 1.5 Pro',
+        paragraphs: [
+          'Google provides two primary frontier model families optimized for distinct production trade-offs:',
+          '1. Gemini 1.5 Flash: The high-speed, cost-efficient powerhouse. Built for high-frequency tasks, chatbots, summary pipelines, classification, and sub-second real-time streaming where latency and cost per query are primary concerns.',
+          '2. Gemini 1.5 Pro: The frontier reasoning model. Engineered for multi-step reasoning, complex coding, mathematics, deep document synthesis, and demanding multimodal analysis across massive context windows (up to 2 million tokens).'
+        ]
+      },
+      {
+        heading: 'Crafting the Request with System Instructions & GenerationConfig',
+        paragraphs: [
+          'In production, you rarely call a model with default settings. You configure its behavior using two primary mechanisms:',
+          '• System Instructions: Passed during GenerativeModel initialization to define persistent personas, tone, and non-negotiable behavioral guardrails.',
+          '• GenerationConfig: Fine-tunes decoding hyperparameters per request:',
+          '  - temperature (0.0 to 2.0): Lower values (0.0 - 0.3) yield deterministic, factual answers; higher values (0.7 - 1.0) increase creativity and lexical diversity.',
+          '  - max_output_tokens: A hard safety ceiling on the maximum number of tokens generated.',
+          '  - top_p & top_k: Advanced nucleus and top-k sampling parameters that control vocabulary candidate truncation.'
+        ],
+        codeBlockTitle: 'END-TO-END PRODUCTION GEMINI REQUEST SCRIPT',
+        codeBlock: `import os
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+# 1. Load credentials from environment
+load_dotenv()
+api_key = os.environ.get("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY environment variable is missing!")
+
+# 2. Configure SDK
+genai.configure(api_key=api_key)
+
+# 3. Initialize Model with System Instructions
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction="You are a senior site reliability engineer (SRE). Provide concise, root-cause-first explanations with actionable terminal commands."
+)
+
+# 4. Define Generation Hyperparameters
+config = genai.GenerationConfig(
+    temperature=0.2,          # Low randomness for technical accuracy
+    max_output_tokens=300,    # Prevent runaway token generation
+    top_p=0.95
+)
+
+# 5. Execute Request with Robust Error Handling
+try:
+    prompt = "Why is our Linux server reporting 'No space left on device' when 'df -h' shows 40% free disk space?"
+    response = model.generate_content(prompt, generation_config=config)
+    
+    # 6. Extract Response Text and Usage Telemetry
+    print("AI RESPONSE:")
+    print(response.text)
+    print("\n--- TELEMETRY METRICS ---")
+    if hasattr(response, 'usage_metadata'):
+        meta = response.usage_metadata
+        print(f"Prompt Tokens:     {meta.prompt_token_count}")
+        print(f"Candidate Tokens:  {meta.candidates_token_count}")
+        print(f"Total Tokens:      {meta.total_token_count}")
+
+except Exception as e:
+    print(f"API Error Occurred: {e}")`
+      },
+      {
+        heading: 'Inspecting Response Candidates & Finish Reasons',
+        paragraphs: [
+          'Under the hood, generate_content returns a GenerateContentResponse object. While response.text is the most common shortcut to extract text, production applications must inspect response.candidates[0].finish_reason to verify clean completion.',
+          'Common finish reasons include:',
+          '• STOP: The model naturally finished generating text according to its prompt.',
+          '• MAX_TOKENS: Generation was truncated prematurely because max_output_tokens was reached.',
+          '• SAFETY: Generation was blocked by automated content safety filters.',
+          'Checking finish_reason prevents truncated or malformed responses from silently reaching end users.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Precision Camera & Lens Controls',
+      text: 'Calling an AI model is like taking a professional photograph. Choosing between Flash and Pro is selecting your camera body (a lightweight action camera for speed vs a studio DSLR for extreme detail). Setting System Instructions is choosing your lens and scene backdrop. Adjusting temperature and max_output_tokens is dialing the aperture and shutter speed: you control exactly how much light (creativity) enters the sensor and how long the exposure lasts (output length)!'
+    },
+
+    diagram: {
+      type: 'first_ai_request',
+      title: 'Interactive Google Gemini Python Request & Tuning Workbench'
+    },
+
+    takeaways: [
+      'Initialize Google Gemini in Python using genai.configure(api_key=...) with keys loaded from environment variables.',
+      'Use gemini-1.5-flash for low-latency, high-volume production tasks; choose gemini-1.5-pro for complex multi-step reasoning.',
+      'Pass system_instruction during model initialization to anchor role, tone, and refusal guardrails.',
+      'Use GenerationConfig to tune temperature (randomness) and set max_output_tokens to prevent runaway billing.',
+      'Always inspect response.usage_metadata for token telemetry and check finish_reason for unexpected truncations.'
+    ],
+
+    quiz: {
+      question: 'Which Google Gemini model and temperature setting should you choose when building a high-volume, low-latency microservice that extracts ISO invoice dates from receipts?',
+      options: [
+        'gemini-1.5-flash with temperature=0.0 (maximizing speed, minimizing cost, and enforcing deterministic factual extraction)',
+        'gemini-1.5-pro with temperature=1.8 (maximizing poetic variation and high latency)',
+        'gemini-1.0 with max_output_tokens=1 (forcing single-character output)',
+        'Any model without an API key'
+      ],
+      correctIndex: 0,
+      explanation: 'Spot on! For structured, high-volume data extraction like invoice dates, gemini-1.5-flash delivers sub-second latency at minimal cost, and temperature=0.0 eliminates random token variations for strict deterministic accuracy.'
+    }
+  },
+
+  'ai-4-4': {
+    id: 'ai-4-4',
+    title: 'Chat Completions & Messages',
+    subtitle: 'Managing Multi-Turn Conversations, History Persistence, Roles & Sliding Context Windows',
+    section: 'Module 4 · Chapter 4',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://ai.google.dev/gemini-api/docs/chat',
+
+    badgeText: 'MULTI-TURN CHAT SESSIONS',
+    badgeColor: '#8b5cf6',
+
+    sections: [
+      {
+        heading: 'How Multi-Turn Conversations Actually Work',
+        paragraphs: [
+          'In previous lessons, we learned that AI APIs are completely stateless. A Large Language Model has no internal memory of previous requests. When a user experiences a continuous, context-aware chatbot conversation, it is because the client application maintains a growing array of messages and transmits the entire transcript on every turn.',
+          'The Google Generative AI Python SDK simplifies this through the ChatSession abstraction. Calling model.start_chat() creates an interactive session object that automatically tracks, appends, and formats previous user queries and model responses in memory.'
+        ]
+      },
+      {
+        heading: 'Message Roles in Gemini: user and model',
+        paragraphs: [
+          'In the Google Gemini ecosystem, conversational history is modeled as an alternating sequence of Content objects with two primary roles:',
+          '1. role: "user": Represents messages originating from the human or client application.',
+          '2. role: "model": Represents prior responses generated by the Gemini neural network.',
+          'System instructions (e.g. "You are an empathetic customer support agent") are not stored as conversational turns; they are passed separately as system_instruction during model instantiation to anchor the model persona across all turns without cluttering the chat history.'
+        ]
+      },
+      {
+        heading: 'History Persistence: Saving and Rehydrating Chat Sessions',
+        paragraphs: [
+          'In production web applications, users frequently close their browser tabs and return hours or days later. Since your backend cannot keep Python ChatSession objects alive in RAM indefinitely, you must serialize chat.history to a database (such as PostgreSQL JSONB, MongoDB, or Redis) and rehydrate it on demand.',
+          'The SDK makes rehydration straightforward: you extract history from the database as a list of dicts with role and parts keys, and pass it directly into model.start_chat(history=saved_history).'
+        ],
+        codeBlockTitle: 'MULTI-TURN CHAT, HISTORY EXPORT & REHYDRATION IN PYTHON',
+        codeBlock: `import os
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+load_dotenv()
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction="You are an expert travel consultant specializing in East Asia."
+)
+
+# 1. Start an active chat session
+chat = model.start_chat(history=[])
+
+# Turn 1: User introduces context
+res1 = chat.send_message("I am planning a 10-day trip to Tokyo in November.")
+print("Model Turn 1:", res1.text)
+
+# Turn 2: User asks follow-up (model recalls Tokyo & November)
+res2 = chat.send_message("What kind of jacket should I pack for the weather?")
+print("\nModel Turn 2:", res2.text)
+
+# 2. Inspect & Export History for Database Storage
+serialized_history = []
+for turn in chat.history:
+    serialized_history.append({
+        "role": turn.role,
+        "parts": [part.text for part in turn.parts]
+    })
+
+# 3. Simulate Next Day: Rehydrate Chat Session from Stored DB History
+new_chat_session = model.start_chat(history=serialized_history)
+res3 = new_chat_session.send_message("Can you suggest 3 day trips from our base city?")
+print("\nModel Turn 3 (Rehydrated):", res3.text)`
+      },
+      {
+        heading: 'The Sliding Context Window & History Pruning Pattern',
+        paragraphs: [
+          'While Gemini 1.5 models support massive context windows (up to 1-2 million tokens), re-transmitting 100 conversation turns on every single request increases latency and token costs exponentially.',
+          'To optimize cost and latency, production architectures apply the Sliding Context Window pattern: keep the persistent system instruction, prune the oldest conversation turns, and retain only the most recent N turns (e.g. the last 10 messages) before sending the payload.',
+          'For critical older context, enterprise systems use an asynchronous background job that generates a compact "running summary" of older turns and injects it as context before the active sliding window.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Courtroom Stenographer & Running Transcript',
+      text: 'Imagine a high-stakes court trial. The judge and jury do not have photographic memory of testimony from three weeks ago. Instead, the court stenographer records every exchange in an official transcript. Whenever a lawyer asks a follow-up question on Day 20, the judge references the running transcript to evaluate the context. In an AI chat, your backend is the stenographer: it records every turn and hands the transcript back to the model on every new question!'
+    },
+
+    diagram: {
+      type: 'chat_completions',
+      title: 'Interactive Multi-Turn Chat Architecture & Sliding Window Workbench'
+    },
+
+    takeaways: [
+      'Multi-turn AI chats are powered by client-side history accumulation using model.start_chat().',
+      'Gemini conversations alternate strictly between role: "user" and role: "model".',
+      'System instructions are passed during model initialization, anchoring behavior without consuming conversational history slots.',
+      'Persist chat.history to your database as structured JSON and rehydrate sessions using model.start_chat(history=saved_history).',
+      'Apply the Sliding Context Window pattern to trim older conversation turns, minimizing latency and token costs.'
+    ],
+
+    quiz: {
+      question: 'How do production web applications allow users to resume an ongoing AI conversation after refreshing their browser or logging in on a new device?',
+      options: [
+        'They serialize the conversation turns (roles and text parts) to a database and rehydrate a new session using model.start_chat(history=saved_history)',
+        'The Google server keeps a continuous WebSocket connection open to the user IP forever',
+        'The model stores the user name and history directly inside its neural network weights',
+        'Users must re-type all their previous questions manually on every login'
+      ],
+      correctIndex: 0,
+      explanation: 'Spot on! AI APIs are stateless. Production applications persist conversation history in a database (like PostgreSQL or Redis) and pass the serialized message array into model.start_chat(history=...) to reconstruct the conversation context seamlessly.'
+    }
+  },
+
+  'ai-4-5': {
+    id: 'ai-4-5',
+    title: 'Streaming Responses in Real-Time',
+    subtitle: 'Server-Sent Events (SSE), Python Generators, Chunk Processing & Sub-Second Perceived Latency',
+    section: 'Module 4 · Chapter 5',
+    estimatedTime: '7 min read',
+    gfgUrl: 'https://ai.google.dev/gemini-api/docs/streaming',
+
+    badgeText: 'REAL-TIME STREAMING',
+    badgeColor: '#06b6d4',
+
+    sections: [
+      {
+        heading: 'Why Streaming is Mandatory in Production UX',
+        paragraphs: [
+          'Large Language Models generate text autoregressively, computing one token at a time. For a 500-word response, generating the complete output might take 4 to 8 seconds. In a standard HTTP blocking request, the user stares at a blank screen with a frozen spinner for the entire duration, creating a sluggish user experience.',
+          'With streaming enabled, the model emits tokens over HTTP using Server-Sent Events (SSE) or chunked transfer encoding as fast as they are computed. Time to First Token (TTFT) drops to 200–300 milliseconds. The user sees words appearing immediately on screen, making the application feel instantaneous.'
+        ]
+      },
+      {
+        heading: 'Streaming with the Google Gemini Python SDK',
+        paragraphs: [
+          'Activating streaming in Python requires adding a single parameter: stream=True. When passed to model.generate_content() or chat.send_message(), the SDK returns an iterable GenerateContentResponse stream rather than blocking until the full text is assembled.',
+          'Iterating through the stream with a standard for chunk in response: loop allows you to read chunk.text and immediately write it to stdout, a WebSocket pipe, or an SSE stream.'
+        ]
+      },
+      {
+        heading: 'FastAPI Backend Streaming Architecture',
+        paragraphs: [
+          'In production web applications, your frontend connects to your backend API via an EventSource or the fetch() ReadableStream interface. Your Python backend acts as a streaming bridge between Google Gemini and the user browser.',
+          'Using FastAPI StreamingResponse with media_type="text/event-stream", each incoming token chunk from Gemini is yielded with standard SSE formatting (data: {"text": "..."}\\n\\n) directly down the open TCP connection.'
+        ],
+        codeBlockTitle: 'END-TO-END PYTHON & FASTAPI SSE STREAMING PIPELINE',
+        codeBlock: `import os
+import asyncio
+from dotenv import load_dotenv
+import google.generativeai as genai
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+
+load_dotenv()
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+app = FastAPI()
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+# 1. Local CLI Streaming Demonstration
+def stream_to_terminal(prompt: str):
+    print("AI Response: ", end="", flush=True)
+    # Pass stream=True to receive an iterable generator
+    response_stream = model.generate_content(prompt, stream=True)
+    for chunk in response_stream:
+        # Each chunk contains freshly sampled tokens
+        print(chunk.text, end="", flush=True)
+    print("\n--- STREAM COMPLETE ---")
+
+# 2. Production FastAPI Server-Sent Events (SSE) Endpoint
+async def generate_sse_stream(prompt: str):
+    response_stream = model.generate_content(prompt, stream=True)
+    for chunk in response_stream:
+        if chunk.text:
+            # Yield Server-Sent Events (SSE) format
+            yield f"data: {chunk.text}\\n\\n"
+            await asyncio.sleep(0.01)  # Yield control to event loop
+    yield "data: [DONE]\\n\\n"
+
+@app.get("/api/chat/stream")
+async def chat_stream_endpoint(prompt: str):
+    return StreamingResponse(
+        generate_sse_stream(prompt),
+        media_type="text/event-stream"
+    )`
+      },
+      {
+        heading: 'Error Handling and Interrupted Streams',
+        paragraphs: [
+          'Streaming connections require careful error handling. If a network interruption occurs midway through generation, or if the model halts due to safety filters, the iterator may terminate abruptly.',
+          'Always wrap chunk iteration in try...except blocks. If a connection drops, your frontend should preserve the partially rendered text rather than discarding the entire response.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Water Faucet vs The 5-Gallon Delivery Truck',
+      text: 'A blocking API call is like ordering a 5-gallon water jug delivered by truck: you must wait 30 minutes with an empty cup until the entire jug arrives at your doorstep before taking a single sip. Streaming is like turning on your kitchen faucet: water starts flowing into your glass within milliseconds. Even if filling the whole pitcher takes time, you can begin drinking immediately from the very first drop!'
+    },
+
+    diagram: {
+      type: 'streaming_responses',
+      title: 'Interactive Real-Time Streaming & SSE Architecture Workbench'
+    },
+
+    takeaways: [
+      'Enable streaming in the Gemini SDK by passing stream=True to generate_content() or chat.send_message().',
+      'Streaming reduces perceived latency (TTFT) from 4-8 seconds down to 200-300ms by rendering tokens as they are generated.',
+      'Iterate over response chunks using for chunk in response: and read chunk.text.',
+      'In production backends (e.g. FastAPI), pipe chunks to web clients using StreamingResponse with media_type="text/event-stream".',
+      'Always implement client-side fallback handling for streams interrupted by network disconnects or content safety filters.'
+    ],
+
+    quiz: {
+      question: 'What is the primary architectural benefit of setting stream=True when calling an AI API in a user-facing chatbot?',
+      options: [
+        'It drastically reduces Time to First Token (TTFT), displaying words on the user screen within 200ms instead of waiting for the full response to finish generating',
+        'It makes the model run on the user local GPU without using internet bandwidth',
+        'It prevents the API key from being billed',
+        'It translates the response into 10 languages simultaneously'
+      ],
+      correctIndex: 0,
+      explanation: 'Spot on! Autoregressive models generate text token by token. Streaming delivers each token over HTTP chunks as soon as it is computed, reducing perceived wait time from several seconds down to a fraction of a second.'
+    }
+  },
+
+  'ai-4-6': {
+    id: 'ai-4-6',
+    title: 'Function Calling & Tool Use',
+    subtitle: 'Empowering LLMs with Deterministic Capabilities: API Execution, Database Queries & Multi-Step Loops',
+    section: 'Module 4 · Chapter 6',
+    estimatedTime: '9 min read',
+    gfgUrl: 'https://ai.google.dev/gemini-api/docs/function-calling',
+
+    badgeText: 'TOOL CALLING & AGENTS',
+    badgeColor: '#f59e0b',
+
+    sections: [
+      {
+        heading: 'Why LLMs Need Tools',
+        paragraphs: [
+          'Large Language Models are brilliant reasoners, but they have two fundamental limitations: their knowledge is frozen at training cutoff time, and they cannot take real-world actions like running SQL queries, fetching live stock prices, or booking calendar invites.',
+          'Function Calling (Tool Use) bridges this gap. By passing Python functions into the model, the LLM can autonomously recognize when an external calculation or live API lookup is required, generate structured arguments, and instruct your application to execute the tool.'
+        ]
+      },
+      {
+        heading: 'The 4-Step Tool Calling Execution Loop',
+        paragraphs: [
+          'It is critical to understand that the AI model DOES NOT execute your Python code directly on Google servers. Instead, execution follows a secure 4-step exchange:',
+          '1. Declaration: You pass Python functions (with type hints and docstrings) into tools=[get_weather, run_query].',
+          '2. Tool Decision: The user asks a question ("What is the weather in Tokyo?"). Gemini detects that get_weather is relevant and returns a function_call object containing the name and arguments ({"city": "Tokyo"}).',
+          '3. Local Execution: Your backend securely executes your Python function locally and retrieves the real-time result (e.g. {"temp": "18C", "condition": "Sunny"}).',
+          '4. Synthesis: Your backend sends the tool output back to Gemini as a function_response. The model synthesizes the raw data into a natural language answer.'
+        ]
+      },
+      {
+        heading: 'Automatic vs Manual Function Calling in Python',
+        paragraphs: [
+          'The Google Generative AI Python SDK supports both automatic and manual execution patterns.',
+          'When using chat sessions with enable_automatic_function_calling=True, the SDK intercepts the model tool requests, invokes your local Python function automatically, and returns the final synthesized response seamlessly.'
+        ],
+        codeBlockTitle: 'PRODUCTION FUNCTION CALLING WITH AUTOMATIC & MANUAL DISPATCH',
+        codeBlock: `import os
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+load_dotenv()
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+# 1. Define real deterministic Python tool functions with clear type hints & docstrings
+def get_stock_price(ticker: str) -> dict:
+    """Fetches the current real-time market price for a given stock ticker."""
+    # In production, call a real financial API (e.g. Alpha Vantage, Yahoo Finance)
+    mock_db = {
+        "GOOGL": {"price": 178.50, "currency": "USD", "change": "+1.4%"},
+        "AAPL": {"price": 224.20, "currency": "USD", "change": "-0.3%"},
+        "MSFT": {"price": 415.80, "currency": "USD", "change": "+0.8%"}
+    }
+    return mock_db.get(ticker.upper(), {"error": f"Ticker {ticker} not found."})
+
+def calculate_portfolio_value(shares: int, price_per_share: float) -> dict:
+    """Calculates total position valuation given share quantity and unit price."""
+    total = shares * price_per_share
+    return {"shares": shares, "unit_price": price_per_share, "total_value": round(total, 2)}
+
+# 2. Register tools with the Gemini GenerativeModel
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    tools=[get_stock_price, calculate_portfolio_value]
+)
+
+# 3. Automatic Function Calling in a Chat Session
+chat = model.start_chat(enable_automatic_function_calling=True)
+query = "I own 50 shares of GOOGL. What is the current stock price and what is my total position worth?"
+
+response = chat.send_message(query)
+print("AGENT SYNTHESIZED RESPONSE:")
+print(response.text)`
+      },
+      {
+        heading: 'Best Practices for Tool Definitions',
+        paragraphs: [
+          'For reliable tool calling in production:',
+          '• Write descriptive docstrings: Gemini relies on your docstring to understand WHEN and WHY to call the tool.',
+          '• Use strict type hints: Specify str, int, float, bool, or Enum on all parameters.',
+          '• Keep return values structured: Return Python dictionaries or JSON strings rather than unstructured sentences.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Executive Architect & Specialist Contractors',
+      text: 'Think of an LLM as an elite architect and your tool functions as licensed specialist contractors (plumbers, electricians, structural engineers). The architect designs the house and diagnoses problems, but does not climb ladders or solder copper pipes. When a blueprint needs electrical load calculations, the architect drafts an exact work order (function_call), hands it to the electrician, receives the certified amperage report (function_response), and incorporates it into the final master plan!'
+    },
+
+    diagram: {
+      type: 'function_calling',
+      title: 'Interactive 4-Step Tool Execution Loop & Dispatch Simulator'
+    },
+
+    takeaways: [
+      'Function calling allows LLMs to interact with live databases, external REST APIs, and deterministic calculation engines.',
+      'The model does NOT run your code on its servers; it emits structured arguments (function_call) for your backend to execute locally.',
+      'Google Gemini inspects Python docstrings and type annotations to understand when and how to invoke tools.',
+      'Enable automatic dispatch with model.start_chat(enable_automatic_function_calling=True) for seamless autonomous execution.',
+      'Always return structured dictionaries from tools and handle potential tool errors gracefully.'
+    ],
+
+    quiz: {
+      question: 'When an AI model decides to invoke a tool, where does the actual Python function code execute?',
+      options: [
+        'On your local backend application server—the model only generates the function name and argument parameters',
+        'Inside Google cloud neural network weights',
+        'On the user web browser without network access',
+        'On a decentralized blockchain network'
+      ],
+      correctIndex: 0,
+      explanation: 'Spot on! AI models do not run arbitrary user code. The model identifies the required function and outputs the structured arguments (function_call); your application executes the local Python function and sends the result back to the model.'
+    }
+  },
+
+  'ai-4-7': {
+    id: 'ai-4-7',
+    title: 'JSON Mode & Schema Enforcement',
+    subtitle: 'Constrained Logit Decoding, Deterministic Output Guarantees & Zero-Regex Parsing',
+    section: 'Module 4 · Chapter 7',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://ai.google.dev/gemini-api/docs/json_mode',
+
+    badgeText: 'CONSTRAINED DECODING',
+    badgeColor: '#10b981',
+
+    sections: [
+      {
+        heading: 'The Problem with Unconstrained LLM Output',
+        paragraphs: [
+          'When building production AI pipelines, downstream microservices expect strict, machine-readable JSON. In early prompt engineering, developers added instructions like "Respond ONLY in valid JSON with no markdown backticks".',
+          'However, heuristic prompt instructions frequently break in production: models output markdown prefixes (\`\`\`json), trailing commas, unescaped quotes, or conversational preamble ("Sure, here is your JSON:"). This causes json.loads() crashes in production.'
+        ]
+      },
+      {
+        heading: 'How Constrained Logit Decoding Works',
+        paragraphs: [
+          'Google Gemini solves this at the neural engine level through Constrained Logit Decoding. When you configure response_mime_type="application/json", the model sampling engine mathematically masks (sets the logit probability to -infinity) for any token that would produce invalid JSON syntax.',
+          'If the model opens a JSON string {"status": ", the only permissible tokens next are string characters or an escaping backslash. Tokens like unquoted keywords or malformed brackets are physically prevented from being sampled.'
+        ]
+      },
+      {
+        heading: 'Configuring JSON Mode in Python',
+        paragraphs: [
+          'Enabling JSON Mode in the Gemini Python SDK is configured via GenerationConfig:',
+          'generation_config=genai.GenerationConfig(response_mime_type="application/json")',
+          'With this setting, response.text is mathematically guaranteed to parse directly with json.loads(response.text) without regex trimming or string replacements.'
+        ],
+        codeBlockTitle: 'PRODUCTION JSON MODE EXTRACTION & VALIDATION SCRIPT',
+        codeBlock: `import os
+import json
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+load_dotenv()
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+# 1. Initialize model with JSON Mode configuration
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction="You are a data extraction engine. Extract structured entities from unstructured text.",
+    generation_config=genai.GenerationConfig(
+        response_mime_type="application/json",
+        temperature=0.0  # Zero randomness for strict deterministic extraction
+    )
+)
+
+# 2. Unstructured input text
+raw_email = """
+Hi Support, I bought the Pro Dev Annual plan for $299 on October 14, 2024. 
+My order ID is ORD-88421 and my license key is LIC-9921-X. 
+Can you please send me an updated VAT invoice for Acme Corp (Tax ID: US-991823)?
+"""
+
+prompt = f"""
+Extract the purchase details from the email below.
+Return a JSON object with keys:
+- "order_id": string
+- "plan_name": string
+- "amount_usd": float
+- "purchase_date": string (YYYY-MM-DD)
+- "company_name": string
+- "tax_id": string
+- "action_required": string
+
+Input Email:
+{raw_email}
+"""
+
+response = model.generate_content(prompt)
+
+# 3. Direct JSON deserialization without regex or markdown trimming
+data = json.loads(response.text)
+print("EXTRACTED VALIDATED JSON OBJECT:")
+print(json.dumps(data, indent=2))
+print(f"\\nOrder ID: {data['order_id']} | Total USD: {data['amount_usd']}")`
+      },
+      {
+        heading: 'JSON Mode vs Schema Enforcement',
+        paragraphs: [
+          'While response_mime_type="application/json" guarantees syntactically valid JSON syntax (no trailing commas, balanced braces), it does not enforce specific property names or types. If you need strict schema guarantees (e.g. amount_usd must be a float and category must be an enum), you combine JSON mode with response_schema.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Railway Track vs Off-Road Driving',
+      text: 'Prompting an LLM to output JSON with plain text instructions is like driving off-road with a steering wheel and hoping you stay between the lines. Constrained Logit Decoding is like placing the train on a steel railway track: the physical rails make it impossible for the train to turn anywhere except the exact predetermined destination!'
+    },
+
+    diagram: {
+      type: 'json_schema_enforcement',
+      title: 'Interactive Logit Masking & JSON Mode Decoding Engine'
+    },
+
+    takeaways: [
+      'Avoid heuristic prompt workarounds like "Return only JSON" for production data extraction.',
+      'Configure response_mime_type="application/json" in GenerationConfig to enable hardware-level JSON enforcement.',
+      'Constrained logit decoding mathematically suppresses tokens that violate JSON syntax rules.',
+      'Outputs from JSON Mode parse cleanly with json.loads(response.text) with zero regex or backtick stripping.',
+      'Set temperature=0.0 to maximize determinism when extracting structured fields.'
+    ],
+
+    quiz: {
+      question: 'How does Gemini guarantee that output generated with response_mime_type="application/json" is syntactically valid JSON?',
+      options: [
+        'By applying constrained logit decoding during sampling, masking out any tokens that would cause a JSON syntax violation',
+        'By running a post-processing Python script that formats text with regex after generation finishes',
+        'By asking ChatGPT to proofread the output before returning it',
+        'By converting all numbers to letters'
+      ],
+      correctIndex: 0,
+      explanation: 'Spot on! Constrained logit decoding works at the token generation level by setting the sampling probability of illegal syntax tokens to zero, making it mathematically impossible to emit invalid JSON.'
+    }
+  },
+
+  'ai-4-8': {
+    id: 'ai-4-8',
+    title: 'Structured Outputs & Pydantic Validation',
+    subtitle: 'End-to-End Type Safety: Nested Schemas, Enums, Field Constraints & Zero Runtime Failures',
+    section: 'Module 4 · Chapter 8',
+    estimatedTime: '9 min read',
+    gfgUrl: 'https://ai.google.dev/gemini-api/docs/structured_outputs',
+
+    badgeText: 'PYDANTIC TYPE SAFETY',
+    badgeColor: '#6366f1',
+
+    sections: [
+      {
+        heading: 'The Frontier of Type Safety: Structured Outputs',
+        paragraphs: [
+          'In modern software engineering, raw JSON dictionaries are prone to runtime bugs: typos in dictionary keys (data["orderId"] vs data["order_id"]), missing required fields, or unexpected string values for numerical metrics.',
+          'Structured Outputs combine Google Gemini with Pydantic type models. By passing a Pydantic class into response_schema, the model is constrained to adhere strictly to your class definition—including nested objects, list types, typed enums, and numerical range constraints.'
+        ]
+      },
+      {
+        heading: 'Defining Robust Pydantic Schemas',
+        paragraphs: [
+          'When creating schemas for Gemini, use standard Pydantic BaseModel classes. You can annotate fields with Field(description=...) to provide semantic context directly to the model during sampling.',
+          'Key features supported in Gemini Structured Outputs:',
+          '• Enums (enum.Enum): Constrains string fields to an exact whitelist of allowed options.',
+          '• Nested Models: Represents complex hierarchical data structures (e.g. an order containing a list of line items).',
+          '• Optional & List types: list[str], list[ItemModel], or Optional[str].'
+        ]
+      },
+      {
+        heading: 'End-to-End Python Implementation',
+        paragraphs: [
+          'In Python, pass your Pydantic schema class directly to response_schema inside GenerationConfig. Once generated, parsing the output into a verified Pydantic instance takes a single line of code: MySchema.model_validate_json(response.text).'
+        ],
+        codeBlockTitle: 'END-TO-END TYPE-SAFE PYDANTIC STRUCTURED OUTPUTS PIPELINE',
+        codeBlock: `import os
+from enum import Enum
+from typing import List, Optional
+from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+load_dotenv()
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+# 1. Define Strict Enum & Nested Data Models
+class PriorityLevel(str, Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+class SecurityFinding(BaseModel):
+    vulnerability_name: str = Field(description="Standard CVE or vulnerability title")
+    file_path: str = Field(description="Relative path to affected source file")
+    line_number: Optional[int] = Field(description="Line number if identifiable")
+    priority: PriorityLevel = Field(description="Severity tier")
+    remediation_step: str = Field(description="Actionable remediation instructions")
+
+class SecurityAuditReport(BaseModel):
+    repository_name: str
+    security_score: int = Field(ge=0, le=100, description="Overall security score from 0 to 100")
+    summary: str = Field(description="Executive summary of the audit")
+    findings: List[SecurityFinding] = Field(description="List of detected vulnerabilities")
+    passed_audit: bool = Field(description="True if score >= 75 and no CRITICAL findings")
+
+# 2. Configure Model with Pydantic response_schema
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-pro",
+    generation_config=genai.GenerationConfig(
+        response_mime_type="application/json",
+        response_schema=SecurityAuditReport,
+        temperature=0.1
+    )
+)
+
+# 3. Audit Code Snippet
+code_to_audit = """
+@app.route('/api/user')
+def get_user():
+    user_id = request.args.get('id')
+    # Direct SQL query string formatting
+    query = f"SELECT * FROM users WHERE id = '{user_id}'"
+    cursor.execute(query)
+    return jsonify(cursor.fetchall())
+"""
+
+prompt = f"Perform a senior security audit on this code snippet:\\n{code_to_audit}"
+response = model.generate_content(prompt)
+
+# 4. Instant Zero-Error Pydantic Validation & Autocomplete Access
+report: SecurityAuditReport = SecurityAuditReport.model_validate_json(response.text)
+
+print(f"AUDIT REPORT: {report.repository_name}")
+print(f"Security Score: {report.security_score}/100 | Passed: {report.passed_audit}")
+print(f"Summary: {report.summary}\\n")
+for f in report.findings:
+    print(f"[{f.priority.value}] {f.vulnerability_name} at {f.file_path}:{f.line_number}")
+    print(f"  Remediation: {f.remediation_step}\\n")`
+      },
+      {
+        heading: 'Why Structured Outputs Eliminate Pipeline Runtime Failures',
+        paragraphs: [
+          'In traditional AI pipelines, data ingestion errors account for over 60% of runtime exceptions due to missing fields or unexpected schema formats. By integrating Pydantic with Gemini Structured Outputs, your IDE provides full static type-checking (code autocomplete for report.findings[0].vulnerability_name), and downstream database ORMs receive guaranteed, type-safe models.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Precision Industrial Injection Mold',
+      text: 'Imagine manufacturing precision gears. Using standard text prompting is like trying to carve each plastic gear by hand with a pocketknife—every single gear will have slight imperfections. Structured Outputs with Pydantic is like using a steel injection mold: molten polymer is forced into the exact pre-shaped cavity, guaranteeing that every single manufactured part matches the blueprint down to the micrometer!'
+    },
+
+    diagram: {
+      type: 'structured_outputs_parsing',
+      title: 'Interactive Pydantic Schema Workbench & Type-Safe Pipeline'
+    },
+
+    takeaways: [
+      'Pass Pydantic models directly into response_schema inside GenerationConfig for end-to-end type safety.',
+      'Use Python Enums to constrain fields to strict categorical values.',
+      'Enrich Pydantic fields with Field(description=...) to guide model reasoning during constrained generation.',
+      'Parse the response directly using MyModel.model_validate_json(response.text) for instant validated Python objects with full IDE autocomplete.',
+      'Structured outputs prevent runtime crashes across ETL pipelines, database ingestion, and microservices.'
+    ],
+
+    quiz: {
+      question: 'What is the key advantage of passing a Pydantic model to Gemini response_schema compared to using unconstrained JSON mode?',
+      options: [
+        'It guarantees both valid JSON syntax AND enforces the exact field names, data types, nested models, and Enum constraints defined in your Pydantic class',
+        'It makes the model run 100x faster than normal',
+        'It eliminates the need for an internet connection',
+        'It automatically publishes your project to GitHub'
+      ],
+      correctIndex: 0,
+      explanation: 'Spot on! While JSON mode only guarantees valid JSON syntax, Structured Outputs with response_schema enforces the exact structure, property names, nested lists, and type constraints of your Pydantic schema.'
+    }
+  },
+
+  'ai-4-9': {
+    id: 'ai-4-9',
+    title: 'Mini Project: Live Weather AI Assistant',
+    subtitle: 'Build a Full-Featured Tool-Calling Weather Agent in Python with Mock Weather API & Autonomous Dispatch',
+    section: 'Module 4 · Capstone Project',
+    estimatedTime: '15 min practical',
+    badgeText: 'MINI PROJECT: AI APIS',
+    badgeColor: '#f59e0b',
+    isProject: true,
+    videoUrl: null,
+    gfgUrl: null,
+    diagram: { type: 'mini_project_editor', projectId: 'live_weather_assistant' },
+    projectMeta: {
+      language: 'python',
+      runtime: 'pyodide',
+      finalTool: 'Live Weather AI Assistant (Function Calling)',
+      skills: ['tool calling', 'registries', 'dispatchers', 'reAct loop', 'error handling'],
+    },
+    projectOverview: {
+      title: 'Production Tool-Calling Weather & Travel Agent',
+      description: 'Build an autonomous Python AI agent using the Google Gemini function-calling architecture. You will create mock weather and air quality API tools, build an automatic tool dispatch registry, and assemble an interactive multi-turn agent that autonomously decides when to check real-time weather and advise travelers.',
+      technologies: ['Python 3.11', 'Google Gemini API', 'Function Calling / Tool Use', 'Pyodide WebAssembly'],
+      prerequisites: 'Completion of Module 4 (AI APIs, Multi-Turn Chat, Streaming, Function Calling, Structured Outputs).'
+    },
+
+    steps: [
+      {
+        id: 1,
+        title: 'Step 1 — Build the Mock Real-Time Weather Service',
+        concept: 'In production systems, your agent invokes external REST services. Before connecting Gemini, we build a deterministic weather and air quality service that returns structured weather metrics for query locations.',
+        goal: 'Complete get_weather_service() to look up the city in the database (case-insensitive) and return the structured weather dictionary.',
+        whyItMatters: 'Clean, structured tool return values are critical because the AI model parses this dictionary to synthesize its final natural response.',
+        starterCode: `# Step 1: Mock Real-Time Weather Service
+# Build the deterministic tool function that looks up weather metrics.
+
+MOCK_WEATHER_DATABASE = {
+    "tokyo": {"temperature": 18, "condition": "Sunny", "humidity": 45, "air_quality": "Good"},
+    "london": {"temperature": 12, "condition": "Rainy", "humidity": 88, "air_quality": "Moderate"},
+    "paris": {"temperature": 15, "condition": "Partly Cloudy", "humidity": 60, "air_quality": "Good"},
+    "new york": {"temperature": 22, "condition": "Clear", "humidity": 50, "air_quality": "Good"}
+}
+
+def get_weather_service(city_name: str) -> dict:
+    """Fetches real-time weather and air quality metrics for a specified city."""
+    # TODO: Normalize city_name by converting to lowercase and stripping whitespace
+    # normalized = ...
+    # Look up in MOCK_WEATHER_DATABASE. If not found, return {"error": f"City '{city_name}' not found in database."}
+    normalized = city_name.strip().lower()
+    return MOCK_WEATHER_DATABASE.get(normalized, {"error": f"City '{city_name}' not found."})
+
+# Test the service
+print("Tokyo Weather:", get_weather_service("Tokyo"))
+print("Unknown City:", get_weather_service("Atlantis"))`,
+        hints: [
+          'TODO: Normalize the string with city_name.strip().lower()',
+          'Use MOCK_WEATHER_DATABASE.get(normalized, {"error": ...}) to handle unknown cities cleanly'
+        ],
+        solutionCode: `MOCK_WEATHER_DATABASE = {
+    "tokyo": {"temperature": 18, "condition": "Sunny", "humidity": 45, "air_quality": "Good"},
+    "london": {"temperature": 12, "condition": "Rainy", "humidity": 88, "air_quality": "Moderate"},
+    "paris": {"temperature": 15, "condition": "Partly Cloudy", "humidity": 60, "air_quality": "Good"},
+    "new york": {"temperature": 22, "condition": "Clear", "humidity": 50, "air_quality": "Good"}
+}
+
+def get_weather_service(city_name: str) -> dict:
+    """Fetches real-time weather and air quality metrics for a specified city."""
+    normalized = city_name.strip().lower()
+    return MOCK_WEATHER_DATABASE.get(normalized, {"error": f"City '{city_name}' not found."})
+
+print("Tokyo Weather:", get_weather_service("Tokyo"))
+print("Unknown City:", get_weather_service("Atlantis"))`,
+        expectedOutputContains: 'Tokyo Weather:',
+        conceptCallout: 'Notice how the docstring clearly explains the purpose of the function. In the Gemini Python SDK, this docstring is passed directly as the tool description to help the model decide when to call it.'
+      },
+      {
+        id: 2,
+        title: 'Step 2 — Implement the Tool Registry & Schema Declarer',
+        concept: 'To allow an agent to use multiple tools dynamically, production systems register tools in a dictionary map and extract their parameter signatures into JSON schema definitions.',
+        goal: 'Complete register_tool() to map tool names to Python callable functions and generate schema metadata.',
+        whyItMatters: 'A centralized tool registry allows your agent to support 10+ tools (e.g. weather, flights, hotels, currency conversion) without messy if/else chains.',
+        starterCode: `# Step 2: Tool Registry & Schema Declarer
+# Registers callable tools into a centralized dispatch dictionary.
+
+TOOL_REGISTRY = {}
+
+def register_tool(name: str, func, description: str):
+    """Registers a tool function into the global dispatch table."""
+    # TODO: Store name, func, and description in TOOL_REGISTRY[name]
+    TOOL_REGISTRY[name] = {
+        "func": func,
+        "description": description
+    }
+
+def get_weather(city: str):
+    """Get live weather."""
+    return {"city": city, "temp": 20, "condition": "Sunny"}
+
+def get_air_quality(city: str):
+    """Get air quality index."""
+    return {"city": city, "aqi": 35, "status": "Good"}
+
+# Register tools
+register_tool("get_weather", get_weather, "Fetches current temperature and conditions for a city.")
+register_tool("get_air_quality", get_air_quality, "Fetches Air Quality Index (AQI) rating for a city.")
+
+print(f"Registered {len(TOOL_REGISTRY)} tools: {list(TOOL_REGISTRY.keys())}")`,
+        hints: [
+          'Assign TOOL_REGISTRY[name] = {"func": func, "description": description}'
+        ],
+        solutionCode: `TOOL_REGISTRY = {}
+
+def register_tool(name: str, func, description: str):
+    """Registers a tool function into the global dispatch table."""
+    TOOL_REGISTRY[name] = {
+        "func": func,
+        "description": description
+    }
+
+def get_weather(city: str):
+    """Get live weather."""
+    return {"city": city, "temp": 20, "condition": "Sunny"}
+
+def get_air_quality(city: str):
+    """Get air quality index."""
+    return {"city": city, "aqi": 35, "status": "Good"}
+
+register_tool("get_weather", get_weather, "Fetches current temperature and conditions for a city.")
+register_tool("get_air_quality", get_air_quality, "Fetches Air Quality Index (AQI) rating for a city.")
+
+print(f"Registered {len(TOOL_REGISTRY)} tools: {list(TOOL_REGISTRY.keys())}")`,
+        expectedOutputContains: 'Registered 2 tools:',
+        conceptCallout: 'In the Gemini SDK, passing a list of Python functions directly to tools=[get_weather, get_air_quality] automatically builds the schema using Python type hints.'
+      },
+      {
+        id: 3,
+        title: 'Step 3 — Build the Safe Dynamic Tool Dispatcher',
+        concept: 'When Gemini returns a function call instruction, your backend must safely extract the function name, unpack arguments, execute the local function, and catch exceptions without crashing.',
+        goal: 'Implement dispatch_tool_call() to invoke the registered tool function with keyword arguments and handle errors gracefully.',
+        whyItMatters: 'Robust error trapping in tool dispatchers ensures that even if an API fails, the agent receives an informative error dictionary and can recover gracefully.',
+        starterCode: `# Step 3: Safe Dynamic Tool Dispatcher
+# Executes registered tools and catches potential runtime errors.
+
+TOOL_REGISTRY = {
+    "get_weather": {
+        "func": lambda city: {"city": city, "temperature": 18, "condition": "Sunny"}
+    }
+}
+
+def dispatch_tool_call(tool_name: str, args: dict) -> dict:
+    """Safely dispatches a tool execution request from the model."""
+    if tool_name not in TOOL_REGISTRY:
+        return {"error": f"Tool '{tool_name}' is not registered."}
+    
+    try:
+        tool_func = TOOL_REGISTRY[tool_name]["func"]
+        # TODO: Execute tool_func(**args) and return the result
+        result = tool_func(**args)
+        return {"status": "success", "result": result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Test successful dispatch
+res1 = dispatch_tool_call("get_weather", {"city": "Tokyo"})
+print("Valid Tool Dispatch:", res1)
+
+# Test unknown tool dispatch
+res2 = dispatch_tool_call("book_flight", {"destination": "Tokyo"})
+print("Unknown Tool Dispatch:", res2)`,
+        hints: [
+          'Call tool_func(**args) inside the try block and return {"status": "success", "result": result}'
+        ],
+        solutionCode: `TOOL_REGISTRY = {
+    "get_weather": {
+        "func": lambda city: {"city": city, "temperature": 18, "condition": "Sunny"}
+    }
+}
+
+def dispatch_tool_call(tool_name: str, args: dict) -> dict:
+    """Safely dispatches a tool execution request from the model."""
+    if tool_name not in TOOL_REGISTRY:
+        return {"error": f"Tool '{tool_name}' is not registered."}
+    
+    try:
+        tool_func = TOOL_REGISTRY[tool_name]["func"]
+        result = tool_func(**args)
+        return {"status": "success", "result": result}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+res1 = dispatch_tool_call("get_weather", {"city": "Tokyo"})
+print("Valid Tool Dispatch:", res1)
+
+res2 = dispatch_tool_call("book_flight", {"destination": "Tokyo"})
+print("Unknown Tool Dispatch:", res2)`,
+        expectedOutputContains: 'Valid Tool Dispatch:',
+        conceptCallout: 'The double-star **args syntax in Python unpacks dictionary keys directly into named function parameters matching the tool signature.'
+      },
+      {
+        id: 4,
+        title: 'Step 4 — Build the Complete Autonomous Tool-Calling Agent Loop',
+        concept: 'Now we assemble the complete autonomous agent loop: simulate user prompt interpretation, autonomous tool selection, execution, and final response synthesis.',
+        goal: 'Assemble run_agent_loop() to coordinate query parsing, tool execution, and human-friendly response generation.',
+        whyItMatters: 'This ReAct (Reason + Act) loop is the core architectural pattern behind modern AI agents like Claude Code, ChatGPT Tools, and Gemini Assistants.',
+        starterCode: `# Step 4: Complete Autonomous Tool-Calling Agent Loop
+# Simulates the full 4-step tool invocation and response synthesis cycle.
+
+DATABASE = {
+    "tokyo": {"temp": 18, "condition": "Sunny", "humidity": 45, "recommendation": "Great for outdoor sightseeing"},
+    "london": {"temp": 11, "condition": "Light Rain", "humidity": 85, "recommendation": "Bring an umbrella and waterproof coat"}
+}
+
+def get_weather_tool(city: str) -> dict:
+    """Lookup current weather."""
+    return DATABASE.get(city.lower(), {"error": "City not found in database."})
+
+def run_agent_loop(user_query: str):
+    print(f"USER QUERY: '{user_query}'")
+    
+    # 1. Simulate Model Reasoning: Detect if tool is needed
+    query_lower = user_query.lower()
+    target_city = None
+    for city in DATABASE.keys():
+        if city in query_lower:
+            target_city = city
+            break
+            
+    if not target_city:
+        return "I can help with weather for Tokyo or London. Which city would you like to check?"
+        
+    print(f"-> [Agent Reasoning]: Model decided to call get_weather_tool(city='{target_city.capitalize()}')")
+    
+    # 2. Execute tool locally
+    tool_data = get_weather_tool(target_city)
+    print(f"-> [Tool Execution]: Retrieved raw data: {tool_data}")
+    
+    # 3. Synthesize natural language answer
+    final_answer = (
+        f"The current weather in {target_city.capitalize()} is {tool_data['temp']}°C with {tool_data['condition']}. "
+        f"Humidity is {tool_data['humidity']}%. Travel Tip: {tool_data['recommendation']}."
+    )
+    return final_answer
+
+# Run test query
+response = run_agent_loop("What should I wear for my trip to Tokyo today?")
+print(f"\\nFINAL SYNTHESIZED AGENT ANSWER:\\n{response}")`,
+        hints: [
+          'Inspect how tool_data values are formatted into the final_answer string'
+        ],
+        solutionCode: `DATABASE = {
+    "tokyo": {"temp": 18, "condition": "Sunny", "humidity": 45, "recommendation": "Great for outdoor sightseeing"},
+    "london": {"temp": 11, "condition": "Light Rain", "humidity": 85, "recommendation": "Bring an umbrella and waterproof coat"}
+}
+
+def get_weather_tool(city: str) -> dict:
+    """Lookup current weather."""
+    return DATABASE.get(city.lower(), {"error": "City not found in database."})
+
+def run_agent_loop(user_query: str):
+    print(f"USER QUERY: '{user_query}'")
+    query_lower = user_query.lower()
+    target_city = None
+    for city in DATABASE.keys():
+        if city in query_lower:
+            target_city = city
+            break
+            
+    if not target_city:
+        return "I can help with weather for Tokyo or London. Which city would you like to check?"
+        
+    print(f"-> [Agent Reasoning]: Model decided to call get_weather_tool(city='{target_city.capitalize()}')")
+    tool_data = get_weather_tool(target_city)
+    print(f"-> [Tool Execution]: Retrieved raw data: {tool_data}")
+    
+    final_answer = (
+        f"The current weather in {target_city.capitalize()} is {tool_data['temp']}°C with {tool_data['condition']}. "
+        f"Humidity is {tool_data['humidity']}%. Travel Tip: {tool_data['recommendation']}."
+    )
+    return final_answer
+
+response = run_agent_loop("What should I wear for my trip to Tokyo today?")
+print(f"\\nFINAL SYNTHESIZED AGENT ANSWER:\\n{response}")`,
+        expectedOutputContains: 'FINAL SYNTHESIZED AGENT ANSWER:',
+        conceptCallout: 'Congratulations! You have constructed an end-to-end autonomous tool-calling AI agent. You understand how AI models decide when to call tools, how backends execute them safely, and how data is synthesized back into natural human answers!'
+      }
+    ]
+  },
+
+  'ai-5-1': {
+    id: 'ai-5-1',
+    title: 'Why LLMs Forget & Knowledge Cutoffs',
+    subtitle: 'Understanding Working Memory Limits, Attention Dilution, and the Bridge to RAG',
+    section: 'Module 5 · Chapter 1',
+    estimatedTime: '10 min read',
+    gfgUrl: 'https://www.geeksforgeeks.org/retrieval-augmented-generation-rag-in-ai/',
+
+    badgeText: 'MODULE 5 • RAG FOUNDATIONS',
+    badgeColor: '#0284c7',
+    videoUrl: 'https://www.youtube.com/embed/mKtBS-pKY3Y',
+
+    diagram: {
+      type: 'context_memory_limit'
+    },
+
+    sections: [
+      {
+        heading: 'The Working Memory Paradox: Short-Term vs Long-Term Memory',
+        paragraphs: [
+          'Large Language Models exhibit extraordinary reasoning across domain-specific tasks, including code synthesis, financial analysis, and scientific literature digestion. However, they are bounded by a fundamental architectural limitation: working memory.',
+          'To understand this limitation, consider a human cognitive parallel. If someone asks you to add 138 + 423, you commit the numbers to your short-term working memory to produce 561. If asked for the answer a year later, you will have forgotten it because it was never stored in long-term memory. Similarly, if asked to recite 20 digits of Pi (3.14159265358979323846...), short-term recall collapses under cognitive load.',
+          'In Large Language Models, this short-term working memory capacity is known as the Context Window. The context window represents the strict upper bound on how many tokens an LLM can hold and attend to at any single instant.'
+        ],
+        codeBlockTitle: 'Context Window Spectrum Across Modern Models',
+        codeBlock: `# Model Context Window & Capacity Spectrum
+# -------------------------------------------------------------
+# Flash / Nano Models: ~2,000 - 4,000 tokens (~1,500 - 3,000 words)
+# Standard Frontier:  ~128,000 tokens (~96,000 words)
+# Gemini 1.5/2.5 Pro: Up to 1,000,000+ tokens (~750,000 words / 50k lines of code)
+
+def select_model_by_context(document_token_count: int, requires_ultra_low_latency: bool) -> str:
+    """Select the optimal model based on payload size and latency targets."""
+    if requires_ultra_low_latency and document_token_count < 3000:
+        return "gemini-1.5-flash"  # Ultra-fast TTFT, lightweight working memory
+    elif document_token_count > 100000:
+        return "gemini-1.5-pro"    # Large 1M+ token context window
+    return "gemini-1.5-flash"`
+      },
+      {
+        heading: 'Knowledge Cutoffs & Frozen Parametric Weights',
+        paragraphs: [
+          'LLM memory is divided into two distinct categories:',
+          '1. Parametric Memory: The billions of weights configured during pre-training. This knowledge is static, immutable, and frozen at the pre-training cutoff date. An LLM cannot learn what happened yesterday through its weights without expensive retraining or fine-tuning.',
+          '2. Working Context Memory: The dynamic text passed into the prompt at runtime. This is the only place where real-time, private, or session-specific information can be consumed.',
+          'Because parametric weights are frozen, any new facts, internal enterprise documents, or user preferences must enter through the working context window.'
+        ]
+      },
+      {
+        heading: 'Why LLMs Forget: The FIFO Truncation Trap',
+        paragraphs: [
+          'In multi-turn chat applications, developers maintain conversation history by storing messages in an array. However, as the conversation lengthens, the total token count eventually hits the model limit.',
+          'The naive engineering response is a sliding window based on First-In, First-Out (FIFO) eviction (e.g. keeping only the last 6 messages with conversation[-6:]).',
+          'While this prevents token overflow errors, it causes catastrophic forgetting. Early critical constraints—such as user dietary restrictions, API keys, or background facts (like Sally owning 14 apples)—get dropped from the prompt and vanish from the model attention heads.'
+        ],
+        codeBlockTitle: 'The FIFO Context Truncation Demonstration (Python)',
+        codeBlock: `import google.generativeai as genai
+
+# Simulating a sliding context window of 6 messages (3 user/assistant turns)
+MAX_WINDOW_MESSAGES = 6
+
+conversation_history = []
+
+def add_message(role: str, text: str):
+    conversation_history.append({"role": role, "text": text})
+
+# Turn 1: Critical user fact
+add_message("user", "My favorite restaurant is Luigi's Italian Pasta House.")
+add_message("model", "Noted! I will remember Luigi's is your favorite.")
+
+# Turns 2-4: Routine conversation
+add_message("user", "What is the capital of Japan?")
+add_message("model", "The capital of Japan is Tokyo.")
+add_message("user", "What is 15 * 8?")
+add_message("model", "15 * 8 is 120.")
+add_message("user", "Tell me a short science joke.")
+add_message("model", "Why do biologists look forward to cell division? Because it multiplies!")
+
+# Sliding window truncation: keep only the most recent 6 messages
+active_context = conversation_history[-MAX_WINDOW_MESSAGES:]
+
+# Turn 5: User tests memory
+add_message("user", "What is my favorite restaurant?")
+active_context = conversation_history[-MAX_WINDOW_MESSAGES:]
+
+print("ACTIVE CONTEXT SENT TO LLM:")
+for msg in active_context:
+    print(f"[{msg['role'].upper()}]: {msg['text']}")
+
+# RESULT: The first turn mentioning Luigi's was completely evicted by FIFO!
+# The LLM will now respond: 'I am sorry, you have not mentioned your favorite restaurant.'`
+      },
+      {
+        heading: 'Attention Dilution & Noise: The Sally & Bob Apple Problem',
+        paragraphs: [
+          'Even when an LLM possesses a large context window, stuffing it with uncurated raw text introduces Attention Dilution (also known as Context Rot and the "Lost in the Middle" phenomenon).',
+          'Consider this scenario: "Sally and Bob own an apple farm in Vermont. Sally has 14 apples. Apples are often red. 12 is a nice number. Bob has no red apples, but he has 2 green apples. Green apples often taste sour. How many apples do they have in total?"',
+          'Human and artificial attention mechanisms must expend computational bandwidth filtering out irrelevant noise (apple colors, taste opinions, favorite numbers) to extract the signal (14 + 2 = 16).',
+          'This establishes the discipline of Context Engineering: strategically curating, formatting, compressing, and ordering the exact subset of knowledge required for a task, rather than dumping unstructured raw data into the prompt.'
+        ]
+      },
+      {
+        heading: 'Context Engineering Solution 1: AI Summarization Compression',
+        paragraphs: [
+          'Instead of dropping older exchanges with a hard FIFO slice, robust production systems use an AI summarization pipeline.',
+          'When conversation history approaches a token threshold (e.g. 80% of budget), a background model compresses the past conversation into a dense 50-token semantic summary while preserving all extracted entities, numbers, and decisions.',
+          'This leaves 80%+ of the context window free for new real-time queries while maintaining zero memory loss.'
+        ],
+        codeBlockTitle: 'Context Compression with Google Gemini (Python)',
+        codeBlock: `import google.generativeai as genai
+import os
+
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+def compress_conversation(history_text: str) -> str:
+    """Compresses lengthy multi-turn chat into a concise state summary."""
+    prompt = f"""
+Analyze this conversation history and create a compact, dense summary.
+PRESERVE ALL: user facts, preferences, names, numbers, constraints, and pending tasks.
+OMIT ALL: conversational pleasantries, jokes, and repeated greetings.
+
+Conversation:
+{history_text}
+
+Compact Semantic Summary:"""
+    
+    response = model.generate_content(prompt)
+    return response.text.strip()
+
+# Example raw conversation (approx 150 tokens)
+raw_chat = """
+User: Hi, I am planning a trip to Kyoto for 4 days starting October 12th.
+Assistant: Wonderful! Kyoto is gorgeous in autumn.
+User: I am vegetarian and my budget is $150 per day for food.
+Assistant: Got it. I will look for vegetarian-friendly dining under $150/day.
+User: Also, my hotel is near Gion district.
+"""
+
+compressed_state = compress_conversation(raw_chat)
+print("COMPRESSED SYSTEM MEMORY (Reduced from 150 -> 40 tokens):")
+print(compressed_state)
+# Output: User visiting Kyoto Oct 12-16 (4 days). Hotel: near Gion. Diet: vegetarian. Food budget: $150/day.`
+      },
+      {
+        heading: 'Context Engineering Solution 2: Profile & Session Persistence',
+        paragraphs: [
+          'For multi-user web applications (such as customer support, SaaS platforms, or personalized tutors), state must persist across independent user sessions without leaking data between accounts—similar to how Netflix maintains separate profile states for Alice and Bob.',
+          'By serializing structured user preference files (e.g. profile_alice.json vs profile_bob.json), the backend rehydrates the user profile on login and prepends it to the system instruction.'
+        ],
+        codeBlockTitle: 'Profile-Based Memory Persistence (Python)',
+        codeBlock: `import json
+import os
+
+PROFILE_DIR = "./user_profiles"
+os.makedirs(PROFILE_DIR, exist_ok=True)
+
+def save_user_profile(user_id: str, profile_data: dict):
+    filepath = os.path.join(PROFILE_DIR, f"profile_{user_id}.json")
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(profile_data, f, indent=2)
+
+def load_user_profile(user_id: str) -> dict:
+    filepath = os.path.join(PROFILE_DIR, f"profile_{user_id}.json")
+    if os.path.exists(filepath):
+        with open(filepath, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {"user_id": user_id, "preferences": [], "history_summary": ""}
+
+# Save Alice's preference
+save_user_profile("alice", {
+    "user_id": "alice",
+    "diet": "vegetarian",
+    "favorite_cuisine": "Italian",
+    "favorite_restaurant": "Luigi's Pasta House"
+})
+
+# Bob visits: gets completely fresh, isolated memory
+bob_profile = load_user_profile("bob")
+print(f"Bob Profile Diet: {bob_profile.get('diet', 'None specified')}")
+
+# Alice returns tomorrow: instant memory rehydration
+alice_profile = load_user_profile("alice")
+print(f"Alice Returning: Favorite Cuisine = {alice_profile['favorite_cuisine']}")`
+      },
+      {
+        heading: 'The Ultimate Solution: Retrieval-Augmented Generation (RAG)',
+        paragraphs: [
+          'While summarization and profile JSON files manage short conversations and user settings, enterprise knowledge bases (thousands of PDFs, documentation portals, product catalogs) cannot fit into any context window simultaneously.',
+          'This brings us to Retrieval-Augmented Generation (RAG).',
+          'RAG separates memory storage from reasoning compute: all company knowledge is indexed in an external searchable store (such as a Vector Database). When a user submits a prompt, the system searches the knowledge base, retrieves only the 2 to 5 most relevant paragraphs, and injects them dynamically into the LLM context window.',
+          'In the upcoming lessons of Module 5, you will master the full RAG pipeline: generating vector embeddings, indexing databases (Chroma/Pinecone), performing semantic search, and synthesizing grounded answers.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Small Whiteboard vs The Filing Cabinet',
+      text: 'Think of an LLM as a world-class researcher working at a desk with a small whiteboard (the context window). Everything written on the whiteboard is in active working memory. When the board fills up, older notes must be erased (FIFO truncation). If someone litters the board with irrelevant sticky notes (noise), the researcher gets distracted. RAG is like placing a 10-drawer filing cabinet (vector database) next to the desk: when a question is asked, the researcher pulls only the exact 2 relevant index cards, pins them to the whiteboard, and answers with 100% accuracy!'
+    },
+
+    takeaways: [
+      'The Context Window is the strict upper bound on how many tokens an LLM can hold and attend to at any given moment.',
+      'Parametric memory is static and frozen at the pre-training cutoff date; real-time and private facts must be injected through working context.',
+      'Naive FIFO sliding windows (e.g. conversation[-6:]) cause catastrophic forgetting of early critical facts.',
+      'Context Engineering strategically curates, compresses, and structures input data to avoid attention dilution and token waste.',
+      'AI Summarization and Profile JSON persistence solve short-term state, while RAG (Retrieval-Augmented Generation) connects LLMs to infinite external long-term knowledge.'
+    ],
+
+    quiz: {
+      question: 'Why does an LLM fail to remember information shared 10 messages earlier when a backend uses a sliding window of conversation[-6:]?',
+      options: [
+        'Because neural networks permanently delete their training weights when idle',
+        'Because older messages get truncated and removed from the active context window via First-In, First-Out (FIFO) eviction',
+        'Because LLMs cannot read more than 10 words at a time',
+        'Because API keys automatically expire after 5 minutes of chat'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! LLMs are completely stateless between requests. When a backend uses a fixed sliding window like conversation[-6:], earlier exchanges are dropped from the prompt payload and never reach the model attention heads.'
+    }
   }
 };
+
+
+
+
+
+
+
+
+
+
+

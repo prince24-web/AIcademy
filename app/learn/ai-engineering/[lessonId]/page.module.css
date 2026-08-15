@@ -1315,3 +1315,347 @@
     font-size: 22px;
   }
 }
+
+/* ─── SPLIT-PANEL PROJECT LAYOUT (matching Python lesson) ────────────── */
+
+/* Full-height container, no scroll */
+.projectLayout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: #0d0f14;
+  color: #e8eaf6;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Two-column workspace beneath the nav */
+.splitPanel {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left: scrollable lesson / instructions panel */
+.instructionsPanel {
+  width: 480px;
+  min-width: 320px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 24px 28px 40px;
+  flex-shrink: 0;
+  color: #0f172a;
+}
+
+/* Right: full-height dark code editor panel */
+.editorPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #1a1d27;
+  overflow: hidden;
+}
+
+/* ── Editor Toolbar (top of editor panel) ── */
+.editorToolbar {
+  height: 44px;
+  background: #262b3a;
+  border-bottom: 1px solid #323848;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.fileTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #1a1d27;
+  border: 1px solid #323848;
+  border-radius: 8px 8px 0 0;
+  padding: 6px 14px;
+  border-bottom: none;
+  margin-bottom: -1px;
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.solutionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.solutionBtn:hover {
+  background: #334155;
+  color: #e2e8f0;
+  border-color: #64748b;
+}
+
+/* ── Code editor area ── */
+.codeWrap {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  background: #1a1d27;
+}
+
+.lineNumbersGutter {
+  width: 44px;
+  background: #20253a;
+  border-right: 1px solid #2d3347;
+  padding-top: 14px;
+  text-align: right;
+  overflow: hidden;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.lineNumberItem {
+  height: 21px;
+  line-height: 21px;
+  padding-right: 10px;
+  font-size: 0.78rem;
+  color: #4a5568;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+}
+
+/* Inner container for the overlay textarea */
+.editorContainer {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.highlightBackdrop {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 0.88rem;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  line-height: 21px;
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
+  color: #e2e8f0;
+  background: transparent;
+  border: none;
+  tab-size: 4;
+  word-break: break-all;
+}
+
+.textareaEditor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  caret-color: #e2e8f0;
+  font-size: 0.88rem;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  line-height: 21px;
+  padding: 14px 16px;
+  tab-size: 4;
+  overflow: auto;
+  white-space: pre;
+}
+
+/* Floating run / ask-ai button bar */
+.editorFloatBar {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 10;
+}
+
+.btnAskAI {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btnAskAI:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.btnRunCode {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #7c3aed;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #5b21b6;
+  transition: all 0.15s;
+}
+.btnRunCode:hover {
+  background: #6d28d9;
+}
+.btnRunCode:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.btnRunCodeLoading {
+  background: #4c1d95;
+}
+
+/* Spinning animation for running indicator */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+/* ── Output Panel ── */
+.outputPanel {
+  height: 200px;
+  background: #111827;
+  border-top: 1px solid #1f2937;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.outputHeader {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 16px;
+  height: 38px;
+  background: #1a1d27;
+  border-bottom: 1px solid #1f2937;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.outputTabActive {
+  color: #7c3aed;
+  border-bottom: 2px solid #7c3aed;
+  padding-bottom: 2px;
+}
+
+.outputSplit {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.outputBox,
+.expectedBox {
+  flex: 1;
+  padding: 12px 16px;
+  overflow-y: auto;
+  font-size: 0.82rem;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  line-height: 1.6;
+  color: #94a3b8;
+}
+
+.outputBox {
+  border-right: 1px solid #1f2937;
+}
+
+.outputBoxLabel {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #4a5568;
+  margin-bottom: 6px;
+}
+
+.outputPlaceholder {
+  color: #374151;
+  font-style: italic;
+}
+
+.outputSuccess {
+  color: #34d399;
+}
+
+.outputError {
+  color: #f87171;
+}
+
+/* ── Left panel extras ── */
+
+/* Hint section in left panel */
+.hintSection {
+  margin-top: 16px;
+}
+
+.hintBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #92400e;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.hintBtn:hover {
+  background: #fef3c7;
+}
+
+@media (max-width: 900px) {
+  .splitPanel {
+    flex-direction: column;
+  }
+  .instructionsPanel {
+    width: 100%;
+    max-height: 45vh;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+}

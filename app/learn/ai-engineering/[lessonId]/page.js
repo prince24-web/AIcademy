@@ -6,6 +6,115 @@ import { useParams, useRouter } from 'next/navigation';
 import styles from './page.module.css';
 import { aiLessonsData } from '../aiLessonsData';
 
+// ─── CONFETTI CELEBRATION TRIGGER ───────────────────────────────────────────
+const triggerConfetti = (originX = 0.5, originY = 0.6) => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100vw';
+    canvas.style.height = '100vh';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '999999';
+    document.body.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const colors = [
+      '#7c3aed', '#6366f1', '#38bdf8', '#10b981',
+      '#f59e0b', '#ec4899', '#f43f5e', '#a855f7',
+      '#06b6d4', '#14b8a6', '#fbbf24', '#f97316', '#e11d48'
+    ];
+
+    const particleCount = 140;
+    const particles = [];
+    const startX = width * originX;
+    const startY = height * originY;
+
+    // Create 2 fountain arcs for high impact
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * (Math.random() * 1.5 - 1.25)); // upward fan
+      const speed = Math.random() * 22 + 10;
+      particles.push({
+        x: startX + (Math.random() * 40 - 20),
+        y: startY + (Math.random() * 20 - 10),
+        vx: Math.cos(angle) * speed * (Math.random() * 0.9 + 0.4),
+        vy: Math.sin(angle) * speed * (Math.random() * 0.9 + 0.4) - 4,
+        size: Math.random() * 9 + 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rSpeed: (Math.random() - 0.5) * 18,
+        wobble: Math.random() * 10,
+        wobbleSpeed: Math.random() * 0.12 + 0.05,
+        alpha: 1,
+        decay: Math.random() * 0.011 + 0.007,
+        shape: Math.random() > 0.35 ? 'rect' : 'circle'
+      });
+    }
+
+    let animId;
+    const render = () => {
+      ctx.clearRect(0, 0, width, height);
+      let aliveCount = 0;
+
+      for (let p of particles) {
+        if (p.alpha <= 0) continue;
+        aliveCount++;
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.48; // gravity
+        p.vx *= 0.985; // drag
+        p.rotation += p.rSpeed;
+        p.wobble += p.wobbleSpeed;
+        p.alpha -= p.decay;
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+
+        const scaleX = Math.cos(p.wobble);
+
+        if (p.shape === 'rect') {
+          ctx.fillRect((-p.size / 2) * scaleX, -p.size / 2, p.size * scaleX, p.size);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, (p.size / 2) * Math.abs(scaleX), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      if (aliveCount > 0) {
+        animId = requestAnimationFrame(render);
+      } else {
+        cancelAnimationFrame(animId);
+        if (canvas.parentNode) {
+          canvas.parentNode.removeChild(canvas);
+        }
+      }
+    };
+
+    animId = requestAnimationFrame(render);
+  } catch (err) {
+    console.error('Confetti animation error:', err);
+  }
+};
+
 // ─── SVG VECTOR ICONS ──────────────────────────────────────────────────
 const IconArrowLeft = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -123,9 +232,9 @@ const IconTrophy = ({ size = 28, style = {} }) => (
   </svg>
 );
 
-// ─── PYTHON SYNTAX HIGHLIGHTER LEXER ──────────────────────────────────────
-function highlightPythonCode(code) {
-  if (!code) return '';
+// ─── COMPREHENSIVE SYNTAX HIGHLIGHTER LEXER (PYTHON / JSON / PROMPT) ────────
+function highlightCode(code) {
+  if (!code || typeof code !== 'string') return '';
 
   const escapeHtml = (str) =>
     str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -133,12 +242,15 @@ function highlightPythonCode(code) {
   const combinedRegex = new RegExp(
     [
       '(#[^\\n]*)', // 1. Comments
-      '("""[\\s\\S]*?"""|\'\'\'[\\s\\S]*?\'\'\')', // 2. Triple strings
-      '((?:f|F)?(?:"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'))', // 3. Strings
-      '(\\b(?:def|class|return|if|elif|else|for|while|try|except|finally|raise|import|from|as|with|in|is|not|and|or|True|False|None|pass|break|continue|yield|lambda)\\b)', // 4. Keywords
-      '(\\b(?:print|len|range|str|int|float|list|dict|set|tuple|sum|max|min|round|abs|type|zip|enumerate|map|filter|input|open)\\b)', // 5. Builtins
-      '(\\b[a-zA-Z_]\\w*(?=\\s*\\())', // 6. Function names
-      '(\\b\\d+(?:\\.\\d+)?\\b)', // 7. Numbers
+      '("""[\\s\\S]*?"""|\'\'\'[\\s\\S]*?\'\'\')', // 2. Triple / Docstrings
+      '((?:&quot;[\\w_ -]+&quot;|"[\\w_ -]+")\\s*:)', // 3. JSON Keys with colon
+      '((?:f|F)?(?:"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'|`[^`]*`))', // 4. Strings
+      '(\\b(?:def|class|return|if|elif|else|for|while|try|except|finally|raise|import|from|as|with|in|is|not|and|or|pass|break|continue|yield|lambda|const|let|var|function|export|default|type|interface|enum)\\b)', // 5. Keywords
+      '(\\b(?:True|False|None|true|false|null|undefined)\\b)', // 6. Booleans / Constants
+      '(\\b(?:BaseModel|Field|TypedDict|Enum|OpenAI|GenerativeModel|GenerationConfig|MathResponse|Step|CustomerTicketAnalysis|CustomerOrder|VerifiedDecision|ProductionTriage|NaiveTriage|SupportTicketSchema|SecurityAuditSchema|PriorityLevel|TicketCategory|Choice|Recipe|int|str|float|bool|list|dict|set|tuple|Any|Optional|Exception|LengthFinishReasonError)\\b)', // 7. Types & Classes
+      '(\\b(?:print|len|range|parse|generate_content|append|split|join|get|post|match|round|input|sum|max|min|sorted|abs|type|zip|enumerate|map|filter|open)\\b(?=\\s*\\())', // 8. Functions / Methods
+      '(\\b\\d+(?:\\.\\d+)?\\b)', // 9. Numbers
+      '(@\\w+)', // 10. Decorators
     ].join('|'),
     'g'
   );
@@ -152,22 +264,31 @@ function highlightPythonCode(code) {
       result += escapeHtml(code.slice(lastIndex, match.index));
     }
 
-    const [full, comment, tripleStr, str, keyword, builtin, funcName, number] = match;
+    const [full, comment, tripleStr, jsonKey, str, keyword, boolConst, typeClass, funcName, number, decor] = match;
 
     if (comment) {
       result += `<span style="color: #64748b; font-style: italic;">${escapeHtml(comment)}</span>`;
     } else if (tripleStr) {
-      result += `<span style="color: #86efac;">${escapeHtml(tripleStr)}</span>`;
+      result += `<span style="color: #34d399;">${escapeHtml(tripleStr)}</span>`;
+    } else if (jsonKey) {
+      const colonIdx = jsonKey.lastIndexOf(':');
+      const k = jsonKey.slice(0, colonIdx);
+      const c = jsonKey.slice(colonIdx);
+      result += `<span style="color: #38bdf8; font-weight: 600;">${escapeHtml(k)}</span><span style="color: #94a3b8;">${escapeHtml(c)}</span>`;
     } else if (str) {
-      result += `<span style="color: #93c5fd;">${escapeHtml(str)}</span>`;
+      result += `<span style="color: #a7f3d0;">${escapeHtml(str)}</span>`;
     } else if (keyword) {
-      result += `<span style="color: #c084fc; font-weight: 600;">${escapeHtml(keyword)}</span>`;
-    } else if (builtin) {
-      result += `<span style="color: #38bdf8;">${escapeHtml(builtin)}</span>`;
+      result += `<span style="color: #f43f5e; font-weight: 700;">${escapeHtml(keyword)}</span>`;
+    } else if (boolConst) {
+      result += `<span style="color: #fb923c; font-weight: 700;">${escapeHtml(boolConst)}</span>`;
+    } else if (typeClass) {
+      result += `<span style="color: #38bdf8; font-weight: 600;">${escapeHtml(typeClass)}</span>`;
     } else if (funcName) {
-      result += `<span style="color: #4ade80;">${escapeHtml(funcName)}</span>`;
+      result += `<span style="color: #818cf8; font-weight: 600;">${escapeHtml(funcName)}</span>`;
     } else if (number) {
-      result += `<span style="color: #fde047;">${escapeHtml(number)}</span>`;
+      result += `<span style="color: #fbbf24;">${escapeHtml(number)}</span>`;
+    } else if (decor) {
+      result += `<span style="color: #c084fc;">${escapeHtml(decor)}</span>`;
     }
 
     lastIndex = combinedRegex.lastIndex;
@@ -179,6 +300,97 @@ function highlightPythonCode(code) {
 
   return result;
 }
+
+// ─── SYNTAX CODE BLOCK COMPONENT ──────────────────────────────────────────
+const SyntaxCodeBlock = ({ code, title, language = 'Python / JSON' }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div style={{
+      background: '#090d16',
+      border: '1.5px solid #1e293b',
+      borderRadius: '12px',
+      marginTop: '1.1rem',
+      overflow: 'hidden',
+      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+    }}>
+      {/* Code header bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0.6rem 1rem',
+        background: '#0f172a',
+        borderBottom: '1px solid #1e293b'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Window control dots */}
+          <div style={{ display: 'flex', gap: '5px' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444', display: 'inline-block' }}></span>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }}></span>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+          </div>
+          {title && (
+            <span style={{
+              color: '#38bdf8',
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              marginLeft: '6px'
+            }}>
+              {title}
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ color: '#64748b', fontSize: '0.68rem', fontFamily: 'monospace', fontWeight: 600 }}>
+            {language}
+          </span>
+          <button
+            onClick={handleCopy}
+            style={{
+              background: copied ? '#065f46' : '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '6px',
+              color: copied ? '#34d399' : '#cbd5e1',
+              padding: '2px 8px',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.15s'
+            }}
+          >
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
+      </div>
+
+      {/* Code body */}
+      <pre style={{
+        margin: 0,
+        padding: '1rem 1.25rem',
+        color: '#e2e8f0',
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+        fontSize: '0.82rem',
+        lineHeight: '1.65',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        overflowX: 'auto'
+      }}>
+        <code dangerouslySetInnerHTML={{ __html: highlightCode(code) }} />
+      </pre>
+    </div>
+  );
+};
 
 // Nested Circles SVG Diagram Component (Matching User Reference Image Style)
 const NestedCirclesDiagram = () => {
@@ -2378,19 +2590,19 @@ const HallucinationsDiagram = () => {
   const rootCauses = [
     {
       title: '1. Web Data Noise & Gaps',
-      icon: '🌐',
+      icon: 'DATA',
       desc: 'LLMs are trained on massive web scrapes (Reddit, Wikipedia, forums). The internet contains sarcasm, errors, and unverified claims. When data is missing, models fill gaps with statistical guesses.',
       color: '#38bdf8'
     },
     {
       title: '2. Sampling & Generation Objectives',
-      icon: '🎲',
+      icon: 'SAMPLING',
       desc: 'Beam search and high temperature sampling introduce tradeoffs between fluency and accuracy. Pushing for high creativity forces the model to sample low-probability tokens that may be factual errors.',
       color: '#f59e0b'
     },
     {
       title: '3. Input Context Ambiguity',
-      icon: '❓',
+      icon: 'CONTEXT',
       desc: 'Without explicit background context, prompts confuse the model. Asking "Can cats speak English?" without mentioning the "Garfield comic strip" leads the model to make wrong contextual assumptions.',
       color: '#a78bfa'
     }
@@ -2474,13 +2686,13 @@ const HallucinationsDiagram = () => {
                 <h4 style={{ color: famousExamples[famousExampleIdx].color, margin: 0, fontSize: '1rem', fontWeight: 800 }}>
                   {famousExamples[famousExampleIdx].title}
                 </h4>
-                <span style={{ background: `${famousExamples[famousExampleIdx].color}25`, color: famousExamples[famousExampleIdx].color, border: `1px solid ${famousExamples[famousExampleIdx].color}`, padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 700 }}>
+                <span style={{ background: `${famousExamples[famousExampleIdx].color}25`, color: famousExamples[famousExampleIdx].color, border: `1px solid ${famousExamples[famousExampleIdx].color}`, padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 800 }}>
                   {famousExamples[famousExampleIdx].badge}
                 </span>
               </div>
 
               <div style={{ marginBottom: '0.85rem', padding: '0.75rem', background: '#3f1818', border: '1px solid #ef4444', borderRadius: '8px' }}>
-                <div style={{ color: '#fca5a5', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>❌ AI Hallucination Output:</div>
+                <div style={{ color: '#fca5a5', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>AI Hallucination Output:</div>
                 <div style={{ color: '#f87171', fontSize: '0.88rem', fontFamily: 'monospace' }}>{famousExamples[famousExampleIdx].claim}</div>
               </div>
 
@@ -2627,6 +2839,4439 @@ const HallucinationsDiagram = () => {
   );
 };
 
+// ─── SYSTEM VS USER VS ASSISTANT DIAGRAM ───────────────────────────────────────
+const SystemUserAssistantDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [activeStackIdx, setActiveStackIdx] = useState(0);
+  const [conflictIdx, setConflictIdx] = useState(0);
+
+  const panels = [
+    { label: '3-Layer Architecture', color: '#38bdf8' },
+    { label: 'JSON Chat API Payloads', color: '#34d399' },
+    { label: 'Conflict Precedence', color: '#ef4444' },
+    { label: 'SOP & Quality Checklist', color: '#a78bfa' },
+  ];
+
+  const stacks = [
+    {
+      name: 'Developer Code Reviewer',
+      system: 'You are a careful security auditor and senior engineer. Accuracy > Clarity > Brevity. Safety: Never output plain text secrets or unverified exploits.',
+      assistant: 'Process: 1) Executive summary, 2) Runnable refactored snippet with inline comments, 3) Performance benchmark estimates.',
+      user: 'Goal: Audit this Node.js authentication middleware for memory leaks and SQL injection risks.',
+      json: `[\n  { "role": "system", "content": "You are a careful security auditor..." },\n  { "role": "assistant", "content": "Format: Executive summary + Runnable refactored snippet." },\n  { "role": "user", "content": "Goal: Audit Node.js auth middleware for memory leaks." }\n]`
+    },
+    {
+      name: 'Technical Writer / Documentation',
+      system: 'You are a technical documentation specialist for developers. Priorities: Verifiability > Simplicity > Style. Safety: No unverified API specs.',
+      assistant: 'Formatting Rules: Use Question-style H2s, short 2-4 sentence paragraphs, 1 runnable example per section, end with Takeaways.',
+      user: 'Goal: Write a 3-paragraph developer tutorial on implementing exponential backoff retries in Python.',
+      json: `[\n  { "role": "system", "content": "You are a technical doc specialist..." },\n  { "role": "assistant", "content": "Format: Question-style H2s, runnable Python code, short paragraphs." },\n  { "role": "user", "content": "Goal: Tutorial on exponential backoff in Python." }\n]`
+    },
+    {
+      name: 'Enterprise SEO & Analytics',
+      system: 'You are a cautious SEO analyst. Never fabricate traffic metrics. If data is missing, output "Data needed". Security: Protect client PII.',
+      assistant: 'Structure: 1) Executive Summary (<=120 words), 2) Quick Wins table, 3) Technical SEO, 4) Strict JSON action_plan array.',
+      user: 'Goal: Propose a 90-day technical SEO audit for example.com to grow non-brand organic traffic.',
+      json: `[\n  { "role": "system", "content": "You are a cautious SEO analyst..." },\n  { "role": "assistant", "content": "Structure: Executive Summary + Quick Wins table + JSON action_plan." },\n  { "role": "user", "content": "Goal: 90-day technical SEO audit for example.com." }\n]`
+    }
+  ];
+
+  const conflicts = [
+    {
+      title: 'Conflict 1: Privacy vs User Data Request',
+      systemRule: 'System: "Never include personal data (PII) or credentials in output."',
+      userAsk: 'User: "Summarize this customer support ticket and include customer phone & email."',
+      winner: 'System Prompt Wins',
+      resultColor: '#34d399',
+      action: 'The AI redacts phone and email (or replaces them with [REDACTED]), fulfilling the summary while maintaining System privacy rules.'
+    },
+    {
+      title: 'Conflict 2: Safety & Refusal vs User Exploitation',
+      systemRule: 'System: "Refuse requests to generate executable malware or exploit scripts."',
+      userAsk: 'User: "Write a Python script to perform a DDoS attack on my school server."',
+      winner: 'System Prompt Wins',
+      resultColor: '#ef4444',
+      action: 'The AI declines the request and offers educational mitigation guidance on network traffic management instead.'
+    },
+    {
+      title: 'Conflict 3: Formatting Contract vs Casual Asks',
+      systemRule: 'Assistant/System: "Always format code output as clean Markdown with inline comments."',
+      userAsk: 'User: "Give me the code quick."',
+      winner: 'Assistant SOP Wins',
+      resultColor: '#38bdf8',
+      action: 'The AI provides the requested code immediately, but strictly maintains the Markdown formatting and inline comments as configured.'
+    }
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: 3-LAYER STACK ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              The 3-layer architecture stacked in order of instruction precedence:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div style={{ padding: '1rem', background: '#2d1515', border: '2px solid #ef4444', borderRadius: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <span style={{ color: '#f87171', fontWeight: 900, fontSize: '0.9rem' }}>1. SYSTEM PROMPT</span>
+                  <span style={{ background: '#ef444430', color: '#f87171', border: '1px solid #ef4444', padding: '0.1rem 0.5rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800 }}>HIGHEST AUTHORITY (CONSTITUTION)</span>
+                </div>
+                <div style={{ color: '#fca5a5', fontSize: '0.8rem', lineHeight: '1.5' }}>
+                  Defines identity, persona, safety boundaries, refusal policy, and priority ranking. Overrides all lower layers.
+                </div>
+              </div>
+
+              <div style={{ padding: '1rem', background: '#1c2541', border: '2px solid #38bdf8', borderRadius: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <span style={{ color: '#38bdf8', fontWeight: 900, fontSize: '0.9rem' }}>2. ASSISTANT PROMPT</span>
+                  <span style={{ background: '#38bdf830', color: '#38bdf8', border: '1px solid #38bdf8', padding: '0.1rem 0.5rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800 }}>MEDIUM AUTHORITY (SOP & STYLE)</span>
+                </div>
+                <div style={{ color: '#7dd3fc', fontSize: '0.8rem', lineHeight: '1.5' }}>
+                  Enforces house style, voice, formatting contracts (tables/diagrams), process steps, and quality gates.
+                </div>
+              </div>
+
+              <div style={{ padding: '1rem', background: '#0c2a1f', border: '2px solid #34d399', borderRadius: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <span style={{ color: '#34d399', fontWeight: 900, fontSize: '0.9rem' }}>3. USER PROMPT</span>
+                  <span style={{ background: '#34d39930', color: '#34d399', border: '1px solid #34d399', padding: '0.1rem 0.5rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800 }}>TASK LEVEL (STEERING WHEEL)</span>
+                </div>
+                <div style={{ color: '#6ee7b7', fontSize: '0.8rem', lineHeight: '1.5' }}>
+                  Supplies specific task intent, goal, inputs, scope, constraints, and success criteria for the current turn.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: JSON API PAYLOADS ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Select a production use-case stack to inspect its raw Chat API JSON array payload:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {stacks.map((st, i) => (
+                <button key={i} onClick={() => setActiveStackIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${activeStackIdx === i ? '#34d399' : '#334155'}`,
+                  background: activeStackIdx === i ? '#34d39920' : '#1e293b',
+                  color: activeStackIdx === i ? '#34d399' : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{st.name}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#0f172a', border: '1.5px solid #34d399', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ color: '#34d399', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                RAW CHAT COMPLETIONS API JSON PAYLOAD:
+              </div>
+              <pre style={{ background: '#090d16', padding: '0.85rem', borderRadius: '8px', color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.78rem', lineHeight: '1.5', margin: 0, overflowX: 'auto' }}>
+                <code dangerouslySetInnerHTML={{ __html: highlightCode(stacks[activeStackIdx].json) }} />
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 3: CONFLICT PRECEDENCE ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              How LLM models resolve conflicting instructions across prompt layers:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {conflicts.map((cf, i) => (
+                <button key={i} onClick={() => setConflictIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${conflictIdx === i ? cf.resultColor : '#334155'}`,
+                  background: conflictIdx === i ? `${cf.resultColor}20` : '#1e293b',
+                  color: conflictIdx === i ? cf.resultColor : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>Case {i + 1}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${conflicts[conflictIdx].resultColor}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ color: conflicts[conflictIdx].resultColor, fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.6rem' }}>
+                {conflicts[conflictIdx].title}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.85rem' }}>
+                <div style={{ padding: '0.6rem 0.8rem', background: '#2d1515', border: '1px solid #ef4444', borderRadius: '6px', fontSize: '0.78rem', color: '#fca5a5', fontFamily: 'monospace' }}>
+                  {conflicts[conflictIdx].systemRule}
+                </div>
+                <div style={{ padding: '0.6rem 0.8rem', background: '#0c2a1f', border: '1px solid #34d399', borderRadius: '6px', fontSize: '0.78rem', color: '#a7f3d0', fontFamily: 'monospace' }}>
+                  {conflicts[conflictIdx].userAsk}
+                </div>
+              </div>
+
+              <div style={{ padding: '0.75rem', background: '#0f172a', borderRadius: '8px', border: `1px solid ${conflicts[conflictIdx].resultColor}` }}>
+                <div style={{ color: conflicts[conflictIdx].resultColor, fontWeight: 800, fontSize: '0.82rem', marginBottom: '0.2rem' }}>
+                  {conflicts[conflictIdx].winner}
+                </div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.78rem' }}>
+                  {conflicts[conflictIdx].action}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: CHECKLIST & TROUBLESHOOTING ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Quick troubleshooting guide for model instruction drift:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {[
+                { issue: 'Conflicting Rules', fix: 'Remove redundant rules or state precedence explicitly.' },
+                { issue: 'Vague Goal', fix: 'Add audience, context, hard constraints, and explicit output format.' },
+                { issue: 'Overloaded Prompt', fix: 'Break into step-by-step turns (outline -> draft -> review).' },
+                { issue: 'Context Truncation', fix: 'Keep System/Assistant prompts short (3-8 sentences) so they survive chat truncation.' },
+                { issue: 'Unsafe Data Ask', fix: 'Reframe with anonymized data or request safe alternative guidance.' }
+              ].map((item, i) => (
+                <div key={i} style={{ padding: '0.75rem 0.9rem', background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontSize: '0.78rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#f87171', fontWeight: 700 }}>{item.issue}</span>
+                  <span style={{ color: '#6ee7b7', fontWeight: 600 }}>Fix: {item.fix}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// ─── FEW-SHOT PROMPTING DIAGRAM (GOOGLE AI ESSENTIALS) ──────────────────────────
+const FewShotDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [spectrumIdx, setSpectrumIdx] = useState(2);
+  const [retailMode, setRetailMode] = useState('few');
+  const [activePatternIdx, setActivePatternIdx] = useState(0);
+  const [densityIdx, setDensityIdx] = useState(1);
+
+  const panels = [
+    { label: 'Shot Spectrum (0 to Few)', color: '#0ea5e9' },
+    { label: 'Retail Product Lab', color: '#38bdf8' },
+    { label: 'Pattern & Schema Matching', color: '#34d399' },
+    { label: 'Density & Token Tradeoffs', color: '#a78bfa' },
+  ];
+
+  const spectrum = [
+    {
+      type: 'Zero-Shot Prompting',
+      shots: '0 Examples',
+      color: '#ef4444',
+      badge: 'DIRECT QUERY',
+      desc: 'The model receives instructions or queries with zero demonstration examples. It relies entirely on pre-trained weights and general training data.',
+      prompt: 'Classify the sentiment of this customer review:\n"The battery life on this laptop exceeded all my expectations!"\nSentiment:',
+      output: 'Sentiment: Positive',
+      strengths: 'Minimal prompt tokens, zero setup overhead, fast inference time.',
+      limits: 'High variance on specific formatting rules; struggles with nuanced classifications.',
+      bestFor: 'Simple factual Q&A, basic translations, general summarization.'
+    },
+    {
+      type: 'One-Shot Prompting',
+      shots: '1 Example',
+      color: '#f59e0b',
+      badge: 'FORMAT ANCHOR',
+      desc: 'The model is provided with exactly one demonstration input-output pair before the target question. Anchors the basic output schema and delimiter style.',
+      prompt: 'Classify review sentiment with category tags:\n\nInput: "Screen arrived scratched."\nOutput: [NEGATIVE] Category: Hardware\n\nInput: "The battery life on this laptop exceeded all my expectations!"\nOutput:',
+      output: '[POSITIVE] Category: Battery Life',
+      strengths: 'Demonstrates delimiters and basic output schema with low token overhead.',
+      limits: 'Can over-bias toward the single example\'s specific wording or style.',
+      bestFor: 'Basic format enforcement, delimiter matching, simple tag extraction.'
+    },
+    {
+      type: 'Few-Shot Prompting',
+      shots: '2-5 Examples',
+      color: '#34d399',
+      badge: 'PATTERN INDUCTION',
+      desc: 'The model receives 2 or more diverse input-output exemplars. The attention mechanism induces the underlying structural rules, tone, and constraints through In-Context Learning.',
+      prompt: 'Classify review sentiment with category tags and confidence score:\n\nInput: "Screen arrived scratched."\nOutput: [NEGATIVE] Category: Hardware | Confidence: 0.98\n\nInput: "Delivery was fast and polite."\nOutput: [POSITIVE] Category: Logistics | Confidence: 0.95\n\nInput: "The battery life on this laptop exceeded all my expectations!"\nOutput:',
+      output: '[POSITIVE] Category: Battery Performance | Confidence: 0.96',
+      strengths: 'Strict adherence to house style, high accuracy on edge cases, no fine-tuning required.',
+      limits: 'Consumes additional context window tokens; slight increase in prompt cost.',
+      bestFor: 'Strict JSON extraction, bespoke copywriting tone, domain classification, SQL generation.'
+    }
+  ];
+
+  const retailScenarios = {
+    zero: {
+      label: 'Zero-Shot Mode (0 Examples)',
+      color: '#ef4444',
+      prompt: 'Write a one-sentence product description for a skateboard. It should contain two adjectives.',
+      output: 'This high-performance skateboard features a durable deck and smooth wheels for riders of all skill levels.',
+      analysis: 'Longer than requested, uses 3 adjectives instead of 2, and lacks standard branded rhythm because no stylistic model was provided.',
+      compliance: 'Partial Compliance (45%)'
+    },
+    one: {
+      label: 'One-Shot Mode (1 Example: Bicycle)',
+      color: '#f59e0b',
+      prompt: 'Write a one-sentence product description with two adjectives in this style:\n\nProduct: Bicycle\nDescription: A sleek and durable bicycle built for city commuting.\n\nProduct: Skateboard\nDescription:',
+      output: 'A versatile and rugged skateboard built for park cruising.',
+      analysis: 'Good structure matching the bicycle example. Successfully captured "A [adj] and [adj] [product] built for [activity]" format.',
+      compliance: 'High Compliance (85%)'
+    },
+    few: {
+      label: 'Few-Shot Mode (2 Examples: Bicycle + Rollerblades)',
+      color: '#34d399',
+      prompt: 'Write a one-sentence product description. Review the examples below and write the description in the exact same style.\n\nProduct: Bicycle\nDescription: A sleek and durable bicycle built for city commuting.\n\nProduct: Rollerblades\nDescription: Smooth and stylish rollerblades designed for effortless glide.\n\nProduct: Skateboard\nDescription:',
+      output: 'A flexible and responsive skateboard engineered for street carving.',
+      analysis: 'Exact style match! The model synthesized the rhythmic flow and vocabulary variety across both exemplars while strictly maintaining 1 sentence and exactly 2 adjectives.',
+      compliance: 'Perfect Compliance (100%)'
+    }
+  };
+
+  const patternTasks = [
+    {
+      title: 'Customer Support Routing',
+      category: 'INTENT CLASSIFIER',
+      color: '#38bdf8',
+      shotsText: `Ticket: "My card was charged twice on checkout." -> Department: BILLING [Urgency: High]\nTicket: "How do I invite teammates to my workspace?" -> Department: GENERAL [Urgency: Low]\nTicket: "API returns 502 Bad Gateway during POST /v1/chat" -> Department: DEV_SUPPORT [Urgency: Critical]`,
+      targetInput: 'Ticket: "I cannot login with SSO after resetting password"',
+      fewShotResult: 'Department: DEV_SUPPORT [Urgency: High]'
+    },
+    {
+      title: 'Data Extraction to Strict JSON',
+      category: 'JSON SYNTAX',
+      color: '#34d399',
+      shotsText: `Text: "Meeting with Dr. Aris at 3pm on Friday in Room 402"\nJSON: { "attendee": "Dr. Aris", "time": "15:00", "day": "Friday", "room": "402" }\n\nText: "Lunch with Sarah at noon on Monday at Bistro 9"\nJSON: { "attendee": "Sarah", "time": "12:00", "day": "Monday", "room": "Bistro 9" }`,
+      targetInput: 'Text: "Code review with Mark at 10am on Wednesday in Lab B"',
+      fewShotResult: '{ "attendee": "Mark", "time": "10:00", "day": "Wednesday", "room": "Lab B" }'
+    },
+    {
+      title: 'Natural Language to SQL',
+      category: 'CODE GENERATION',
+      color: '#a78bfa',
+      shotsText: `Query: "Count all active users signed up this month"\nSQL: SELECT COUNT(*) FROM users WHERE status = 'active' AND created_at >= DATE_TRUNC('month', CURRENT_DATE);\n\nQuery: "Find top 5 orders by revenue"\nSQL: SELECT id, revenue FROM orders ORDER BY revenue DESC LIMIT 5;`,
+      targetInput: 'Query: "List distinct customer emails from London with total spend over 1000"',
+      fewShotResult: 'SELECT DISTINCT email, SUM(amount) AS total_spend FROM customers JOIN orders ON customers.id = orders.customer_id WHERE city = \'London\' GROUP BY email HAVING SUM(amount) > 1000;'
+    }
+  ];
+
+  const densityOptions = [
+    {
+      shots: '0 Shots (Zero-Shot)',
+      tokenOverhead: '+0 tokens',
+      cost: 'Baseline ($)',
+      accuracy: '60% - 75%',
+      risk: 'High formatting variance',
+      guidance: 'Use for open-ended creative tasks or standard factual lookups.'
+    },
+    {
+      shots: '2-4 Shots (Sweet Spot)',
+      tokenOverhead: '+150-300 tokens',
+      cost: 'Minimal (+$0.0002/req)',
+      accuracy: '92% - 98%',
+      risk: 'None (optimal balance)',
+      guidance: 'Recommended for 90% of production pipelines: structured outputs, tone matching, and classification.'
+    },
+    {
+      shots: '8-12 Shots (High Density)',
+      tokenOverhead: '+800-1500 tokens',
+      cost: 'Moderate (+$0.001/req)',
+      accuracy: '96% - 99%',
+      risk: 'Diminishing returns, slight latency increase',
+      guidance: 'Useful when covering complex multi-class taxonomy edge cases.'
+    },
+    {
+      shots: '25+ Shots (Context Bloat)',
+      tokenOverhead: '+3000+ tokens',
+      cost: 'High ($$$)',
+      accuracy: 'Plateaus (~97%)',
+      risk: 'Context window crowding, model rigidity, token waste',
+      guidance: 'Inefficient. If you need 25+ examples, fine-tuning or RAG vector retrieval is significantly superior.'
+    }
+  ];
+
+  const currentShot = spectrum[spectrumIdx];
+  const currentRetail = retailScenarios[retailMode];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: SHOT SPECTRUM ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Compare how the number of demonstration examples changes the prompting paradigm:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {spectrum.map((item, i) => (
+                <button key={i} onClick={() => setSpectrumIdx(i)} style={{
+                  padding: '0.4rem 0.85rem', borderRadius: '8px',
+                  border: `1.5px solid ${spectrumIdx === i ? item.color : '#334155'}`,
+                  background: spectrumIdx === i ? `${item.color}20` : '#1e293b',
+                  color: spectrumIdx === i ? item.color : '#cbd5e1',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{item.type} ({item.shots})</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentShot.color}`, borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                <h4 style={{ color: currentShot.color, margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
+                  {currentShot.type}
+                </h4>
+                <span style={{ background: `${currentShot.color}25`, color: currentShot.color, border: `1px solid ${currentShot.color}`, padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800 }}>
+                  {currentShot.badge}
+                </span>
+              </div>
+
+              <p style={{ color: '#cbd5e1', fontSize: '0.84rem', lineHeight: '1.6', margin: '0 0 1rem' }}>
+                {currentShot.desc}
+              </p>
+
+              {/* Code Box */}
+              <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '0.85rem', marginBottom: '0.85rem' }}>
+                <div style={{ color: '#38bdf8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                  Prompt Payload:
+                </div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.78rem', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(currentShot.prompt) }} />
+                </pre>
+                <div style={{ borderTop: '1px solid #334155', marginTop: '0.6rem', paddingTop: '0.5rem', color: currentShot.color, fontFamily: 'monospace', fontSize: '0.8rem', fontWeight: 700 }}>
+                  {currentShot.output}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.6rem' }}>
+                <div style={{ padding: '0.6rem 0.8rem', background: '#0c2a1f', border: '1px solid #059669', borderRadius: '6px', fontSize: '0.75rem' }}>
+                  <strong style={{ color: '#6ee7b7', display: 'block', marginBottom: '0.15rem' }}>Strengths:</strong>
+                  <span style={{ color: '#a7f3d0' }}>{currentShot.strengths}</span>
+                </div>
+                <div style={{ padding: '0.6rem 0.8rem', background: '#2d1515', border: '1px solid #dc2626', borderRadius: '6px', fontSize: '0.75rem' }}>
+                  <strong style={{ color: '#fca5a5', display: 'block', marginBottom: '0.15rem' }}>Limitations:</strong>
+                  <span style={{ color: '#fecaca' }}>{currentShot.limits}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: RETAIL PRODUCT LAB ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Google AI Essentials Case Study: Generating a skateboard description (1 sentence, 2 adjectives):
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.1rem', flexWrap: 'wrap' }}>
+              {Object.keys(retailScenarios).map((key) => (
+                <button key={key} onClick={() => setRetailMode(key)} style={{
+                  flex: 1, minWidth: '160px', padding: '0.5rem', borderRadius: '8px',
+                  border: `1.5px solid ${retailScenarios[key].color}`,
+                  background: retailMode === key ? retailScenarios[key].color : '#1e293b',
+                  color: retailMode === key ? '#0f172a' : retailScenarios[key].color,
+                  fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{retailScenarios[key].label.split('(')[0]}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#0f172a', border: `2px solid ${currentRetail.color}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <span style={{ color: currentRetail.color, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Input Prompt Payload:
+                </span>
+                <span style={{ background: `${currentRetail.color}20`, color: currentRetail.color, padding: '0.1rem 0.5rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
+                  {currentRetail.compliance}
+                </span>
+              </div>
+
+              <div style={{ padding: '0.75rem', background: '#1e293b', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.78rem', color: '#e2e8f0', whiteSpace: 'pre-wrap', lineHeight: '1.5', marginBottom: '0.85rem' }}>
+                {currentRetail.prompt}
+              </div>
+
+              <div style={{ color: currentRetail.color, fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                Generated Output:
+              </div>
+              <div style={{ padding: '0.75rem', background: '#0c2a1f', border: `1px solid ${currentRetail.color}`, borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.82rem', color: '#a7f3d0', marginBottom: '0.75rem' }}>
+                "{currentRetail.output}"
+              </div>
+
+              <div style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: '1.5' }}>
+                <strong style={{ color: '#cbd5e1' }}>Analysis:</strong> {currentRetail.analysis}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 3: PATTERN MATCHING ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Inspect how 2 to 3 few-shot examples enforce strict schemas without explicit code schemas:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {patternTasks.map((t, i) => (
+                <button key={i} onClick={() => setActivePatternIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${activePatternIdx === i ? t.color : '#334155'}`,
+                  background: activePatternIdx === i ? `${t.color}20` : '#1e293b',
+                  color: activePatternIdx === i ? t.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{t.title}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${patternTasks[activePatternIdx].color}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ color: patternTasks[activePatternIdx].color, fontWeight: 800, fontSize: '0.9rem', marginBottom: '0.6rem' }}>
+                {patternTasks[activePatternIdx].title} ({patternTasks[activePatternIdx].category})
+              </div>
+
+              <div style={{ background: '#0f172a', borderRadius: '8px', padding: '0.85rem', marginBottom: '0.75rem' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  Demonstration Few-Shot Exemplars:
+                </div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.76rem', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(patternTasks[activePatternIdx].shotsText) }} />
+                </pre>
+              </div>
+
+              <div style={{ padding: '0.75rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}>
+                <div style={{ color: '#38bdf8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                  New Input Turn:
+                </div>
+                <div style={{ color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.78rem', marginBottom: '0.5rem' }}>
+                  {patternTasks[activePatternIdx].targetInput}
+                </div>
+                <div style={{ color: '#34d399', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                  Few-Shot Generated Output:
+                </div>
+                <div style={{ color: '#6ee7b7', fontFamily: 'monospace', fontSize: '0.8rem', fontWeight: 700 }}>
+                  {patternTasks[activePatternIdx].fewShotResult}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: DENSITY & TOKEN TRADEOFFS ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Finding the optimal number of examples to avoid context bloat and rigidity:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {densityOptions.map((opt, i) => (
+                <button key={i} onClick={() => setDensityIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${densityIdx === i ? '#a78bfa' : '#334155'}`,
+                  background: densityIdx === i ? '#a78bfa20' : '#1e293b',
+                  color: densityIdx === i ? '#c084fc' : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{opt.shots}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: '1.5px solid #a78bfa', borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ color: '#c084fc', fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.8rem' }}>
+                {densityOptions[densityIdx].shots}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.6rem', marginBottom: '0.85rem' }}>
+                <div style={{ padding: '0.6rem', background: '#0f172a', borderRadius: '6px', textAlign: 'center' }}>
+                  <div style={{ color: '#94a3b8', fontSize: '0.68rem', textTransform: 'uppercase' }}>Token Overhead</div>
+                  <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.85rem', marginTop: '0.2rem' }}>{densityOptions[densityIdx].tokenOverhead}</div>
+                </div>
+                <div style={{ padding: '0.6rem', background: '#0f172a', borderRadius: '6px', textAlign: 'center' }}>
+                  <div style={{ color: '#94a3b8', fontSize: '0.68rem', textTransform: 'uppercase' }}>Accuracy Band</div>
+                  <div style={{ color: '#34d399', fontWeight: 800, fontSize: '0.85rem', marginTop: '0.2rem' }}>{densityOptions[densityIdx].accuracy}</div>
+                </div>
+                <div style={{ padding: '0.6rem', background: '#0f172a', borderRadius: '6px', textAlign: 'center' }}>
+                  <div style={{ color: '#94a3b8', fontSize: '0.68rem', textTransform: 'uppercase' }}>Cost Delta</div>
+                  <div style={{ color: '#f59e0b', fontWeight: 800, fontSize: '0.85rem', marginTop: '0.2rem' }}>{densityOptions[densityIdx].cost}</div>
+                </div>
+              </div>
+
+              <div style={{ padding: '0.75rem', background: '#0f172a', borderRadius: '8px', border: '1px solid #334155' }}>
+                <div style={{ color: '#fca5a5', fontSize: '0.75rem', marginBottom: '0.3rem' }}>
+                  <strong style={{ color: '#f87171' }}>Risk Profile:</strong> {densityOptions[densityIdx].risk}
+                </div>
+                <div style={{ color: '#a7f3d0', fontSize: '0.75rem' }}>
+                  <strong style={{ color: '#34d399' }}>Recommendation:</strong> {densityOptions[densityIdx].guidance}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// ─── CHAIN-OF-THOUGHT REASONING DIAGRAM (IBM GUIDE) ──────────────────────────
+const ChainOfThoughtDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [problemIdx, setProblemIdx] = useState(0);
+  const [promptMode, setPromptMode] = useState('cot');
+  const [variantIdx, setVariantIdx] = useState(0);
+  const [chainingTab, setChainingTab] = useState('cot');
+  const [diagnosticStep, setDiagnosticStep] = useState(0);
+
+  const panels = [
+    { label: 'Standard vs CoT Lab', color: '#0f62fe' },
+    { label: '4 CoT Variants (IBM)', color: '#38bdf8' },
+    { label: 'Prompt Chaining vs CoT', color: '#34d399' },
+    { label: 'Reasoning Inspector', color: '#a78bfa' },
+  ];
+
+  const problems = [
+    {
+      title: 'Polynomial Roots (Math)',
+      domain: 'ARITHMETIC & ALGEBRA',
+      color: '#0f62fe',
+      promptStandard: 'Solve the quadratic equation: x^2 - 5x + 6 = 0',
+      outputStandard: 'The solution is x = 5.',
+      standardAnalysis: 'Incorrect. The model attempted to predict the final token in a single forward pass without factoring, guessing an incorrect root.',
+      standardAccuracy: 'Incorrect (0%)',
+      
+      promptCoT: 'Solve the quadratic equation: x^2 - 5x + 6 = 0. Show your step-by-step reasoning.',
+      outputCoT: 'Step 1: Standard form ax^2 + bx + c = 0 where a = 1, b = -5, c = 6.\nStep 2: Find two numbers that multiply to 6 and add to -5 -> (-2) and (-3).\nStep 3: Factor the polynomial: (x - 2)(x - 3) = 0.\nStep 4: Solve roots: x - 2 = 0 => x = 2; x - 3 = 0 => x = 3.\nFinal Answer: The solutions are x = 2 and x = 3.',
+      cotAnalysis: '100% Correct. Generating intermediate factoring steps kept the values active in the attention context window, guaranteeing accurate calculation.',
+      cotAccuracy: 'Correct (100%)'
+    },
+    {
+      title: 'Multi-Leg Travel Logistics',
+      domain: 'LOGICAL DEDUCTION',
+      color: '#38bdf8',
+      promptStandard: 'A train leaves City A at 09:00 traveling at 60 mph toward City B (180 miles away). A car leaves City B at 10:00 traveling at 40 mph toward City A. What time do they cross paths?',
+      outputStandard: 'They meet at 11:30 AM.',
+      standardAnalysis: 'Incorrect. The model neglected the 1-hour head start of the train and estimated based on average travel speeds.',
+      standardAccuracy: 'Incorrect (0%)',
+
+      promptCoT: 'A train leaves City A at 09:00 traveling at 60 mph toward City B (180 miles away). A car leaves City B at 10:00 traveling at 40 mph toward City A. Calculate the meeting time step by step.',
+      outputCoT: 'Step 1: From 09:00 to 10:00 (1 hour), the train travels 60 miles alone.\nStep 2: At 10:00, remaining distance between them = 180 - 60 = 120 miles.\nStep 3: Combined closing speed = 60 mph + 40 mph = 100 mph.\nStep 4: Time to meet = 120 miles / 100 mph = 1.2 hours (1 hour 12 minutes).\nStep 5: Add 1h 12m to 10:00 AM -> 11:12 AM.\nFinal Answer: They cross paths at exactly 11:12 AM.',
+      cotAnalysis: 'Exact match. The step-by-step intermediate tokens prevented temporal calculation conflation.',
+      cotAccuracy: 'Correct (100%)'
+    },
+    {
+      title: 'Enterprise Discount Policy',
+      domain: 'BUSINESS LOGIC & RULES',
+      color: '#34d399',
+      promptStandard: 'Customer order: 120 licenses at $50/license. Tier 1 (1-50): 0% discount. Tier 2 (51-100): 10% discount. Tier 3 (101+): 20% discount. What is the total invoice?',
+      outputStandard: 'Total invoice is $4,800 ($50 x 120 with 20% discount applied to all).',
+      standardAnalysis: 'Failed marginal tier calculation. Applied the Tier 3 discount flatly across all 120 units instead of calculating graduated brackets.',
+      standardAccuracy: 'Flawed Logic',
+
+      promptCoT: 'Customer order: 120 licenses at $50/license. Tier 1 (1-50): 0% discount. Tier 2 (51-100): 10% discount. Tier 3 (101+): 20% discount. Calculate the graduated tiered invoice step by step.',
+      outputCoT: 'Step 1: Tier 1 (first 50 licenses @ $50) = 50 * $50 = $2,500.\nStep 2: Tier 2 (next 50 licenses 51-100 @ 10% off $50 = $45) = 50 * $45 = $2,250.\nStep 3: Tier 3 (remaining 20 licenses 101-120 @ 20% off $50 = $40) = 20 * $40 = $800.\nStep 4: Sum all tiers: $2,500 + $2,250 + $800 = $5,550.\nFinal Answer: The total invoice is $5,550.',
+      cotAnalysis: 'Accurate marginal bracket computation. Every tier is bounded and evaluated separately.',
+      cotAccuracy: 'Correct (100%)'
+    }
+  ];
+
+  const variants = [
+    {
+      title: 'Zero-Shot CoT',
+      author: 'Kojima et al., 2022',
+      badge: '"LET\'S THINK STEP BY STEP"',
+      color: '#0f62fe',
+      desc: 'Appends a single trigger sentence ("Let\'s think step by step") to the end of any prompt without supplying demonstration exemplars.',
+      code: `Prompt:
+"A store sells packs of 6 pens for $12 and individual pens for $2.50.
+What is the cheapest way to buy 15 pens?
+Let's think step by step."
+
+Model Response:
+"To get 15 pens:
+- Option A: Buy 3 packs (18 pens) = 3 x $12 = $36
+- Option B: Buy 2 packs (12 pens) + 3 individual pens = $24 + (3 x $2.50) = $24 + $7.50 = $31.50
+Option B is cheaper. Total: $31.50."`,
+      bestFor: 'Rapid prototyping, zero-cost prompt enhancement, general logical queries.'
+    },
+    {
+      title: 'Few-Shot / Manual CoT',
+      author: 'Wei et al., 2022 (Google / IBM)',
+      badge: 'EXEMPLAR-GUIDED',
+      color: '#38bdf8',
+      desc: 'Provides 2 to 4 high-quality input-reasoning-output demonstration pairs to dictate the exact depth and format of the reasoning steps.',
+      code: `Prompt:
+"Q: Roger has 5 tennis balls. He buys 2 cans of tennis balls. Each can has 3 balls. How many does he have?
+A: Roger started with 5 balls. 2 cans of 3 balls is 2 * 3 = 6 balls. 5 + 6 = 11. The answer is 11.
+
+Q: The cafeteria had 23 apples. If they used 20 for lunch and bought 6 more, how many do they have?
+A: The cafeteria had 23 apples. They used 20, so 23 - 20 = 3. They bought 6, so 3 + 6 = 9. The answer is 9.
+
+Q: [Target Question]
+A:"`,
+      bestFor: 'Domain-specific math proofs, legal analysis, structured medical diagnosis workflows.'
+    },
+    {
+      title: 'Self-Consistency CoT',
+      author: 'Wang et al., 2022',
+      badge: 'MAJORITY VOTING (k=5)',
+      color: '#34d399',
+      desc: 'Samples multiple diverse reasoning trajectories at temperature T=0.7, then applies a majority vote across final answers to eliminate outlier reasoning errors.',
+      code: `Workflow:
+Input Prompt -> Sample Path 1 -> Output: $55 (Vote 1)
+             -> Sample Path 2 -> Output: $55 (Vote 2)
+             -> Sample Path 3 -> Output: $42 (Outlier error)
+             -> Sample Path 4 -> Output: $55 (Vote 3)
+             -> Sample Path 5 -> Output: $55 (Vote 4)
+
+Majority Consensus: $55 (Selected with 80% confidence)`,
+      bestFor: 'High-stakes calculations, automated grading, critical financial models.'
+    },
+    {
+      title: 'Automatic CoT (Auto-CoT)',
+      author: 'Zhang et al., 2022',
+      badge: 'DATASET CLUSTERING',
+      color: '#a78bfa',
+      desc: 'Clusters unlabeled questions into diversity groups, automatically executes Zero-Shot CoT on representative samples, and compiles synthetic few-shot reasoning prompts automatically.',
+      code: `Process:
+1. Cluster 10,000 dataset queries into K semantic groups.
+2. Pick representative centroid question from each cluster.
+3. Run Zero-Shot CoT to auto-generate verified reasoning chains.
+4. Construct Few-Shot CoT prompt automatically without human labeling.`,
+      bestFor: 'Batch offline processing, enterprise automated pipelines, large benchmark evaluations.'
+    }
+  ];
+
+  const comparisonData = [
+    { feature: 'Execution Model', cot: 'Single LLM inference turn', chaining: 'Multiple sequential API turns' },
+    { feature: 'Latency', cot: 'Fast (1 roundtrip)', chaining: 'Higher (N roundtrips + network overhead)' },
+    { feature: 'State Management', cot: 'Maintained inside context window tokens', chaining: 'Handled in application code / database' },
+    { feature: 'External Tool Interactivity', cot: 'Limited to in-generation tool calls', chaining: 'Full code execution, database lookups between turns' },
+    { feature: 'Token Cost', cot: 'Moderate (reasoning tokens in 1 call)', chaining: 'Higher (repeated system prompts in each call)' },
+    { feature: 'Best Used For', cot: 'Math, deduction, code logic, summarization', chaining: 'Multi-agent pipelines, ETL, RAG + verification' }
+  ];
+
+  const diagnosticSteps = [
+    { num: 'Step 1', title: 'Premise Extraction', desc: 'Identify given facts, constraints, units, and target goal.', check: 'Verify: Are all numbers and constraints correctly captured?' },
+    { num: 'Step 2', title: 'Formulate Mathematical / Logical Model', desc: 'Translate natural language into formulas or propositional logic.', check: 'Verify: Is the formula structure sound?' },
+    { num: 'Step 3', title: 'Intermediate Execution', desc: 'Execute arithmetic operations step-by-step.', check: 'Verify: Did arithmetic mistakes occur in sub-calculations?' },
+    { num: 'Step 4', title: 'Sanity Check & Synthesis', desc: 'Check if answer satisfies original boundary conditions.', check: 'Verify: Does the result make physical/logical sense?' }
+  ];
+
+  const currentProb = problems[problemIdx];
+  const currentVar = variants[variantIdx];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: STANDARD VS COT LAB ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Compare how Standard Prompting vs. Chain-of-Thought reasoning impacts multistep accuracy:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {problems.map((prob, i) => (
+                <button key={i} onClick={() => setProblemIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${problemIdx === i ? prob.color : '#334155'}`,
+                  background: problemIdx === i ? `${prob.color}20` : '#1e293b',
+                  color: problemIdx === i ? prob.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{prob.title}</button>
+              ))}
+            </div>
+
+            {/* Mode toggle */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button onClick={() => setPromptMode('standard')} style={{
+                flex: 1, padding: '0.5rem', borderRadius: '8px',
+                border: '1.5px solid #ef4444',
+                background: promptMode === 'standard' ? '#ef4444' : '#1e293b',
+                color: promptMode === 'standard' ? '#fff' : '#f87171',
+                fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Standard Prompt (Jump to Answer)</button>
+              <button onClick={() => setPromptMode('cot')} style={{
+                flex: 1, padding: '0.5rem', borderRadius: '8px',
+                border: '1.5px solid #34d399',
+                background: promptMode === 'cot' ? '#34d399' : '#1e293b',
+                color: promptMode === 'cot' ? '#0f172a' : '#34d399',
+                fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Chain-of-Thought (Step-by-Step)</button>
+            </div>
+
+            <div style={{ background: '#0f172a', border: `2px solid ${promptMode === 'cot' ? '#34d399' : '#ef4444'}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <span style={{ color: promptMode === 'cot' ? '#34d399' : '#f87171', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Input Prompt Payload:
+                </span>
+                <span style={{ background: promptMode === 'cot' ? '#05966930' : '#dc262630', color: promptMode === 'cot' ? '#34d399' : '#f87171', padding: '0.1rem 0.5rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
+                  {promptMode === 'cot' ? currentProb.cotAccuracy : currentProb.standardAccuracy}
+                </span>
+              </div>
+
+              <div style={{ padding: '0.65rem 0.85rem', background: '#1e293b', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.78rem', color: '#e2e8f0', marginBottom: '0.85rem' }}>
+                "{promptMode === 'cot' ? currentProb.promptCoT : currentProb.promptStandard}"
+              </div>
+
+              <div style={{ color: promptMode === 'cot' ? '#34d399' : '#f87171', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                Generated Output:
+              </div>
+              <div style={{ padding: '0.75rem', background: promptMode === 'cot' ? '#0c2a1f' : '#2d1515', border: `1px solid ${promptMode === 'cot' ? '#059669' : '#991b1b'}`, borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.8rem', color: promptMode === 'cot' ? '#a7f3d0' : '#fca5a5', whiteSpace: 'pre-wrap', lineHeight: '1.5', marginBottom: '0.75rem' }}>
+                {promptMode === 'cot' ? currentProb.outputCoT : currentProb.outputStandard}
+              </div>
+
+              <div style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: '1.5' }}>
+                <strong style={{ color: '#cbd5e1' }}>Analysis:</strong> {promptMode === 'cot' ? currentProb.cotAnalysis : currentProb.standardAnalysis}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: 4 COT VARIANTS ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              IBM AI taxonomy of high-performance Chain-of-Thought prompting variants:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {variants.map((v, i) => (
+                <button key={i} onClick={() => setVariantIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${variantIdx === i ? v.color : '#334155'}`,
+                  background: variantIdx === i ? `${v.color}20` : '#1e293b',
+                  color: variantIdx === i ? v.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{v.title}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentVar.color}`, borderRadius: '12px', padding: '1.2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <div>
+                  <h4 style={{ color: currentVar.color, margin: 0, fontSize: '1rem', fontWeight: 800 }}>{currentVar.title}</h4>
+                  <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{currentVar.author}</span>
+                </div>
+                <span style={{ background: `${currentVar.color}25`, color: currentVar.color, border: `1px solid ${currentVar.color}`, padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800 }}>
+                  {currentVar.badge}
+                </span>
+              </div>
+
+              <p style={{ color: '#cbd5e1', fontSize: '0.82rem', lineHeight: '1.6', margin: '0 0 0.85rem' }}>
+                {currentVar.desc}
+              </p>
+
+              <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '0.85rem', marginBottom: '0.75rem' }}>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.75rem', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(currentVar.code) }} />
+                </pre>
+              </div>
+
+              <div style={{ padding: '0.6rem 0.8rem', background: '#0f172a', borderRadius: '6px', fontSize: '0.75rem' }}>
+                <strong style={{ color: '#38bdf8' }}>Best Application:</strong> <span style={{ color: '#e2e8f0' }}>{currentVar.bestFor}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 3: CHAINING VS COT ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Core architectural distinction between single-turn Chain-of-Thought and multi-turn Prompt Chaining:
+            </p>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#0f172a', borderBottom: '2px solid #334155' }}>
+                    <th style={{ padding: '0.6rem 0.75rem', color: '#94a3b8', fontWeight: 800 }}>Architecture Dimension</th>
+                    <th style={{ padding: '0.6rem 0.75rem', color: '#38bdf8', fontWeight: 800 }}>Chain-of-Thought (CoT)</th>
+                    <th style={{ padding: '0.6rem 0.75rem', color: '#34d399', fontWeight: 800 }}>Prompt Chaining</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparisonData.map((row, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #1e293b', background: idx % 2 === 0 ? '#1e293b40' : 'transparent' }}>
+                      <td style={{ padding: '0.6rem 0.75rem', color: '#e2e8f0', fontWeight: 600 }}>{row.feature}</td>
+                      <td style={{ padding: '0.6rem 0.75rem', color: '#a7f3d0' }}>{row.cot}</td>
+                      <td style={{ padding: '0.6rem 0.75rem', color: '#7dd3fc' }}>{row.chaining}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: REASONING INSPECTOR ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              How engineers inspect intermediate reasoning steps to diagnose hallucinations and logical errors:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {diagnosticSteps.map((step, idx) => (
+                <button key={idx} onClick={() => setDiagnosticStep(idx)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${diagnosticStep === idx ? '#a78bfa' : '#334155'}`,
+                  background: diagnosticStep === idx ? '#a78bfa20' : '#1e293b',
+                  color: diagnosticStep === idx ? '#c084fc' : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{step.num}: {step.title}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: '1.5px solid #a78bfa', borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ color: '#c084fc', fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.4rem' }}>
+                {diagnosticSteps[diagnosticStep].num}: {diagnosticSteps[diagnosticStep].title}
+              </div>
+              <p style={{ color: '#cbd5e1', fontSize: '0.82rem', lineHeight: '1.5', margin: '0 0 0.75rem' }}>
+                {diagnosticSteps[diagnosticStep].desc}
+              </p>
+              <div style={{ padding: '0.65rem 0.85rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', color: '#6ee7b7', fontFamily: 'monospace', fontSize: '0.78rem' }}>
+                {diagnosticSteps[diagnosticStep].check}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// ─── STRUCTURED OUTPUTS DIAGRAM (HUMANLOOP GUIDE) ──────────────────────────
+const StructuredOutputsDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [eraIdx, setEraIdx] = useState(2);
+  const [fsmStep, setFsmStep] = useState(0);
+  const [sdkTab, setSdkTab] = useState('gemini');
+  const [patternIdx, setPatternIdx] = useState(1);
+
+  const panels = [
+    { label: '3 Eras of Output Reliability', color: '#059669' },
+    { label: 'FSM Constrained Decoding', color: '#0ea5e9' },
+    { label: 'Pydantic & SDK Code Lab', color: '#38bdf8' },
+    { label: 'Reasoning-in-Schema Pattern', color: '#a78bfa' },
+  ];
+
+  const eras = [
+    {
+      name: '1. Prompt-Engineered JSON (2022)',
+      reliability: '~35.9% Schema Reliability',
+      badge: 'UNPREDICTABLE',
+      color: '#ef4444',
+      prompt: 'Extract customer name and order total in JSON: "Alice bought 3 books for $45."',
+      output: 'Sure! Here is the JSON you requested:\n```json\n{\n  "Customer": "Alice",\n  "Total": "$45"\n}\n```',
+      flaws: 'Included conversational preamble, Markdown code block backticks, uppercase keys instead of lowercase, and string "$45" instead of float 45.0. Crashes standard JSON parsers.'
+    },
+    {
+      name: '2. JSON Mode (2023)',
+      reliability: '~82% Syntax Valid (Schema Unenforced)',
+      badge: 'SYNTAX ONLY',
+      color: '#f59e0b',
+      prompt: 'response_format={"type": "json_object"} with schema instructions in prompt.',
+      output: '{\n  "user_name": "Alice",\n  "amount_spent": 45.0\n}',
+      flaws: 'Guaranteed valid JSON braces, but the model hallucinated different key names ("user_name" vs "customer_name") and omitted the required "order_id" field.'
+    },
+    {
+      name: '3. Structured Outputs with Strict Schema (2024+)',
+      reliability: '100% Guaranteed Schema Adherence',
+      badge: 'CONSTRAINED DECODING',
+      color: '#34d399',
+      prompt: 'response_format=PydanticModel(name=CustomerOrder, strict=True)',
+      output: '{\n  "customer_name": "Alice",\n  "order_id": "ORD-9912",\n  "total_usd": 45.0,\n  "item_count": 3,\n  "status": "COMPLETED"\n}',
+      flaws: 'Zero syntax errors, zero missing keys, zero extra keys. Directly deserializes into typed Python / TypeScript objects without custom regex.'
+    }
+  ];
+
+  const fsmSteps = [
+    {
+      state: 'State 0: Root Object Open',
+      currentOutput: '{',
+      validNextTokens: ['"name"', '"id"', '"status"'],
+      maskedTokens: ['123', 'true', 'Hello', ']', '[', 'def'],
+      explanation: 'At root object start, the FSM allows ONLY opening double quotes for defined schema properties. Numeric or boolean tokens are masked to -infinity.'
+    },
+    {
+      state: 'State 1: Key "status" -> Colon -> Enum Value',
+      currentOutput: '{\n  "status": "',
+      validNextTokens: ['ACTIVE', 'PENDING', 'CANCELLED'],
+      maskedTokens: ['OPEN', 'SUCCESS', 'true', '1', 'WAITING'],
+      explanation: 'For an enum field (e.g. status in [ACTIVE, PENDING, CANCELLED]), the FSM restricts token generation exclusively to the predefined enum literals.'
+    },
+    {
+      state: 'State 2: Key "total_usd" -> Number Literal',
+      currentOutput: '{\n  "status": "ACTIVE",\n  "total_usd": ',
+      validNextTokens: ['[0-9]', '.'],
+      maskedTokens: ['"45"', 'true', 'null', 'USD', '$'],
+      explanation: 'Because total_usd is typed as float, string quotes or currency symbols ($) are illegal. Only digits and decimals are permitted.'
+    },
+    {
+      state: 'State 3: All Required Keys Present -> Object Close',
+      currentOutput: '{\n  "status": "ACTIVE",\n  "total_usd": 45.0\n}',
+      validNextTokens: ['<END_OF_GENERATION>'],
+      maskedTokens: ['additional_key', ',', '}', 'more text'],
+      explanation: 'With additionalProperties: false, no further properties can be generated. The model is forced to emit closing brace and end generation.'
+    }
+  ];
+
+  const sdkExamples = {
+    openai: {
+      title: 'OpenAI Python SDK (Pydantic BaseModel)',
+      code: `from pydantic import BaseModel, Field
+from openai import OpenAI
+import enum
+
+class TicketCategory(str, enum.Enum):
+    BILLING = "BILLING"
+    TECHNICAL = "TECHNICAL"
+    ACCOUNT = "ACCOUNT"
+
+class SupportTicketSchema(BaseModel):
+    summary: str = Field(description="One-sentence executive summary")
+    category: TicketCategory
+    urgency: int = Field(ge=1, le=5, description="Urgency scale 1-5")
+    suggested_actions: list[str]
+
+client = OpenAI()
+response = client.beta.chat.completions.parse(
+    model="gpt-4o-2024-08-06",
+    messages=[
+        {"role": "system", "content": "Triage this customer ticket."},
+        {"role": "user", "content": "Cannot access billing invoices after password reset."}
+    ],
+    response_format=SupportTicketSchema  # Enforces 100% strict JSON schema
+)
+
+# Output is immediately a typed Python object!
+ticket: SupportTicketSchema = response.choices[0].message.parsed
+print(ticket.category)  # Output: TicketCategory.BILLING`
+    },
+    gemini: {
+      title: 'Google Gemini API (TypedDict & Enums)',
+      code: `import google.generativeai as genai
+import typing_extensions as typing
+import enum
+
+class PriorityLevel(enum.Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    CRITICAL = "CRITICAL"
+
+class SecurityAuditSchema(typing.TypedDict):
+    vulnerability_found: bool
+    cve_id: str
+    severity: PriorityLevel
+    affected_endpoints: list[str]
+
+model = genai.GenerativeModel("gemini-1.5-pro-latest")
+result = model.generate_content(
+    "Audit this authentication snippet for security vulnerabilities.",
+    generation_config=genai.GenerationConfig(
+        response_mime_type="application/json",
+        response_schema=SecurityAuditSchema  # Enforces strict schema matching
+    )
+)
+
+print(result.text)  # Guaranteed valid JSON matching SecurityAuditSchema`
+    }
+  };
+
+  const reasoningPatterns = [
+    {
+      title: 'Flawed Naive Schema (Reasoning Degradation)',
+      desc: 'Forcing the model to output classification flags immediately without working memory space.',
+      code: `class NaiveTriage(BaseModel):
+    # FLAWED: Model must choose boolean immediately in token stream!
+    is_fraud: bool
+    risk_score: float`,
+      analysis: 'Higher error rate because the model cannot "think out loud" before predicting boolean tokens.',
+      color: '#ef4444'
+    },
+    {
+      title: 'Recommended Production Pattern (Reasoning Scaffold)',
+      desc: 'Providing a chain_of_thought field before final decisions guarantees maximum reasoning depth.',
+      code: `class ProductionTriage(BaseModel):
+    # RECOMMENDED: Step 1 allows model to generate reasoning tokens first!
+    chain_of_thought: str = Field(description="Step-by-step risk evaluation")
+    supporting_evidence: list[str]
+    
+    # Step 2: Final verdict conditioned on the reasoning tokens above
+    is_fraud: bool
+    risk_score: float = Field(ge=0.0, le=1.0)`,
+      analysis: 'Zero reasoning degradation while maintaining 100% strict JSON schema deserialization.',
+      color: '#34d399'
+    }
+  ];
+
+  const currentEra = eras[eraIdx];
+  const currentFsm = fsmSteps[fsmStep];
+  const currentPattern = reasoningPatterns[patternIdx];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: 3 ERAS ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              The historical progression of generating machine-readable JSON from LLMs:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {eras.map((era, i) => (
+                <button key={i} onClick={() => setEraIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${eraIdx === i ? era.color : '#334155'}`,
+                  background: eraIdx === i ? `${era.color}20` : '#1e293b',
+                  color: eraIdx === i ? era.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{era.name.split('(')[0]}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentEra.color}`, borderRadius: '12px', padding: '1.2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <div>
+                  <h4 style={{ color: currentEra.color, margin: 0, fontSize: '1rem', fontWeight: 800 }}>{currentEra.name}</h4>
+                  <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{currentEra.reliability}</span>
+                </div>
+                <span style={{ background: `${currentEra.color}25`, color: currentEra.color, border: `1px solid ${currentEra.color}`, padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800 }}>
+                  {currentEra.badge}
+                </span>
+              </div>
+
+              <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '0.8rem', marginBottom: '0.75rem' }}>
+                <div style={{ color: '#38bdf8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                  Model Output Payload:
+                </div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.76rem', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(currentEra.output) }} />
+                </pre>
+              </div>
+
+              <div style={{ padding: '0.65rem 0.8rem', background: '#0f172a', borderRadius: '6px', fontSize: '0.75rem' }}>
+                <strong style={{ color: currentEra.color }}>Reliability Evaluation:</strong> <span style={{ color: '#cbd5e1' }}>{currentEra.flaws}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: FSM CONSTRAINED DECODING ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Step through how Finite State Machines (FSMs) mask invalid vocabulary tokens at each generation step:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {fsmSteps.map((s, i) => (
+                <button key={i} onClick={() => setFsmStep(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${fsmStep === i ? '#0ea5e9' : '#334155'}`,
+                  background: fsmStep === i ? '#0ea5e920' : '#1e293b',
+                  color: fsmStep === i ? '#38bdf8' : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>Step {i + 1}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: '1.5px solid #0ea5e9', borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.92rem', marginBottom: '0.6rem' }}>
+                {currentFsm.state}
+              </div>
+
+              <div style={{ background: '#0f172a', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.75rem' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                  Partial Generated JSON Stream:
+                </div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.8rem', whiteSpace: 'pre-wrap' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(currentFsm.currentOutput) }} />
+                </pre>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.6rem', marginBottom: '0.75rem' }}>
+                <div style={{ padding: '0.6rem 0.8rem', background: '#0c2a1f', border: '1px solid #059669', borderRadius: '6px', fontSize: '0.75rem' }}>
+                  <strong style={{ color: '#34d399', display: 'block', marginBottom: '0.2rem' }}>Permitted Next Tokens:</strong>
+                  <span style={{ color: '#a7f3d0', fontFamily: 'monospace' }}>{currentFsm.validNextTokens.join(', ')}</span>
+                </div>
+                <div style={{ padding: '0.6rem 0.8rem', background: '#2d1515', border: '1px solid #dc2626', borderRadius: '6px', fontSize: '0.75rem' }}>
+                  <strong style={{ color: '#f87171', display: 'block', marginBottom: '0.2rem' }}>Masked Tokens (Probability = -Inf):</strong>
+                  <span style={{ color: '#fca5a5', fontFamily: 'monospace' }}>{currentFsm.maskedTokens.join(', ')}</span>
+                </div>
+              </div>
+
+              <p style={{ color: '#cbd5e1', fontSize: '0.78rem', margin: 0 }}>
+                {currentFsm.explanation}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 3: SDK CODE LAB ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Production SDK implementation for OpenAI and Google Gemini:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button onClick={() => setSdkTab('gemini')} style={{
+                flex: 1, padding: '0.5rem', borderRadius: '8px',
+                border: `1.5px solid ${sdkTab === 'gemini' ? '#34d399' : '#334155'}`,
+                background: sdkTab === 'gemini' ? '#34d39920' : '#1e293b',
+                color: sdkTab === 'gemini' ? '#34d399' : '#94a3b8',
+                fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Google Gemini (response_schema)</button>
+              <button onClick={() => setSdkTab('openai')} style={{
+                flex: 1, padding: '0.5rem', borderRadius: '8px',
+                border: `1.5px solid ${sdkTab === 'openai' ? '#38bdf8' : '#334155'}`,
+                background: sdkTab === 'openai' ? '#38bdf820' : '#1e293b',
+                color: sdkTab === 'openai' ? '#38bdf8' : '#94a3b8',
+                fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+              }}>OpenAI (Pydantic parse)</button>
+            </div>
+
+            <div style={{ background: '#0f172a', border: '1.5px solid #334155', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ color: sdkTab === 'openai' ? '#38bdf8' : '#34d399', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                {sdkExamples[sdkTab].title}
+              </div>
+              <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem', lineHeight: '1.5', overflowX: 'auto' }}>
+                <code dangerouslySetInnerHTML={{ __html: highlightCode(sdkExamples[sdkTab].code) }} />
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: REASONING-IN-SCHEMA PATTERN ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              How to avoid reasoning degradation when constraining model outputs to JSON:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {reasoningPatterns.map((p, i) => (
+                <button key={i} onClick={() => setPatternIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${patternIdx === i ? p.color : '#334155'}`,
+                  background: patternIdx === i ? `${p.color}20` : '#1e293b',
+                  color: patternIdx === i ? p.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{p.title.split('(')[0]}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentPattern.color}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ color: currentPattern.color, fontWeight: 800, fontSize: '0.92rem', marginBottom: '0.4rem' }}>
+                {currentPattern.title}
+              </div>
+              <p style={{ color: '#cbd5e1', fontSize: '0.8rem', lineHeight: '1.5', margin: '0 0 0.75rem' }}>
+                {currentPattern.desc}
+              </p>
+
+              <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '0.85rem', marginBottom: '0.75rem' }}>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.75rem', lineHeight: '1.5' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(currentPattern.code) }} />
+                </pre>
+              </div>
+
+              <div style={{ padding: '0.65rem 0.85rem', background: '#0f172a', borderRadius: '6px', fontSize: '0.76rem', color: currentPattern.color }}>
+                <strong>Impact:</strong> {currentPattern.analysis}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// ─── ITERATIVE PROMPTING DIAGRAM (IBM THINK / WATSONX FRAMEWORK) ─────────────
+const IterativePromptingDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [cycleStep, setCycleStep] = useState(0);
+  const [iterationIdx, setIterationIdx] = useState(3);
+  const [leverIdx, setLeverIdx] = useState(0);
+
+  const panels = [
+    { label: 'The 4-Phase Cycle', color: '#1d4ed8' },
+    { label: 'IT Incident Case Study', color: '#0ea5e9' },
+    { label: '5 Refinement Levers', color: '#38bdf8' },
+    { label: 'Convergence & SLA Gate', color: '#34d399' },
+  ];
+
+  const cyclePhases = [
+    {
+      phase: 'Phase 1: Design (Baseline Formulation)',
+      goal: 'Formulate initial instructions, define personas, context placeholders, and output specifications.',
+      tasks: [
+        'Establish core task objective and domain scope',
+        'Define assistant persona and operational tone',
+        'State required inputs, format constraints, and safety boundaries'
+      ],
+      color: '#38bdf8'
+    },
+    {
+      phase: 'Phase 2: Test (Execution & Sampling)',
+      goal: 'Execute prompt against a representative evaluation test suite of real-world and edge-case inputs.',
+      tasks: [
+        'Run happy-path benchmark inputs',
+        'Test noisy, incomplete, or corrupted user inputs',
+        'Sample across low and high temperature settings'
+      ],
+      color: '#f59e0b'
+    },
+    {
+      phase: 'Phase 3: Evaluate (Diagnostic Analysis)',
+      goal: 'Quantitatively and qualitatively inspect model outputs against target success criteria.',
+      tasks: [
+        'Measure task accuracy, instruction adherence, and hallucination rate',
+        'Detect failure modes (e.g. schema parse failures, missing required fields)',
+        'Evaluate latency, token consumption, and cost per request'
+      ],
+      color: '#ef4444'
+    },
+    {
+      phase: 'Phase 4: Refine (Targeted Intervention)',
+      goal: 'Apply surgical engineering modifications based on diagnostic failure modes before re-testing.',
+      tasks: [
+        'Inject few-shot exemplars to illustrate edge cases',
+        'Tighten negative constraints ("Do NOT include...")',
+        'Decompose monolithic prompts or enforce strict JSON schemas'
+      ],
+      color: '#34d399'
+    }
+  ];
+
+  const iterations = [
+    {
+      version: 'Iteration 1: Vague Baseline',
+      passRate: '40% Pass Rate',
+      color: '#ef4444',
+      badge: 'UNFOCUSED',
+      prompt: 'Analyze this server error log and tell me what is wrong:\n{log_snippet}',
+      output: 'There seems to be an issue with your server. You could try restarting Apache, clearing disk caches, or rebooting your database instances.',
+      flaw: 'Generic, unformatted advice that recommends dangerous cluster restarts and provides no actionable triage structure.'
+    },
+    {
+      version: 'Iteration 2: Role & Checklist',
+      passRate: '68% Pass Rate',
+      color: '#f59e0b',
+      badge: 'STRUCTURED',
+      prompt: 'You are a Senior SRE. Analyze {log_snippet}.\nProvide: 1. Root Cause 2. Severity (LOW/HIGH/CRITICAL) 3. Next Steps.',
+      output: '1. Root Cause: Connection pool exhaustion on Postgres replica.\n2. Severity: HIGH\n3. Next Steps: Scale connection pool max_connections to 300.',
+      flaw: 'Improved accuracy, but response format still varies across runs and lacks machine-readable JSON for automated alerts.'
+    },
+    {
+      version: 'Iteration 3: Few-Shot & Guardrails',
+      passRate: '88% Pass Rate',
+      color: '#38bdf8',
+      badge: 'GUARDED',
+      prompt: 'You are a Senior SRE. Follow the example below.\nConstraint: Do NOT suggest master cluster restarts. Verify replica lag first.\n[Example 1] Log -> Triage Report\nInput: {log_snippet}',
+      output: 'ROOT CAUSE: Postgres read replica timeout.\nSEVERITY: HIGH\nACTION: Verified replica replication lag (0.2s). Increasing connection pool capacity.',
+      flaw: 'Zero dangerous restart suggestions and high domain accuracy, but parsing requires regex strings.'
+    },
+    {
+      version: 'Iteration 4: Strict JSON Schema (watsonx)',
+      passRate: '99.4% Pass Rate',
+      color: '#34d399',
+      badge: 'ENTERPRISE PRODUCTION',
+      prompt: 'response_format=IncidentReportSchema(strict=True)\n# Automatically parses into typed PagerDuty incident payload',
+      output: '{\n  "incident_id": "INC-8819",\n  "severity": "HIGH",\n  "root_cause": "Read-replica connection exhaustion",\n  "requires_failover": false,\n  "recommended_action": "Increase pgbouncer max_client_conn to 500"\n}',
+      flaw: '100% deterministic schema adherence, zero hallucinations, immediately dispatchable to PagerDuty & Slack webhooks.'
+    }
+  ];
+
+  const levers = [
+    {
+      title: '1. Specificity Lever',
+      before: 'Summarize the log briefly.',
+      after: 'Summarize the root cause in exactly 2 bullet points under 30 words total.',
+      impact: 'Eliminates verbose fluff and forces dense factual summarization.',
+      color: '#38bdf8'
+    },
+    {
+      title: '2. Context & Grounding Lever',
+      before: 'Why did the payment service fail?',
+      after: 'Using the provided Stripe API error reference doc [Doc #41], diagnose error code 402.',
+      impact: 'Eliminates hallucinations by constraining answers to verified source material.',
+      color: '#0ea5e9'
+    },
+    {
+      title: '3. Few-Shot Exemplar Lever',
+      before: 'Format customer address into standardized format.',
+      after: 'Input: "apt 4b, 100 main st, ny ny" -> Output: "100 Main St, Apt 4B, New York, NY 10001"',
+      impact: 'Demonstrates non-trivial normalization rules and edge-case handling.',
+      color: '#a78bfa'
+    },
+    {
+      title: '4. Negative Constraint Lever',
+      before: 'Write a migration script.',
+      after: 'Write a migration script. Constraint: Do NOT use DROP TABLE or table locks.',
+      impact: 'Prevents catastrophic destructive actions in production automation.',
+      color: '#f43f5e'
+    },
+    {
+      title: '5. Decomposition Lever',
+      before: 'Extract customer entities, calculate credit score, and generate loan approval decision.',
+      after: 'Step 1: Extract entities into JSON -> Step 2: Compute credit score -> Step 3: Issue verdict.',
+      impact: 'Reduces cognitive load per prompt turn, yielding higher accuracy at each stage.',
+      color: '#34d399'
+    }
+  ];
+
+  const currentPhase = cyclePhases[cycleStep];
+  const currentIter = iterations[iterationIdx];
+  const currentLever = levers[leverIdx];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: THE 4-PHASE CYCLE ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Step through the 4 recursive phases of the IBM Prompt Engineering loop:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {cyclePhases.map((phase, i) => (
+                <button key={i} onClick={() => setCycleStep(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${cycleStep === i ? phase.color : '#334155'}`,
+                  background: cycleStep === i ? `${phase.color}20` : '#1e293b',
+                  color: cycleStep === i ? phase.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{phase.phase.split(':')[0]}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentPhase.color}`, borderRadius: '12px', padding: '1.2rem' }}>
+              <h4 style={{ color: currentPhase.color, margin: '0 0 0.5rem', fontSize: '1rem', fontWeight: 800 }}>
+                {currentPhase.phase}
+              </h4>
+              <p style={{ color: '#e2e8f0', fontSize: '0.82rem', lineHeight: '1.5', margin: '0 0 0.85rem' }}>
+                <strong>Objective:</strong> {currentPhase.goal}
+              </p>
+
+              <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '0.85rem' }}>
+                <div style={{ color: currentPhase.color, fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Key Engineering Deliverables & Checks:
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#cbd5e1', fontSize: '0.78rem', lineHeight: '1.6' }}>
+                  {currentPhase.tasks.map((task, tIdx) => (
+                    <li key={tIdx}>{task}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: IT INCIDENT CASE STUDY ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Compare how 4 iterations of an enterprise IT log triage prompt progressively converge to 99.4% accuracy:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {iterations.map((iter, i) => (
+                <button key={i} onClick={() => setIterationIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${iterationIdx === i ? iter.color : '#334155'}`,
+                  background: iterationIdx === i ? `${iter.color}20` : '#1e293b',
+                  color: iterationIdx === i ? iter.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{iter.version.split(':')[0]}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentIter.color}`, borderRadius: '12px', padding: '1.2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <div>
+                  <h4 style={{ color: currentIter.color, margin: 0, fontSize: '1rem', fontWeight: 800 }}>{currentIter.version}</h4>
+                  <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>Measured Accuracy: {currentIter.passRate}</span>
+                </div>
+                <span style={{ background: `${currentIter.color}25`, color: currentIter.color, border: `1px solid ${currentIter.color}`, padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800 }}>
+                  {currentIter.badge}
+                </span>
+              </div>
+
+              <div style={{ background: '#090d16', border: '1px solid #1e293b', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.6rem' }}>
+                <div style={{ color: '#38bdf8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Prompt Input Template:</div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.76rem', whiteSpace: 'pre-wrap' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(currentIter.prompt) }} />
+                </pre>
+              </div>
+
+              <div style={{ background: '#090d16', border: '1px solid #1e293b', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.75rem' }}>
+                <div style={{ color: '#34d399', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Model Generated Output:</div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.76rem', whiteSpace: 'pre-wrap' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(currentIter.output) }} />
+                </pre>
+              </div>
+
+              <div style={{ padding: '0.6rem 0.8rem', background: '#0f172a', borderRadius: '6px', fontSize: '0.75rem' }}>
+                <strong style={{ color: currentIter.color }}>Diagnostic Evaluation:</strong> <span style={{ color: '#cbd5e1' }}>{currentIter.flaw}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 3: 5 REFINEMENT LEVERS ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Explore the 5 core prompt refinement levers defined in IBM AI engineering methodology:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {levers.map((lever, i) => (
+                <button key={i} onClick={() => setLeverIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${leverIdx === i ? lever.color : '#334155'}`,
+                  background: leverIdx === i ? `${lever.color}20` : '#1e293b',
+                  color: leverIdx === i ? lever.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{lever.title.split('.')[1]}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentLever.color}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <h4 style={{ color: currentLever.color, margin: '0 0 0.75rem', fontSize: '0.95rem', fontWeight: 800 }}>
+                {currentLever.title}
+              </h4>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.6rem', marginBottom: '0.75rem' }}>
+                <div style={{ padding: '0.75rem', background: '#3f1818', border: '1px solid #ef4444', borderRadius: '8px' }}>
+                  <div style={{ color: '#fca5a5', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Before Refinement:</div>
+                  <div style={{ color: '#f87171', fontSize: '0.78rem', fontFamily: 'monospace' }}>"{currentLever.before}"</div>
+                </div>
+                <div style={{ padding: '0.75rem', background: '#0c2a1f', border: '1px solid #34d399', borderRadius: '8px' }}>
+                  <div style={{ color: '#6ee7b7', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>After Lever Applied:</div>
+                  <div style={{ color: '#a7f3d0', fontSize: '0.78rem', fontFamily: 'monospace' }}>"{currentLever.after}"</div>
+                </div>
+              </div>
+
+              <div style={{ padding: '0.6rem 0.8rem', background: '#0f172a', borderRadius: '6px', fontSize: '0.75rem', color: '#e2e8f0' }}>
+                <strong style={{ color: currentLever.color }}>Impact on Output:</strong> {currentLever.impact}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: CONVERGENCE & SLA GATE ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Objective stopping conditions for exiting the iterative refinement loop:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ padding: '0.9rem', background: '#1e293b', border: '1.5px solid #34d399', borderRadius: '10px' }}>
+                <div style={{ color: '#34d399', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Accuracy Gate</div>
+                <div style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 900 }}>&gt;= 95.0%</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: '0.2rem' }}>Pass rate across 100+ evaluation cases</div>
+              </div>
+
+              <div style={{ padding: '0.9rem', background: '#1e293b', border: '1.5px solid #38bdf8', borderRadius: '10px' }}>
+                <div style={{ color: '#38bdf8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Schema Gate</div>
+                <div style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 900 }}>0.0% Errors</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: '0.2rem' }}>100% strict JSON schema validation</div>
+              </div>
+
+              <div style={{ padding: '0.9rem', background: '#1e293b', border: '1.5px solid #f59e0b', borderRadius: '10px' }}>
+                <div style={{ color: '#f59e0b', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Latency Gate</div>
+                <div style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 900 }}>&lt; 850 ms</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: '0.2rem' }}>P95 time-to-complete under SLA budget</div>
+              </div>
+            </div>
+
+            <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '0.9rem' }}>
+              <div style={{ color: '#38bdf8', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                Production Deployment Rule:
+              </div>
+              <p style={{ color: '#cbd5e1', fontSize: '0.78rem', lineHeight: '1.5', margin: 0 }}>
+                Never deploy prompt changes directly to production without running the full automated evaluation suite. All prompt artifacts must be version-controlled in Git and regression-tested via CI/CD pipelines to prevent prompt degradation.
+              </p>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// ─── AI API ANATOMY DIAGRAM (REST, JSON, STATELESS PROTOCOL) ─────────────────
+const AIApiAnatomyDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [providerIdx, setProviderIdx] = useState(0);
+  const [memoryMode, setMemoryMode] = useState('stateful_client');
+  const [statusCodeIdx, setStatusCodeIdx] = useState(0);
+
+  const panels = [
+    { label: 'HTTP Request Inspector', color: '#0284c7' },
+    { label: 'Stateless Memory Protocol', color: '#8b5cf6' },
+    { label: 'Status Code Simulator', color: '#f59e0b' },
+    { label: 'Provider Architecture Matrix', color: '#10b981' },
+  ];
+
+  const providers = [
+    {
+      name: 'Google Gemini (Gemini 1.5 Pro)',
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent',
+      authHeader: 'x-goog-api-key: AIzaSyD94kK2801nLq...',
+      modelId: 'gemini-1.5-pro',
+      sdkSample: `import google.generativeai as genai
+
+genai.configure(api_key="AIzaSy...")
+model = genai.GenerativeModel("gemini-1.5-pro")
+res = model.generate_content("Explain quantum computing in 1 sentence.")`,
+      color: '#38bdf8'
+    },
+    {
+      name: 'Anthropic (Claude 3.5 Sonnet)',
+      endpoint: 'https://api.anthropic.com/v1/messages',
+      authHeader: 'x-api-key: sk-ant-api03-...\\nanthropic-version: 2023-06-01',
+      modelId: 'claude-3-5-sonnet-20240620',
+      sdkSample: `import anthropic
+
+client = anthropic.Anthropic()
+res = client.messages.create(
+    model="claude-3-5-sonnet-20240620",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Explain quantum computing in 1 sentence."}]
+)`,
+      color: '#f59e0b'
+    },
+    {
+      name: 'OpenAI (GPT-4o)',
+      endpoint: 'https://api.openai.com/v1/chat/completions',
+      authHeader: 'Authorization: Bearer sk-prod-live-9948271049281',
+      modelId: 'gpt-4o',
+      sdkSample: `from openai import OpenAI
+
+client = OpenAI()
+res = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Explain quantum computing in 1 sentence."}]
+)`,
+      color: '#10b981'
+    }
+  ];
+
+  const statusCodes = [
+    {
+      code: '200 OK',
+      meaning: 'Request Succeeded',
+      color: '#10b981',
+      responseBody: `{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Quantum computing harnesses quantum mechanics to process complex data exponentially faster."
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP"
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 18,
+    "candidatesTokenCount": 24,
+    "totalTokenCount": 42
+  }
+}`,
+      remedy: 'Normal operation. Extract text from candidates[0].content.parts[0].text and log usageMetadata metrics.'
+    },
+    {
+      code: '401 Unauthorized',
+      meaning: 'Authentication Failed',
+      color: '#ef4444',
+      responseBody: `{
+  "error": {
+    "message": "Incorrect API key provided: sk-invalid-key...",
+    "type": "invalid_request_error",
+    "code": "invalid_api_key"
+  }
+}`,
+      remedy: 'Verify that your API secret key is correctly set in environment variables and that your account billing is active.'
+    },
+    {
+      code: '429 Rate Limit Exceeded',
+      meaning: 'Too Many Requests (RPM/TPM)',
+      color: '#f59e0b',
+      responseBody: `{
+  "error": {
+    "message": "Rate limit reached for requests per min (RPM) on model gpt-4o.",
+    "type": "tokens",
+    "code": "rate_limit_exceeded"
+  }
+}`,
+      remedy: 'Implement Exponential Backoff with jitter (e.g. wait 2s -> 4s -> 8s before retrying) or upgrade your quota tier.'
+    },
+    {
+      code: '503 Service Unavailable',
+      meaning: 'GPU Server Overloaded',
+      color: '#a855f7',
+      responseBody: `{
+  "error": {
+    "message": "The server is currently overloaded with other requests. Please retry in 10s.",
+    "type": "server_error",
+    "code": "server_overloaded"
+  }
+}`,
+      remedy: 'Infrastructure capacity bottleneck at the AI provider. Automatically failover to a secondary model (e.g. Claude or Gemini).'
+    }
+  ];
+
+  const currentProvider = providers[providerIdx];
+  const currentStatus = statusCodes[statusCodeIdx];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: HTTP REQUEST INSPECTOR ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Inspect how modern applications send raw HTTP POST requests vs Python SDK calls across major providers:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {providers.map((prov, i) => (
+                <button key={i} onClick={() => setProviderIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${providerIdx === i ? prov.color : '#334155'}`,
+                  background: providerIdx === i ? `${prov.color}20` : '#1e293b',
+                  color: providerIdx === i ? prov.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{prov.name.split(' ')[0]}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentProvider.color}`, borderRadius: '12px', padding: '1.2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ color: currentProvider.color, margin: 0, fontSize: '1rem', fontWeight: 800 }}>{currentProvider.name}</h4>
+                <span style={{ background: '#0f172a', color: '#38bdf8', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', fontFamily: 'monospace' }}>
+                  POST
+                </span>
+              </div>
+
+              <div style={{ background: '#090d16', border: '1px solid #1e293b', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.6rem' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>REST Endpoint:</div>
+                <div style={{ color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.76rem', wordBreak: 'break-all' }}>{currentProvider.endpoint}</div>
+              </div>
+
+              <div style={{ background: '#090d16', border: '1px solid #1e293b', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.6rem' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Authorization Header:</div>
+                <div style={{ color: '#a7f3d0', fontFamily: 'monospace', fontSize: '0.76rem' }}>{currentProvider.authHeader}</div>
+              </div>
+
+              <div style={{ background: '#090d16', border: '1px solid #1e293b', borderRadius: '8px', padding: '0.75rem' }}>
+                <div style={{ color: currentProvider.color, fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Official Python SDK Equivalent:</div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.76rem', whiteSpace: 'pre-wrap' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(currentProvider.sdkSample) }} />
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: STATELESS MEMORY PROTOCOL ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Why AI APIs are strictly stateless and how client applications maintain multi-turn context:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button onClick={() => setMemoryMode('stateless_fail')} style={{
+                padding: '0.4rem 0.8rem', borderRadius: '8px',
+                border: `1.5px solid ${memoryMode === 'stateless_fail' ? '#ef4444' : '#334155'}`,
+                background: memoryMode === 'stateless_fail' ? '#ef444420' : '#1e293b',
+                color: memoryMode === 'stateless_fail' ? '#f87171' : '#94a3b8',
+                fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Scenario A: Stateless Amnesia (Fail)</button>
+
+              <button onClick={() => setMemoryMode('stateful_client')} style={{
+                padding: '0.4rem 0.8rem', borderRadius: '8px',
+                border: `1.5px solid ${memoryMode === 'stateful_client' ? '#10b981' : '#334155'}`,
+                background: memoryMode === 'stateful_client' ? '#10b98120' : '#1e293b',
+                color: memoryMode === 'stateful_client' ? '#34d399' : '#94a3b8',
+                fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Scenario B: Client-Side Accumulator (Correct)</button>
+            </div>
+
+            {memoryMode === 'stateless_fail' ? (
+              <div style={{ background: '#1e293b', border: '1.5px solid #ef4444', borderRadius: '12px', padding: '1.1rem' }}>
+                <h4 style={{ color: '#ef4444', margin: '0 0 0.5rem', fontSize: '0.95rem', fontWeight: 800 }}>
+                  Turn 2 Sent WITHOUT History:
+                </h4>
+                <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.6rem' }}>
+                  <div style={{ color: '#38bdf8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Request 2 Payload:</div>
+                  <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.76rem' }}>
+                    <code dangerouslySetInnerHTML={{ __html: highlightCode('{"messages": [{"role": "user", "content": "What is my name?"}]}') }} />
+                  </pre>
+                </div>
+                <div style={{ background: '#3f1818', border: '1px solid #ef4444', borderRadius: '8px', padding: '0.75rem', color: '#fca5a5', fontSize: '0.78rem' }}>
+                  <strong>Server Response:</strong> "I am sorry, but you have not told me your name yet. How can I help you today?"
+                </div>
+                <p style={{ color: '#cbd5e1', fontSize: '0.76rem', margin: '0.6rem 0 0' }}>
+                  The server did not store Request 1 ("My name is Alex"). It processed Request 2 in complete isolation.
+                </p>
+              </div>
+            ) : (
+              <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '12px', padding: '1.1rem' }}>
+                <h4 style={{ color: '#10b981', margin: '0 0 0.5rem', fontSize: '0.95rem', fontWeight: 800 }}>
+                  Turn 2 Sent WITH Accumulated Conversation Array:
+                </h4>
+                <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.6rem' }}>
+                  <div style={{ color: '#38bdf8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Request 2 Payload:</div>
+                  <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem' }}>
+                    <code dangerouslySetInnerHTML={{ __html: highlightCode(`{
+  "messages": [
+    {"role": "user", "content": "Hi, my name is Alex."},
+    {"role": "assistant", "content": "Hello Alex! How can I assist you today?"},
+    {"role": "user", "content": "What is my name?"}
+  ]
+}`) }} />
+                  </pre>
+                </div>
+                <div style={{ background: '#0c2a1f', border: '1px solid #10b981', borderRadius: '8px', padding: '0.75rem', color: '#6ee7b7', fontSize: '0.78rem' }}>
+                  <strong>Server Response:</strong> "Your name is Alex!"
+                </div>
+                <p style={{ color: '#cbd5e1', fontSize: '0.76rem', margin: '0.6rem 0 0' }}>
+                  The client application maintains the state array in frontend memory or database and re-transmits it on every turn.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== PANEL 3: STATUS CODE SIMULATOR ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Simulate server status codes and understand production error handling:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {statusCodes.map((st, i) => (
+                <button key={i} onClick={() => setStatusCodeIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${statusCodeIdx === i ? st.color : '#334155'}`,
+                  background: statusCodeIdx === i ? `${st.color}20` : '#1e293b',
+                  color: statusCodeIdx === i ? st.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{st.code.split(' ')[0]}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentStatus.color}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                <h4 style={{ color: currentStatus.color, margin: 0, fontSize: '1rem', fontWeight: 800 }}>HTTP {currentStatus.code}</h4>
+                <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>{currentStatus.meaning}</span>
+              </div>
+
+              <div style={{ background: '#090d16', border: '1px solid #1e293b', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.6rem' }}>
+                <div style={{ color: currentStatus.color, fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Simulated Server JSON Response:</div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem', whiteSpace: 'pre-wrap' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(currentStatus.responseBody) }} />
+                </pre>
+              </div>
+
+              <div style={{ padding: '0.6rem 0.8rem', background: '#0f172a', borderRadius: '6px', fontSize: '0.75rem' }}>
+                <strong style={{ color: currentStatus.color }}>Engineering Action / Remedy:</strong> <span style={{ color: '#cbd5e1' }}>{currentStatus.remedy}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: PROVIDER ARCHITECTURE MATRIX ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Architectural comparison across the three dominant AI API ecosystems:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+              <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '10px', padding: '0.9rem' }}>
+                <div style={{ color: '#10b981', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>OpenAI Ecosystem</div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#cbd5e1', fontSize: '0.75rem', lineHeight: '1.6' }}>
+                  <li><strong>Endpoint:</strong> /v1/chat/completions</li>
+                  <li><strong>Auth:</strong> Bearer Token (sk-...)</li>
+                  <li><strong>Key Feature:</strong> Strict JSON Schemas via response_format</li>
+                  <li><strong>Ecosystem:</strong> De facto industry API standard</li>
+                </ul>
+              </div>
+
+              <div style={{ background: '#1e293b', border: '1.5px solid #38bdf8', borderRadius: '10px', padding: '0.9rem' }}>
+                <div style={{ color: '#38bdf8', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>Google Gemini</div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#cbd5e1', fontSize: '0.75rem', lineHeight: '1.6' }}>
+                  <li><strong>Endpoint:</strong> :generateContent</li>
+                  <li><strong>Auth:</strong> API Key or Google Cloud ADC</li>
+                  <li><strong>Key Feature:</strong> 2M+ token multimodal context window</li>
+                  <li><strong>Ecosystem:</strong> Deep Vertex AI & GCP integration</li>
+                </ul>
+              </div>
+
+              <div style={{ background: '#1e293b', border: '1.5px solid #f59e0b', borderRadius: '10px', padding: '0.9rem' }}>
+                <div style={{ color: '#f59e0b', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>Anthropic Claude</div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#cbd5e1', fontSize: '0.75rem', lineHeight: '1.6' }}>
+                  <li><strong>Endpoint:</strong> /v1/messages</li>
+                  <li><strong>Auth:</strong> x-api-key header</li>
+                  <li><strong>Key Feature:</strong> Superior coding & reasoning precision</li>
+                  <li><strong>Ecosystem:</strong> Bedrock, GCP Vertex, & Direct API</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// ─── API KEY SECURITY & SECRETS MANAGEMENT DIAGRAM ───────────────────────────
+const ApiSecurityDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [archMode, setArchMode] = useState('proxy');
+  const [defenseLevel, setDefenseLevel] = useState(0);
+  const [budgetMonthly, setBudgetMonthly] = useState(100);
+  const [softAlert, setSoftAlert] = useState(50);
+  const [runbookStep, setRunbookStep] = useState(0);
+
+  const panels = [
+    { label: 'Architecture: Proxy vs Leak', color: '#e11d48' },
+    { label: '3-Layer Defense Hierarchy', color: '#38bdf8' },
+    { label: 'Billing Hardening Simulator', color: '#10b981' },
+    { label: 'Emergency Incident Runbook', color: '#f59e0b' },
+  ];
+
+  const defenseLayers = [
+    {
+      level: 'Layer 1: Local Development (.env + .gitignore)',
+      scope: 'Developer Laptop / Local Machine',
+      color: '#38bdf8',
+      tools: 'python-dotenv / dotenv-cli, .gitignore, .env.example template',
+      summary: 'Keep secret values strictly inside an uncommitted .env file. Commit only a sanitized .env.example with dummy values so teammates know what keys are needed.',
+      code: `# .gitignore (MUST contain):
+.env
+.env.local
+.env.*.local
+*.pem
+secrets/`
+    },
+    {
+      level: 'Layer 2: Pre-Commit & CI/CD Secret Scanning',
+      scope: 'Git Hooks & Pull Request Automation',
+      color: '#8b5cf6',
+      tools: 'Gitleaks, TruffleHog, GitHub Secret Scanning, git-secrets',
+      summary: 'Automated pre-commit hooks scan every staged file for high-entropy strings and regex patterns matching known API key prefixes (e.g. sk-proj-...) before git push.',
+      code: `# Run pre-commit scanner:
+gitleaks protect --staged --verbose
+# If secret detected -> BLOCKS COMMIT AUTOMATICALLY`
+    },
+    {
+      level: 'Layer 3: Enterprise Cloud Secret Managers',
+      scope: 'Production AWS / GCP / Azure Infrastructure',
+      color: '#10b981',
+      tools: 'AWS Secrets Manager, GCP Secret Manager, HashiCorp Vault',
+      summary: 'Zero plaintext keys stored on application virtual machines. Secrets are encrypted at rest (AES-256), access-controlled via IAM roles, and auto-rotated on a 90-day cadence.',
+      code: `# Python retrieving key from GCP Secret Manager via IAM:
+from google.cloud import secretmanager
+
+client = secretmanager.SecretManagerServiceClient()
+secret = client.access_secret_version(name="projects/123/secrets/ai-key/versions/latest")
+api_key = secret.payload.data.decode("UTF-8")`
+    }
+  ];
+
+  const runbookSteps = [
+    {
+      step: '1. Revoke the Compromised Key Immediately',
+      urgency: 'TIME TO RESOLVE: < 60 SECONDS',
+      color: '#ef4444',
+      action: 'Log into the AI provider console (OpenAI / Anthropic / GCP). Click "Delete / Revoke". This invalidates all active bot connections and stops the billing hemorrhage instantly.',
+      warning: 'Do NOT waste time deleting the git commit or repository first. Scrapers mirror public commits to offline datastores in sub-seconds.'
+    },
+    {
+      step: '2. Generate & Deploy Replacement Key',
+      urgency: 'TIME TO RESOLVE: < 5 MINUTES',
+      color: '#f59e0b',
+      action: 'Generate a new scoped key. Update the hosting platform environment variables (Vercel / AWS Parameter Store / GCP Secrets). Trigger redeploy.',
+      warning: 'Never send the new key over unencrypted Slack, email, or chat messages.'
+    },
+    {
+      step: '3. Audit Billing & Token Spike Telemetry',
+      urgency: 'TIME TO RESOLVE: < 30 MINUTES',
+      color: '#38bdf8',
+      action: 'Inspect real-time API logs, token usage graphs, and geographic IP origins. Contact provider enterprise support to request billing waivers for verified bot attacks.',
+      warning: 'Document the exact time window of the breach for security post-mortems.'
+    },
+    {
+      step: '4. Scrub Git Commit History',
+      urgency: 'POST-INCIDENT CLEANUP',
+      color: '#10b981',
+      action: 'Use git-filter-repo or BFG Repo-Cleaner to rewrite historical commit trees and force-push to remote with branch protections.',
+      warning: 'Verify all collaborators re-clone fresh copies of the rewritten repository.'
+    }
+  ];
+
+  const currentLayer = defenseLayers[defenseLevel];
+  const currentStep = runbookSteps[runbookStep];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: BACKEND PROXY VS LEAK SIMULATOR ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Compare how client-side Direct Calls expose credentials vs how a Backend Proxy shields keys:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button onClick={() => setArchMode('leak')} style={{
+                padding: '0.4rem 0.8rem', borderRadius: '8px',
+                border: `1.5px solid ${archMode === 'leak' ? '#ef4444' : '#334155'}`,
+                background: archMode === 'leak' ? '#ef444420' : '#1e293b',
+                color: archMode === 'leak' ? '#f87171' : '#94a3b8',
+                fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Scenario A: Direct Client Call (CRITICAL LEAK)</button>
+
+              <button onClick={() => setArchMode('proxy')} style={{
+                padding: '0.4rem 0.8rem', borderRadius: '8px',
+                border: `1.5px solid ${archMode === 'proxy' ? '#10b981' : '#334155'}`,
+                background: archMode === 'proxy' ? '#10b98120' : '#1e293b',
+                color: archMode === 'proxy' ? '#34d399' : '#94a3b8',
+                fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Scenario B: Backend Proxy Architecture (SECURE)</button>
+            </div>
+
+            {archMode === 'leak' ? (
+              <div style={{ background: '#1e293b', border: '1.5px solid #ef4444', borderRadius: '12px', padding: '1.1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                  <h4 style={{ color: '#ef4444', margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>
+                    Client Browser holding NEXT_PUBLIC_GEMINI_KEY:
+                  </h4>
+                  <span style={{ background: '#ef444425', color: '#f87171', border: '1px solid #ef4444', padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800 }}>
+                    SEVERITY: CRITICAL
+                  </span>
+                </div>
+
+                <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.6rem' }}>
+                  <div style={{ color: '#ef4444', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>
+                    Browser DevTools &gt; Network Inspection (Visible to Any User):
+                  </div>
+                  <pre style={{ margin: 0, color: '#f87171', fontFamily: 'monospace', fontSize: '0.74rem' }}>
+                    Request URL: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent{'\n'}
+                    Request Headers:{'\n'}
+                    &gt; x-goog-api-key: AIzaSyD-LIVE-CREDIT-CARD-COMPROMISED
+                  </pre>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.8rem', background: '#3f1818', border: '1px solid #ef4444', borderRadius: '6px', fontSize: '0.75rem', color: '#fca5a5' }}>
+                  <strong>Vulnerability Analysis:</strong> Any visitor can right-click your website, inspect network traffic, copy your API key, and drain your account balance.
+                </div>
+              </div>
+            ) : (
+              <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '12px', padding: '1.1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                  <h4 style={{ color: '#10b981', margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>
+                    Production Pattern: Browser &gt; Backend Proxy (/api/chat) &gt; AI Provider
+                  </h4>
+                  <span style={{ background: '#10b98125', color: '#34d399', border: '1px solid #10b981', padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800 }}>
+                    PRODUCTION SAFE
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.6rem', marginBottom: '0.6rem' }}>
+                  <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.7rem' }}>
+                    <div style={{ color: '#38bdf8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>1. Client Browser:</div>
+                    <div style={{ color: '#cbd5e1', fontSize: '0.74rem' }}>Calls <code>/api/chat</code> with session cookie. Key is NOT in browser bundle.</div>
+                  </div>
+                  <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.7rem' }}>
+                    <div style={{ color: '#a78bfa', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>2. Node / Python Server:</div>
+                    <div style={{ color: '#cbd5e1', fontSize: '0.74rem' }}>Authenticates user, checks rate limit, loads secret from <code>process.env</code>.</div>
+                  </div>
+                  <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.7rem' }}>
+                    <div style={{ color: '#34d399', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>3. AI Provider:</div>
+                    <div style={{ color: '#cbd5e1', fontSize: '0.74rem' }}>Receives secure server-to-server request over private TLS.</div>
+                  </div>
+                </div>
+
+                <div style={{ padding: '0.6rem 0.8rem', background: '#0c2a1f', border: '1px solid #10b981', borderRadius: '6px', fontSize: '0.75rem', color: '#6ee7b7' }}>
+                  <strong>Security Guarantee:</strong> The client never sees or handles the secret API key under any circumstance.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== PANEL 2: 3-LAYER DEFENSE HIERARCHY ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Step through the 3 layers of defense from local workstation to enterprise cloud:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {defenseLayers.map((layer, i) => (
+                <button key={i} onClick={() => setDefenseLevel(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${defenseLevel === i ? layer.color : '#334155'}`,
+                  background: defenseLevel === i ? `${layer.color}20` : '#1e293b',
+                  color: defenseLevel === i ? layer.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{layer.level.split(':')[0]}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentLayer.color}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{ color: currentLayer.color, margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>{currentLayer.level}</h4>
+                <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{currentLayer.scope}</span>
+              </div>
+
+              <p style={{ color: '#cbd5e1', fontSize: '0.78rem', lineHeight: '1.5', margin: '0 0 0.75rem' }}>
+                {currentLayer.summary}
+              </p>
+
+              <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.6rem' }}>
+                <div style={{ color: currentLayer.color, fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Configuration Sample:</div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem', whiteSpace: 'pre-wrap' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(currentLayer.code) }} />
+                </pre>
+              </div>
+
+              <div style={{ padding: '0.55rem 0.75rem', background: '#0f172a', borderRadius: '6px', fontSize: '0.74rem', color: '#94a3b8' }}>
+                <strong>Key Tooling:</strong> <span style={{ color: '#e2e8f0' }}>{currentLayer.tools}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 3: BILLING HARDENING SIMULATOR ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Configure provider dashboard spending guardrails to prevent surprise runaway bills:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ padding: '0.85rem', background: '#1e293b', border: '1.5px solid #f59e0b', borderRadius: '10px' }}>
+                <div style={{ color: '#f59e0b', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Soft Alert Threshold</div>
+                <div style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 900 }}>${softAlert}.00 / mo</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: '0.2rem' }}>Automated email alert sent to SRE team</div>
+              </div>
+
+              <div style={{ padding: '0.85rem', background: '#1e293b', border: '1.5px solid #ef4444', borderRadius: '10px' }}>
+                <div style={{ color: '#ef4444', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Hard Monthly Cutoff</div>
+                <div style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 900 }}>${budgetMonthly}.00 / mo</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: '0.2rem' }}>Rejects all subsequent requests with HTTP 429</div>
+              </div>
+            </div>
+
+            <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '0.85rem' }}>
+              <div style={{ color: '#10b981', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                Rule of Thumb for Development vs Production:
+              </div>
+              <p style={{ color: '#cbd5e1', fontSize: '0.78rem', lineHeight: '1.5', margin: 0 }}>
+                Always set a hard monthly cap (e.g. $50 for personal dev accounts, $500 for staging) immediately upon creating a provider account. Without hard cutoffs, an unthrottled loop or leaked key can incur thousands of dollars of debt in hours.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: EMERGENCY INCIDENT RUNBOOK ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Emergency protocol if a secret key is accidentally pushed to a public repository:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {runbookSteps.map((s, i) => (
+                <button key={i} onClick={() => setRunbookStep(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${runbookStep === i ? s.color : '#334155'}`,
+                  background: runbookStep === i ? `${s.color}20` : '#1e293b',
+                  color: runbookStep === i ? s.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>Step {i + 1}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentStep.color}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                <h4 style={{ color: currentStep.color, margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>{currentStep.step}</h4>
+                <span style={{ color: currentStep.color, fontSize: '0.68rem', fontWeight: 800 }}>{currentStep.urgency}</span>
+              </div>
+
+              <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.6rem', color: '#e2e8f0', fontSize: '0.78rem', lineHeight: '1.5' }}>
+                {currentStep.action}
+              </div>
+
+              <div style={{ padding: '0.6rem 0.8rem', background: '#3f1818', border: '1px solid #ef4444', borderRadius: '6px', fontSize: '0.75rem', color: '#fca5a5' }}>
+                <strong>CRITICAL WARNING:</strong> {currentStep.warning}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// ─── FIRST AI REQUEST DIAGRAM (GOOGLE GEMINI PYTHON SDK) ─────────────────────
+const FirstAiRequestDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [modelType, setModelType] = useState('flash');
+  const [temperature, setTemperature] = useState(0.2);
+  const [maxTokens, setMaxTokens] = useState(250);
+  const [selectedTask, setSelectedTask] = useState(0);
+  const [finishReasonIdx, setFinishReasonIdx] = useState(0);
+
+  const panels = [
+    { label: 'Live Python SDK Workbench', color: '#2563eb' },
+    { label: 'Flash vs Pro Benchmark', color: '#38bdf8' },
+    { label: 'GenerationConfig Dials', color: '#10b981' },
+    { label: 'Response & Finish Reasons', color: '#f59e0b' },
+  ];
+
+  const tasks = [
+    {
+      title: 'Technical SRE Bug Explainer',
+      sys: 'You are a senior site reliability engineer (SRE). Provide concise root-cause analyses.',
+      prompt: 'Why does a Linux server report "No space left on device" when df -h shows 40% free space?',
+      response: 'This occurs because the filesystem has run out of INODES (file metadata pointers), even though disk blocks remain free. Run "df -i" to verify inode exhaustion and remove directories containing millions of tiny log/session files.',
+      promptTokens: 28,
+      candidatesTokens: 42
+    },
+    {
+      title: 'Python API Code Generator',
+      sys: 'You are a Python backend architect. Write clean, type-annotated code with docstrings.',
+      prompt: 'Write a FastAPI endpoint with rate-limiting that returns server health status in JSON.',
+      response: `from fastapi import FastAPI, Request
+from slowapi import Limiter
+
+app = FastAPI()
+limiter = Limiter(key_func=lambda r: r.client.host)
+
+@app.get("/health")
+@limiter.limit("10/minute")
+def health_check(request: Request):
+    """Returns service uptime and database connectivity status."""
+    return {"status": "healthy", "service": "payment-gateway"}`,
+      promptTokens: 22,
+      candidatesTokens: 68
+    },
+    {
+      title: 'Creative Marketing Copywriter',
+      sys: 'You are an award-winning copywriter. Craft punchy, viral brand taglines.',
+      prompt: 'Create 3 brand taglines for an AI-powered code review tool.',
+      response: '1. Ship Without the Fear: AI Code Reviews at Commit Speed.\n2. Less Syntax Debt, More Innovation.\n3. The Second Pair of Senior Eyes Your Pull Requests Deserve.',
+      promptTokens: 18,
+      candidatesTokens: 38
+    }
+  ];
+
+  const finishReasons = [
+    {
+      reason: 'STOP',
+      color: '#10b981',
+      badge: 'NORMAL COMPLETION',
+      desc: 'The model naturally completed its train of thought and emitted an end-of-sequence token.',
+      code: `if response.candidates[0].finish_reason == "STOP":
+    # Response is complete and ready to serve
+    return response.text`
+    },
+    {
+      reason: 'MAX_TOKENS',
+      color: '#f59e0b',
+      badge: 'TRUNCATED',
+      desc: 'Generation was cut off midway because the token count hit your configured max_output_tokens limit.',
+      code: `if response.candidates[0].finish_reason == "MAX_TOKENS":
+    # Warning: Output was cut off! Increase max_output_tokens or prompt to be more concise
+    log_warning("Response truncated by token ceiling")`
+    },
+    {
+      reason: 'SAFETY',
+      color: '#ef4444',
+      badge: 'FILTERED',
+      desc: 'The model stopped generation because the output triggered automated content safety guardrails.',
+      code: `if response.candidates[0].finish_reason == "SAFETY":
+    # Fallback to safe user-friendly rejection notice
+    return "Response could not be completed due to safety policy."`
+    }
+  ];
+
+  const currentTask = tasks[selectedTask];
+  const currentFinish = finishReasons[finishReasonIdx];
+  const currentModelName = modelType === 'flash' ? 'gemini-1.5-flash' : 'gemini-1.5-pro';
+
+  const generatedPythonCode = `import os
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+load_dotenv()
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+model = genai.GenerativeModel(
+    model_name="${currentModelName}",
+    system_instruction="${currentTask.sys}"
+)
+
+config = genai.GenerationConfig(
+    temperature=${temperature},
+    max_output_tokens=${maxTokens}
+)
+
+response = model.generate_content(
+    "${currentTask.prompt}",
+    generation_config=config
+)
+
+print(response.text)`;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: LIVE PYTHON WORKBENCH ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Select a task preset and model to watch the Python SDK code and response dynamically update:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+              {tasks.map((t, i) => (
+                <button key={i} onClick={() => setSelectedTask(i)} style={{
+                  padding: '0.4rem 0.75rem', borderRadius: '8px',
+                  border: `1.5px solid ${selectedTask === i ? '#2563eb' : '#334155'}`,
+                  background: selectedTask === i ? '#2563eb20' : '#1e293b',
+                  color: selectedTask === i ? '#60a5fa' : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer'
+                }}>{t.title}</button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button onClick={() => setModelType('flash')} style={{
+                flex: 1, padding: '0.45rem', borderRadius: '8px',
+                border: `1.5px solid ${modelType === 'flash' ? '#38bdf8' : '#334155'}`,
+                background: modelType === 'flash' ? '#38bdf820' : '#1e293b',
+                color: modelType === 'flash' ? '#38bdf8' : '#94a3b8',
+                fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Gemini 1.5 Flash (Fast / Low Cost)</button>
+
+              <button onClick={() => setModelType('pro')} style={{
+                flex: 1, padding: '0.45rem', borderRadius: '8px',
+                border: `1.5px solid ${modelType === 'pro' ? '#a78bfa' : '#334155'}`,
+                background: modelType === 'pro' ? '#a78bfa20' : '#1e293b',
+                color: modelType === 'pro' ? '#a78bfa' : '#94a3b8',
+                fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Gemini 1.5 Pro (Deep Reasoning)</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+              <div style={{ background: '#090d16', border: '1.5px solid #334155', borderRadius: '10px', padding: '0.85rem' }}>
+                <div style={{ color: '#38bdf8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                  Live Generated Python Script:
+                </div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.72rem', lineHeight: '1.45', overflowX: 'auto' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(generatedPythonCode) }} />
+                </pre>
+              </div>
+
+              <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '10px', padding: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <span style={{ color: '#10b981', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                    Simulated Output (response.text):
+                  </span>
+                  <span style={{ background: '#10b98120', color: '#34d399', border: '1px solid #10b981', padding: '0.1rem 0.5rem', borderRadius: '999px', fontSize: '0.65rem', fontWeight: 800 }}>
+                    FINISH: STOP
+                  </span>
+                </div>
+                <pre style={{ margin: '0 0 0.6rem', color: '#cbd5e1', fontFamily: 'monospace', fontSize: '0.72rem', whiteSpace: 'pre-wrap', lineHeight: '1.45', background: '#0f172a', padding: '0.6rem', borderRadius: '6px' }}>
+                  {currentTask.response}
+                </pre>
+                <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.68rem', color: '#94a3b8' }}>
+                  <span>Prompt: <strong>{currentTask.promptTokens} tokens</strong></span>
+                  <span>|</span>
+                  <span>Output: <strong>{currentTask.candidatesTokens} tokens</strong></span>
+                  <span>|</span>
+                  <span>Total: <strong>{currentTask.promptTokens + currentTask.candidatesTokens} tokens</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: FLASH VS PRO BENCHMARK ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Architectural and cost trade-offs between Gemini 1.5 Flash and Gemini 1.5 Pro:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ background: '#1e293b', border: '1.5px solid #38bdf8', borderRadius: '12px', padding: '1.1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h4 style={{ color: '#38bdf8', margin: 0, fontSize: '1rem', fontWeight: 800 }}>Gemini 1.5 Flash</h4>
+                  <span style={{ background: '#38bdf820', color: '#38bdf8', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800 }}>SPEED & EFFICIENCY</span>
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#cbd5e1', fontSize: '0.76rem', lineHeight: '1.6' }}>
+                  <li><strong>Latency:</strong> Sub-second Time to First Token (~200ms)</li>
+                  <li><strong>Context Window:</strong> 1 Million Tokens</li>
+                  <li><strong>Input Price:</strong> $0.075 per 1M tokens</li>
+                  <li><strong>Output Price:</strong> $0.30 per 1M tokens</li>
+                  <li><strong>Best For:</strong> Chatbots, Real-time APIs, High-throughput extraction, Content classification</li>
+                </ul>
+              </div>
+
+              <div style={{ background: '#1e293b', border: '1.5px solid #a78bfa', borderRadius: '12px', padding: '1.1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h4 style={{ color: '#a78bfa', margin: 0, fontSize: '1rem', fontWeight: 800 }}>Gemini 1.5 Pro</h4>
+                  <span style={{ background: '#a78bfa20', color: '#a78bfa', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800 }}>FRONTIER REASONING</span>
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#cbd5e1', fontSize: '0.76rem', lineHeight: '1.6' }}>
+                  <li><strong>Latency:</strong> ~600ms - 1.2s TTFT (deep multi-head attention)</li>
+                  <li><strong>Context Window:</strong> Up to 2 Million Tokens (1hr video / 60k lines of code)</li>
+                  <li><strong>Input Price:</strong> $1.25 per 1M tokens</li>
+                  <li><strong>Output Price:</strong> $5.00 per 1M tokens</li>
+                  <li><strong>Best For:</strong> Complex architecture design, Math, Code refactoring, Multi-document synthesis</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 3: GENERATIONCONFIG DIALS ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Interactive parameter tuning: Drag the sliders to see how temperature and token limits shape decoding:
+            </p>
+
+            <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '12px', padding: '1.1rem', marginBottom: '1rem' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                  <span style={{ color: '#e2e8f0', fontSize: '0.8rem', fontWeight: 800 }}>temperature: {temperature}</span>
+                  <span style={{ color: temperature < 0.4 ? '#10b981' : temperature > 0.8 ? '#f59e0b' : '#38bdf8', fontSize: '0.75rem', fontWeight: 800 }}>
+                    {temperature < 0.4 ? 'Deterministic & Factual (SRE / Code / SQL)' : temperature > 0.8 ? 'Creative & Unpredictable (Storytelling)' : 'Balanced (General Assistant)'}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.0"
+                  max="1.5"
+                  step="0.1"
+                  value={temperature}
+                  onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#10b981', cursor: 'pointer' }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                  <span style={{ color: '#e2e8f0', fontSize: '0.8rem', fontWeight: 800 }}>max_output_tokens: {maxTokens} tokens</span>
+                  <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Prevents runaway output & cost spikes</span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="800"
+                  step="50"
+                  value={maxTokens}
+                  onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+                  style={{ width: '100%', accentColor: '#38bdf8', cursor: 'pointer' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem' }}>
+              <div style={{ color: '#38bdf8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Resulting Python Config Object:</div>
+              <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                <code dangerouslySetInnerHTML={{ __html: highlightCode(`config = genai.GenerationConfig(\n    temperature=${temperature},\n    max_output_tokens=${maxTokens}\n)`) }} />
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: RESPONSE & FINISH REASONS ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Understanding the response object structure and handling finish reasons in production:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              {finishReasons.map((f, i) => (
+                <button key={i} onClick={() => setFinishReasonIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${finishReasonIdx === i ? f.color : '#334155'}`,
+                  background: finishReasonIdx === i ? `${f.color}20` : '#1e293b',
+                  color: finishReasonIdx === i ? f.color : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{f.reason}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${currentFinish.color}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <h4 style={{ color: currentFinish.color, margin: 0, fontSize: '1rem', fontWeight: 800 }}>finish_reason == "{currentFinish.reason}"</h4>
+                <span style={{ background: `${currentFinish.color}25`, color: currentFinish.color, border: `1px solid ${currentFinish.color}`, padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800 }}>
+                  {currentFinish.badge}
+                </span>
+              </div>
+
+              <p style={{ color: '#cbd5e1', fontSize: '0.78rem', margin: '0 0 0.75rem', lineHeight: '1.5' }}>
+                {currentFinish.desc}
+              </p>
+
+              <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem' }}>
+                <div style={{ color: currentFinish.color, fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Production Verification Logic:</div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.75rem', whiteSpace: 'pre-wrap' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(currentFinish.code) }} />
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// ─── CHAT COMPLETIONS & MULTI-TURN MESSAGES DIAGRAM (GOOGLE GEMINI) ───────────
+const ChatCompletionsDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [currentTurn, setCurrentTurn] = useState(2);
+  const [windowSize, setWindowSize] = useState(4);
+  const [dbState, setDbState] = useState('active');
+
+  const panels = [
+    { label: 'Multi-Turn Chat Simulator', color: '#8b5cf6' },
+    { label: 'DB History Serializer & Rehydrate', color: '#38bdf8' },
+    { label: 'Sliding Window Pruner', color: '#10b981' },
+    { label: 'Token Compounding Telemetry', color: '#f59e0b' },
+  ];
+
+  const conversation = [
+    {
+      turn: 1,
+      user: 'I am planning a 10-day trip to Tokyo in November.',
+      model: 'Tokyo in November is wonderful! Autumn foliage (koyo) is at its peak with mild weather averaging 12-17°C (54-63°F). What activities are you most interested in?',
+      tokens: 42
+    },
+    {
+      turn: 2,
+      user: 'What kind of jacket should I pack for this weather?',
+      model: 'Pack a medium-weight jacket (like a trench coat, light wool coat, or fleece-lined windbreaker) plus lightweight layers like sweaters. Evenings get brisk near Tokyo Bay.',
+      tokens: 38
+    },
+    {
+      turn: 3,
+      user: 'Can you recommend 3 day trips from our base city?',
+      model: 'From Tokyo, 3 ideal day trips in November are:\n1. Nikko (1.5 hrs) — spectacular autumn foliage and historic Toshogu Shrine.\n2. Kamakura (1 hr) — coastal town with the Great Buddha.\n3. Hakone (1.5 hrs) — hot springs with Mount Fuji views.',
+      tokens: 58
+    }
+  ];
+
+  const allTurns = [
+    { role: 'user', text: 'Trip to Tokyo in November', turn: 1 },
+    { role: 'model', text: 'November weather in Tokyo is 12-17C with autumn foliage...', turn: 1 },
+    { role: 'user', text: 'What jacket should I pack?', turn: 2 },
+    { role: 'model', text: 'Pack medium-weight jacket with layered sweaters...', turn: 2 },
+    { role: 'user', text: 'Suggest 3 day trips from base city', turn: 3 },
+    { role: 'model', text: '1. Nikko (1.5 hrs), 2. Kamakura (1 hr), 3. Hakone (1.5 hrs)...', turn: 3 },
+    { role: 'user', text: 'How do I purchase the JR Pass?', turn: 4 },
+    { role: 'model', text: 'Purchase online before arrival or at Narita/Haneda airport...', turn: 4 },
+  ];
+
+  const totalTokens = conversation.slice(0, currentTurn + 1).reduce((acc, t) => acc + t.tokens, 0);
+
+  const serializedJson = JSON.stringify(
+    conversation.slice(0, currentTurn + 1).flatMap(c => [
+      { role: 'user', parts: [c.user] },
+      { role: 'model', parts: [c.model] }
+    ]),
+    null,
+    2
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: MULTI-TURN SIMULATOR ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Step through consecutive conversation turns to see how <code>model.start_chat()</code> accumulates state in memory:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              {[0, 1, 2].map((idx) => (
+                <button key={idx} onClick={() => setCurrentTurn(idx)} style={{
+                  flex: 1, padding: '0.45rem', borderRadius: '8px',
+                  border: `1.5px solid ${currentTurn === idx ? '#8b5cf6' : '#334155'}`,
+                  background: currentTurn === idx ? '#8b5cf620' : '#1e293b',
+                  color: currentTurn === idx ? '#c4b5fd' : '#94a3b8',
+                  fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+                }}>Turn {idx + 1} ({idx === 0 ? 'Context' : idx === 1 ? 'Follow-up' : 'Day Trips'})</button>
+              ))}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+              {/* Chat bubble visualizer */}
+              <div style={{ background: '#090d16', border: '1.5px solid #334155', borderRadius: '10px', padding: '0.85rem' }}>
+                <div style={{ color: '#8b5cf6', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                  Live Chat UI (User Experience):
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {conversation.slice(0, currentTurn + 1).map((turn, tIdx) => (
+                    <div key={tIdx} style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div style={{ alignSelf: 'flex-end', background: '#2563eb', color: '#fff', padding: '0.45rem 0.75rem', borderRadius: '12px 12px 2px 12px', fontSize: '0.74rem', maxWidth: '85%' }}>
+                        {turn.user}
+                      </div>
+                      <div style={{ alignSelf: 'flex-start', background: '#1e293b', border: '1px solid #334155', color: '#e2e8f0', padding: '0.45rem 0.75rem', borderRadius: '12px 12px 12px 2px', fontSize: '0.74rem', maxWidth: '90%', whiteSpace: 'pre-line' }}>
+                        {turn.model}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Internal SDK chat.history array */}
+              <div style={{ background: '#1e293b', border: '1.5px solid #8b5cf6', borderRadius: '10px', padding: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <span style={{ color: '#c4b5fd', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                    Internal chat.history State:
+                  </span>
+                  <span style={{ background: '#8b5cf620', color: '#c4b5fd', border: '1px solid #8b5cf6', padding: '0.1rem 0.5rem', borderRadius: '999px', fontSize: '0.65rem', fontWeight: 800 }}>
+                    {currentTurn + 1} TURNS ACCUMULATED
+                  </span>
+                </div>
+                <pre style={{ margin: '0 0 0.5rem', color: '#cbd5e1', fontFamily: 'monospace', fontSize: '0.7rem', maxHeight: '220px', overflowY: 'auto', background: '#090d16', padding: '0.6rem', borderRadius: '6px' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(serializedJson) }} />
+                </pre>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem' }}>
+                  Cumulative Payload: <strong style={{ color: '#38bdf8' }}>{totalTokens * 2} tokens sent on this turn</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: DB SERIALIZATION & REHYDRATION ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              How backend architectures serialize chat history to databases and restore sessions:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              <button onClick={() => setDbState('active')} style={{
+                flex: 1, padding: '0.45rem', borderRadius: '8px',
+                border: `1.5px solid ${dbState === 'active' ? '#38bdf8' : '#334155'}`,
+                background: dbState === 'active' ? '#38bdf820' : '#1e293b',
+                color: dbState === 'active' ? '#38bdf8' : '#94a3b8',
+                fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Step 1: Serialize to PostgreSQL / Redis</button>
+
+              <button onClick={() => setDbState('rehydrate')} style={{
+                flex: 1, padding: '0.45rem', borderRadius: '8px',
+                border: `1.5px solid ${dbState === 'rehydrate' ? '#10b981' : '#334155'}`,
+                background: dbState === 'rehydrate' ? '#10b98120' : '#1e293b',
+                color: dbState === 'rehydrate' ? '#34d399' : '#94a3b8',
+                fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+              }}>Step 2: Rehydrate on New Server Session</button>
+            </div>
+
+            {dbState === 'active' ? (
+              <div style={{ background: '#1e293b', border: '1.5px solid #38bdf8', borderRadius: '12px', padding: '1.1rem' }}>
+                <h4 style={{ color: '#38bdf8', margin: '0 0 0.5rem', fontSize: '0.95rem', fontWeight: 800 }}>
+                  Extracting chat.history to JSON:
+                </h4>
+                <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem' }}>
+                  <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem' }}>
+                    <code dangerouslySetInnerHTML={{ __html: highlightCode(`# Extract before server connection closes:
+db_payload = [
+    {"role": turn.role, "parts": [p.text for p in turn.parts]}
+    for turn in chat.history
+]
+
+# Save into PostgreSQL (jsonb column) or Redis cache:
+await db.execute(
+    "UPDATE conversations SET history = $1 WHERE user_id = $2",
+    json.dumps(db_payload), user_id
+)`) }} />
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '12px', padding: '1.1rem' }}>
+                <h4 style={{ color: '#10b981', margin: '0 0 0.5rem', fontSize: '0.95rem', fontWeight: 800 }}>
+                  Rehydrating ChatSession from Database:
+                </h4>
+                <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem' }}>
+                  <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem' }}>
+                    <code dangerouslySetInnerHTML={{ __html: highlightCode(`# User logs in next day on mobile app:
+saved_history = await db.fetchval("SELECT history FROM conversations WHERE user_id = $1", user_id)
+
+# Rehydrate session instantaneously without re-running past turns:
+chat = model.start_chat(history=saved_history)
+
+# Model immediately answers with full context of Tokyo & November:
+response = chat.send_message("What day trips do you suggest?")`) }} />
+                  </pre>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== PANEL 3: SLIDING WINDOW PRUNER ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              The Sliding Context Window retains the system prompt + latest N turns, pruning older turns to cap costs:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              {[2, 4, 6].map((sz) => (
+                <button key={sz} onClick={() => setWindowSize(sz)} style={{
+                  flex: 1, padding: '0.45rem', borderRadius: '8px',
+                  border: `1.5px solid ${windowSize === sz ? '#10b981' : '#334155'}`,
+                  background: windowSize === sz ? '#10b98120' : '#1e293b',
+                  color: windowSize === sz ? '#34d399' : '#94a3b8',
+                  fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+                }}>Window Size: Last {sz} Messages</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                <span style={{ color: '#34d399', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Conversation Timeline (Total 8 Messages):
+                </span>
+                <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>
+                  Pruned: {8 - windowSize} messages | Retained: {windowSize} messages
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                {allTurns.map((msg, i) => {
+                  const isRetained = i >= 8 - windowSize;
+                  return (
+                    <div key={i} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '0.4rem 0.75rem', borderRadius: '6px',
+                      background: isRetained ? '#0c2a1f' : '#1a1f2c',
+                      border: `1px solid ${isRetained ? '#10b981' : '#334155'}`,
+                      opacity: isRetained ? 1 : 0.45
+                    }}>
+                      <span style={{ color: isRetained ? '#34d399' : '#64748b', fontSize: '0.74rem', fontWeight: 700 }}>
+                        Turn {msg.turn} ({msg.role}): {msg.text}
+                      </span>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: isRetained ? '#34d399' : '#ef4444' }}>
+                        {isRetained ? 'ACTIVE IN PAYLOAD' : 'PRUNED / SUMMARIZED'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ padding: '0.6rem 0.8rem', background: '#090d16', borderRadius: '6px', fontSize: '0.74rem', color: '#cbd5e1' }}>
+                <strong style={{ color: '#10b981' }}>Python Sliding Window Logic:</strong> <code>trimmed_history = chat.history[-{windowSize}:]</code>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: TOKEN COMPOUNDING TELEMETRY ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Why unpruned multi-turn chat exhibits quadratic token cost growth without a sliding window:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ background: '#1e293b', border: '1.5px solid #ef4444', borderRadius: '10px', padding: '0.9rem' }}>
+                <div style={{ color: '#ef4444', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                  Unpruned Chat (Turn 1 to 20)
+                </div>
+                <div style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 900 }}>~8,400 Tokens</div>
+                <div style={{ color: '#fca5a5', fontSize: '0.72rem', marginTop: '0.2rem' }}>Re-transmits entire conversation history on every single request</div>
+              </div>
+
+              <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '10px', padding: '0.9rem' }}>
+                <div style={{ color: '#10b981', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                  Sliding Window (Last 4 Turns)
+                </div>
+                <div style={{ color: '#fff', fontSize: '1.2rem', fontWeight: 900 }}>~600 Tokens Constant</div>
+                <div style={{ color: '#6ee7b7', fontSize: '0.72rem', marginTop: '0.2rem' }}>Predictable, flat cost curve with sub-200ms latency</div>
+              </div>
+            </div>
+
+            <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '0.85rem' }}>
+              <div style={{ color: '#f59e0b', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                Production Recommendation:
+              </div>
+              <p style={{ color: '#cbd5e1', fontSize: '0.78rem', lineHeight: '1.5', margin: 0 }}>
+                Always combine a permanent <code>system_instruction</code> (system role) with a sliding window of the last 6-10 conversation messages. For long-term user memory, use an asynchronous background task to extract user facts into a database profile rather than accumulating infinite raw transcript turns.
+              </p>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// ─── STREAMING RESPONSES DIAGRAM (GOOGLE GEMINI SSE) ─────────────────────────
+const StreamingResponsesDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamedText, setStreamedText] = useState('');
+  const [tokenCount, setTokenCount] = useState(0);
+
+  const panels = [
+    { label: 'Live SSE Stream Simulator', color: '#06b6d4' },
+    { label: 'Blocking vs Streaming Benchmark', color: '#38bdf8' },
+    { label: 'FastAPI & SSE Protocol Pipe', color: '#10b981' },
+    { label: 'Stream Interruption & Recovery', color: '#f59e0b' },
+  ];
+
+  const fullSample = "To optimize database query performance: 1. Add B-Tree indexes on high-cardinality foreign keys. 2. Eliminate SELECT * in favor of explicit columns. 3. Utilize connection pooling to minimize TCP handshake overhead.";
+
+  const startStreamSimulation = () => {
+    setIsStreaming(true);
+    setStreamedText('');
+    setTokenCount(0);
+    const words = fullSample.split(' ');
+    let currentIdx = 0;
+
+    const interval = setInterval(() => {
+      if (currentIdx < words.length) {
+        setStreamedText((prev) => (prev ? prev + ' ' + words[currentIdx] : words[currentIdx]));
+        setTokenCount((prev) => prev + 1);
+        currentIdx++;
+      } else {
+        clearInterval(interval);
+        setIsStreaming(false);
+      }
+    }, 90);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* PANEL 1: LIVE SSE STREAM SIMULATOR */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Click below to simulate real-time token chunk delivery via <code>stream=True</code> and Server-Sent Events (SSE):
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', alignItems: 'center' }}>
+              <button onClick={startStreamSimulation} disabled={isStreaming} style={{
+                padding: '0.5rem 1.2rem', borderRadius: '8px',
+                border: '1.5px solid #06b6d4',
+                background: isStreaming ? '#334155' : '#06b6d420',
+                color: isStreaming ? '#94a3b8' : '#22d3ee',
+                fontWeight: 800, fontSize: '0.8rem', cursor: isStreaming ? 'not-allowed' : 'pointer'
+              }}>
+                {isStreaming ? 'Streaming Tokens in Progress...' : 'Start Real-Time Stream Simulation'}
+              </button>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                Tokens Arrived: <strong style={{ color: '#22d3ee' }}>{tokenCount}</strong> | TTFT: <strong style={{ color: '#10b981' }}>220ms</strong>
+              </span>
+            </div>
+
+            <div style={{ background: '#090d16', border: '1.5px solid #06b6d4', borderRadius: '10px', padding: '1rem', minHeight: '110px' }}>
+              <div style={{ color: '#06b6d4', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                Live Stream Terminal (chunk.text):
+              </div>
+              <p style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.78rem', lineHeight: '1.5' }}>
+                {streamedText || 'Click the button above to observe sub-second streaming tokens appearing on screen...'}
+                {isStreaming && <span style={{ display: 'inline-block', width: '8px', height: '14px', background: '#06b6d4', marginLeft: '4px', verticalAlign: 'middle' }} />}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 2: BENCHMARK */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Side-by-side perceived user latency comparison:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ background: '#1e293b', border: '1.5px solid #ef4444', borderRadius: '12px', padding: '1.1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <h4 style={{ color: '#ef4444', margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Blocking (stream=False)</h4>
+                  <span style={{ background: '#ef444420', color: '#f87171', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 800 }}>HIGH LATENCY</span>
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#cbd5e1', fontSize: '0.75rem', lineHeight: '1.6' }}>
+                  <li><strong>Time to First Token (TTFT):</strong> 4,200ms (frozen screen)</li>
+                  <li><strong>User Experience:</strong> User stares at blank screen with a loading spinner</li>
+                  <li><strong>Timeout Risk:</strong> Higher risk of HTTP gateway timeouts on long outputs</li>
+                </ul>
+              </div>
+
+              <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '12px', padding: '1.1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <h4 style={{ color: '#10b981', margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Streaming (stream=True)</h4>
+                  <span style={{ background: '#10b98120', color: '#34d399', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 800 }}>SUB-SECOND UX</span>
+                </div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#cbd5e1', fontSize: '0.75rem', lineHeight: '1.6' }}>
+                  <li><strong>Time to First Token (TTFT):</strong> ~220ms (immediate feedback)</li>
+                  <li><strong>User Experience:</strong> Words stream continuously, perceived instant speed</li>
+                  <li><strong>Network Health:</strong> Active TCP keepalive packets eliminate timeouts</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 3: FASTAPI SSE PIPE */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              How FastAPI translates Gemini chunk iterators into Server-Sent Events (SSE):
+            </p>
+
+            <div style={{ background: '#090d16', border: '1.5px solid #10b981', borderRadius: '10px', padding: '0.85rem' }}>
+              <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem', lineHeight: '1.45' }}>
+                <code dangerouslySetInnerHTML={{ __html: highlightCode(`from fastapi.responses import StreamingResponse
+
+async def event_generator():
+    response = model.generate_content("Explain RAG pipelines", stream=True)
+    for chunk in response:
+        # Standard Server-Sent Events framing
+        yield f"data: {chunk.text}\\n\\n"
+    yield "data: [DONE]\\n\\n"
+
+@app.get("/stream")
+def stream():
+    return StreamingResponse(event_generator(), media_type="text/event-stream")`) }} />
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 4: INTERRUPTIONS */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Handling network disconnects and safety stops in streaming applications:
+            </p>
+
+            <div style={{ background: '#1e293b', border: '1.5px solid #f59e0b', borderRadius: '10px', padding: '1rem' }}>
+              <h4 style={{ color: '#f59e0b', margin: '0 0 0.4rem', fontSize: '0.9rem', fontWeight: 800 }}>
+                Resilient Client Consumer Pattern:
+              </h4>
+              <p style={{ color: '#cbd5e1', fontSize: '0.75rem', lineHeight: '1.5', margin: '0 0 0.6rem' }}>
+                When consuming SSE streams on the frontend via <code>fetch()</code> or <code>EventSource</code>, always append tokens to a persistent state variable. If a network drops after 300 words, retain the 300 words on screen rather than resetting the UI to empty!
+              </p>
+              <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.65rem' }}>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.72rem' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(`try:
+    for chunk in response:
+        append_to_ui(chunk.text)
+except Exception as stream_err:
+    log_telemetry("Stream interrupted cleanly", stream_err)
+    # UI retains existing partial text seamlessly`) }} />
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── FUNCTION CALLING DIAGRAM (GOOGLE GEMINI TOOLS) ───────────────────────────
+const FunctionCallingDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [stepIdx, setStepIdx] = useState(0);
+  const [selectedTool, setSelectedTool] = useState(0);
+
+  const panels = [
+    { label: '4-Step Tool Loop Animator', color: '#f59e0b' },
+    { label: 'Tool Schema & Docstring Inspector', color: '#38bdf8' },
+    { label: 'Multi-Tool Dispatcher Simulator', color: '#10b981' },
+    { label: 'Automatic vs Manual Calling', color: '#a78bfa' },
+  ];
+
+  const loopSteps = [
+    {
+      num: 1,
+      title: '1. Prompt Sent with Tools Registered',
+      badge: 'CLIENT -> GEMINI',
+      desc: 'Client sends user prompt ("Check weather in Tokyo") alongside Python tool definitions.',
+      code: 'model = genai.GenerativeModel("gemini-1.5-flash", tools=[get_weather])\nresponse = model.generate_content("What is the weather in Tokyo?")'
+    },
+    {
+      num: 2,
+      title: '2. Model Emits function_call Request',
+      badge: 'GEMINI -> CLIENT',
+      desc: 'Gemini decides a tool is required and returns structured arguments instead of plain text.',
+      code: '# response.candidates[0].content.parts[0].function_call:\n{\n  "name": "get_weather",\n  "args": { "city": "Tokyo" }\n}'
+    },
+    {
+      num: 3,
+      title: '3. Local Backend Executes Python Tool',
+      badge: 'CLIENT EXECUTION',
+      desc: 'Your Python backend executes the local get_weather("Tokyo") function and gets live API data.',
+      code: 'tool_output = get_weather(city="Tokyo")\n# Returns: {"temperature": 18, "condition": "Sunny"}'
+    },
+    {
+      num: 4,
+      title: '4. Tool Response Synthesized',
+      badge: 'GEMINI -> USER',
+      desc: 'Backend feeds tool_output back to Gemini. The model synthesizes a natural human answer.',
+      code: 'final_response = chat.send_message(tool_output)\nprint(final_response.text)\n# "The weather in Tokyo is currently 18°C and sunny."'
+    }
+  ];
+
+  const tools = [
+    {
+      name: 'get_weather',
+      doc: 'Fetches live temperature and conditions for a city.',
+      args: '{"city": "Paris"}',
+      result: '{"temp": 15, "unit": "C", "condition": "Cloudy"}'
+    },
+    {
+      name: 'get_stock_price',
+      doc: 'Fetches current market valuation for a ticker symbol.',
+      args: '{"ticker": "GOOGL"}',
+      result: '{"ticker": "GOOGL", "price": 178.50, "change": "+1.4%"}'
+    },
+    {
+      name: 'calculate_tax',
+      doc: 'Calculates sales tax based on subtotal and state code.',
+      args: '{"subtotal": 250.00, "state": "CA"}',
+      result: '{"tax_rate": "7.25%", "tax_amount": 18.13, "total": 268.13}'
+    }
+  ];
+
+  const curTool = tools[selectedTool];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* PANEL 1: LOOP ANIMATOR */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Step through the 4 phases of the secure client-model tool calling handshake:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              {loopSteps.map((s, i) => (
+                <button key={i} onClick={() => setStepIdx(i)} style={{
+                  flex: 1, padding: '0.45rem', borderRadius: '8px',
+                  border: `1.5px solid ${stepIdx === i ? '#f59e0b' : '#334155'}`,
+                  background: stepIdx === i ? '#f59e0b20' : '#1e293b',
+                  color: stepIdx === i ? '#fbbf24' : '#94a3b8',
+                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
+                }}>Step {s.num}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: '1.5px solid #f59e0b', borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <h4 style={{ color: '#f59e0b', margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>
+                  {loopSteps[stepIdx].title}
+                </h4>
+                <span style={{ background: '#f59e0b20', color: '#fbbf24', border: '1px solid #f59e0b', padding: '0.1rem 0.5rem', borderRadius: '999px', fontSize: '0.65rem', fontWeight: 800 }}>
+                  {loopSteps[stepIdx].badge}
+                </span>
+              </div>
+              <p style={{ color: '#cbd5e1', fontSize: '0.78rem', margin: '0 0 0.75rem' }}>
+                {loopSteps[stepIdx].desc}
+              </p>
+              <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem' }}>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(loopSteps[stepIdx].code) }} />
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 2: SCHEMA INSPECTOR */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              How Gemini parses Python docstrings and type annotations to build tool schemas:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+              <div style={{ background: '#090d16', border: '1px solid #334155', borderRadius: '8px', padding: '0.85rem' }}>
+                <div style={{ color: '#38bdf8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                  1. Your Python Function Definition:
+                </div>
+                <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.72rem', lineHeight: '1.45' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(`def get_weather(city: str) -> dict:
+    """Fetches real-time weather metrics for a city."""
+    return {"temp": 18, "condition": "Sunny"}`) }} />
+                </pre>
+              </div>
+
+              <div style={{ background: '#090d16', border: '1px solid #10b981', borderRadius: '8px', padding: '0.85rem' }}>
+                <div style={{ color: '#10b981', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                  2. Gemini Auto-Generated Tool Schema:
+                </div>
+                <pre style={{ margin: 0, color: '#cbd5e1', fontFamily: 'monospace', fontSize: '0.7rem', lineHeight: '1.4' }}>
+                  <code dangerouslySetInnerHTML={{ __html: highlightCode(`{\n  "name": "get_weather",\n  "description": "Fetches real-time weather metrics for a city.",\n  "parameters": {\n    "type": "OBJECT",\n    "properties": {\n      "city": { "type": "STRING" }\n    },\n    "required": ["city"]\n  }\n}`) }} />
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 3: MULTI-TOOL DISPATCHER */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Select a tool to observe model argument synthesis and deterministic execution:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+              {tools.map((t, i) => (
+                <button key={i} onClick={() => setSelectedTool(i)} style={{
+                  flex: 1, padding: '0.45rem', borderRadius: '8px',
+                  border: `1.5px solid ${selectedTool === i ? '#10b981' : '#334155'}`,
+                  background: selectedTool === i ? '#10b98120' : '#1e293b',
+                  color: selectedTool === i ? '#34d399' : '#94a3b8',
+                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
+                }}>{t.name}()</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '10px', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.75rem', color: '#cbd5e1' }}>
+                <span>Tool: <strong style={{ color: '#34d399' }}>{curTool.name}</strong></span>
+                <span>Role: <strong>{curTool.doc}</strong></span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div style={{ background: '#090d16', padding: '0.6rem', borderRadius: '6px' }}>
+                  <div style={{ color: '#f59e0b', fontSize: '0.68rem', fontWeight: 800, marginBottom: '0.2rem' }}>MODEL GENERATED ARGS:</div>
+                  <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.72rem' }}>{curTool.args}</pre>
+                </div>
+                <div style={{ background: '#090d16', padding: '0.6rem', borderRadius: '6px' }}>
+                  <div style={{ color: '#10b981', fontSize: '0.68rem', fontWeight: 800, marginBottom: '0.2rem' }}>LOCAL EXECUTION RESULT:</div>
+                  <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.72rem' }}>{curTool.result}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 4: AUTO VS MANUAL */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Automatic vs Manual tool execution patterns in Python:
+            </p>
+
+            <div style={{ background: '#090d16', border: '1.5px solid #a78bfa', borderRadius: '10px', padding: '0.85rem' }}>
+              <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem', lineHeight: '1.45' }}>
+                <code dangerouslySetInnerHTML={{ __html: highlightCode(`# OPTION A: Automatic Tool Calling (Recommended for Chatbots)
+chat = model.start_chat(enable_automatic_function_calling=True)
+response = chat.send_message("What is the stock price of GOOGL?")
+print(response.text)  # Final synthesized output automatically!
+
+# OPTION B: Manual Tool Calling (Recommended for Audit Logs & Human-in-the-Loop)
+response = model.generate_content("What is the stock price of GOOGL?")
+if response.candidates[0].content.parts[0].function_call:
+    call = response.candidates[0].content.parts[0].function_call
+    # Explicitly approve and log execution in enterprise systems
+    result = execute_locally(call.name, call.args)`) }} />
+              </pre>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── JSON SCHEMA ENFORCEMENT DIAGRAM (GOOGLE GEMINI) ──────────────────────────
+const JsonSchemaEnforcementDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+
+  const panels = [
+    { label: 'Constrained Logit Masking Engine', color: '#10b981' },
+    { label: 'Prompt Heuristics vs JSON Mode Benchmark', color: '#ef4444' },
+    { label: 'Python Deserialization Workbench', color: '#38bdf8' },
+    { label: 'JSON Mode vs Schema Enforcement', color: '#f59e0b' },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* PANEL 1: LOGIT MASKING */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              How Constrained Logit Decoding physically prevents invalid JSON syntax at the token sampling level:
+            </p>
+
+            <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '12px', padding: '1.1rem', marginBottom: '0.75rem' }}>
+              <div style={{ color: '#cbd5e1', fontSize: '0.75rem', marginBottom: '0.5rem' }}>
+                Current Generation State: <code>&#123; "order_id": "ORD-100", "amount": </code>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
+                <div style={{ background: '#0c2a1f', border: '1px solid #10b981', padding: '0.5rem', borderRadius: '6px' }}>
+                  <span style={{ color: '#34d399', fontSize: '0.72rem', fontWeight: 800 }}>PERMISSIBLE TOKENS (Valid)</span>
+                  <div style={{ color: '#a7f3d0', fontSize: '0.75rem', marginTop: '0.2rem' }}>Digits (0-9), '.', whitespace</div>
+                  <div style={{ color: '#6ee7b7', fontSize: '0.68rem' }}>Logit Prob: Normal (Sampled)</div>
+                </div>
+                <div style={{ background: '#2c1517', border: '1px solid #ef4444', padding: '0.5rem', borderRadius: '6px' }}>
+                  <span style={{ color: '#f87171', fontSize: '0.72rem', fontWeight: 800 }}>MASKED TOKENS (Illegal)</span>
+                  <div style={{ color: '#fca5a5', fontSize: '0.75rem', marginTop: '0.2rem' }}>Words, backticks, unquoted keys</div>
+                  <div style={{ color: '#f87171', fontSize: '0.68rem' }}>Logit Prob: -Infinity (Blocked)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 2: BENCHMARK */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Production failure rates across 10,000 automated extraction runs:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ background: '#1e293b', border: '1.5px solid #ef4444', borderRadius: '10px', padding: '1rem' }}>
+                <h4 style={{ color: '#ef4444', margin: '0 0 0.3rem', fontSize: '0.9rem', fontWeight: 800 }}>Prompt Workaround ("Return only JSON")</h4>
+                <div style={{ color: '#f87171', fontSize: '1.2rem', fontWeight: 900 }}>14.2% Failure Rate</div>
+                <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1rem', color: '#cbd5e1', fontSize: '0.74rem' }}>
+                  <li>Markdown backticks included (\`\`\`json)</li>
+                  <li>Trailing commas causing json.loads() crashes</li>
+                  <li>Conversational preamble included</li>
+                </ul>
+              </div>
+
+              <div style={{ background: '#1e293b', border: '1.5px solid #10b981', borderRadius: '10px', padding: '1rem' }}>
+                <h4 style={{ color: '#10b981', margin: '0 0 0.3rem', fontSize: '0.9rem', fontWeight: 800 }}>Gemini JSON Mode (response_mime_type)</h4>
+                <div style={{ color: '#34d399', fontSize: '1.2rem', fontWeight: 900 }}>0.00% Failure Rate</div>
+                <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1rem', color: '#cbd5e1', fontSize: '0.74rem' }}>
+                  <li>Mathematically guaranteed valid syntax</li>
+                  <li>Direct deserialization with json.loads()</li>
+                  <li>Zero regex cleaning or string slicing</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 3: PYTHON WORKBENCH */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <div style={{ background: '#090d16', border: '1.5px solid #38bdf8', borderRadius: '10px', padding: '0.85rem' }}>
+              <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem', lineHeight: '1.45' }}>
+                <code dangerouslySetInnerHTML={{ __html: highlightCode(`config = genai.GenerationConfig(
+    response_mime_type="application/json",
+    temperature=0.0
+)
+
+response = model.generate_content(prompt, generation_config=config)
+
+# Clean, guaranteed deserialization:
+data = json.loads(response.text)
+print("Order ID:", data["order_id"])`) }} />
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 4: JSON MODE VS SCHEMA */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#cbd5e1', fontSize: '0.78rem', lineHeight: '1.5' }}>
+              <strong>JSON Mode</strong> guarantees valid JSON formatting (matching braces, quoted strings), but does not constrain field names. If you require strict field names, nested models, and typed Enums, use <strong>Structured Outputs with Pydantic response_schema</strong>.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── STRUCTURED OUTPUTS PARSING DIAGRAM (PYDANTIC & GEMINI) ───────────────────
+const StructuredOutputsParsingDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+
+  const panels = [
+    { label: 'Pydantic Schema Builder', color: '#6366f1' },
+    { label: 'Type-Safe Pipeline Flow', color: '#38bdf8' },
+    { label: 'IDE Autocomplete & Static Typing', color: '#10b981' },
+    { label: 'Enterprise Schema Evolution', color: '#f59e0b' },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* PANEL 1: PYDANTIC SCHEMA */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Defining strict Enums and nested data models for Gemini <code>response_schema</code>:
+            </p>
+
+            <div style={{ background: '#090d16', border: '1.5px solid #6366f1', borderRadius: '10px', padding: '0.85rem' }}>
+              <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.72rem', lineHeight: '1.45' }}>
+                <code dangerouslySetInnerHTML={{ __html: highlightCode(`class PriorityLevel(str, Enum):
+    LOW = "LOW"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+class VulnerabilityReport(BaseModel):
+    title: str = Field(description="CVE or exploit title")
+    severity: PriorityLevel
+    line_number: Optional[int]
+    remediation: str
+
+class AuditResult(BaseModel):
+    repo_name: str
+    passed: bool
+    findings: List[VulnerabilityReport]`) }} />
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 2: PIPELINE FLOW */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              End-to-end zero-error structured outputs pipeline flow:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ background: '#1e293b', border: '1px solid #334155', padding: '0.6rem 0.8rem', borderRadius: '6px', fontSize: '0.74rem', color: '#cbd5e1' }}>
+                <strong>1. Python Schema Declaration:</strong> Pass <code>response_schema=AuditResult</code> to GenerationConfig.
+              </div>
+              <div style={{ background: '#1e293b', border: '1px solid #334155', padding: '0.6rem 0.8rem', borderRadius: '6px', fontSize: '0.74rem', color: '#cbd5e1' }}>
+                <strong>2. Constrained Sampling:</strong> Gemini decodes tokens matching the Pydantic JSON Schema representation.
+              </div>
+              <div style={{ background: '#0c2a1f', border: '1px solid #10b981', padding: '0.6rem 0.8rem', borderRadius: '6px', fontSize: '0.74rem', color: '#a7f3d0' }}>
+                <strong>3. Instant Pydantic Validation:</strong> <code>AuditResult.model_validate_json(response.text)</code> produces a verified object with 0% runtime type errors!
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 3: AUTOCOMPLETE */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Full IDE static type checking and autocomplete in VS Code & PyCharm:
+            </p>
+
+            <div style={{ background: '#090d16', border: '1px solid #10b981', borderRadius: '8px', padding: '0.85rem' }}>
+              <pre style={{ margin: 0, color: '#e2e8f0', fontFamily: 'monospace', fontSize: '0.74rem' }}>
+                <code dangerouslySetInnerHTML={{ __html: highlightCode(`report: AuditResult = AuditResult.model_validate_json(response.text)
+
+# Full dot-notation autocomplete with zero dictionary typos:
+for item in report.findings:
+    print(item.title, item.severity.value, item.remediation)`) }} />
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* PANEL 4: ENTERPRISE RULES */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#cbd5e1', fontSize: '0.78rem', lineHeight: '1.5' }}>
+              Always annotate every field with <code>Field(description="...")</code>. Descriptions provide crucial semantic conditioning that steers the model toward accurate field population during constrained decoding.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── EFFECTIVE PROMPTS DIAGRAM (MIT SLOAN FRAMEWORK) ──────────────────────────
+const EffectivePromptsDiagram = () => {
+  const [activePanel, setActivePanel] = useState(0);
+  const [scenarioIdx, setScenarioIdx] = useState(0);
+  const [promptMode, setPromptMode] = useState('effective');
+  const [activePillar, setActivePillar] = useState(0);
+
+  const panels = [
+    { label: '3 Pillars of Prompting', color: '#7c3aed' },
+    { label: 'Interactive Prompt Lab', color: '#38bdf8' },
+    { label: 'Problem Formulation (MIT)', color: '#f59e0b' },
+    { label: 'Risk & Limitation Audit', color: '#ef4444' },
+  ];
+
+  const pillars = [
+    {
+      title: '1. Provide Context & Persona',
+      badge: 'ROLE & AUDIENCE',
+      color: '#7c3aed',
+      desc: 'Assign the AI an explicit professional identity ("You are a senior systems architect...") and define the exact target audience ("Explain for a non-technical board member"). Feed writing samples to match style.',
+      exampleVague: 'How do I optimize my database?',
+      exampleEffective: 'You are a senior Principal Database Administrator. Our PostgreSQL cluster is experiencing high CPU load during peak hours. Explain 3 actionable indexing strategies to a junior developer using clear code snippets.'
+    },
+    {
+      title: '2. Be Specific & Granular',
+      badge: 'CONSTRAINTS & RULES',
+      color: '#38bdf8',
+      desc: 'The Granularity Rule: Output utility is directly proportional to input specificity. Specify precise output formats (e.g. JSON schema, bullet lists), word count limits, exact years, or geographic bounds.',
+      exampleVague: 'Tell me about renewable energy.',
+      exampleEffective: 'Compare solar vs. wind energy costs in Northern Europe over the 2020-2025 period. Output your response as a Markdown table with 4 columns: Energy Source, LCOE Cost, Efficiency %, and Key Drawback.'
+    },
+    {
+      title: '3. Build on the Conversation',
+      badge: 'ITERATIVE REFINEMENT',
+      color: '#34d399',
+      desc: 'LLMs maintain context state across turns within their context window. Refine outputs iteratively ("Make it more concise", "Add a real-world Python example") without retyping background context.',
+      exampleVague: 'Re-explain everything with code.',
+      exampleEffective: 'Great response! Now take strategy #2 from above and implement it as a production-ready Python decorator with error handling and docstrings.'
+    }
+  ];
+
+  const scenarios = [
+    {
+      title: 'Explain Complex Topic (Fall Foliage)',
+      vaguePrompt: 'What\'s the best time to see fall foliage in New England?',
+      vagueOutput: 'Fall foliage in New England usually peaks in autumn, around late September through October. Northern areas like Vermont and New Hampshire peak earlier, while southern areas like Connecticut peak later.',
+      vagueAnalysis: 'Generic, high-level, missing tailored depth and clear audience focus.',
+
+      effectivePrompt: 'You are an experienced wildlife biologist specializing in trees. Based on recent USA weather patterns, predict the best fall foliage season for New England — and explain the science to kindergarteners.',
+      effectiveOutput: 'Hey kids! Imagine trees are wearing cozy summer coats made of green leaves. When autumn gets chilly, the trees put away their green paint and show off bright hidden yellow and orange party outfits underneath! Chlorophyll (the green helper) takes a nap, letting carotenoids shine!',
+      effectiveAnalysis: 'Tailored persona + explicit target audience + clear biological metaphor. Extremely high utility!'
+    },
+    {
+      title: 'Software Development (Code Refactoring)',
+      vaguePrompt: 'Fix this code to run faster.',
+      vagueOutput: 'You can make code faster by using built-in functions, avoiding nested loops, and using vectorization or async functions depending on your language.',
+      vagueAnalysis: 'Vague advice without language context or concrete code implementation.',
+
+      effectivePrompt: 'You are a Principal Python Performance Engineer. Refactor the following data processing loop to process 1,000,000 records under 500ms. Use list comprehensions or NumPy, include type hints, and benchmark before vs after.',
+      effectiveOutput: 'import numpy as np\n# Vectorized array calculation replacing slow Python loop\ndef process_fast(data: np.ndarray) -> np.ndarray:\n    return np.where(data > 0, data * 1.5, 0.0)\n\n# Benchmark: 1.2s -> 18ms (66x speedup)',
+      effectiveAnalysis: 'Explicit role + hard performance constraints + exact library requirements + benchmark metrics.'
+    },
+    {
+      title: 'Executive Communication (Client Memo)',
+      vaguePrompt: 'Write an email about the project delay.',
+      vagueOutput: 'Dear Client, I am writing to let you know that our project is experiencing some delays. We are working hard to finish it soon. Sorry for the inconvenience.',
+      vagueAnalysis: 'Unprofessional, lacks accountability, timeline, and mitigation steps.',
+
+      effectivePrompt: 'Act as a Senior Engagement Manager. Write a 3-paragraph executive email to a Fortune 500 VP explaining a 2-week delay in Sprint 4 due to API vendor downtime. Include: 1) Root cause, 2) Mitigated new delivery date (Oct 15), 3) No budget impact. Tone: confident, accountable, transparent.',
+      effectiveOutput: 'Dear Sarah,\n\nI am writing to provide an updated timeline for Sprint 4. Due to an unexpected 48-hour outage with our third-party authentication vendor, we have adjusted our delivery date by two weeks to October 15.\n\nOur engineering team has implemented a failover mock system to ensure zero further downtime. This schedule adjustment carries zero budget impact, and all key security milestones remain 100% on track.\n\nBest regards,\nAlex',
+      effectiveAnalysis: 'Professional tone + exact structure constraints + clear mitigations. Ready for immediate send.'
+    }
+  ];
+
+  const currentScenario = scenarios[scenarioIdx];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {panels.map((p, i) => (
+            <button key={i} onClick={() => setActivePanel(i)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: '999px',
+              border: `1.5px solid ${p.color}`,
+              background: activePanel === i ? p.color : 'transparent',
+              color: activePanel === i ? '#0f172a' : p.color,
+              fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s'
+            }}>{i + 1}. {p.label}</button>
+          ))}
+        </div>
+
+        {/* ===== PANEL 1: THE 3 PILLARS ===== */}
+        {activePanel === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Click through MIT Sloan's 3 core pillars of effective prompt engineering:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {pillars.map((pil, i) => (
+                <button key={i} onClick={() => setActivePillar(i)} style={{
+                  padding: '0.4rem 0.85rem', borderRadius: '8px',
+                  border: `1.5px solid ${activePillar === i ? pil.color : '#334155'}`,
+                  background: activePillar === i ? `${pil.color}20` : '#1e293b',
+                  color: activePillar === i ? pil.color : '#cbd5e1',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{pil.title.split('.')[1]}</button>
+              ))}
+            </div>
+
+            <div style={{ background: '#1e293b', border: `1.5px solid ${pillars[activePillar].color}`, borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ color: pillars[activePillar].color, margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
+                  {pillars[activePillar].title}
+                </h4>
+                <span style={{ background: `${pillars[activePillar].color}25`, color: pillars[activePillar].color, border: `1px solid ${pillars[activePillar].color}`, padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 800 }}>
+                  {pillars[activePillar].badge}
+                </span>
+              </div>
+
+              <p style={{ color: '#cbd5e1', fontSize: '0.85rem', lineHeight: '1.6', margin: '0 0 1rem' }}>
+                {pillars[activePillar].desc}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <div style={{ padding: '0.75rem', background: '#3f1818', border: '1px solid #ef4444', borderRadius: '8px' }}>
+                  <div style={{ color: '#fca5a5', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Vague Prompt (Low Context):</div>
+                  <div style={{ color: '#f87171', fontSize: '0.82rem', fontFamily: 'monospace' }}>"{pillars[activePillar].exampleVague}"</div>
+                </div>
+
+                <div style={{ padding: '0.75rem', background: '#0c2a1f', border: '1px solid #34d399', borderRadius: '8px' }}>
+                  <div style={{ color: '#6ee7b7', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Effective MIT-Style Prompt:</div>
+                  <div style={{ color: '#a7f3d0', fontSize: '0.82rem', fontFamily: 'monospace' }}>"{pillars[activePillar].exampleEffective}"</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 2: INTERACTIVE PROMPT LAB ===== */}
+        {activePanel === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Select a scenario and compare how a vague vs. MIT-effective prompt changes the AI's generated response:
+            </p>
+
+            {/* Scenario selectors */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {scenarios.map((sc, i) => (
+                <button key={i} onClick={() => setScenarioIdx(i)} style={{
+                  padding: '0.4rem 0.8rem', borderRadius: '8px',
+                  border: `1.5px solid ${scenarioIdx === i ? '#38bdf8' : '#334155'}`,
+                  background: scenarioIdx === i ? '#38bdf820' : '#1e293b',
+                  color: scenarioIdx === i ? '#38bdf8' : '#94a3b8',
+                  fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer'
+                }}>{sc.title}</button>
+              ))}
+            </div>
+
+            {/* Prompt Mode Toggle */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              <button onClick={() => setPromptMode('vague')} style={{
+                flex: 1, padding: '0.5rem', borderRadius: '8px',
+                border: '1.5px solid #ef4444',
+                background: promptMode === 'vague' ? '#ef4444' : '#1e293b',
+                color: promptMode === 'vague' ? '#fff' : '#f87171',
+                fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer'
+              }}>Vague Prompt Mode</button>
+              <button onClick={() => setPromptMode('effective')} style={{
+                flex: 1, padding: '0.5rem', borderRadius: '8px',
+                border: '1.5px solid #34d399',
+                background: promptMode === 'effective' ? '#34d399' : '#1e293b',
+                color: promptMode === 'effective' ? '#0f172a' : '#34d399',
+                fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer'
+              }}>MIT Effective Prompt Mode</button>
+            </div>
+
+            {/* Live Comparison Output Box */}
+            <div style={{ background: '#0f172a', border: `2px solid ${promptMode === 'effective' ? '#34d399' : '#ef4444'}`, borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ color: promptMode === 'effective' ? '#34d399' : '#f87171', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                INPUT PROMPT:
+              </div>
+              <div style={{ padding: '0.65rem 0.85rem', background: '#1e293b', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.8rem', color: '#e2e8f0', marginBottom: '0.85rem' }}>
+                "{promptMode === 'effective' ? currentScenario.effectivePrompt : currentScenario.vaguePrompt}"
+              </div>
+
+              <div style={{ color: promptMode === 'effective' ? '#34d399' : '#f87171', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                GENERATED AI RESPONSE:
+              </div>
+              <div style={{ padding: '0.75rem', background: promptMode === 'effective' ? '#0c2a1f' : '#2d1515', border: `1px solid ${promptMode === 'effective' ? '#059669' : '#991b1b'}`, borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.8rem', color: promptMode === 'effective' ? '#a7f3d0' : '#fca5a5', whiteSpace: 'pre-wrap', lineHeight: '1.5', marginBottom: '0.75rem' }}>
+                {promptMode === 'effective' ? currentScenario.effectiveOutput : currentScenario.vagueOutput}
+              </div>
+
+              <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>
+                <strong style={{ color: '#cbd5e1' }}>MIT Analysis:</strong> {promptMode === 'effective' ? currentScenario.effectiveAnalysis : currentScenario.vagueAnalysis}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 3: PROBLEM FORMULATION VS PROMPT ENG ===== */}
+        {activePanel === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Dr. Oguz A. Acar (HBR / MIT Sloan) paradigm shift: Why problem definition matters more than prompt tricks.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: '#1c1200', border: '1.5px solid #f59e0b', borderRadius: '10px', padding: '1rem' }}>
+                <div style={{ color: '#f59e0b', fontWeight: 800, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+                  Prompt Engineering
+                </div>
+                <div style={{ color: '#fcd34d', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.6rem' }}>SYNTAX & WORD CHOICE</div>
+                <ul style={{ color: '#cbd5e1', fontSize: '0.78rem', margin: 0, paddingLeft: '1.2rem', lineHeight: '1.6' }}>
+                  <li>Focuses on word selection & syntax</li>
+                  <li>Uses formatting hacks & "magic words"</li>
+                  <li>Requires manual tweaking per model update</li>
+                  <li>Becoming automated by AI agents</li>
+                </ul>
+              </div>
+
+              <div style={{ background: '#0c2a1f', border: '1.5px solid #34d399', borderRadius: '10px', padding: '1rem' }}>
+                <div style={{ color: '#34d399', fontWeight: 800, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+                  Problem Formulation (MIT)
+                </div>
+                <div style={{ color: '#6ee7b7', fontSize: '0.75rem', fontWeight: 800, marginBottom: '0.6rem' }}>SCOPE & GOAL DEFINITION</div>
+                <ul style={{ color: '#cbd5e1', fontSize: '0.78rem', margin: 0, paddingLeft: '1.2rem', lineHeight: '1.6' }}>
+                  <li>Focuses on defining core business problem</li>
+                  <li>Delineates scope, boundaries & success criteria</li>
+                  <li>Identifies root user intent & ethical guardrails</li>
+                  <li>Timeless human skill that AI cannot replace</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style={{ padding: '0.85rem 1rem', background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontSize: '0.8rem', color: '#94a3b8' }}>
+              <strong style={{ color: '#f59e0b' }}>Key Takeaway:</strong> As AI models automatically rewrite prompts and operate agentically, mastering <em style={{ color: '#e2e8f0' }}>Problem Formulation</em> ensures your AI systems solve the right business problems with precision.
+            </div>
+          </div>
+        )}
+
+        {/* ===== PANEL 4: RISK & LIMITATION AUDIT ===== */}
+        {activePanel === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Critical risks and limitations to audit when crafting prompts:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {[
+                {
+                  title: '1. AI Hallucinations & Factual Errors',
+                  desc: 'Models generate confident, grammatically flawless text that is completely false (e.g. CNET 2023 financial article controversy). Always fact-check outputs.',
+                  color: '#ef4444',
+                  action: 'Add instruction: "If uncertain or if data is missing, state \'I do not have sufficient data\' instead of guessing."'
+                },
+                {
+                  title: '2. Algorithmic Bias & Representation',
+                  desc: 'Training data contains societal biases (e.g. MIT student photo editing controversy where skin tone was altered). Audit outputs for fairness.',
+                  color: '#f97316',
+                  action: 'Add instruction: "Ensure outputs use inclusive language and represent diverse perspectives neutrally."'
+                },
+                {
+                  title: '3. Data Privacy & Confidentiality',
+                  desc: 'Public commercial LLMs use user inputs to train future models unless opted out. Never paste PII or proprietary code.',
+                  color: '#a78bfa',
+                  action: 'Rule: Use anonymized mock datasets and verify enterprise data privacy compliance before sending sensitive data.'
+                }
+              ].map((r, i) => (
+                <div key={i} style={{ padding: '0.9rem', background: '#1e293b', border: `1.5px solid ${r.color}`, borderRadius: '10px' }}>
+                  <div style={{ color: r.color, fontWeight: 800, fontSize: '0.88rem', marginBottom: '0.3rem' }}>{r.title}</div>
+                  <div style={{ color: '#cbd5e1', fontSize: '0.8rem', lineHeight: '1.5', marginBottom: '0.5rem' }}>{r.desc}</div>
+                  <div style={{ padding: '0.4rem 0.6rem', background: '#0f172a', border: '1px solid #334155', borderRadius: '6px', fontSize: '0.75rem', color: '#6ee7b7' }}>
+                    <strong>Mitigation Prompt Rule:</strong> {r.action}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+// ─── CONTEXT MEMORY & RAG FOUNDATIONS DIAGRAM (ai-5-1) ──────────────────────
+const ContextMemoryLimitDiagram = () => {
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Tab 0: FIFO Truncation State
+  const [maxTurns, setMaxTurns] = useState(3); // 3 turns = 6 messages
+  const [historyTurns, setHistoryTurns] = useState([
+    { id: 1, user: "My favorite restaurant is Luigi's Italian Pasta House in Boston.", assistant: "Noted! I will remember Luigi's is your favorite Italian restaurant." },
+    { id: 2, user: "What is the capital of Japan?", assistant: "The capital of Japan is Tokyo." },
+    { id: 3, user: "Calculate 15 * 8 for me.", assistant: "15 * 8 = 120." }
+  ]);
+  const [queryResult, setQueryResult] = useState(null);
+
+  const cannedTurns = [
+    { id: 4, user: "Tell me a short science joke.", assistant: "Why do biologists look forward to cell division? Because it multiplies!" },
+    { id: 5, user: "What is the boiling point of water in Celsius?", assistant: "Water boils at 100 degrees Celsius at standard atmospheric pressure." },
+    { id: 6, user: "What is the weather usually like in Kyoto in October?", assistant: "Kyoto in October is pleasant with crisp autumn air and temperatures around 18-22C." }
+  ];
+
+  const handleAddTurn = () => {
+    if (historyTurns.length < 6) {
+      const nextTurn = cannedTurns[historyTurns.length - 3];
+      if (nextTurn) {
+        setHistoryTurns([...historyTurns, nextTurn]);
+        setQueryResult(null);
+      }
+    }
+  };
+
+  const handleResetFifo = () => {
+    setHistoryTurns([
+      { id: 1, user: "My favorite restaurant is Luigi's Italian Pasta House in Boston.", assistant: "Noted! I will remember Luigi's is your favorite Italian restaurant." },
+      { id: 2, user: "What is the capital of Japan?", assistant: "The capital of Japan is Tokyo." },
+      { id: 3, user: "Calculate 15 * 8 for me.", assistant: "15 * 8 = 120." }
+    ]);
+    setQueryResult(null);
+  };
+
+  const handleTestRecall = () => {
+    const activeSlice = historyTurns.slice(-maxTurns);
+    const hasTurn1 = activeSlice.some(t => t.id === 1);
+    if (hasTurn1) {
+      setQueryResult({
+        success: true,
+        text: "Your favorite restaurant is Luigi's Italian Pasta House in Boston! (Retrieved directly from active working context)."
+      });
+    } else {
+      setQueryResult({
+        success: false,
+        text: "I am sorry, you have not mentioned your favorite restaurant in our current conversation. (Turn 1 was evicted by FIFO sliding window truncation!)."
+      });
+    }
+  };
+
+  // Tab 1: Noise & Attention Dilution State
+  const [noiseMode, setNoiseMode] = useState('bloated'); // 'bloated' | 'engineered'
+
+  // Tab 2: Summarization State
+  const [isCompressed, setIsCompressed] = useState(false);
+
+  // Tab 3: 3-Tier Architecture Selection
+  const [selectedTier, setSelectedTier] = useState(0);
+
+  const tiers = [
+    {
+      title: "Tier 1: Working Context Window",
+      tag: "TEMPORARY / RAM",
+      color: "#38bdf8",
+      scope: "Current HTTP Request Payload",
+      capacity: "2K - 1M Tokens (~1.5K - 750K words)",
+      latency: "< 250ms (In-Memory Attention)",
+      cost: "Paid per input token on every API call",
+      useCase: "Active conversation turns, immediate instructions, scratchpad reasoning."
+    },
+    {
+      title: "Tier 2: Structured Profile Persistence",
+      tag: "PERSISTENT / SESSION DISK",
+      color: "#a855f7",
+      scope: "User-Specific Preferences (JSON / SQL / Redis)",
+      capacity: "Structured attributes (Diet, Locale, API Keys, Style)",
+      latency: "10ms DB Query + Injected to System Prompt",
+      cost: "Near zero database storage cost",
+      useCase: "User profiles (Alice vs Bob), saved tone guidelines, authenticated session continuity."
+    },
+    {
+      title: "Tier 3: Retrieval-Augmented Generation (RAG)",
+      tag: "PERMANENT / EXTERNAL VECTOR STORE",
+      color: "#10b981",
+      scope: "Enterprise Knowledge Base (PDFs, Docs, Catalogs)",
+      capacity: "Infinite (Millions of document chunks in Vector DB)",
+      latency: "50-150ms Vector Top-K Retrieval",
+      cost: "One-time embedding generation + storage",
+      useCase: "Legal contracts, financial reports, company documentation portals, codebases."
+    }
+  ];
+
+  return (
+    <div style={{
+      background: '#090d16',
+      border: '1px solid #1e293b',
+      borderRadius: '16px',
+      overflow: 'hidden',
+      boxShadow: '0 20px 40px -15px rgba(0,0,0,0.5)',
+      fontFamily: 'Inter, sans-serif',
+      margin: '2rem 0'
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '1.25rem 1.5rem',
+        borderBottom: '1px solid #1e293b',
+        background: 'linear-gradient(90deg, rgba(2,132,199,0.12) 0%, rgba(124,58,237,0.06) 100%)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '0.75rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            width: '10px', height: '10px', borderRadius: '50%',
+            background: '#0284c7', boxShadow: '0 0 12px #0284c7'
+          }} />
+          <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f8fafc', letterSpacing: '0.02em' }}>
+            Interactive Context Memory &amp; RAG Architecture Lab
+          </span>
+        </div>
+        <span style={{
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          color: '#38bdf8',
+          background: 'rgba(56,189,248,0.12)',
+          padding: '0.25rem 0.75rem',
+          borderRadius: '999px',
+          border: '1px solid rgba(56,189,248,0.3)'
+        }}>
+          Working Memory vs Long-Term RAG
+        </span>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div style={{
+        display: 'flex',
+        borderBottom: '1px solid #1e293b',
+        background: '#0f172a',
+        overflowX: 'auto'
+      }}>
+        {[
+          { label: '1. FIFO Truncation Simulator', color: '#ef4444' },
+          { label: '2. Attention Dilution & Noise', color: '#f59e0b' },
+          { label: '3. AI Summarization Compressor', color: '#10b981' },
+          { label: '4. 3-Tier Memory Architecture', color: '#38bdf8' }
+        ].map((tab, idx) => (
+          <button
+            key={idx}
+            onClick={() => setActiveTab(idx)}
+            style={{
+              padding: '0.9rem 1.25rem',
+              background: activeTab === idx ? '#1e293b' : 'transparent',
+              color: activeTab === idx ? '#f8fafc' : '#94a3b8',
+              border: 'none',
+              borderBottom: activeTab === idx ? `3px solid ${tab.color}` : '3px solid transparent',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* TAB CONTENT PANELS */}
+      <div style={{ padding: '1.5rem' }}>
+
+        {/* ─── TAB 0: FIFO TRUNCATION SIMULATOR ─── */}
+        {activeTab === 0 && (
+          <div>
+            <div style={{ marginBottom: '1.25rem', color: '#cbd5e1', fontSize: '0.88rem', lineHeight: '1.6' }}>
+              Experience how sliding window buffers (e.g. <code style={{ color: '#38bdf8', background: '#1e293b', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>conversation[-6:]</code>) cause <strong>catastrophic forgetting</strong> of early critical facts as new chat turns enter the queue.
+            </div>
+
+            {/* Controls Bar */}
+            <div style={{
+              display: 'flex',
+              gap: '1rem',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              background: '#131b2e',
+              padding: '0.85rem 1rem',
+              borderRadius: '10px',
+              border: '1px solid #1e293b',
+              marginBottom: '1.25rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>Sliding Window Capacity:</span>
+                <button
+                  onClick={() => setMaxTurns(2)}
+                  style={{
+                    padding: '0.3rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
+                    background: maxTurns === 2 ? '#38bdf8' : '#1e293b',
+                    color: maxTurns === 2 ? '#0f172a' : '#cbd5e1',
+                    border: '1px solid #334155', cursor: 'pointer'
+                  }}
+                >
+                  2 Turns (4 Msgs)
+                </button>
+                <button
+                  onClick={() => setMaxTurns(3)}
+                  style={{
+                    padding: '0.3rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
+                    background: maxTurns === 3 ? '#38bdf8' : '#1e293b',
+                    color: maxTurns === 3 ? '#0f172a' : '#cbd5e1',
+                    border: '1px solid #334155', cursor: 'pointer'
+                  }}
+                >
+                  3 Turns (6 Msgs)
+                </button>
+              </div>
+
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={handleAddTurn}
+                  disabled={historyTurns.length >= 6}
+                  style={{
+                    padding: '0.4rem 0.9rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700,
+                    background: historyTurns.length < 6 ? '#10b981' : '#334155',
+                    color: '#fff', border: 'none', cursor: historyTurns.length < 6 ? 'pointer' : 'not-allowed'
+                  }}
+                >
+                  + Add Next Chat Turn ({historyTurns.length}/6)
+                </button>
+                <button
+                  onClick={handleResetFifo}
+                  style={{
+                    padding: '0.4rem 0.75rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700,
+                    background: '#1e293b', color: '#94a3b8', border: '1px solid #334155', cursor: 'pointer'
+                  }}
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            {/* Conversation History Visualizer */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              {historyTurns.map((turn, index) => {
+                const distanceFromEnd = historyTurns.length - 1 - index;
+                const isRetained = distanceFromEnd < maxTurns;
+                const isCrucialTurn1 = turn.id === 1;
+
+                return (
+                  <div
+                    key={turn.id}
+                    style={{
+                      padding: '0.85rem 1rem',
+                      borderRadius: '10px',
+                      background: isRetained ? '#0f172a' : 'rgba(239,68,68,0.08)',
+                      border: isRetained
+                        ? (isCrucialTurn1 ? '1.5px solid #10b981' : '1px solid #334155')
+                        : '1.5px dashed rgba(239,68,68,0.4)',
+                      opacity: isRetained ? 1 : 0.45,
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <span style={{
+                        fontSize: '0.72rem', fontWeight: 800,
+                        color: isRetained ? (isCrucialTurn1 ? '#10b981' : '#38bdf8') : '#ef4444',
+                        textTransform: 'uppercase'
+                      }}>
+                        Turn {turn.id} {isCrucialTurn1 ? '— [KEY FACT DECLARED]' : ''}
+                      </span>
+                      <span style={{
+                        fontSize: '0.7rem', fontWeight: 700,
+                        padding: '0.15rem 0.5rem', borderRadius: '4px',
+                        background: isRetained ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.2)',
+                        color: isRetained ? '#34d399' : '#f87171'
+                      }}>
+                        {isRetained ? 'ACTIVE IN CONTEXT' : 'EVICTED BY FIFO TRUNCATION'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: isRetained ? '#e2e8f0' : '#94a3b8', textDecoration: isRetained ? 'none' : 'line-through' }}>
+                      <span style={{ color: '#94a3b8' }}>User:</span> "{turn.user}"
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: isRetained ? '#a5f3fc' : '#64748b', marginTop: '0.25rem' }}>
+                      <span style={{ color: '#64748b' }}>Assistant:</span> "{turn.assistant}"
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Test Recall Section */}
+            <div style={{
+              background: '#0d1527',
+              border: '1px solid #1d2d50',
+              borderRadius: '12px',
+              padding: '1.25rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f8fafc' }}>
+                  Test Assistant Memory: <em style={{ color: '#38bdf8' }}>"What is my favorite restaurant?"</em>
+                </span>
+                <button
+                  onClick={handleTestRecall}
+                  style={{
+                    padding: '0.45rem 1rem', borderRadius: '8px',
+                    background: '#0284c7', color: '#fff', border: 'none',
+                    fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer'
+                  }}
+                >
+                  Send Query to Model Attention
+                </button>
+              </div>
+
+              {queryResult && (
+                <div style={{
+                  padding: '0.9rem 1rem',
+                  borderRadius: '8px',
+                  background: queryResult.success ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.12)',
+                  border: queryResult.success ? '1px solid #10b981' : '1px solid #ef4444',
+                  color: queryResult.success ? '#6ee7b7' : '#fca5a5',
+                  fontSize: '0.85rem',
+                  lineHeight: '1.5'
+                }}>
+                  <strong>Model Response:</strong> {queryResult.text}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB 1: ATTENTION DILUTION & NOISE ─── */}
+        {activeTab === 1 && (
+          <div>
+            <div style={{ marginBottom: '1.25rem', color: '#cbd5e1', fontSize: '0.88rem', lineHeight: '1.6' }}>
+              Compare how stuffing raw unstructured noise into a prompt degrades reasoning efficiency versus <strong>Context Engineering</strong> with signal-only tokens.
+            </div>
+
+            {/* Mode Switcher */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <button
+                onClick={() => setNoiseMode('bloated')}
+                style={{
+                  flex: 1, padding: '0.75rem', borderRadius: '10px',
+                  background: noiseMode === 'bloated' ? '#1c1212' : '#0f172a',
+                  border: noiseMode === 'bloated' ? '2px solid #ef4444' : '1px solid #334155',
+                  color: noiseMode === 'bloated' ? '#f87171' : '#94a3b8',
+                  fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer'
+                }}
+              >
+                Bloated Raw Context (142 Tokens)
+              </button>
+              <button
+                onClick={() => setNoiseMode('engineered')}
+                style={{
+                  flex: 1, padding: '0.75rem', borderRadius: '10px',
+                  background: noiseMode === 'engineered' ? '#0c221a' : '#0f172a',
+                  border: noiseMode === 'engineered' ? '2px solid #10b981' : '1px solid #334155',
+                  color: noiseMode === 'engineered' ? '#34d399' : '#94a3b8',
+                  fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer'
+                }}
+              >
+                Engineered Concise Context (28 Tokens)
+              </button>
+            </div>
+
+            {/* Telemetry Metrics Bar */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '0.75rem', marginBottom: '1.25rem'
+            }}>
+              <div style={{ background: '#131b2e', padding: '0.85rem', borderRadius: '10px', border: '1px solid #1e293b' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' }}>Token Consumption</div>
+                <div style={{ color: noiseMode === 'bloated' ? '#f87171' : '#34d399', fontSize: '1.3rem', fontWeight: 900 }}>
+                  {noiseMode === 'bloated' ? '142 Tokens' : '28 Tokens (-80%)'}
+                </div>
+              </div>
+              <div style={{ background: '#131b2e', padding: '0.85rem', borderRadius: '10px', border: '1px solid #1e293b' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' }}>Signal-To-Noise Ratio (SNR)</div>
+                <div style={{ color: noiseMode === 'bloated' ? '#f59e0b' : '#38bdf8', fontSize: '1.3rem', fontWeight: 900 }}>
+                  {noiseMode === 'bloated' ? '18% Signal' : '96% Signal'}
+                </div>
+              </div>
+              <div style={{ background: '#131b2e', padding: '0.85rem', borderRadius: '10px', border: '1px solid #1e293b' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' }}>Attention Risk</div>
+                <div style={{ color: noiseMode === 'bloated' ? '#ef4444' : '#10b981', fontSize: '1.3rem', fontWeight: 900 }}>
+                  {noiseMode === 'bloated' ? 'Lost in Middle' : 'Optimal Focus'}
+                </div>
+              </div>
+            </div>
+
+            {/* Prompt Token Breakdown */}
+            <div style={{
+              background: '#0b1120',
+              border: `1.5px solid ${noiseMode === 'bloated' ? '#ef4444' : '#10b981'}`,
+              borderRadius: '12px',
+              padding: '1.25rem'
+            }}>
+              <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+                {noiseMode === 'bloated' ? 'Payload with Irrelevant Distractors:' : 'Curated Clean Prompt Payload:'}
+              </div>
+
+              {noiseMode === 'bloated' ? (
+                <div style={{ fontSize: '0.88rem', lineHeight: '1.8', color: '#cbd5e1' }}>
+                  Sally and Bob operate a 47-acre Vermont apple farm. <span style={{ background: 'rgba(16,185,129,0.25)', color: '#34d399', padding: '0.1rem 0.35rem', borderRadius: '4px', fontWeight: 700 }}>[SIGNAL: Sally has 14 apples.]</span> <span style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>[NOISE: Apples are often red and glossy.]</span> <span style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>[NOISE: 12 is a nice number according to Sally.]</span> <span style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>[NOISE: Bob has zero red apples.]</span> <span style={{ background: 'rgba(16,185,129,0.25)', color: '#34d399', padding: '0.1rem 0.35rem', borderRadius: '4px', fontWeight: 700 }}>[SIGNAL: Bob has 2 green apples.]</span> <span style={{ background: 'rgba(239,68,68,0.2)', color: '#f87171', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>[NOISE: Green apples often taste sour.]</span> How many apples do they have in total?
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.88rem', lineHeight: '1.8', color: '#cbd5e1' }}>
+                  <span style={{ color: '#38bdf8', fontWeight: 700 }}>Facts:</span><br />
+                  - Sally count: 14 apples<br />
+                  - Bob count: 2 apples<br />
+                  <span style={{ color: '#38bdf8', fontWeight: 700 }}>Question:</span> What is the total count of apples owned by Sally and Bob?
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB 2: AI SUMMARIZATION COMPRESSOR ─── */}
+        {activeTab === 2 && (
+          <div>
+            <div style={{ marginBottom: '1.25rem', color: '#cbd5e1', fontSize: '0.88rem', lineHeight: '1.6' }}>
+              See how Google Gemini background summarization compresses 150-token conversation history down to a dense 40-token memory state, freeing up 75% of context window headroom.
+            </div>
+
+            {/* Compressor Action Bar */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 700 }}>State:</span>
+                <span style={{
+                  padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 800,
+                  background: isCompressed ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)',
+                  color: isCompressed ? '#34d399' : '#fbbf24'
+                }}>
+                  {isCompressed ? 'COMPRESSED (40 TOKENS)' : 'RAW UNCOMPRESSED (150 TOKENS)'}
+                </span>
+              </div>
+
+              <button
+                onClick={() => setIsCompressed(!isCompressed)}
+                style={{
+                  padding: '0.5rem 1.25rem', borderRadius: '8px',
+                  background: isCompressed ? '#1e293b' : '#10b981',
+                  color: isCompressed ? '#38bdf8' : '#fff',
+                  border: isCompressed ? '1px solid #334155' : 'none',
+                  fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer'
+                }}
+              >
+                {isCompressed ? 'Revert to Raw Chat' : 'Trigger Gemini 1.5 Flash Compression'}
+              </button>
+            </div>
+
+            {/* Token Budget Meter */}
+            <div style={{ background: '#131b2e', padding: '1rem', borderRadius: '10px', border: '1px solid #1e293b', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8', marginBottom: '0.4rem' }}>
+                <span>Context Window Token Meter (200 Token Simulated Budget)</span>
+                <span style={{ color: isCompressed ? '#34d399' : '#f59e0b', fontWeight: 800 }}>
+                  {isCompressed ? '40 / 200 Tokens (20% Used - 160 Available)' : '150 / 200 Tokens (75% Used - 50 Available)'}
+                </span>
+              </div>
+              <div style={{ width: '100%', height: '10px', background: '#0f172a', borderRadius: '999px', overflow: 'hidden' }}>
+                <div style={{
+                  width: isCompressed ? '20%' : '75%',
+                  height: '100%',
+                  background: isCompressed ? '#10b981' : '#f59e0b',
+                  transition: 'width 0.4s ease'
+                }} />
+              </div>
+            </div>
+
+            {/* Dual Column View */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+              <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '10px', padding: '1rem' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                  Raw Input Turns (~150 Tokens):
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#cbd5e1', fontFamily: 'monospace', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                  {`User: Hi, planning a trip to Kyoto for 4 days Oct 12-16.
+Assistant: Wonderful! Kyoto is gorgeous in autumn.
+User: I am vegetarian and budget is $150/day.
+Assistant: Got it, vegetarian under $150/day.
+User: My hotel is located near Gion district.`}
+                </div>
+              </div>
+
+              <div style={{ background: '#0b192c', border: '1px solid #0284c7', borderRadius: '10px', padding: '1rem' }}>
+                <div style={{ color: '#38bdf8', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                  Gemini Semantic Compressed Summary (~40 Tokens):
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#a5f3fc', fontFamily: 'monospace', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                  {isCompressed ? (
+                    `User Profile & Trip Constraints:
+- Destination: Kyoto (Oct 12-16, 4 days)
+- Lodging: Near Gion District
+- Diet: Strict Vegetarian
+- Daily Food Budget: $150/day`
+                  ) : (
+                    '(Click "Trigger Gemini Compression" above to generate dense state summary)'
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── TAB 3: 3-TIER MEMORY ARCHITECTURE ─── */}
+        {activeTab === 3 && (
+          <div>
+            <div style={{ marginBottom: '1.25rem', color: '#cbd5e1', fontSize: '0.88rem', lineHeight: '1.6' }}>
+              Production AI applications combine all three memory tiers to balance latency, cost, and unbounded long-term recall:
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+              {tiers.map((t, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedTier(i)}
+                  style={{
+                    padding: '0.5rem 1rem', borderRadius: '8px',
+                    border: `1.5px solid ${selectedTier === i ? t.color : '#334155'}`,
+                    background: selectedTier === i ? `${t.color}20` : '#0f172a',
+                    color: selectedTier === i ? t.color : '#94a3b8',
+                    fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer'
+                  }}
+                >
+                  {t.title}
+                </button>
+              ))}
+            </div>
+
+            {/* Selected Tier Card */}
+            <div style={{
+              background: '#0f172a',
+              border: `2px solid ${tiers[selectedTier].color}`,
+              borderRadius: '12px',
+              padding: '1.5rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h4 style={{ margin: 0, color: tiers[selectedTier].color, fontSize: '1.1rem', fontWeight: 800 }}>
+                  {tiers[selectedTier].title}
+                </h4>
+                <span style={{
+                  padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 800,
+                  background: `${tiers[selectedTier].color}25`, color: tiers[selectedTier].color
+                }}>
+                  {tiers[selectedTier].tag}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' }}>Scope &amp; Storage</div>
+                  <div style={{ color: '#f8fafc', fontSize: '0.85rem', fontWeight: 600 }}>{tiers[selectedTier].scope}</div>
+                </div>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' }}>Capacity Limit</div>
+                  <div style={{ color: '#f8fafc', fontSize: '0.85rem', fontWeight: 600 }}>{tiers[selectedTier].capacity}</div>
+                </div>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' }}>Access Latency</div>
+                  <div style={{ color: '#f8fafc', fontSize: '0.85rem', fontWeight: 600 }}>{tiers[selectedTier].latency}</div>
+                </div>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' }}>Cost Model</div>
+                  <div style={{ color: '#f8fafc', fontSize: '0.85rem', fontWeight: 600 }}>{tiers[selectedTier].cost}</div>
+                </div>
+              </div>
+
+              <div style={{ padding: '0.85rem 1rem', background: '#0b1120', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                <span style={{ color: tiers[selectedTier].color, fontWeight: 700, fontSize: '0.8rem' }}>Primary Industrial Use Case: </span>
+                <span style={{ color: '#cbd5e1', fontSize: '0.82rem' }}>{tiers[selectedTier].useCase}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
 // ─── MINI PROJECT EDITOR ───────────────────────────────────────────────────
 const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -2697,6 +7342,7 @@ sys.stdout = _stdout_capture
         // Mark step done if expected output found
         if (step.expectedOutputContains && outText.includes(step.expectedOutputContains)) {
           setCompletedSteps(prev => new Set([...prev, currentStep]));
+          triggerConfetti();
         }
       } catch (pyErr) {
         setOutput(String(pyErr));
@@ -2811,14 +7457,13 @@ sys.stdout = _stdout_capture
   const isProjectDone = isLastStep && completedSteps.has(currentStep);
 
   const displayCode = showSolution ? step.solutionCode : code;
-  const highlightedCode = highlightPythonCode(displayCode);
+  const highlightedCode = highlightCode(displayCode);
   const lines = (displayCode || '').split('\n');
   const lineCount = Math.max(lines.length, 1);
   const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
 
   return (
-    <div className={styles.container}>
-      {/* Top Nav */}
+    <div className={styles.projectLayout}>
       <header className={styles.topNav}>
         <div className={styles.navLeft}>
           <Link href="/learn/ai-engineering" className={styles.btnBack}>
@@ -2829,63 +7474,30 @@ sys.stdout = _stdout_capture
             <span className={styles.navLessonTitle}>{lesson.title}</span>
           </div>
         </div>
-        <div className={styles.navRight}>
-          <span className={styles.readTimeBadge}>{lesson.estimatedTime}</span>
-        </div>
       </header>
-
-      <main className={styles.articleWrapper} style={{ background: '#f8fafc', padding: '0' }}>
-        <div className={styles.projectWrapper}>
-
-          {/* Mobile notice */}
-          <div className={styles.mobileNotice}>
-            <IconLightbulb size={16} style={{ color: '#eab308', marginRight: '6px', flexShrink: 0 }} />
-            This coding project is best experienced on a desktop browser for the full editor experience.
-          </div>
-
-          {/* Project Header */}
+      
+      <main className={styles.splitPanel}>
+        {/* Left Panel: Instructions */}
+        <section className={styles.instructionsPanel}>
           <div className={styles.projectHeader}>
-            <div className={styles.projectBadge}>
-              <IconTerminal size={13} style={{ marginRight: '4px' }} />
-              {lesson.badgeText || 'CODING PROJECT'}
-            </div>
             <h1 className={styles.projectTitle}>{lesson.title}</h1>
             <p className={styles.projectSubtitle}>{lesson.subtitle}</p>
-            <div className={styles.projectMeta}>
-              <span className={styles.projectMetaChip}>
-                <IconPython size={14} style={{ marginRight: '5px' }} /> Python 3
-              </span>
-              <span className={styles.projectMetaChip}>
-                <IconClock size={14} style={{ marginRight: '5px' }} /> {lesson.estimatedTime}
-              </span>
-              <span className={styles.projectMetaChip}>
-                <IconList size={14} style={{ marginRight: '5px' }} /> {steps.length} Steps
-              </span>
-              <span className={styles.projectMetaChip}>
-                <IconGlobe size={14} style={{ marginRight: '5px' }} /> Runs in browser
-              </span>
-            </div>
           </div>
-
-          {/* Step Progress Bar */}
           <div className={styles.stepProgressBar}>
-            {steps.map((s, idx) => {
-              const isDone = completedSteps.has(idx);
-              const isActive = idx === currentStep;
-              let dotClass = styles.stepDot;
-              if (isActive) dotClass += ' ' + styles.stepDotActive;
-              else if (isDone) dotClass += ' ' + styles.stepDotDone;
-              return (
-                <React.Fragment key={idx}>
-                  <button className={dotClass} onClick={() => goToStep(idx)} title={`Step ${idx + 1}`}>
-                    {isDone ? '✓' : idx + 1}
-                  </button>
-                  {idx < steps.length - 1 && (
-                    <div className={`${styles.stepConnector} ${isDone ? styles.stepConnectorDone : ''}`} />
-                  )}
-                </React.Fragment>
-              );
-            })}
+            {steps.map((s, idx) => (
+              <React.Fragment key={idx}>
+                <button
+                  className={`${styles.stepDot} ${idx === currentStep ? styles.stepDotActive : completedSteps.has(idx) ? styles.stepDotDone : ''}`}
+                  onClick={() => goToStep(idx)}
+                  title={`Step ${idx + 1}: ${s.title}`}
+                >
+                  {completedSteps.has(idx) ? '✓' : idx + 1}
+                </button>
+                {idx < steps.length - 1 && (
+                  <div className={`${styles.stepConnector} ${completedSteps.has(idx) ? styles.stepConnectorDone : ''}`} />
+                )}
+              </React.Fragment>
+            ))}
           </div>
 
           {/* Step label */}
@@ -2906,134 +7518,49 @@ sys.stdout = _stdout_capture
 
           {pyodideReady && step && (
             <>
-              {/* Instructions Panel */}
-              <div className={styles.instructionsPanel}>
-                <p className={styles.instructionsConcept}>{step.concept}</p>
-                <div className={styles.instructionsGoalRow}>
-                  <span className={styles.instructionsGoalLabel}>
-                    <IconTarget size={14} style={{ color: '#7c3aed', marginRight: '4px', verticalAlign: 'middle' }} /> Goal
-                  </span>
-                  <span className={styles.instructionsGoalText}>{step.goal}</span>
-                </div>
-                {step.whyItMatters && (
-                  <div className={styles.whyItMatters}>
-                    <span className={styles.whyIcon}>
-                      <IconLightbulb size={16} style={{ color: '#d97706' }} />
-                    </span>
-                    <span className={styles.whyText}><strong>Why this matters:</strong> {step.whyItMatters}</span>
-                  </div>
-                )}
+              {/* Concept */}
+              <p className={styles.instructionsConcept}>{step.concept}</p>
+
+              {/* Goal */}
+              <div className={styles.instructionsGoalRow}>
+                <span className={styles.instructionsGoalLabel}>
+                  <IconTarget size={14} style={{ color: '#7c3aed', marginRight: '4px', verticalAlign: 'middle' }} /> Goal
+                </span>
+                <span className={styles.instructionsGoalText}>{step.goal}</span>
               </div>
 
-              {/* Syntax Highlighted Code Editor */}
-              <div className={styles.codeEditorSection}>
-                <div className={styles.codeEditorTopBar}>
-                  <div className={styles.codeEditorDots}>
-                    <span style={{ background: '#ef4444' }} />
-                    <span style={{ background: '#f59e0b' }} />
-                    <span style={{ background: '#22c55e' }} />
-                  </div>
-                  <span className={styles.codeEditorLabel} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <IconPython size={14} /> main.py · Step {currentStep + 1}
+              {/* Why it matters */}
+              {step.whyItMatters && (
+                <div className={styles.whyItMatters}>
+                  <span className={styles.whyIcon}>
+                    <IconLightbulb size={16} style={{ color: '#d97706' }} />
                   </span>
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>Tab = 4 spaces</span>
+                  <span className={styles.whyText}><strong>Why this matters:</strong> {step.whyItMatters}</span>
                 </div>
+              )}
 
-                <div className={styles.editorContainer}>
-                  {/* Line Numbers Gutter */}
-                  <div className={styles.lineNumbers} ref={lineNumbersRef} aria-hidden="true">
-                    {lineNumbers.map((num) => (
-                      <span key={num}>{num}</span>
-                    ))}
-                  </div>
-
-                  {/* Code Window with Syntax Overlay */}
-                  <div className={styles.codeWindow}>
-                    <pre className={styles.highlightLayer} ref={highlightRef} aria-hidden="true">
-                      <code dangerouslySetInnerHTML={{ __html: highlightedCode + '\n' }} />
-                    </pre>
-                    <textarea
-                      ref={textareaRef}
-                      className={styles.codeArea}
-                      value={displayCode}
-                      onChange={(e) => { if (!showSolution) setCode(e.target.value); }}
-                      onKeyDown={handleKeyDown}
-                      onScroll={handleScroll}
-                      spellCheck={false}
-                      autoComplete="off"
-                      autoCorrect="off"
-                      autoCapitalize="off"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className={styles.editorActions}>
-                <button
-                  className={`${styles.runBtn} ${isRunning ? styles.runBtnLoading : ''}`}
-                  onClick={runCode}
-                  disabled={isRunning}
-                >
-                  {isRunning ? (
-                    <>
-                      <IconSpinner size={15} className={styles.spin} /> Running...
-                    </>
-                  ) : (
-                    <>
-                      <IconPlay size={14} /> Run Code
-                    </>
-                  )}
-                </button>
-
-                {step.hints && step.hints.length > 0 && (
+              {/* Hints */}
+              {step.hints && step.hints.length > 0 && (
+                <div className={styles.hintSection}>
                   <button className={styles.hintBtn} onClick={revealNextHint}>
                     <IconSparkles size={15} style={{ color: '#d97706' }} />
                     {showHints ? (hintsRevealed < step.hints.length ? 'Next Hint' : 'All Hints Shown') : 'Hint'}
                   </button>
-                )}
-
-                <button
-                  className={styles.solutionBtn}
-                  onClick={() => setShowSolution(s => !s)}
-                >
-                  {showSolution ? (
-                    <>
-                      <IconEyeOff size={15} /> Hide Solution
-                    </>
-                  ) : (
-                    <>
-                      <IconEye size={15} /> Show Solution
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Hints */}
-              {showHints && hintsRevealed > 0 && (
-                <div className={styles.hintBox}>
-                  <div className={styles.hintBoxTitle}>Hints</div>
-                  {step.hints.slice(0, hintsRevealed).map((hint, hIdx) => (
-                    <div key={hIdx} className={styles.hintItem}>
-                      <span className={styles.hintItemNum}>{hIdx + 1}.</span>
-                      <span>{hint}</span>
+                  {showHints && hintsRevealed > 0 && (
+                    <div className={styles.hintBox}>
+                      <div className={styles.hintBoxTitle}>Hints</div>
+                      {step.hints.slice(0, hintsRevealed).map((hint, hIdx) => (
+                        <div key={hIdx} className={styles.hintItem}>
+                          <span className={styles.hintItemNum}>{hIdx + 1}.</span>
+                          <span>{hint}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
 
-              {/* Output Panel */}
-              <div className={styles.outputPanel}>
-                <div className={styles.outputTopBar}>
-                  <span className={styles.outputLabel}>Output</span>
-                  <span className={`${styles.outputStatusDot} ${outputType === 'success' ? styles.outputStatusDotSuccess : outputType === 'error' ? styles.outputStatusDotError : ''}`} />
-                </div>
-                <div className={`${styles.outputContent} ${outputType === 'success' ? styles.outputContentSuccess : outputType === 'error' ? styles.outputContentError : ''}`}>
-                  {output !== null ? output : <span className={styles.outputPlaceholder}>Click "Run Code" to see output here...</span>}
-                </div>
-              </div>
-
-              {/* Concept Callout after success */}
+              {/* Concept callout after success */}
               {outputType === 'success' && step.conceptCallout && (
                 <div className={styles.conceptCallout}>
                   <span className={styles.conceptCalloutIcon} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -3096,14 +7623,108 @@ sys.stdout = _stdout_capture
               </div>
             </>
           )}
-        </div>
+        </section>
+
+        {/* Right Panel: Code Editor */}
+        {pyodideReady && step && (
+          <section className={styles.editorPanel}>
+
+            {/* Editor Toolbar */}
+            <div className={styles.editorToolbar}>
+              <div className={styles.fileTab}>
+                <IconPython size={16} /> Python
+              </div>
+              <div className={styles.toolbarActions}>
+                <button className={styles.solutionBtn} onClick={() => setShowSolution(s => !s)}>
+                  {showSolution ? (
+                    <><IconEyeOff size={15} /> Hide Solution</>
+                  ) : (
+                    <><IconEye size={15} /> Show Solution</>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Code Editor */}
+            <div className={styles.codeWrap}>
+              {/* Line Numbers Gutter */}
+              <div className={styles.lineNumbersGutter} ref={lineNumbersRef} aria-hidden="true">
+                {lineNumbers.map((num) => (
+                  <div key={num} className={styles.lineNumberItem}>{num}</div>
+                ))}
+              </div>
+
+              {/* Syntax highlighted editor */}
+              <div className={styles.editorContainer}>
+                <pre
+                  className={styles.highlightBackdrop}
+                  ref={highlightRef}
+                  aria-hidden="true"
+                >
+                  <code dangerouslySetInnerHTML={{ __html: highlightedCode + '\n' }} />
+                </pre>
+                <textarea
+                  ref={textareaRef}
+                  className={styles.textareaEditor}
+                  value={displayCode}
+                  onChange={(e) => { if (!showSolution) setCode(e.target.value); }}
+                  onKeyDown={handleKeyDown}
+                  onScroll={handleScroll}
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                />
+              </div>
+
+              {/* Run Code + Ask AI Buttons */}
+              <div className={styles.editorFloatBar}>
+                <button className={styles.btnAskAI}>
+                  <IconBrain size={16} /> Ask AI
+                </button>
+                <button
+                  className={`${styles.btnRunCode} ${isRunning ? styles.btnRunCodeLoading : ''}`}
+                  onClick={runCode}
+                  disabled={isRunning}
+                >
+                  {isRunning ? (
+                    <><IconSpinner size={14} className={styles.spin} /> Running...</>
+                  ) : (
+                    <><IconPlay size={14} /> Run Code</>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Output Panel */}
+            <div className={styles.outputPanel}>
+              <div className={styles.outputHeader}>
+                <span className={styles.outputTabActive}>TEST CASES</span>
+                <span>CONSOLE</span>
+              </div>
+              <div className={styles.outputSplit}>
+                <div className={styles.outputBox}>
+                  <div className={styles.outputBoxLabel}>Output</div>
+                  <div className={`${outputType === 'error' ? styles.outputError : outputType === 'success' ? styles.outputSuccess : ''}`}>
+                    {output !== null ? output : <span className={styles.outputPlaceholder}>// Press "Run Code" to execute</span>}
+                  </div>
+                </div>
+                <div className={styles.expectedBox}>
+                  <div className={styles.outputBoxLabel}>Expected Output</div>
+                  <div>{step.expectedOutputContains || '(run your code to verify)'}</div>
+                </div>
+              </div>
+            </div>
+
+          </section>
+        )}
       </main>
     </div>
   );
 };
 
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9', 'ai-2-p1'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9', 'ai-2-p1', 'ai-3-1', 'ai-3-2', 'ai-3-3', 'ai-3-4', 'ai-3-5', 'ai-3-6', 'ai-3-7', 'ai-4-1', 'ai-4-2', 'ai-4-3', 'ai-4-4', 'ai-4-5', 'ai-4-6', 'ai-4-7', 'ai-4-8', 'ai-4-9', 'ai-5-1'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -3125,10 +7746,17 @@ export default function AILessonArticlePage() {
   const handleOptionSelect = (index) => {
     setSelectedOption(index);
     setIsAnswered(true);
+    if (lesson.quiz && index === lesson.quiz.correctIndex) {
+      triggerConfetti();
+    }
   };
 
   const handleMultiSelect = (qId, optionIdx) => {
     setMultiAnswers((prev) => ({ ...prev, [qId]: optionIdx }));
+    const question = lesson.multiQuiz?.find((q) => q.id === qId);
+    if (question && optionIdx === question.correctIndex) {
+      triggerConfetti();
+    }
   };
 
   // Early return for project lessons — render the code editor instead
@@ -3193,6 +7821,13 @@ export default function AILessonArticlePage() {
                   {p}
                 </p>
               ))}
+              {sec.codeBlock && (
+                <SyntaxCodeBlock
+                  code={sec.codeBlock}
+                  title={sec.codeBlockTitle}
+                  language="Python / JSON"
+                />
+              )}
             </section>
           ))}
 
@@ -3280,6 +7915,81 @@ export default function AILessonArticlePage() {
             {/* Hallucinations & Limitations Diagram */}
             {lesson.diagram.type === 'hallucinations' && (
               <HallucinationsDiagram />
+            )}
+
+            {/* Effective Prompts Diagram (MIT Sloan) */}
+            {lesson.diagram.type === 'effective_prompts' && (
+              <EffectivePromptsDiagram />
+            )}
+
+            {/* System vs User vs Assistant Diagram */}
+            {lesson.diagram.type === 'system_user_assistant' && (
+              <SystemUserAssistantDiagram />
+            )}
+
+            {/* Few-Shot Prompting Diagram (Google AI Essentials) */}
+            {lesson.diagram.type === 'few_shot_prompting' && (
+              <FewShotDiagram />
+            )}
+
+            {/* Chain-of-Thought Reasoning Diagram (IBM Guide) */}
+            {lesson.diagram.type === 'chain_of_thought' && (
+              <ChainOfThoughtDiagram />
+            )}
+
+            {/* Structured Outputs Diagram (Humanloop Guide) */}
+            {lesson.diagram.type === 'structured_outputs' && (
+              <StructuredOutputsDiagram />
+            )}
+
+            {/* Iterative Prompting Diagram (IBM Think Guide) */}
+            {lesson.diagram.type === 'iterative_prompting' && (
+              <IterativePromptingDiagram />
+            )}
+
+            {/* AI API Anatomy Diagram */}
+            {lesson.diagram.type === 'ai_api_anatomy' && (
+              <AIApiAnatomyDiagram />
+            )}
+
+            {/* API Key Security Diagram */}
+            {lesson.diagram.type === 'api_security_diagram' && (
+              <ApiSecurityDiagram />
+            )}
+
+            {/* First AI Request Diagram */}
+            {lesson.diagram.type === 'first_ai_request' && (
+              <FirstAiRequestDiagram />
+            )}
+
+            {/* Chat Completions Diagram */}
+            {lesson.diagram.type === 'chat_completions' && (
+              <ChatCompletionsDiagram />
+            )}
+
+            {/* Streaming Responses Diagram */}
+            {lesson.diagram.type === 'streaming_responses' && (
+              <StreamingResponsesDiagram />
+            )}
+
+            {/* Function Calling Diagram */}
+            {lesson.diagram.type === 'function_calling' && (
+              <FunctionCallingDiagram />
+            )}
+
+            {/* JSON Schema Enforcement Diagram */}
+            {lesson.diagram.type === 'json_schema_enforcement' && (
+              <JsonSchemaEnforcementDiagram />
+            )}
+
+            {/* Structured Outputs Parsing Diagram */}
+            {lesson.diagram.type === 'structured_outputs_parsing' && (
+              <StructuredOutputsParsingDiagram />
+            )}
+
+            {/* Context Memory & RAG Limits Diagram */}
+            {lesson.diagram.type === 'context_memory_limit' && (
+              <ContextMemoryLimitDiagram />
             )}
 
             {/* Industry Grid Diagram */}

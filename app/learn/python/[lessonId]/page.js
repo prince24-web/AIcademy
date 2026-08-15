@@ -6,6 +6,109 @@ import { useParams } from 'next/navigation';
 import styles from './page.module.css';
 import { lessonsData } from '../lessonsData';
 
+// ─── CONFETTI CELEBRATION TRIGGER ───────────────────────────────────────────
+const triggerConfetti = (originX = 0.5, originY = 0.6) => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100vw';
+    canvas.style.height = '100vh';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '999999';
+    document.body.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const colors = ['#387EB8', '#FFE052', '#10b981', '#f59e0b', '#38bdf8', '#a855f7', '#ec4899'];
+    const particleCount = 130;
+    const particles = [];
+    const startX = width * originX;
+    const startY = height * originY;
+
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * (Math.random() * 1.5 - 1.25));
+      const speed = Math.random() * 20 + 10;
+      particles.push({
+        x: startX + (Math.random() * 40 - 20),
+        y: startY + (Math.random() * 20 - 10),
+        vx: Math.cos(angle) * speed * (Math.random() * 0.9 + 0.4),
+        vy: Math.sin(angle) * speed * (Math.random() * 0.9 + 0.4) - 4,
+        size: Math.random() * 9 + 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rSpeed: (Math.random() - 0.5) * 18,
+        wobble: Math.random() * 10,
+        wobbleSpeed: Math.random() * 0.12 + 0.05,
+        alpha: 1,
+        decay: Math.random() * 0.011 + 0.007,
+        shape: Math.random() > 0.35 ? 'rect' : 'circle'
+      });
+    }
+
+    let animId;
+    const render = () => {
+      ctx.clearRect(0, 0, width, height);
+      let aliveCount = 0;
+
+      for (let p of particles) {
+        if (p.alpha <= 0) continue;
+        aliveCount++;
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.48;
+        p.vx *= 0.985;
+        p.rotation += p.rSpeed;
+        p.wobble += p.wobbleSpeed;
+        p.alpha -= p.decay;
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+
+        const scaleX = Math.cos(p.wobble);
+
+        if (p.shape === 'rect') {
+          ctx.fillRect((-p.size / 2) * scaleX, -p.size / 2, p.size * scaleX, p.size);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, (p.size / 2) * Math.abs(scaleX), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      if (aliveCount > 0) {
+        animId = requestAnimationFrame(render);
+      } else {
+        cancelAnimationFrame(animId);
+        if (canvas.parentNode) {
+          canvas.parentNode.removeChild(canvas);
+        }
+      }
+    };
+
+    animId = requestAnimationFrame(render);
+  } catch (err) {
+    console.error('Confetti animation error:', err);
+  }
+};
+
 // Helper for syntax highlighting Python code
 const highlightPython = (rawCode) => {
   if (!rawCode) return '';
@@ -239,6 +342,7 @@ export default function LessonPage() {
 
             if (cleanResult === lessonData.expectedOutput.trim()) {
               setIsPassed(true);
+              triggerConfetti();
             } else {
               setIsPassed(false);
             }
@@ -269,6 +373,7 @@ export default function LessonPage() {
 
         if (simulatedOut.trim() === lessonData.expectedOutput.trim()) {
           setIsPassed(true);
+          triggerConfetti();
         }
       }, 400);
     }
@@ -438,7 +543,10 @@ export default function LessonPage() {
                 <span>Code Example</span>
                 <span>Python 3</span>
               </div>
-              <pre className={styles.exampleCode}>{lessonData.codeExample}</pre>
+              <pre
+                className={styles.exampleCode}
+                dangerouslySetInnerHTML={{ __html: highlightPython(lessonData.codeExample) }}
+              />
             </div>
           )}
 

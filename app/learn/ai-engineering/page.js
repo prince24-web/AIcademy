@@ -147,8 +147,8 @@ const aiModules = [
       { id: 'ai-1-1', name: 'What is Artificial Intelligence?', nodeType: 'lightbulb', status: 'completed' },
       { id: 'ai-1-2', name: 'AI vs Machine Learning vs Deep Learning', nodeType: 'star', status: 'active' },
       { id: 'ai-1-3', name: 'Types of AI (Narrow AI vs AGI)', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-1-4', name: 'Real-world AI Applications', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-1-5', name: 'Mini Project: AI Classifier Quiz', nodeType: 'project', status: 'locked', isProject: true },
+      { id: 'ai-1-4', name: 'Real-world AI Applications', nodeType: 'concept', status: 'active' },
+      { id: 'ai-1-5', name: 'Module 1 Knowledge Check & Classifier Quiz', nodeType: 'star', status: 'active' },
     ]
   },
   {
@@ -173,13 +173,13 @@ const aiModules = [
     title: 'Module 3: Prompt Engineering',
     subtitle: 'Goal: Master prompt design patterns.',
     lessons: [
-      { id: 'ai-3-1', name: 'Writing Effective Prompts', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-3-2', name: 'System vs User vs Assistant Prompts', nodeType: 'star', status: 'locked' },
-      { id: 'ai-3-3', name: 'Few-shot Prompting', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-3-4', name: 'Chain-of-Thought Reasoning', nodeType: 'lightbulb', status: 'locked' },
-      { id: 'ai-3-5', name: 'Structured Outputs', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-3-6', name: 'Iterative Prompt Refinement', nodeType: 'star', status: 'locked' },
-      { id: 'ai-3-7', name: 'Mini Project: Prompt Optimizer Tool', nodeType: 'project', status: 'locked', isProject: true },
+      { id: 'ai-3-1', name: 'Writing Effective Prompts', nodeType: 'concept', status: 'active' },
+      { id: 'ai-3-2', name: 'System vs User vs Assistant Prompts', nodeType: 'star', status: 'active' },
+      { id: 'ai-3-3', name: 'Few-shot Prompting', nodeType: 'concept', status: 'active' },
+      { id: 'ai-3-4', name: 'Chain-of-Thought Reasoning', nodeType: 'lightbulb', status: 'active' },
+      { id: 'ai-3-5', name: 'Structured Outputs', nodeType: 'concept', status: 'active' },
+      { id: 'ai-3-6', name: 'Iterative Prompt Refinement', nodeType: 'star', status: 'active' },
+      { id: 'ai-3-7', name: 'Mini Project: Prompt Optimizer Tool', nodeType: 'project', status: 'active', isProject: true },
     ]
   },
   {
@@ -187,15 +187,15 @@ const aiModules = [
     title: 'Module 4: AI APIs',
     subtitle: 'Goal: Connect to AI models via code APIs.',
     lessons: [
-      { id: 'ai-4-1', name: 'What is an AI API?', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-4-2', name: 'Managing API Keys Safely', nodeType: 'star', status: 'locked' },
-      { id: 'ai-4-3', name: 'Making Your First AI Request', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-4-4', name: 'Chat Completions & Messages', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-4-5', name: 'Streaming Responses in Real-time', nodeType: 'lightbulb', status: 'locked' },
-      { id: 'ai-4-6', name: 'Function Calling / Tool Use', nodeType: 'star', status: 'locked' },
-      { id: 'ai-4-7', name: 'JSON Mode & Schema Enforcement', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-4-8', name: 'Structured Outputs Parsing', nodeType: 'concept', status: 'locked' },
-      { id: 'ai-4-9', name: 'Mini Project: Live Weather AI Assistant', nodeType: 'project', status: 'locked', isProject: true },
+      { id: 'ai-4-1', name: 'What is an AI API?', nodeType: 'concept', status: 'active' },
+      { id: 'ai-4-2', name: 'Managing API Keys Safely', nodeType: 'star', status: 'active' },
+      { id: 'ai-4-3', name: 'Making Your First AI Request', nodeType: 'concept', status: 'active' },
+      { id: 'ai-4-4', name: 'Chat Completions & Messages', nodeType: 'concept', status: 'active' },
+      { id: 'ai-4-5', name: 'Streaming Responses in Real-time', nodeType: 'lightbulb', status: 'active' },
+      { id: 'ai-4-6', name: 'Function Calling / Tool Use', nodeType: 'star', status: 'active' },
+      { id: 'ai-4-7', name: 'JSON Mode & Schema Enforcement', nodeType: 'concept', status: 'active' },
+      { id: 'ai-4-8', name: 'Structured Outputs Parsing', nodeType: 'concept', status: 'active' },
+      { id: 'ai-4-9', name: 'Mini Project: Live Weather AI Assistant', nodeType: 'project', status: 'active', isProject: true },
     ]
   },
   {
@@ -203,7 +203,7 @@ const aiModules = [
     title: 'Module 5: Retrieval-Augmented Generation (RAG)',
     subtitle: 'Goal: Ground LLMs on your custom data.',
     lessons: [
-      { id: 'ai-5-1', name: 'Why LLMs Forget & Knowledge Cutoffs', nodeType: 'concept', status: 'locked' },
+      { id: 'ai-5-1', name: 'Why LLMs Forget & Knowledge Cutoffs', nodeType: 'concept', status: 'active' },
       { id: 'ai-5-2', name: 'Building Custom Knowledge Bases', nodeType: 'star', status: 'locked' },
       { id: 'ai-5-3', name: 'Generating Vector Embeddings', nodeType: 'concept', status: 'locked' },
       { id: 'ai-5-4', name: 'Vector Databases (Chroma/Pinecone)', nodeType: 'concept', status: 'locked' },
