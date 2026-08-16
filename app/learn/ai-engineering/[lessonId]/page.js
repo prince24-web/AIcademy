@@ -7272,6 +7272,598 @@ User: My hotel is located near Gion district.`}
   );
 };
 
+// ─── KNOWLEDGE BASE INGESTION & CHUNKING SIMULATOR ────────────────────────
+const KnowledgeBaseIngestionDiagram = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  
+  // Tab 1: Live Chunking Simulator State
+  const [chunkSize, setChunkSize] = useState(250);
+  const [chunkOverlap, setChunkOverlap] = useState(50);
+  const [selectedPreset, setSelectedPreset] = useState('sla');
+  const [customText, setCustomText] = useState('');
+  const [splitMode, setSplitMode] = useState('recursive'); // recursive | fixed
+
+  // Tab 2: Ingestion Pipeline Stage
+  const [selectedStage, setSelectedStage] = useState(0);
+
+  // Tab 3: Strategy Matrix
+  const [selectedStrategy, setSelectedStrategy] = useState(0);
+
+  // Tab 4: Metadata Query Simulator
+  const [queryDept, setQueryDept] = useState('All');
+  const [queryYear, setQueryYear] = useState('All');
+
+  const presets = {
+    sla: `# Enterprise SLA & Billing Policy
+Our cloud infrastructure guarantees 99.95% monthly uptime for all Enterprise tier accounts.
+If uptime drops below 99.0%, clients receive an automatic 25% billing credit applied to next invoice.
+
+## Refund Claim Procedure
+To file a refund claim, submit an incident ticket within 30 calendar days to billing@acme-cloud.io.
+Late claims submitted after 30 days will be rejected without exceptions.`,
+    
+    api: `# Authentication & Token Security
+All REST endpoints require a Bearer token passed in the Authorization HTTP header.
+Tokens expire after 3600 seconds (1 hour). Refresh tokens can be exchanged via POST /v1/auth/refresh.
+
+## Rate Limiting Thresholds
+Standard tier keys are throttled at 60 requests per minute (RPM).
+Enterprise keys are provisioned with 3,000 RPM and guaranteed GPU inference priority.`,
+    
+    hr: `# Global Remote Work Equipment Policy
+Employees in full-time engineering roles are eligible for a $1,500 home office hardware stipend.
+Hardware must be purchased through approved corporate vendor portals to qualify for expense reimbursement.
+
+## Security Compliance
+All workstations must maintain active disk encryption (FileVault or BitLocker) and run company MDM software.`
+  };
+
+  const sampleText = customText || presets[selectedPreset] || presets.sla;
+
+  // Live Recursive / Fixed Chunking Engine for Simulator
+  const generateChunks = (text, size, overlap, mode) => {
+    if (!text || size <= 0) return [];
+    if (mode === 'fixed') {
+      const step = Math.max(1, size - overlap);
+      const res = [];
+      for (let i = 0; i < text.length; i += step) {
+        res.push(text.slice(i, i + size));
+        if (i + size >= text.length) break;
+      }
+      return res;
+    }
+
+    // Recursive hierarchical split
+    const seps = ['\n\n', '\n', '. ', ' '];
+    let working = [text];
+    for (let sep of seps) {
+      let nextWorking = [];
+      for (let piece of working) {
+        if (piece.length <= size) {
+          nextWorking.push(piece);
+        } else {
+          const parts = piece.split(sep);
+          let curr = '';
+          for (let part of parts) {
+            const candidate = curr ? `${curr}${sep}${part}` : part;
+            if (candidate.length <= size) {
+              curr = candidate;
+            } else {
+              if (curr) nextWorking.push(curr.trim());
+              const prefix = overlap > 0 && curr.length > overlap ? curr.slice(-overlap) : '';
+              curr = prefix ? `${prefix}${sep}${part}` : part;
+            }
+          }
+          if (curr) nextWorking.push(curr.trim());
+        }
+      }
+      working = nextWorking;
+    }
+    return working.filter(c => c && c.trim().length > 0);
+  };
+
+  const simulatedChunks = generateChunks(sampleText, chunkSize, chunkOverlap, splitMode);
+
+  // Ingestion Pipeline Stages
+  const pipelineStages = [
+    {
+      stage: '1. Extraction & Parsing',
+      badge: 'Step 1',
+      color: '#38bdf8',
+      summary: 'Extract raw text, tables, and document layout from heterogenous formats.',
+      inputs: 'Raw PDF files, Markdown docs, HTML pages, Word files, Notion exports',
+      process: 'PyPDF / Docling parses text; OCR scans image PDFs; AST parser converts Markdown structure.',
+      output: 'Normalized UTF-8 plain text string with structural markers (# headers preserved).'
+    },
+    {
+      stage: '2. Cleaning & Normalization',
+      badge: 'Step 2',
+      color: '#f59e0b',
+      summary: 'Remove noise, boilerplate, repeated headers/footers, and invalid characters.',
+      inputs: 'Messy extracted text containing page numbers, cookie banners, navigation links',
+      process: 'Regex regex substitution: collapses duplicate whitespace (\\r\\n -> \\n), strips copyright headers.',
+      output: 'Cleaned, high-density text ready for semantic slicing.'
+    },
+    {
+      stage: '3. Intelligent Chunking',
+      badge: 'Step 3',
+      color: '#7c3aed',
+      summary: 'Slice clean text into 200–500 token segments with 10–20% boundary overlap.',
+      inputs: 'Clean continuous text stream',
+      process: 'Recursive character text splitting preserves natural paragraph (\\n\\n) and sentence boundaries.',
+      output: 'Array of self-contained text passages with overlapping boundary anchors.'
+    },
+    {
+      stage: '4. Metadata Enrichment',
+      badge: 'Step 4',
+      color: '#10b981',
+      summary: 'Inject structured JSON attributes (source, page, section, timestamps, department).',
+      inputs: 'Raw text chunks + Document provenance records',
+      process: 'Attach parent breadcrumb hierarchy and classification tags to each chunk object.',
+      output: '{ chunk_id: "sla_001", text: "...", metadata: { doc: "sla.pdf", page: 2, dept: "Legal" } }'
+    },
+    {
+      stage: '5. Vector Indexing',
+      badge: 'Step 5',
+      color: '#ec4899',
+      summary: 'Generate high-dimensional vector embeddings and store in Chroma / Pinecone.',
+      inputs: 'Enriched chunk objects',
+      process: 'Pass chunk.text through text-embedding-3-small (1536-dim vector); insert into vector index.',
+      output: 'Searchable vector database supporting Hybrid Filtering (Vector Cosine + SQL metadata).'
+    }
+  ];
+
+  // Strategies Comparison Matrix
+  const strategies = [
+    {
+      name: 'Recursive Character Text Splitting',
+      badge: 'Industry Standard (Recommended)',
+      color: '#7c3aed',
+      howItWorks: 'Tries separators hierarchically: \\n\\n (paragraphs) -> \\n (lines) -> space (words) -> char.',
+      pros: 'Preserves complete thoughts and semantic paragraphs. Extremely reliable for general QA.',
+      cons: 'Slightly slower than naive slicing.',
+      bestFor: 'Technical documentation, articles, legal contracts, customer support knowledge bases.'
+    },
+    {
+      name: 'Document-Aware (Markdown Header)',
+      badge: 'Best for Structured Docs',
+      color: '#38bdf8',
+      howItWorks: 'Splits on markdown headings (#, ##, ###) and prepends parent header path to all child chunks.',
+      pros: 'Model never loses context of which section or product tier a bullet point belongs to.',
+      cons: 'Requires documents with clean, consistent markdown heading structures.',
+      bestFor: 'Developer API docs, product spec manuals, nested company policy wikis.'
+    },
+    {
+      name: 'Fixed-Size Character Chunking',
+      badge: 'Naive Baseline',
+      color: '#ef4444',
+      howItWorks: 'Cuts text blindly every N characters (e.g. exactly 500 chars) regardless of grammar.',
+      pros: 'Dead simple and computationally fastest.',
+      cons: 'Frequently cuts numbers ($10,000 -> $10 | ,000), URLs, and sentences in half causing hallucinations.',
+      bestFor: 'Benchmarking or strictly uniform fixed-length embedding experiments.'
+    },
+    {
+      name: 'Semantic / Sentence-Window Splitting',
+      badge: 'Advanced / High Compute',
+      color: '#10b981',
+      howItWorks: 'Splits text into individual sentences and merges adjacent sentences based on embedding similarity.',
+      pros: 'Guarantees that each chunk contains exactly one cohesive topic without topic bleed.',
+      cons: 'Requires running an embedding model on every sentence during ingestion (higher cost & latency).',
+      bestFor: 'Dense scientific papers, medical research, multi-topic meeting transcripts.'
+    }
+  ];
+
+  // Metadata Mock Records
+  const mockChunks = [
+    { id: 'chunk_01', text: 'Enterprise tier receives 99.95% uptime guarantee with 25% credit on breaches.', dept: 'Legal', year: '2026', doc: 'SLA_Policy_2026.pdf', page: 1 },
+    { id: 'chunk_02', text: 'Claims must be filed within 30 calendar days to billing@acme-cloud.io.', dept: 'Legal', year: '2026', doc: 'SLA_Policy_2026.pdf', page: 2 },
+    { id: 'chunk_03', text: 'Bearer authentication tokens expire after 3600s. Refresh via /v1/auth/refresh.', dept: 'Engineering', year: '2026', doc: 'API_Specs_v3.md', page: 1 },
+    { id: 'chunk_04', text: 'Rate limit for standard tier keys is 60 RPM; enterprise is 3,000 RPM.', dept: 'Engineering', year: '2025', doc: 'Rate_Limits_v2.md', page: 3 },
+    { id: 'chunk_05', text: 'Hardware stipend is $1,500 for full-time remote engineering roles.', dept: 'HR', year: '2025', doc: 'Remote_Policy_2025.pdf', page: 1 }
+  ];
+
+  const filteredChunks = mockChunks.filter(c => {
+    const matchDept = queryDept === 'All' || c.dept === queryDept;
+    const matchYear = queryYear === 'All' || c.year === queryYear;
+    return matchDept && matchYear;
+  });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {[
+            { label: 'Live Chunking & Overlap Simulator', color: '#7c3aed' },
+            { label: '4-Stage Ingestion Pipeline', color: '#38bdf8' },
+            { label: 'Chunking Strategies Compared', color: '#f59e0b' },
+            { label: 'Metadata & Hybrid Pre-Filtering', color: '#10b981' }
+          ].map((tab, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveTab(i)}
+              style={{
+                padding: '0.45rem 0.9rem',
+                borderRadius: '999px',
+                border: `1.5px solid ${tab.color}`,
+                background: activeTab === i ? tab.color : 'transparent',
+                color: activeTab === i ? '#0f172a' : tab.color,
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {i + 1}. {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ═════════ TAB 0: LIVE CHUNKING SIMULATOR ═════════ */}
+        {activeTab === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Experiment with Chunk Size and Overlap in real time to observe how documents are sliced without cutting thoughts in half:
+            </p>
+
+            {/* Presets Row */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ color: '#cbd5e1', fontSize: '0.75rem', fontWeight: 700 }}>Preset Document:</span>
+              {[
+                { key: 'sla', label: 'Cloud SLA Policy' },
+                { key: 'api', label: 'API Security Specs' },
+                { key: 'hr', label: 'Remote Work Policy' }
+              ].map(p => (
+                <button
+                  key={p.key}
+                  onClick={() => { setSelectedPreset(p.key); setCustomText(''); }}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '8px',
+                    border: `1px solid ${selectedPreset === p.key && !customText ? '#7c3aed' : '#334155'}`,
+                    background: selectedPreset === p.key && !customText ? '#7c3aed25' : '#1e293b',
+                    color: selectedPreset === p.key && !customText ? '#c084fc' : '#94a3b8',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                <span style={{ color: '#cbd5e1', fontSize: '0.75rem', fontWeight: 700 }}>Splitter:</span>
+                <button
+                  onClick={() => setSplitMode('recursive')}
+                  style={{
+                    padding: '0.3rem 0.65rem',
+                    borderRadius: '6px',
+                    border: `1px solid ${splitMode === 'recursive' ? '#10b981' : '#334155'}`,
+                    background: splitMode === 'recursive' ? '#10b98125' : '#1e293b',
+                    color: splitMode === 'recursive' ? '#34d399' : '#94a3b8',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Recursive (Smart)
+                </button>
+                <button
+                  onClick={() => setSplitMode('fixed')}
+                  style={{
+                    padding: '0.3rem 0.65rem',
+                    borderRadius: '6px',
+                    border: `1px solid ${splitMode === 'fixed' ? '#ef4444' : '#334155'}`,
+                    background: splitMode === 'fixed' ? '#ef444425' : '#1e293b',
+                    color: splitMode === 'fixed' ? '#f87171' : '#94a3b8',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Fixed (Naive)
+                </button>
+              </div>
+            </div>
+
+            {/* Sliders Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', background: '#0f172a', padding: '1rem', borderRadius: '10px', border: '1px solid #1e293b', marginBottom: '1rem' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                  <span style={{ color: '#38bdf8', fontSize: '0.75rem', fontWeight: 700 }}>Chunk Size:</span>
+                  <span style={{ color: '#f8fafc', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700 }}>{chunkSize} chars (~{Math.round(chunkSize / 4)} tokens)</span>
+                </div>
+                <input
+                  type="range"
+                  min="100"
+                  max="600"
+                  step="20"
+                  value={chunkSize}
+                  onChange={(e) => setChunkSize(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#38bdf8', cursor: 'pointer' }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                  <span style={{ color: '#c084fc', fontSize: '0.75rem', fontWeight: 700 }}>Chunk Overlap:</span>
+                  <span style={{ color: '#f8fafc', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700 }}>{chunkOverlap} chars ({chunkSize > 0 ? Math.round((chunkOverlap / chunkSize) * 100) : 0}%)</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max={Math.min(180, Math.floor(chunkSize * 0.45))}
+                  step="10"
+                  value={chunkOverlap}
+                  onChange={(e) => setChunkOverlap(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#c084fc', cursor: 'pointer' }}
+                />
+              </div>
+            </div>
+
+            {/* Live Metrics Row */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '120px', background: '#1e293b', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #334155' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>Generated Chunks</div>
+                <div style={{ color: '#38bdf8', fontSize: '1.1rem', fontWeight: 800 }}>{simulatedChunks.length}</div>
+              </div>
+              <div style={{ flex: 1, minWidth: '120px', background: '#1e293b', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #334155' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>Avg Chunk Length</div>
+                <div style={{ color: '#a78bfa', fontSize: '1.1rem', fontWeight: 800 }}>
+                  {simulatedChunks.length > 0 ? Math.round(simulatedChunks.reduce((a, b) => a + b.length, 0) / simulatedChunks.length) : 0} chars
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: '120px', background: '#1e293b', padding: '0.6rem 0.8rem', borderRadius: '8px', border: '1px solid #334155' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>Boundary Safety</div>
+                <div style={{ color: splitMode === 'recursive' ? '#34d399' : '#f87171', fontSize: '1.1rem', fontWeight: 800 }}>
+                  {splitMode === 'recursive' ? 'High (Semantic)' : 'Low (Hard Cut)'}
+                </div>
+              </div>
+            </div>
+
+            {/* Rendered Chunks Display */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '360px', overflowY: 'auto' }}>
+              {simulatedChunks.map((chunk, idx) => {
+                const borderColors = ['#7c3aed', '#38bdf8', '#10b981', '#f59e0b', '#ec4899'];
+                const color = borderColors[idx % borderColors.length];
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      background: '#090d16',
+                      border: `1.5px solid ${color}`,
+                      borderRadius: '10px',
+                      padding: '0.85rem 1rem',
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                      <span style={{ background: `${color}25`, color: color, padding: '0.15rem 0.55rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, fontFamily: 'monospace' }}>
+                        Chunk #{idx + 1}
+                      </span>
+                      <span style={{ color: '#64748b', fontSize: '0.7rem', fontFamily: 'monospace' }}>
+                        {chunk.length} chars · ~{Math.round(chunk.length / 4)} tokens
+                      </span>
+                    </div>
+                    <pre style={{ margin: 0, color: '#e2e8f0', fontSize: '0.78rem', fontFamily: 'Consolas, monospace', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                      {chunk}
+                    </pre>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ═════════ TAB 1: 4-STAGE INGESTION PIPELINE ═════════ */}
+        {activeTab === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Click through the 5 sequential stages of the Knowledge Base ETL pipeline:
+            </p>
+
+            {/* Stages Buttons */}
+            <div style={{ display: 'flex', gap: '0.45rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {pipelineStages.map((st, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedStage(i)}
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '8px',
+                    border: `1.5px solid ${selectedStage === i ? st.color : '#334155'}`,
+                    background: selectedStage === i ? `${st.color}20` : '#1e293b',
+                    color: selectedStage === i ? st.color : '#94a3b8',
+                    fontWeight: 700,
+                    fontSize: '0.76rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {st.stage}
+                </button>
+              ))}
+            </div>
+
+            {/* Stage Detail Card */}
+            {(() => {
+              const curr = pipelineStages[selectedStage];
+              return (
+                <div style={{ background: '#1e293b', border: `1.5px solid ${curr.color}`, borderRadius: '12px', padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                    <h4 style={{ color: curr.color, margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>{curr.stage}</h4>
+                    <span style={{ background: `${curr.color}25`, color: curr.color, padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 800 }}>
+                      {curr.badge}
+                    </span>
+                  </div>
+                  <p style={{ color: '#f8fafc', fontSize: '0.85rem', margin: '0 0 0.85rem' }}>{curr.summary}</p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                    <div style={{ background: '#0f172a', padding: '0.75rem', borderRadius: '8px', border: '1px solid #334155' }}>
+                      <div style={{ color: '#38bdf8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Input State:</div>
+                      <div style={{ color: '#cbd5e1', fontSize: '0.76rem' }}>{curr.inputs}</div>
+                    </div>
+                    <div style={{ background: '#0f172a', padding: '0.75rem', borderRadius: '8px', border: '1px solid #334155' }}>
+                      <div style={{ color: '#f59e0b', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Transformation Logic:</div>
+                      <div style={{ color: '#cbd5e1', fontSize: '0.76rem' }}>{curr.process}</div>
+                    </div>
+                    <div style={{ background: '#0f172a', padding: '0.75rem', borderRadius: '8px', border: '1px solid #334155' }}>
+                      <div style={{ color: '#10b981', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Stage Output:</div>
+                      <div style={{ color: '#a7f3d0', fontSize: '0.76rem', fontFamily: 'monospace' }}>{curr.output}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ═════════ TAB 2: CHUNKING STRATEGIES COMPARED ═════════ */}
+        {activeTab === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Compare the 4 primary text chunking strategies used across enterprise RAG deployments:
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.45rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {strategies.map((strat, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedStrategy(i)}
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '8px',
+                    border: `1.5px solid ${selectedStrategy === i ? strat.color : '#334155'}`,
+                    background: selectedStrategy === i ? `${strat.color}20` : '#1e293b',
+                    color: selectedStrategy === i ? strat.color : '#94a3b8',
+                    fontWeight: 700,
+                    fontSize: '0.76rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {strat.name.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+
+            {(() => {
+              const curr = strategies[selectedStrategy];
+              return (
+                <div style={{ background: '#1e293b', border: `1.5px solid ${curr.color}`, borderRadius: '12px', padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                    <h4 style={{ color: curr.color, margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>{curr.name}</h4>
+                    <span style={{ background: `${curr.color}25`, color: curr.color, padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 800 }}>
+                      {curr.badge}
+                    </span>
+                  </div>
+
+                  <div style={{ background: '#0f172a', padding: '0.75rem 0.9rem', borderRadius: '8px', border: '1px solid #334155', marginBottom: '0.85rem' }}>
+                    <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Splitting Mechanism:</div>
+                    <div style={{ color: '#f8fafc', fontSize: '0.8rem' }}>{curr.howItWorks}</div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '0.85rem' }}>
+                    <div style={{ background: '#092d1a', padding: '0.75rem', borderRadius: '8px', border: '1px solid #10b981' }}>
+                      <div style={{ color: '#34d399', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Advantages:</div>
+                      <div style={{ color: '#e2e8f0', fontSize: '0.76rem' }}>{curr.pros}</div>
+                    </div>
+                    <div style={{ background: '#361515', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ef4444' }}>
+                      <div style={{ color: '#f87171', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Failure Modes / Limitations:</div>
+                      <div style={{ color: '#e2e8f0', fontSize: '0.76rem' }}>{curr.cons}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#0b1120', padding: '0.65rem 0.85rem', borderRadius: '6px', border: '1px solid #1e293b', fontSize: '0.78rem' }}>
+                    <strong style={{ color: curr.color }}>Ideal Industrial Application: </strong>
+                    <span style={{ color: '#cbd5e1' }}>{curr.bestFor}</span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ═════════ TAB 3: METADATA & PRE-FILTERING ═════════ */}
+        {activeTab === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Simulate how attaching metadata (department, publication year, file path) enables instant SQL pre-filtering before running vector search:
+            </p>
+
+            {/* Filter Controls */}
+            <div style={{ display: 'flex', gap: '1rem', background: '#0f172a', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #1e293b', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span style={{ color: '#38bdf8', fontSize: '0.75rem', fontWeight: 700 }}>Department Filter:</span>
+                {['All', 'Legal', 'Engineering', 'HR'].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setQueryDept(d)}
+                    style={{
+                      padding: '0.25rem 0.6rem',
+                      borderRadius: '6px',
+                      border: `1px solid ${queryDept === d ? '#38bdf8' : '#334155'}`,
+                      background: queryDept === d ? '#38bdf825' : '#1e293b',
+                      color: queryDept === d ? '#38bdf8' : '#94a3b8',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span style={{ color: '#10b981', fontSize: '0.75rem', fontWeight: 700 }}>Year:</span>
+                {['All', '2026', '2025'].map(y => (
+                  <button
+                    key={y}
+                    onClick={() => setQueryYear(y)}
+                    style={{
+                      padding: '0.25rem 0.6rem',
+                      borderRadius: '6px',
+                      border: `1px solid ${queryYear === y ? '#10b981' : '#334155'}`,
+                      background: queryYear === y ? '#10b98125' : '#1e293b',
+                      color: queryYear === y ? '#34d399' : '#94a3b8',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ marginLeft: 'auto', color: '#a78bfa', fontSize: '0.75rem', fontWeight: 800 }}>
+                {filteredChunks.length} of {mockChunks.length} chunks matched
+              </div>
+            </div>
+
+            {/* Filtered Results Stream */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {filteredChunks.map((c) => (
+                <div key={c.id} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', padding: '0.75rem 1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <span style={{ color: '#38bdf8', fontSize: '0.7rem', fontWeight: 800, fontFamily: 'monospace' }}>{c.id}</span>
+                    <span style={{ background: '#7c3aed25', color: '#c084fc', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>{c.dept}</span>
+                    <span style={{ background: '#10b98125', color: '#34d399', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>{c.year}</span>
+                    <span style={{ color: '#64748b', fontSize: '0.68rem', marginLeft: 'auto', fontFamily: 'monospace' }}>{c.doc} · Page {c.page}</span>
+                  </div>
+                  <div style={{ color: '#f8fafc', fontSize: '0.78rem' }}>"{c.text}"</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
 // ─── MINI PROJECT EDITOR ───────────────────────────────────────────────────
 const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -7760,7 +8352,7 @@ sys.stdout = _stdout_capture
 };
 
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9', 'ai-2-p1', 'ai-3-1', 'ai-3-2', 'ai-3-3', 'ai-3-4', 'ai-3-5', 'ai-3-6', 'ai-3-7', 'ai-4-1', 'ai-4-2', 'ai-4-3', 'ai-4-4', 'ai-4-5', 'ai-4-6', 'ai-4-7', 'ai-4-8', 'ai-4-9', 'ai-5-1'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9', 'ai-2-p1', 'ai-3-1', 'ai-3-2', 'ai-3-3', 'ai-3-4', 'ai-3-5', 'ai-3-6', 'ai-3-7', 'ai-4-1', 'ai-4-2', 'ai-4-3', 'ai-4-4', 'ai-4-5', 'ai-4-6', 'ai-4-7', 'ai-4-8', 'ai-4-9', 'ai-5-1', 'ai-5-2'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -8026,6 +8618,11 @@ export default function AILessonArticlePage() {
             {/* Context Memory & RAG Limits Diagram */}
             {lesson.diagram.type === 'context_memory_limit' && (
               <ContextMemoryLimitDiagram />
+            )}
+
+            {/* Knowledge Base Ingestion & Chunking Diagram */}
+            {lesson.diagram.type === 'knowledge_base_ingestion' && (
+              <KnowledgeBaseIngestionDiagram />
             )}
 
             {/* Industry Grid Diagram */}

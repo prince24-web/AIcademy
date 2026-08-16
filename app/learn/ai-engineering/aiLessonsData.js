@@ -4561,8 +4561,190 @@ print(f"Alice Returning: Favorite Cuisine = {alice_profile['favorite_cuisine']}"
       correctIndex: 1,
       explanation: 'Correct! LLMs are completely stateless between requests. When a backend uses a fixed sliding window like conversation[-6:], earlier exchanges are dropped from the prompt payload and never reach the model attention heads.'
     }
+  },
+
+  'ai-5-2': {
+    id: 'ai-5-2',
+    title: 'Building Custom Knowledge Bases',
+    subtitle: 'Document Ingestion, Cleaning & Intelligent Chunking Strategies for RAG',
+    section: 'Module 5 · Chapter 2',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://www.geeksforgeeks.org/retrieval-augmented-generation-rag-in-ai/',
+
+    badgeText: 'CORE RAG ARCHITECTURE',
+    badgeColor: '#7c3aed',
+
+    sections: [
+      {
+        heading: 'The Foundation of RAG: What is a Custom Knowledge Base?',
+        paragraphs: [
+          'Foundation models (like GPT-4o, Claude 3.5 Sonnet, or Gemini 1.5 Pro) are world-class reasoning engines trained on public internet datasets. However, they know nothing about your private company wiki, internal API documentation, proprietary codebases, or customer agreements signed five minutes ago.',
+          'A Custom Knowledge Base is the foundational data substrate for all Retrieval-Augmented Generation (RAG) applications. It is an automated pipeline (an "AI ETL") that transforms messy, unstructured files (PDFs, Markdown documents, Notion databases, customer support tickets, Word documents) into a high-precision, search-ready format.',
+          'Why can\'t we just feed an entire 500-page document directly into an LLM prompt? While modern models have large context windows (128k to 2M tokens), dumping raw massive documents into every prompt causes three severe problems: (1) Cost explosion ($0.50+ per single query), (2) High latency (5-15 seconds per response), and (3) "Lost in the Middle" attention degradation where models fail to retrieve needles from massive haystacks.'
+        ]
+      },
+      {
+        heading: 'The 4-Stage Knowledge Base Ingestion Pipeline',
+        paragraphs: [
+          'In production AI engineering, building a knowledge base follows a structured 4-stage lifecycle:',
+          '1. Document Extraction & Parsing: Extracting raw text, structural hierarchy, and tables from diverse formats (PDFs via PyPDF/Docling, Markdown via AST parsers, HTML via BeautifulSoup, and image scans via OCR).',
+          '2. Cleaning & Normalization: Removing noise such as repeated website headers/footers, page numbers, duplicate whitespace, and garbage characters while preserving semantic formatting (Markdown headers #, ##, and bullet lists).',
+          '3. Intelligent Chunking: Slicing long documents into self-contained text passages (typically 200 to 500 tokens) with intentional overlap so critical thoughts are never cut in half.',
+          '4. Metadata Enrichment: Attaching structured tags (e.g. source_file, page_number, section_header, author, timestamp, department) to every chunk so downstream search engines can perform hybrid filtering.'
+        ]
+      },
+      {
+        heading: 'Comparing the 4 Major Chunking Strategies',
+        paragraphs: [
+          'Chunking is the single most critical factor determining RAG retrieval accuracy. If your chunking strategy is flawed, your vector search will retrieve broken or misleading context, and the LLM will hallucinate.',
+          'Let us compare the four primary chunking strategies used in modern AI systems:',
+          '1. Fixed-Size Chunking (Character/Token-based): Slices text into exact fixed counts (e.g., every 500 characters). While simple and fast, it is naive because it frequently cuts sentences, equations, and numbers in half (e.g., splitting "$10,000" into "$10" in Chunk 1 and ",000" in Chunk 2).',
+          '2. Recursive Character Text Splitting (Industry Standard): Uses a hierarchical priority list of separators: first attempts double line breaks (\\n\\n) to preserve paragraphs, then single line breaks (\\n) for lines, then spaces ( ) for words, and only as a last resort splits characters. This keeps logical paragraphs intact.',
+          '3. Document-Aware / Markdown Header Chunking: Slices documents along structural headings (H1, H2, H3). It prepends the parent breadcrumb hierarchy (e.g., "# Cloud Security > ## Authentication > ### MFA Policy") to every child chunk so the model never loses the high-level context.',
+          '4. Semantic / Sentence-Window Chunking: Splits the document into individual sentences, measures semantic similarity between consecutive sentences using embeddings, and merges sentences only until a semantic topic shift occurs.'
+        ],
+        codeBlockTitle: 'Building a Recursive Chunking Pipeline (Python)',
+        codeBlock: `import re
+from typing import List, Dict, Any
+
+class CustomKnowledgeBase:
+    """Production-grade Ingestion & Chunking Pipeline for RAG."""
+    
+    def __init__(self, chunk_size: int = 400, chunk_overlap: int = 80):
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+        self.knowledge_store: List[Dict[str, Any]] = []
+
+    def clean_text(self, text: str) -> str:
+        """Normalizes whitespace and strips boilerplate noise."""
+        text = re.sub(r'\\r\\n', '\\n', text)
+        text = re.sub(r'[ \\t]+', ' ', text)
+        text = re.sub(r'\\n{3,}', '\\n\\n', text)
+        return text.strip()
+
+    def recursive_split(self, text: str) -> List[str]:
+        """Hierarchically splits text across paragraphs, sentences, and words."""
+        if len(text) <= self.chunk_size:
+            return [text] if text.strip() else []
+
+        separators = ["\\n\\n", "\\n", ". ", " "]
+        for sep in separators:
+            parts = text.split(sep)
+            if len(parts) > 1:
+                chunks = []
+                current_chunk = ""
+                
+                for part in parts:
+                    candidate = f"{current_chunk}{sep}{part}" if current_chunk else part
+                    if len(candidate) <= self.chunk_size:
+                        current_chunk = candidate
+                    else:
+                        if current_chunk:
+                            chunks.append(current_chunk.strip())
+                        # Calculate overlap from trailing end of current_chunk
+                        overlap_prefix = current_chunk[-self.chunk_overlap:] if self.chunk_overlap > 0 else ""
+                        current_chunk = f"{overlap_prefix}{sep}{part}".strip()
+                
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                return chunks
+
+        # Fallback hard slice if no separator matched
+        return [text[i:i + self.chunk_size] for i in range(0, len(text), self.chunk_size - self.chunk_overlap)]
+
+    def ingest_document(self, doc_id: str, content: str, metadata: Dict[str, Any]):
+        """Cleans, chunks, and tags a document with rich metadata."""
+        cleaned = self.clean_text(content)
+        raw_chunks = self.recursive_split(cleaned)
+        
+        for idx, chunk_text in enumerate(raw_chunks):
+            chunk_record = {
+                "chunk_id": f"{doc_id}_chunk_{idx:03d}",
+                "document_id": doc_id,
+                "chunk_index": idx,
+                "text": chunk_text,
+                "char_length": len(chunk_text),
+                "metadata": {
+                    **metadata,
+                    "total_chunks": len(raw_chunks),
+                    "chunk_index": idx
+                }
+            }
+            self.knowledge_store.append(chunk_record)
+            
+        print(f"✅ Ingested '{doc_id}': Created {len(raw_chunks)} searchable chunks.")
+
+# Example Ingestion Run
+kb = CustomKnowledgeBase(chunk_size=300, chunk_overlap=60)
+sample_policy = """
+# Enterprise SLA & Refund Policy
+Our service provides a 99.9% uptime guarantee for all Enterprise tier subscribers.
+If monthly uptime drops below 99.0%, clients are entitled to a 25% billing credit.
+
+## Claim Procedure
+To claim an SLA credit, submit an official ticket to support@company.com within 30 days
+of the incident date. Credits are applied directly to the next billing cycle invoice.
+"""
+
+kb.ingest_document(
+    doc_id="sla_policy_2026",
+    content=sample_policy,
+    metadata={"department": "Customer Support", "tier": "Enterprise", "version": "2026.1"}
+)
+
+print(f"Total chunks in knowledge base: {len(kb.knowledge_store)}")`
+      },
+      {
+        heading: 'Why Chunk Overlap Prevents Context Fracturing',
+        paragraphs: [
+          'Why do we configure a chunk overlap (typically 10% to 20% of the chunk size)?',
+          'Imagine a financial document stating: "The company recorded a quarterly profit of $4.5 million, representing a 28% increase over prior year." If a naive splitter without overlap cuts directly after "profit of", Chunk 1 ends with "...profit of" and Chunk 2 begins with "$4.5 million, representing...".',
+          'When a user asks "What was the quarterly profit?", neither chunk individually contains the complete subject-predicate relationship! Chunk 1 has the concept "profit" with no number, and Chunk 2 has the number "$4.5M" with no mention of profit.',
+          'By setting a chunk overlap of 50–100 characters (or 20–40 tokens), the boundary sentence is duplicated across both Chunk 1 and Chunk 2. This guarantees that no matter which chunk the vector search retrieves, the full semantic thought is preserved intact.'
+        ]
+      },
+      {
+        heading: 'Metadata Enrichment: Empowering Hybrid Vector Search',
+        paragraphs: [
+          'A modern knowledge chunk is not just raw text—it is a structured JSON object carrying rich metadata tags.',
+          'Common metadata attributes include: source_file (e.g. "Q3_Report.pdf"), page_number (e.g. 14), section_path (e.g. "Security > Authentication > MFA"), timestamp (e.g. "2026-08-15"), and department (e.g. "Legal").',
+          'Why is metadata indispensable? In enterprise RAG, vector search alone can be imprecise when searching across thousands of similar documents. Metadata enables pre-filtering (filtering by SQL/JSON attributes BEFORE computing vector similarity). For example: "Search only within department == \'Legal\' AND created_year >= 2025". This eliminates 95% of irrelevant vector candidates, slashing retrieval latency and eliminating cross-department hallucinations.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The 500-Page Encyclopedia vs The Indexed Flashcards',
+      text: 'Handing an LLM a 500-page raw PDF manual is like asking a human to read an entire encyclopedia volume in 2 seconds to answer a single question about page 42. Building a knowledge base is like taking that encyclopedia, neatly slicing it into single-topic index cards (chunking), highlighting the overlapping sentences between cards so no thoughts are severed, writing the chapter and page number on the top corner (metadata), and filing them in a color-coded drawer. When a question arrives, you pull only the exact 2 cards needed and hand them directly to the researcher!'
+    },
+
+    diagram: {
+      type: 'knowledge_base_ingestion',
+      title: 'Interactive Knowledge Base Ingestion & Chunking Architecture'
+    },
+
+    takeaways: [
+      'A Custom Knowledge Base is the foundational data substrate that grounds LLMs in private, up-to-date domain facts.',
+      'The AI ETL lifecycle consists of 4 stages: Extraction & Parsing, Cleaning & Normalization, Intelligent Chunking, and Metadata Enrichment.',
+      'Recursive Character Text Splitting (paragraphs → lines → words) is the industry standard for preserving logical sentence boundaries.',
+      'Chunk overlap (10% to 20%) is mandatory to prevent boundary fracturing where subjects and numbers are severed across chunks.',
+      'Rich metadata tags enable fast SQL/JSON pre-filtering before vector distance calculation, drastically reducing noise and latency.'
+    ],
+
+    quiz: {
+      question: 'An AI engineer notices that their RAG system fails to answer questions when key numerical facts span across the boundary of two adjacent text chunks. What is the most effective engineering solution?',
+      options: [
+        'Increase model temperature to 1.0 so the LLM guesses the missing number',
+        'Configure a 15% to 20% chunk overlap so boundary sentences are preserved in both adjacent chunks',
+        'Convert all documents to uppercase text before indexing',
+        'Delete all punctuation marks from the source document'
+      ],
+      correctIndex: 1,
+      explanation: 'Spot on! Chunk overlap ensures that boundary sentences spanning across chunk thresholds are duplicated into both neighboring chunks, preventing critical context or numbers from being split and lost.'
+    }
   }
 };
+
 
 
 
