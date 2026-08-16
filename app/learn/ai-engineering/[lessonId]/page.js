@@ -7284,34 +7284,130 @@ const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
   const [showSolution, setShowSolution] = useState(false);
   const [pyodideReady, setPyodideReady] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(new Set());
+  const [cmReady, setCmReady] = useState(false);
 
-  const highlightRef = useRef(null);
-  const lineNumbersRef = useRef(null);
-  const textareaRef = useRef(null);
+  const cmContainerRef = useRef(null); // CodeMirror mount target
+  const cmInstanceRef = useRef(null);  // CodeMirror instance
 
   const steps = lesson.steps || [];
   const step = steps[currentStep];
 
-  // Load Pyodide once on mount
+  // ── Load CodeMirror 5 scripts/styles once, then load Pyodide ──
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (window.pyodide) { setPyodideReady(true); return; }
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
-    script.onload = async () => {
-      try {
-        const py = await window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/' });
-        window.pyodide = py;
-        setPyodideReady(true);
-      } catch (e) { console.error('Pyodide load error:', e); }
-    };
-    document.head.appendChild(script);
+
+    const CM_CSS = [
+      'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.css',
+      'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/theme/dracula.min.css',
+    ];
+    const CM_JS = [
+      'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/python/python.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/closebrackets.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/matchbrackets.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/selection/active-line.min.js',
+    ];
+
+    // Inject stylesheets
+    CM_CSS.forEach((href) => {
+      if (!document.querySelector(`link[href="${href}"]`)) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+      }
+    });
+
+    // Load scripts sequentially (each one depends on the previous)
+    const loadScripts = (urls) =>
+      urls.reduce(
+        (chain, url) =>
+          chain.then(
+            () =>
+              new Promise((resolve, reject) => {
+                if (document.querySelector(`script[src="${url}"]`)) { resolve(); return; }
+                const s = document.createElement('script');
+                s.src = url;
+                s.onload = resolve;
+                s.onerror = reject;
+                document.head.appendChild(s);
+              })
+          ),
+        Promise.resolve()
+      );
+
+    loadScripts(CM_JS).then(() => setCmReady(true)).catch(console.error);
+
+    // Load Pyodide in parallel
+    if (window.pyodide) {
+      setPyodideReady(true);
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
+      script.onload = async () => {
+        try {
+          const py = await window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/' });
+          window.pyodide = py;
+          setPyodideReady(true);
+        } catch (e) { console.error('Pyodide load error:', e); }
+      };
+      document.head.appendChild(script);
+    }
   }, []);
 
-  // Set starter code when step changes
+  // ── Initialize / reinitialize CodeMirror once CM scripts are loaded ──
+  useEffect(() => {
+    if (!cmReady || !cmContainerRef.current) return;
+    if (typeof window.CodeMirror === 'undefined') return;
+
+    // Destroy previous instance if any (e.g. hot-reload)
+    if (cmInstanceRef.current) {
+      cmInstanceRef.current.toTextArea();
+      cmInstanceRef.current = null;
+    }
+
+    const cm = window.CodeMirror(cmContainerRef.current, {
+      value: step ? step.starterCode : '',
+      mode: 'python',
+      theme: 'dracula',
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      indentWithTabs: false,
+      autoCloseBrackets: true,
+      matchBrackets: true,
+      styleActiveLine: true,
+      lineWrapping: false,
+      extraKeys: {
+        'Ctrl-Enter': () => { runCode(); },
+        Tab: (cm) => {
+          if (cm.somethingSelected()) cm.indentSelection('add');
+          else cm.replaceSelection('    ', 'end');
+        },
+      },
+    });
+
+    cm.on('change', (instance) => {
+      setCode(instance.getValue());
+    });
+
+    cmInstanceRef.current = cm;
+    setCode(step ? step.starterCode : '');
+
+    // Let CM measure itself properly after mount
+    setTimeout(() => cm.refresh(), 50);
+  }, [cmReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Sync step changes into CodeMirror ──
   useEffect(() => {
     if (step) {
-      setCode(step.starterCode);
+      const newCode = showSolution ? step.solutionCode : step.starterCode;
+      setCode(newCode);
+      if (cmInstanceRef.current) {
+        cmInstanceRef.current.setValue(newCode);
+        cmInstanceRef.current.setOption('readOnly', false);
+        cmInstanceRef.current.focus();
+      }
       setOutput(null);
       setOutputType('idle');
       setShowHints(false);
@@ -7320,8 +7416,18 @@ const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
     }
   }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Toggle solution / editable in CodeMirror ──
+  useEffect(() => {
+    if (!cmInstanceRef.current || !step) return;
+    const newCode = showSolution ? step.solutionCode : code;
+    cmInstanceRef.current.setValue(showSolution ? step.solutionCode : code);
+    cmInstanceRef.current.setOption('readOnly', showSolution);
+  }, [showSolution]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const runCode = async () => {
     if (!pyodideReady || isRunning) return;
+    // Always read from the live CodeMirror instance
+    const currentCode = cmInstanceRef.current ? cmInstanceRef.current.getValue() : code;
     setIsRunning(true);
     setOutput(null);
     setOutputType('idle');
@@ -7334,7 +7440,7 @@ _stdout_capture = io.StringIO()
 sys.stdout = _stdout_capture
 `);
       try {
-        await py.runPythonAsync(code);
+        await py.runPythonAsync(currentCode);
         const captured = await py.runPythonAsync(`_stdout_capture.getvalue()`);
         const outText = String(captured);
         setOutput(outText || '(no output)');
@@ -7357,85 +7463,7 @@ sys.stdout = _stdout_capture
     setIsRunning(false);
   };
 
-  const handleScroll = (e) => {
-    if (highlightRef.current) {
-      highlightRef.current.scrollTop = e.target.scrollTop;
-      highlightRef.current.scrollLeft = e.target.scrollLeft;
-    }
-    if (lineNumbersRef.current) {
-      lineNumbersRef.current.scrollTop = e.target.scrollTop;
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (showSolution) return;
-    const ta = e.target;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      if (e.shiftKey) {
-        // Shift+Tab: Unindent line by up to 4 spaces
-        const textBefore = code.substring(0, start);
-        const lastLineBreak = textBefore.lastIndexOf('\n');
-        const lineStart = lastLineBreak + 1;
-        const currentLine = code.substring(lineStart);
-        const spacesToRemove = currentLine.match(/^ {1,4}/);
-        if (spacesToRemove) {
-          const removeCount = spacesToRemove[0].length;
-          const newCode = code.substring(0, lineStart) + currentLine.substring(removeCount);
-          setCode(newCode);
-          setTimeout(() => {
-            ta.selectionStart = ta.selectionEnd = Math.max(lineStart, start - removeCount);
-          }, 0);
-        }
-      } else {
-        // Tab: Insert 4 spaces
-        const newCode = code.substring(0, start) + '    ' + code.substring(end);
-        setCode(newCode);
-        setTimeout(() => { ta.selectionStart = ta.selectionEnd = start + 4; }, 0);
-      }
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      // Smart Auto-Indentation (e.g. def greet(): -> auto add 4 spaces)
-      const textBefore = code.substring(0, start);
-      const textAfter = code.substring(end);
-      const lastLineBreak = textBefore.lastIndexOf('\n');
-      const currentLine = textBefore.substring(lastLineBreak + 1);
-
-      // Extract existing leading spaces/tabs
-      const indentMatch = currentLine.match(/^[ \t]*/);
-      let newIndent = indentMatch ? indentMatch[0] : '';
-
-      // If current line ends with a colon (ignoring comments/whitespace), add 4 extra spaces
-      const lineWithoutComment = currentLine.replace(/#.*/, '').trimEnd();
-      if (lineWithoutComment.endsWith(':')) {
-        newIndent += '    ';
-      }
-
-      const insertion = '\n' + newIndent;
-      const newCode = textBefore + insertion + textAfter;
-      setCode(newCode);
-      setTimeout(() => {
-        ta.selectionStart = ta.selectionEnd = start + insertion.length;
-      }, 0);
-    } else if (e.key === 'Backspace') {
-      if (start === end && start > 0) {
-        const textBefore = code.substring(0, start);
-        const lastLineBreak = textBefore.lastIndexOf('\n');
-        const lineBeforeCursor = textBefore.substring(lastLineBreak + 1);
-        if (/^ +$/.test(lineBeforeCursor) && lineBeforeCursor.length % 4 === 0) {
-          e.preventDefault();
-          const newCode = code.substring(0, start - 4) + code.substring(end);
-          setCode(newCode);
-          setTimeout(() => {
-            ta.selectionStart = ta.selectionEnd = start - 4;
-          }, 0);
-        }
-      }
-    }
-  };
+  // handleScroll and handleKeyDown are no longer needed — CodeMirror handles everything internally.
 
   const goToStep = (idx) => {
     if (idx < 0 || idx >= steps.length) return;
@@ -7456,11 +7484,7 @@ sys.stdout = _stdout_capture
   const isLastStep = currentStep === steps.length - 1;
   const isProjectDone = isLastStep && completedSteps.has(currentStep);
 
-  const displayCode = showSolution ? step.solutionCode : code;
-  const highlightedCode = highlightCode(displayCode);
-  const lines = (displayCode || '').split('\n');
-  const lineCount = Math.max(lines.length, 1);
-  const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
+  // CodeMirror handles syntax highlighting, line numbers and scrolling — no manual computation needed.
 
   return (
     <div className={styles.projectLayout}>
@@ -7645,37 +7669,10 @@ sys.stdout = _stdout_capture
               </div>
             </div>
 
-            {/* Code Editor */}
+            {/* Code Editor — CodeMirror 5 */}
             <div className={styles.codeWrap}>
-              {/* Line Numbers Gutter */}
-              <div className={styles.lineNumbersGutter} ref={lineNumbersRef} aria-hidden="true">
-                {lineNumbers.map((num) => (
-                  <div key={num} className={styles.lineNumberItem}>{num}</div>
-                ))}
-              </div>
-
-              {/* Syntax highlighted editor */}
-              <div className={styles.editorContainer}>
-                <pre
-                  className={styles.highlightBackdrop}
-                  ref={highlightRef}
-                  aria-hidden="true"
-                >
-                  <code dangerouslySetInnerHTML={{ __html: highlightedCode + '\n' }} />
-                </pre>
-                <textarea
-                  ref={textareaRef}
-                  className={styles.textareaEditor}
-                  value={displayCode}
-                  onChange={(e) => { if (!showSolution) setCode(e.target.value); }}
-                  onKeyDown={handleKeyDown}
-                  onScroll={handleScroll}
-                  spellCheck={false}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                />
-              </div>
+              {/* CodeMirror mount target */}
+              <div ref={cmContainerRef} className={styles.cmMount} />
 
               {/* Run Code + Ask AI Buttons */}
               <div className={styles.editorFloatBar}>
