@@ -7288,6 +7288,10 @@ const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
 
   const cmContainerRef = useRef(null); // CodeMirror mount target
   const cmInstanceRef = useRef(null);  // CodeMirror instance
+  const outputPanelRef = useRef(null); // output panel DOM node for resize
+  const isDraggingRef  = useRef(false); // resize drag state
+  const dragStartYRef  = useRef(0);
+  const dragStartHRef  = useRef(0);
 
   const steps = lesson.steps || [];
   const step = steps[currentStep];
@@ -7308,7 +7312,6 @@ const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
       'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/selection/active-line.min.js',
     ];
 
-    // Inject stylesheets
     CM_CSS.forEach((href) => {
       if (!document.querySelector(`link[href="${href}"]`)) {
         const link = document.createElement('link');
@@ -7318,7 +7321,6 @@ const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
       }
     });
 
-    // Load scripts sequentially (each one depends on the previous)
     const loadScripts = (urls) =>
       urls.reduce(
         (chain, url) =>
@@ -7338,7 +7340,6 @@ const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
 
     loadScripts(CM_JS).then(() => setCmReady(true)).catch(console.error);
 
-    // Load Pyodide in parallel
     if (window.pyodide) {
       setPyodideReady(true);
     } else {
@@ -7354,6 +7355,37 @@ const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
       document.head.appendChild(script);
     }
   }, []);
+
+  // ── Resize handle: drag to split editor / output panel ──
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      if (!isDraggingRef.current || !outputPanelRef.current) return;
+      const delta = dragStartYRef.current - e.clientY; // dragging up = larger output
+      const newH = Math.max(80, Math.min(dragStartHRef.current + delta, window.innerHeight * 0.7));
+      outputPanelRef.current.style.height = newH + 'px';
+    };
+    const onMouseUp = () => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
+
+  const handleResizeMouseDown = (e) => {
+    if (!outputPanelRef.current) return;
+    isDraggingRef.current = true;
+    dragStartYRef.current = e.clientY;
+    dragStartHRef.current = outputPanelRef.current.offsetHeight;
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  };
 
   // ── Initialize / reinitialize CodeMirror once CM scripts are loaded ──
   useEffect(() => {
@@ -7693,8 +7725,15 @@ sys.stdout = _stdout_capture
               </div>
             </div>
 
+            {/* Resize handle between editor and output */}
+            <div
+              className={styles.resizeHandle}
+              onMouseDown={handleResizeMouseDown}
+              title="Drag to resize"
+            />
+
             {/* Output Panel */}
-            <div className={styles.outputPanel}>
+            <div className={styles.outputPanel} ref={outputPanelRef}>
               <div className={styles.outputHeader}>
                 <span className={styles.outputTabActive}>TEST CASES</span>
                 <span>CONSOLE</span>
