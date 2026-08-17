@@ -8511,54 +8511,54 @@ const VectorEmbeddingsDiagram = () => {
   // Exact 2D PCA Coordinates matching User Reference Scatter Plot
   const embeddingPoints = [
     // 🟡 Kitchen & Appliances
-    { id: 'lg', label: 'lg', category: 'appliances', x: -0.13, y: 0.81, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', desc: 'Global home electronics & smart appliance brand' },
-    { id: 'oven', label: 'oven', category: 'appliances', x: -0.20, y: 0.70, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', desc: 'Thermal culinary baking & heating chamber' },
-    { id: 'refrigerator', label: 'refrigerator', category: 'appliances', x: -0.34, y: 0.63, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', desc: 'Cold food storage and preservation unit' },
-    { id: 'microwave', label: 'microwave', category: 'appliances', x: -0.05, y: 0.68, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', desc: 'Electromagnetic high-frequency food reheating unit' },
-    { id: 'ge', label: 'ge', category: 'appliances', x: 0.03, y: 0.58, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', desc: 'General Electric consumer appliances manufacturer' },
+    { id: 'lg', label: 'lg', category: 'appliances', x: -0.13, y: 0.81, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', labelColor: '#a16207', labelPos: 'right', desc: 'Global home electronics & smart appliance brand' },
+    { id: 'oven', label: 'oven', category: 'appliances', x: -0.20, y: 0.70, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', labelColor: '#a16207', labelPos: 'left', desc: 'Thermal culinary baking & heating chamber' },
+    { id: 'refrigerator', label: 'refrigerator', category: 'appliances', x: -0.34, y: 0.63, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', labelColor: '#a16207', labelPos: 'left', desc: 'Cold food storage and preservation unit' },
+    { id: 'microwave', label: 'microwave', category: 'appliances', x: -0.05, y: 0.68, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', labelColor: '#a16207', labelPos: 'right', desc: 'Electromagnetic high-frequency food reheating unit' },
+    { id: 'ge', label: 'ge', category: 'appliances', x: 0.03, y: 0.58, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', labelColor: '#a16207', labelPos: 'right', desc: 'General Electric consumer appliances manufacturer' },
 
     // 🩵 Bathroom & Plumbing
-    { id: 'kitchen', label: 'kitchen', category: 'bathroom', x: -0.46, y: 0.23, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Food preparation and washing workstation' },
-    { id: 'vanity', label: 'vanity', category: 'bathroom', x: -0.58, y: 0.15, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Bathroom sink cabinet and grooming mirror fixture' },
-    { id: 'sink', label: 'sink', category: 'bathroom', x: -0.59, y: 0.08, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Water wash basin with drain and faucet fixtures' },
-    { id: 'bathroom', label: 'bathroom', category: 'bathroom', x: -0.48, y: 0.03, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Personal sanitation and hygiene facility' },
-    { id: 'bathtub', label: 'bathtub', category: 'bathroom', x: -0.58, y: -0.09, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Large water holding vessel for deep soaking' },
-    { id: 'toilet', label: 'toilet', category: 'bathroom', x: -0.38, y: -0.03, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Sanitary plumbing waste disposal fixture' },
-    { id: 'faucet', label: 'faucet', category: 'bathroom', x: -0.44, y: -0.14, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Mechanical valve tap controlling liquid flow' },
-    { id: 'table', label: 'table', category: 'bathroom', x: -0.27, y: 0.13, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Flat elevated furniture surface' },
+    { id: 'kitchen', label: 'kitchen', category: 'bathroom', x: -0.46, y: 0.23, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'right', desc: 'Food preparation and washing workstation' },
+    { id: 'vanity', label: 'vanity', category: 'bathroom', x: -0.58, y: 0.15, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'left', desc: 'Bathroom sink cabinet and grooming mirror fixture' },
+    { id: 'sink', label: 'sink', category: 'bathroom', x: -0.59, y: 0.08, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'left', desc: 'Water wash basin with drain and faucet fixtures' },
+    { id: 'bathroom', label: 'bathroom', category: 'bathroom', x: -0.48, y: 0.03, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'right', desc: 'Personal sanitation and hygiene facility' },
+    { id: 'bathtub', label: 'bathtub', category: 'bathroom', x: -0.58, y: -0.09, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'left', desc: 'Large water holding vessel for deep soaking' },
+    { id: 'toilet', label: 'toilet', category: 'bathroom', x: -0.38, y: -0.03, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'right', desc: 'Sanitary plumbing waste disposal fixture' },
+    { id: 'faucet', label: 'faucet', category: 'bathroom', x: -0.44, y: -0.14, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'left', desc: 'Mechanical valve tap controlling liquid flow' },
+    { id: 'table', label: 'table', category: 'bathroom', x: -0.27, y: 0.13, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'right', desc: 'Flat elevated furniture surface' },
 
     // 🟠 Paint & Finishes
-    { id: 'finish', label: 'finish', category: 'paint', x: -0.46, y: -0.40, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', desc: 'Protective topcoat surface texture and sheen' },
-    { id: 'color', label: 'color', category: 'paint', x: -0.34, y: -0.51, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', desc: 'Visual chromatic pigment and tint' },
-    { id: 'paint', label: 'paint', category: 'paint', x: -0.21, y: -0.56, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', desc: 'Liquid pigmented wall coating and primer' },
+    { id: 'finish', label: 'finish', category: 'paint', x: -0.46, y: -0.40, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', labelColor: '#c2410c', labelPos: 'left', desc: 'Protective topcoat surface texture and sheen' },
+    { id: 'color', label: 'color', category: 'paint', x: -0.34, y: -0.51, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', labelColor: '#c2410c', labelPos: 'left', desc: 'Visual chromatic pigment and tint' },
+    { id: 'paint', label: 'paint', category: 'paint', x: -0.21, y: -0.56, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', labelColor: '#c2410c', labelPos: 'right', desc: 'Liquid pigmented wall coating and primer' },
 
     // 🔴 Power Tools & Hardware
-    { id: 'tool', label: 'tool', category: 'tools', x: 0.43, y: -0.06, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Mechanical hardware and assembly implement' },
-    { id: 'battery', label: 'battery', category: 'tools', x: 0.48, y: 0.22, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Rechargeable cordless power cell pack' },
-    { id: 'charger', label: 'charger', category: 'tools', x: 0.53, y: 0.28, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Electrical charging station for power tools' },
-    { id: 'saw', label: 'saw', category: 'tools', x: 0.56, y: 0.07, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Toothed blade cutting tool for timber/metal' },
-    { id: 'bosch', label: 'bosch', category: 'tools', x: 0.61, y: -0.04, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Precision industrial power tool and hardware brand' },
-    { id: 'drill', label: 'drill', category: 'tools', x: 0.55, y: -0.16, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'High-torque motorized rotary fastener and hole maker' },
-    { id: 'dewalt', label: 'dewalt', category: 'tools', x: 0.65, y: 0.06, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Professional heavy-duty construction tool brand' },
+    { id: 'tool', label: 'tool', category: 'tools', x: 0.43, y: -0.06, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'left', desc: 'Mechanical hardware and assembly implement' },
+    { id: 'battery', label: 'battery', category: 'tools', x: 0.48, y: 0.22, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'left', desc: 'Rechargeable cordless power cell pack' },
+    { id: 'charger', label: 'charger', category: 'tools', x: 0.53, y: 0.28, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'right', desc: 'Electrical charging station for power tools' },
+    { id: 'saw', label: 'saw', category: 'tools', x: 0.56, y: 0.07, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'left', desc: 'Toothed blade cutting tool for timber/metal' },
+    { id: 'bosch', label: 'bosch', category: 'tools', x: 0.61, y: -0.04, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'right', desc: 'Precision industrial power tool and hardware brand' },
+    { id: 'drill', label: 'drill', category: 'tools', x: 0.55, y: -0.16, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'right', desc: 'High-torque motorized rotary fastener and hole maker' },
+    { id: 'dewalt', label: 'dewalt', category: 'tools', x: 0.65, y: 0.06, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'right', desc: 'Professional heavy-duty construction tool brand' },
 
     // 🔵 Lighting & Electricity
-    { id: 'fan', label: 'fan', category: 'lighting', x: -0.02, y: 0.28, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', desc: 'Motorized blade air cooling and circulation fixture' },
-    { id: 'light', label: 'light', category: 'lighting', x: 0.05, y: 0.19, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', desc: 'Electromagnetic illumination and luminance source' },
-    { id: 'led', label: 'led', category: 'lighting', x: 0.17, y: 0.30, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', desc: 'Solid-state semiconductor energy-efficient lighting' },
-    { id: 'bulb', label: 'bulb', category: 'lighting', x: 0.28, y: 0.44, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', desc: 'Glass incandescent or LED light fitting' },
+    { id: 'fan', label: 'fan', category: 'lighting', x: -0.02, y: 0.28, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', labelColor: '#1d4ed8', labelPos: 'left', desc: 'Motorized blade air cooling and circulation fixture' },
+    { id: 'light', label: 'light', category: 'lighting', x: 0.05, y: 0.19, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', labelColor: '#1d4ed8', labelPos: 'bottom', desc: 'Electromagnetic illumination and luminance source' },
+    { id: 'led', label: 'led', category: 'lighting', x: 0.17, y: 0.30, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', labelColor: '#1d4ed8', labelPos: 'top', desc: 'Solid-state semiconductor energy-efficient lighting' },
+    { id: 'bulb', label: 'bulb', category: 'lighting', x: 0.28, y: 0.44, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', labelColor: '#1d4ed8', labelPos: 'right', desc: 'Glass incandescent or LED light fitting' },
 
     // 🟢 Garden & Irrigation
-    { id: 'shower', label: 'shower', category: 'garden', x: -0.33, y: -0.16, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Overhead spray water delivery stall' },
-    { id: 'valve', label: 'valve', category: 'garden', x: -0.04, y: -0.25, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Plumbing and pipe fluid regulation shutoff' },
-    { id: 'kit', label: 'kit', category: 'garden', x: 0.09, y: -0.10, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Assembly package and irrigation connector kit' },
-    { id: 'garden', label: 'garden', category: 'garden', x: 0.23, y: -0.51, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Outdoor horticultural planting and lawn grounds' },
-    { id: 'hose', label: 'hose', category: 'garden', x: 0.34, y: -0.49, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Flexible pressurized water conduit' },
-    { id: 'sprinkler', label: 'sprinkler', category: 'garden', x: 0.56, y: -0.51, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Automated 360-degree lawn spray irrigation head' },
+    { id: 'shower', label: 'shower', category: 'garden', x: -0.33, y: -0.16, color: '#16a34a', fill: '#86efac', stroke: '#15803d', labelColor: '#15803d', labelPos: 'left', desc: 'Overhead spray water delivery stall' },
+    { id: 'valve', label: 'valve', category: 'garden', x: -0.04, y: -0.25, color: '#16a34a', fill: '#86efac', stroke: '#15803d', labelColor: '#15803d', labelPos: 'left', desc: 'Plumbing and pipe fluid regulation shutoff' },
+    { id: 'kit', label: 'kit', category: 'garden', x: 0.09, y: -0.10, color: '#16a34a', fill: '#86efac', stroke: '#15803d', labelColor: '#15803d', labelPos: 'right', desc: 'Assembly package and irrigation connector kit' },
+    { id: 'garden', label: 'garden', category: 'garden', x: 0.23, y: -0.51, color: '#16a34a', fill: '#86efac', stroke: '#15803d', labelColor: '#15803d', labelPos: 'left', desc: 'Outdoor horticultural planting and lawn grounds' },
+    { id: 'hose', label: 'hose', category: 'garden', x: 0.34, y: -0.49, color: '#16a34a', fill: '#86efac', stroke: '#15803d', labelColor: '#15803d', labelPos: 'right', desc: 'Flexible pressurized water conduit' },
+    { id: 'sprinkler', label: 'sprinkler', category: 'garden', x: 0.56, y: -0.51, color: '#16a34a', fill: '#86efac', stroke: '#15803d', labelColor: '#15803d', labelPos: 'right', desc: 'Automated 360-degree lawn spray irrigation head' },
 
     // 🌌 Ground Materials & Structures
-    { id: 'deck', label: 'deck', category: 'ground', x: 0.07, y: -0.40, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', desc: 'Outdoor timber or composite structural patio floor' },
-    { id: 'concrete', label: 'concrete', category: 'ground', x: -0.03, y: -0.73, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', desc: 'Heavy cement and aggregate architectural slab' },
-    { id: 'grass', label: 'grass', category: 'ground', x: 0.25, y: -0.74, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', desc: 'Natural green lawn turf vegetation cover' }
+    { id: 'deck', label: 'deck', category: 'ground', x: 0.07, y: -0.40, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', labelColor: '#0f172a', labelPos: 'right', desc: 'Outdoor timber or composite structural patio floor' },
+    { id: 'concrete', label: 'concrete', category: 'ground', x: -0.03, y: -0.73, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', labelColor: '#0f172a', labelPos: 'right', desc: 'Heavy cement and aggregate architectural slab' },
+    { id: 'grass', label: 'grass', category: 'ground', x: 0.25, y: -0.74, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', labelColor: '#0f172a', labelPos: 'right', desc: 'Natural green lawn turf vegetation cover' }
   ];
 
   // Category Filter Metadata
@@ -8596,6 +8596,19 @@ const VectorEmbeddingsDiagram = () => {
 
   const toSvgX = (x) => padX + ((x - (-0.8)) / (0.8 - (-0.8))) * (svgWidth - 2 * padX);
   const toSvgY = (y) => padY + ((1.0 - y) / (1.0 - (-1.0))) * (svgHeight - 2 * padY);
+
+  // Smart label placement helper to prevent overlaps
+  const getLabelCoords = (pt, px, py) => {
+    if (pt.labelPos === 'left') {
+      return { x: px - 11, y: py + 4, anchor: 'end' };
+    } else if (pt.labelPos === 'top') {
+      return { x: px, y: py - 11, anchor: 'middle' };
+    } else if (pt.labelPos === 'bottom') {
+      return { x: px, y: py + 16, anchor: 'middle' };
+    } else {
+      return { x: px + 11, y: py + 4, anchor: 'start' };
+    }
+  };
 
   // Compute Cosine / Euclidean Distances from Query Vector to all Visible Points
   const rankedNeighbors = visiblePoints.map(pt => {
@@ -8800,31 +8813,11 @@ const VectorEmbeddingsDiagram = () => {
                       y1={toSvgY(activeQueryCoord.y)}
                       x2={toSvgX(m.x)}
                       y2={toSvgY(m.y)}
-                      stroke="#ef4444"
+                      stroke={m.labelColor || m.stroke || m.color}
                       strokeWidth="2"
-                      strokeDasharray="5 4"
-                      opacity={0.85 - idx * 0.2}
+                      strokeDasharray="4 3"
+                      opacity={0.85 - idx * 0.15}
                     />
-                    {/* Similarity Badge on mid-line */}
-                    <rect
-                      x={(toSvgX(activeQueryCoord.x) + toSvgX(m.x)) / 2 - 24}
-                      y={(toSvgY(activeQueryCoord.y) + toSvgY(m.y)) / 2 - 10}
-                      width="48"
-                      height="18"
-                      rx="4"
-                      fill="#ef4444"
-                    />
-                    <text
-                      x={(toSvgX(activeQueryCoord.x) + toSvgX(m.x)) / 2}
-                      y={(toSvgY(activeQueryCoord.y) + toSvgY(m.y)) / 2 + 3}
-                      textAnchor="middle"
-                      fontSize="9.5"
-                      fill="#ffffff"
-                      fontWeight="800"
-                      fontFamily="monospace"
-                    >
-                      {Math.round(m.similarityScore * 100)}% sim
-                    </text>
                   </g>
                 ))}
 
@@ -8834,6 +8827,7 @@ const VectorEmbeddingsDiagram = () => {
                   const py = toSvgY(pt.y);
                   const isSelected = selectedPoint && selectedPoint.id === pt.id;
                   const isTopMatch = top3Matches.some(m => m.id === pt.id);
+                  const { x: lx, y: ly, anchor } = getLabelCoords(pt, px, py);
 
                   return (
                     <g
@@ -8841,17 +8835,17 @@ const VectorEmbeddingsDiagram = () => {
                       onClick={() => setSelectedPoint(pt)}
                       style={{ cursor: 'pointer', transition: 'all 0.2s' }}
                     >
-                      {/* Pulse circle for top match */}
+                      {/* Pulse circle for top match using its cluster color */}
                       {isTopMatch && (
                         <circle
                           cx={px}
                           cy={py}
-                          r="16"
+                          r="15"
                           fill="none"
-                          stroke="#ef4444"
+                          stroke={pt.labelColor || pt.stroke}
                           strokeWidth="2"
-                          opacity="0.6"
-                          strokeDasharray="4 2"
+                          opacity="0.8"
+                          strokeDasharray="3 2"
                         />
                       )}
 
@@ -8865,14 +8859,15 @@ const VectorEmbeddingsDiagram = () => {
                         strokeWidth={isSelected ? '2.5' : '1.5'}
                       />
 
-                      {/* Label beside node */}
+                      {/* Label beside node with matching cluster color */}
                       <text
-                        x={px + 11}
-                        y={py + 3.5}
+                        x={lx}
+                        y={ly}
+                        textAnchor={anchor}
                         fontSize={isSelected ? '12.5' : '11'}
-                        fill="#0f172a"
-                        fontWeight={isSelected ? '800' : '600'}
-                        fontFamily="sans-serif"
+                        fill={pt.labelColor || pt.stroke}
+                        fontWeight={isSelected || isTopMatch ? '800' : '700'}
+                        fontFamily="system-ui, -apple-system, sans-serif"
                         style={{ pointerEvents: 'none' }}
                       >
                         {pt.label}
@@ -8881,42 +8876,47 @@ const VectorEmbeddingsDiagram = () => {
                   );
                 })}
 
-                {/* Dropped Query Vector Point (Red Star / Target) */}
+                {/* Dropped Query Vector Point (Clean Target Pin) */}
                 {activeQueryCoord && (
                   <g>
                     <circle
                       cx={toSvgX(activeQueryCoord.x)}
                       cy={toSvgY(activeQueryCoord.y)}
                       r="12"
-                      fill="#ef444430"
-                      stroke="#ef4444"
+                      fill="#7c3aed20"
+                      stroke="#7c3aed"
                       strokeWidth="2"
                     />
                     <circle
                       cx={toSvgX(activeQueryCoord.x)}
                       cy={toSvgY(activeQueryCoord.y)}
                       r="5"
-                      fill="#ef4444"
+                      fill="#7c3aed"
                     />
-                    <rect
-                      x={toSvgX(activeQueryCoord.x) - 50}
-                      y={toSvgY(activeQueryCoord.y) - 26}
-                      width="100"
-                      height="18"
-                      rx="4"
-                      fill="#0f172a"
-                    />
-                    <text
-                      x={toSvgX(activeQueryCoord.x)}
-                      y={toSvgY(activeQueryCoord.y) - 14}
-                      textAnchor="middle"
-                      fontSize="9"
-                      fill="#38bdf8"
-                      fontWeight="800"
-                      fontFamily="monospace"
-                    >
-                      QUERY: {activeQueryCoord.label.slice(0, 14)}
-                    </text>
+                    {/* Compact Query Label Pill */}
+                    <g transform={`translate(${toSvgX(activeQueryCoord.x)}, ${toSvgY(activeQueryCoord.y) - 16})`}>
+                      <rect
+                        x="-38"
+                        y="-9"
+                        width="76"
+                        height="16"
+                        rx="4"
+                        fill="#0f172a"
+                        stroke="#7c3aed"
+                        strokeWidth="1"
+                      />
+                      <text
+                        x="0"
+                        y="2.5"
+                        textAnchor="middle"
+                        fontSize="8.5"
+                        fill="#c084fc"
+                        fontWeight="800"
+                        fontFamily="system-ui, sans-serif"
+                      >
+                        QUERY POINT
+                      </text>
+                    </g>
                   </g>
                 )}
               </svg>
