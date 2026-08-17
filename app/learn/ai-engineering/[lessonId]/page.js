@@ -8499,6 +8499,735 @@ All workstations must maintain active disk encryption (FileVault or BitLocker) a
   );
 };
 
+// ─── VECTOR EMBEDDINGS & 2D PROJECTION DIAGRAM COMPONENT ────────────────────
+const VectorEmbeddingsDiagram = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedPoint, setSelectedPoint] = useState(null);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [queryInput, setQueryInput] = useState('');
+  const [activeQueryCoord, setActiveQueryCoord] = useState({ x: 0.52, y: -0.10, label: 'rotary hammer drill' });
+  const [showImageComparison, setShowImageComparison] = useState(false);
+  const [angleDeg, setAngleDeg] = useState(32);
+
+  // Exact 2D PCA Coordinates matching User Reference Scatter Plot
+  const embeddingPoints = [
+    // 🟡 Kitchen & Appliances
+    { id: 'lg', label: 'lg', category: 'appliances', x: -0.13, y: 0.81, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', desc: 'Global home electronics & smart appliance brand' },
+    { id: 'oven', label: 'oven', category: 'appliances', x: -0.20, y: 0.70, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', desc: 'Thermal culinary baking & heating chamber' },
+    { id: 'refrigerator', label: 'refrigerator', category: 'appliances', x: -0.34, y: 0.63, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', desc: 'Cold food storage and preservation unit' },
+    { id: 'microwave', label: 'microwave', category: 'appliances', x: -0.05, y: 0.68, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', desc: 'Electromagnetic high-frequency food reheating unit' },
+    { id: 'ge', label: 'ge', category: 'appliances', x: 0.03, y: 0.58, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', desc: 'General Electric consumer appliances manufacturer' },
+
+    // 🩵 Bathroom & Plumbing
+    { id: 'kitchen', label: 'kitchen', category: 'bathroom', x: -0.46, y: 0.23, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Food preparation and washing workstation' },
+    { id: 'vanity', label: 'vanity', category: 'bathroom', x: -0.58, y: 0.15, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Bathroom sink cabinet and grooming mirror fixture' },
+    { id: 'sink', label: 'sink', category: 'bathroom', x: -0.59, y: 0.08, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Water wash basin with drain and faucet fixtures' },
+    { id: 'bathroom', label: 'bathroom', category: 'bathroom', x: -0.48, y: 0.03, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Personal sanitation and hygiene facility' },
+    { id: 'bathtub', label: 'bathtub', category: 'bathroom', x: -0.58, y: -0.09, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Large water holding vessel for deep soaking' },
+    { id: 'toilet', label: 'toilet', category: 'bathroom', x: -0.38, y: -0.03, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Sanitary plumbing waste disposal fixture' },
+    { id: 'faucet', label: 'faucet', category: 'bathroom', x: -0.44, y: -0.14, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Mechanical valve tap controlling liquid flow' },
+    { id: 'table', label: 'table', category: 'bathroom', x: -0.27, y: 0.13, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', desc: 'Flat elevated furniture surface' },
+
+    // 🟠 Paint & Finishes
+    { id: 'finish', label: 'finish', category: 'paint', x: -0.46, y: -0.40, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', desc: 'Protective topcoat surface texture and sheen' },
+    { id: 'color', label: 'color', category: 'paint', x: -0.34, y: -0.51, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', desc: 'Visual chromatic pigment and tint' },
+    { id: 'paint', label: 'paint', category: 'paint', x: -0.21, y: -0.56, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', desc: 'Liquid pigmented wall coating and primer' },
+
+    // 🔴 Power Tools & Hardware
+    { id: 'tool', label: 'tool', category: 'tools', x: 0.43, y: -0.06, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Mechanical hardware and assembly implement' },
+    { id: 'battery', label: 'battery', category: 'tools', x: 0.48, y: 0.22, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Rechargeable cordless power cell pack' },
+    { id: 'charger', label: 'charger', category: 'tools', x: 0.53, y: 0.28, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Electrical charging station for power tools' },
+    { id: 'saw', label: 'saw', category: 'tools', x: 0.56, y: 0.07, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Toothed blade cutting tool for timber/metal' },
+    { id: 'bosch', label: 'bosch', category: 'tools', x: 0.61, y: -0.04, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Precision industrial power tool and hardware brand' },
+    { id: 'drill', label: 'drill', category: 'tools', x: 0.55, y: -0.16, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'High-torque motorized rotary fastener and hole maker' },
+    { id: 'dewalt', label: 'dewalt', category: 'tools', x: 0.65, y: 0.06, color: '#881337', fill: '#991b1b', stroke: '#4c0519', desc: 'Professional heavy-duty construction tool brand' },
+
+    // 🔵 Lighting & Electricity
+    { id: 'fan', label: 'fan', category: 'lighting', x: -0.02, y: 0.28, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', desc: 'Motorized blade air cooling and circulation fixture' },
+    { id: 'light', label: 'light', category: 'lighting', x: 0.05, y: 0.19, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', desc: 'Electromagnetic illumination and luminance source' },
+    { id: 'led', label: 'led', category: 'lighting', x: 0.17, y: 0.30, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', desc: 'Solid-state semiconductor energy-efficient lighting' },
+    { id: 'bulb', label: 'bulb', category: 'lighting', x: 0.28, y: 0.44, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', desc: 'Glass incandescent or LED light fitting' },
+
+    // 🟢 Garden & Irrigation
+    { id: 'shower', label: 'shower', category: 'garden', x: -0.33, y: -0.16, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Overhead spray water delivery stall' },
+    { id: 'valve', label: 'valve', category: 'garden', x: -0.04, y: -0.25, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Plumbing and pipe fluid regulation shutoff' },
+    { id: 'kit', label: 'kit', category: 'garden', x: 0.09, y: -0.10, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Assembly package and irrigation connector kit' },
+    { id: 'garden', label: 'garden', category: 'garden', x: 0.23, y: -0.51, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Outdoor horticultural planting and lawn grounds' },
+    { id: 'hose', label: 'hose', category: 'garden', x: 0.34, y: -0.49, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Flexible pressurized water conduit' },
+    { id: 'sprinkler', label: 'sprinkler', category: 'garden', x: 0.56, y: -0.51, color: '#16a34a', fill: '#86efac', stroke: '#15803d', desc: 'Automated 360-degree lawn spray irrigation head' },
+
+    // 🌌 Ground Materials & Structures
+    { id: 'deck', label: 'deck', category: 'ground', x: 0.07, y: -0.40, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', desc: 'Outdoor timber or composite structural patio floor' },
+    { id: 'concrete', label: 'concrete', category: 'ground', x: -0.03, y: -0.73, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', desc: 'Heavy cement and aggregate architectural slab' },
+    { id: 'grass', label: 'grass', category: 'ground', x: 0.25, y: -0.74, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', desc: 'Natural green lawn turf vegetation cover' }
+  ];
+
+  // Category Filter Metadata
+  const categories = [
+    { key: 'all', label: 'All Clusters (31 Words)', color: '#7c3aed' },
+    { key: 'appliances', label: 'Kitchen & Appliances', color: '#eab308' },
+    { key: 'bathroom', label: 'Bathroom & Plumbing', color: '#06b6d4' },
+    { key: 'tools', label: 'Power Tools & Hardware', color: '#881337' },
+    { key: 'lighting', label: 'Lighting & Electric', color: '#2563eb' },
+    { key: 'garden', label: 'Garden & Irrigation', color: '#16a34a' },
+    { key: 'paint', label: 'Paint & Finishes', color: '#ea580c' },
+    { key: 'ground', label: 'Ground & Structures', color: '#0f172a' }
+  ];
+
+  // Preset Query Positions for Semantic Search Simulation
+  const queryPresets = [
+    { label: '🔨 "cordless impact drill"', x: 0.54, y: -0.10, queryName: 'cordless impact drill' },
+    { label: '❄️ "kitchen food freezer"', x: -0.28, y: 0.65, queryName: 'kitchen food freezer' },
+    { label: '🚿 "porcelain hand wash basin"', x: -0.55, y: 0.11, queryName: 'porcelain hand wash basin' },
+    { label: '💡 "dimmable ceiling light"', x: 0.12, y: 0.24, queryName: 'dimmable ceiling light' },
+    { label: '🎨 "matte wall acrylic paint"', x: -0.30, y: -0.50, queryName: 'matte wall acrylic paint' },
+    { label: '🌿 "automatic lawn watering pipe"', x: 0.38, y: -0.50, queryName: 'automatic lawn watering pipe' }
+  ];
+
+  // Filtered Points
+  const visiblePoints = activeCategory === 'all' 
+    ? embeddingPoints 
+    : embeddingPoints.filter(p => p.category === activeCategory);
+
+  // SVG Dimension mappings: x in [-0.8, 0.8], y in [-1.0, 1.0]
+  const svgWidth = 840;
+  const svgHeight = 520;
+  const padX = 65;
+  const padY = 45;
+
+  const toSvgX = (x) => padX + ((x - (-0.8)) / (0.8 - (-0.8))) * (svgWidth - 2 * padX);
+  const toSvgY = (y) => padY + ((1.0 - y) / (1.0 - (-1.0))) * (svgHeight - 2 * padY);
+
+  // Compute Cosine / Euclidean Distances from Query Vector to all Visible Points
+  const rankedNeighbors = visiblePoints.map(pt => {
+    // 2D distance
+    const dx = pt.x - activeQueryCoord.x;
+    const dy = pt.y - activeQueryCoord.y;
+    const euclidean = Math.sqrt(dx * dx + dy * dy);
+
+    // Approximate Cosine Similarity derived from 2D coordinate angle
+    const dot = (pt.x * activeQueryCoord.x) + (pt.y * activeQueryCoord.y);
+    const normPt = Math.sqrt(pt.x * pt.x + pt.y * pt.y);
+    const normQ = Math.sqrt(activeQueryCoord.x * activeQueryCoord.x + activeQueryCoord.y * activeQueryCoord.y);
+    const rawCos = normPt > 0 && normQ > 0 ? (dot / (normPt * normQ)) : 0;
+    
+    // Weighted proximity score (0.0 to 1.0)
+    const proximityScore = Math.max(0.1, 1.0 - (euclidean / 1.8));
+
+    return {
+      ...pt,
+      euclideanDist: euclidean,
+      similarityScore: Math.min(0.99, Math.max(0.20, proximityScore))
+    };
+  }).sort((a, b) => b.similarityScore - a.similarityScore);
+
+  const top3Matches = rankedNeighbors.slice(0, 3);
+
+  // Handle custom query submit
+  const handleCustomQuery = (e) => {
+    e.preventDefault();
+    if (!queryInput.trim()) return;
+    
+    // Hash query string into bounded 2D point
+    let hash = 0;
+    for (let i = 0; i < queryInput.length; i++) {
+      hash = queryInput.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const pseudoX = (((Math.abs(hash) % 100) / 100) * 1.4) - 0.7;
+    const pseudoY = (((Math.abs(hash >> 3) % 100) / 100) * 1.6) - 0.8;
+
+    setActiveQueryCoord({ x: pseudoX, y: pseudoY, label: queryInput });
+  };
+
+  // Math for Tab 1: Cosine Angle Slider
+  const angleRad = (angleDeg * Math.PI) / 180;
+  const cosValue = Math.cos(angleRad).toFixed(3);
+  const vecBx = Math.cos(angleRad);
+  const vecBy = Math.sin(angleRad);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className={styles.diagramBox} style={{ padding: 0 }}>
+
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
+          {[
+            { label: '2D Vector Space Projection Canvas', color: '#06b6d4' },
+            { label: 'Cosine Similarity Angle Calculator', color: '#8b5cf6' },
+            { label: '1536D to 2D Compression (t-SNE/PCA)', color: '#f59e0b' },
+            { label: 'Semantic vs Keyword Search Sandbox', color: '#10b981' }
+          ].map((tab, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveTab(i)}
+              style={{
+                padding: '0.45rem 0.9rem',
+                borderRadius: '999px',
+                border: `1.5px solid ${tab.color}`,
+                background: activeTab === i ? tab.color : 'transparent',
+                color: activeTab === i ? '#0f172a' : tab.color,
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {i + 1}. {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ═════════ TAB 0: 2D VECTOR SPACE PROJECTION CANVAS ═════════ */}
+        {activeTab === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h4 style={{ color: '#f8fafc', margin: '0 0 0.25rem', fontSize: '1.05rem', fontWeight: 800 }}>
+                  2D Semantic Vector Embedding Projection Map
+                </h4>
+                <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: 0 }}>
+                  Observe how words with related semantic functions cluster into distinct topological regions on the coordinate plane:
+                </p>
+              </div>
+              <button
+                onClick={() => setShowImageComparison(!showImageComparison)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  padding: '0.4rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1.5px solid #06b6d4',
+                  background: showImageComparison ? '#06b6d425' : '#1e293b',
+                  color: '#38bdf8',
+                  fontWeight: 700,
+                  fontSize: '0.76rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <IconImageDoc size={16} color="#38bdf8" />
+                {showImageComparison ? 'Hide Reference Image' : 'View Reference Plot'}
+              </button>
+            </div>
+
+            {/* Reference Image Viewer Modal / Drawer */}
+            {showImageComparison && (
+              <div style={{ background: '#ffffff', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem', border: '1.5px solid #06b6d4', textAlign: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', padding: '0 0.5rem' }}>
+                  <span style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.8rem' }}>Reference Scatter Plot Blueprint</span>
+                  <span style={{ background: '#06b6d415', color: '#0891b2', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>2D t-SNE Clustering</span>
+                </div>
+                <img
+                  src="/vector-embeddings-cluster-space.png"
+                  alt="Reference 2D vector embedding space"
+                  style={{ width: '100%', maxHeight: '380px', objectFit: 'contain', borderRadius: '6px' }}
+                />
+              </div>
+            )}
+
+            {/* Interactive Query Dropper Toolbar */}
+            <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '1rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                <span style={{ color: '#38bdf8', fontSize: '0.76rem', fontWeight: 800 }}>Drop Query Vector:</span>
+                
+                {queryPresets.map((qp, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveQueryCoord({ x: qp.x, y: qp.y, label: qp.queryName })}
+                    style={{
+                      padding: '0.3rem 0.65rem',
+                      borderRadius: '6px',
+                      border: `1px solid ${activeQueryCoord.label === qp.queryName ? '#38bdf8' : '#334155'}`,
+                      background: activeQueryCoord.label === qp.queryName ? '#38bdf825' : '#1e293b',
+                      color: activeQueryCoord.label === qp.queryName ? '#38bdf8' : '#94a3b8',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {qp.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Input */}
+              <form onSubmit={handleCustomQuery} style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="Type any custom query (e.g., 'submersible water pump', 'halogen reading lamp')..."
+                  value={queryInput}
+                  onChange={(e) => setQueryInput(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '8px',
+                    border: '1px solid #334155',
+                    background: '#090d16',
+                    color: '#f8fafc',
+                    fontSize: '0.78rem'
+                  }}
+                />
+                <button
+                  type="submit"
+                  style={{
+                    padding: '0.45rem 1rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#06b6d4',
+                    color: '#090d16',
+                    fontWeight: 800,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Embed &amp; Search
+                </button>
+              </form>
+            </div>
+
+            {/* Category Cluster Filters */}
+            <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {categories.map(cat => (
+                <button
+                  key={cat.key}
+                  onClick={() => setActiveCategory(cat.key)}
+                  style={{
+                    padding: '0.3rem 0.7rem',
+                    borderRadius: '6px',
+                    border: `1.5px solid ${activeCategory === cat.key ? cat.color : '#334155'}`,
+                    background: activeCategory === cat.key ? `${cat.color}20` : '#1e293b',
+                    color: activeCategory === cat.key ? (cat.color === '#0f172a' ? '#94a3b8' : cat.color) : '#94a3b8',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* ─── WHITE AESTHETIC 2D VECTOR SCATTER CANVAS ─── */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', padding: '1rem', border: '2px solid #cbd5e1', boxShadow: '0 8px 30px rgba(0,0,0,0.4)', overflowX: 'auto', marginBottom: '1rem' }}>
+              <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} style={{ width: '100%', minWidth: '760px', height: 'auto', display: 'block' }}>
+                {/* Background Box Grid */}
+                <rect x={padX} y={padY} width={svgWidth - 2 * padX} height={svgHeight - 2 * padY} fill="#ffffff" stroke="#334155" strokeWidth="1.5" />
+
+                {/* X-Grid lines & Ticks */}
+                {[-0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8].map((val) => {
+                  const sx = toSvgX(val);
+                  return (
+                    <g key={val}>
+                      <line x1={sx} y1={padY} x2={sx} y2={svgHeight - padY} stroke="#e2e8f0" strokeWidth="1" strokeDasharray={val === 0 ? 'none' : '3 3'} />
+                      <line x1={sx} y1={svgHeight - padY} x2={sx} y2={svgHeight - padY + 6} stroke="#334155" strokeWidth="1.5" />
+                      <line x1={sx} y1={padY} x2={sx} y2={padY - 6} stroke="#334155" strokeWidth="1.5" />
+                      <text x={sx} y={svgHeight - padY + 18} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="600" fontFamily="sans-serif">
+                        {val.toFixed(1)}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Y-Grid lines & Ticks */}
+                {[-1.0, -0.5, 0.0, 0.5, 1.0].map((val) => {
+                  const sy = toSvgY(val);
+                  return (
+                    <g key={val}>
+                      <line x1={padX} y1={sy} x2={svgWidth - padX} y2={sy} stroke="#e2e8f0" strokeWidth="1" strokeDasharray={val === 0 ? 'none' : '3 3'} />
+                      <line x1={padX - 6} y1={sy} x2={padX} y2={sy} stroke="#334155" strokeWidth="1.5" />
+                      <line x1={svgWidth - padX} y1={sy} x2={svgWidth - padX + 6} stroke="#334155" strokeWidth="1.5" />
+                      <text x={padX - 10} y={sy + 4} textAnchor="end" fontSize="11" fill="#475569" fontWeight="600" fontFamily="sans-serif">
+                        {val.toFixed(1)}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Cosine Distance Dotted Lines from Query Vector to Top 3 Matches */}
+                {activeQueryCoord && top3Matches.map((m, idx) => (
+                  <g key={`line-${m.id}`}>
+                    <line
+                      x1={toSvgX(activeQueryCoord.x)}
+                      y1={toSvgY(activeQueryCoord.y)}
+                      x2={toSvgX(m.x)}
+                      y2={toSvgY(m.y)}
+                      stroke="#ef4444"
+                      strokeWidth="2"
+                      strokeDasharray="5 4"
+                      opacity={0.85 - idx * 0.2}
+                    />
+                    {/* Similarity Badge on mid-line */}
+                    <rect
+                      x={(toSvgX(activeQueryCoord.x) + toSvgX(m.x)) / 2 - 24}
+                      y={(toSvgY(activeQueryCoord.y) + toSvgY(m.y)) / 2 - 10}
+                      width="48"
+                      height="18"
+                      rx="4"
+                      fill="#ef4444"
+                    />
+                    <text
+                      x={(toSvgX(activeQueryCoord.x) + toSvgX(m.x)) / 2}
+                      y={(toSvgY(activeQueryCoord.y) + toSvgY(m.y)) / 2 + 3}
+                      textAnchor="middle"
+                      fontSize="9.5"
+                      fill="#ffffff"
+                      fontWeight="800"
+                      fontFamily="monospace"
+                    >
+                      {Math.round(m.similarityScore * 100)}% sim
+                    </text>
+                  </g>
+                ))}
+
+                {/* Render All Embedding Data Points */}
+                {visiblePoints.map((pt) => {
+                  const px = toSvgX(pt.x);
+                  const py = toSvgY(pt.y);
+                  const isSelected = selectedPoint && selectedPoint.id === pt.id;
+                  const isTopMatch = top3Matches.some(m => m.id === pt.id);
+
+                  return (
+                    <g
+                      key={pt.id}
+                      onClick={() => setSelectedPoint(pt)}
+                      style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                    >
+                      {/* Pulse circle for top match */}
+                      {isTopMatch && (
+                        <circle
+                          cx={px}
+                          cy={py}
+                          r="16"
+                          fill="none"
+                          stroke="#ef4444"
+                          strokeWidth="2"
+                          opacity="0.6"
+                          strokeDasharray="4 2"
+                        />
+                      )}
+
+                      {/* Main Node Circle */}
+                      <circle
+                        cx={px}
+                        cy={py}
+                        r={isSelected ? '9' : '7.5'}
+                        fill={pt.fill}
+                        stroke={pt.stroke}
+                        strokeWidth={isSelected ? '2.5' : '1.5'}
+                      />
+
+                      {/* Label beside node */}
+                      <text
+                        x={px + 11}
+                        y={py + 3.5}
+                        fontSize={isSelected ? '12.5' : '11'}
+                        fill="#0f172a"
+                        fontWeight={isSelected ? '800' : '600'}
+                        fontFamily="sans-serif"
+                        style={{ pointerEvents: 'none' }}
+                      >
+                        {pt.label}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Dropped Query Vector Point (Red Star / Target) */}
+                {activeQueryCoord && (
+                  <g>
+                    <circle
+                      cx={toSvgX(activeQueryCoord.x)}
+                      cy={toSvgY(activeQueryCoord.y)}
+                      r="12"
+                      fill="#ef444430"
+                      stroke="#ef4444"
+                      strokeWidth="2"
+                    />
+                    <circle
+                      cx={toSvgX(activeQueryCoord.x)}
+                      cy={toSvgY(activeQueryCoord.y)}
+                      r="5"
+                      fill="#ef4444"
+                    />
+                    <rect
+                      x={toSvgX(activeQueryCoord.x) - 50}
+                      y={toSvgY(activeQueryCoord.y) - 26}
+                      width="100"
+                      height="18"
+                      rx="4"
+                      fill="#0f172a"
+                    />
+                    <text
+                      x={toSvgX(activeQueryCoord.x)}
+                      y={toSvgY(activeQueryCoord.y) - 14}
+                      textAnchor="middle"
+                      fontSize="9"
+                      fill="#38bdf8"
+                      fontWeight="800"
+                      fontFamily="monospace"
+                    >
+                      QUERY: {activeQueryCoord.label.slice(0, 14)}
+                    </text>
+                  </g>
+                )}
+              </svg>
+            </div>
+
+            {/* Top 3 Nearest Matches Panel & Selected Node Inspector */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+              {/* Top 3 Matches */}
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                  <span style={{ color: '#38bdf8', fontSize: '0.78rem', fontWeight: 800 }}>
+                    Top-3 Nearest Semantic Matches:
+                  </span>
+                  <span style={{ background: '#ef444425', color: '#f87171', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
+                    Cosine Nearest
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {top3Matches.map((m, idx) => (
+                    <div
+                      key={m.id}
+                      onClick={() => setSelectedPoint(m)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '6px',
+                        background: '#0f172a',
+                        border: `1px solid ${m.color}`,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ background: `${m.color}25`, color: m.color, padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800, fontFamily: 'monospace' }}>
+                          #{idx + 1}
+                        </span>
+                        <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.82rem' }}>{m.label}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.68rem' }}>({m.category})</span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ color: '#34d399', fontWeight: 800, fontSize: '0.8rem', fontFamily: 'monospace' }}>
+                          {Math.round(m.similarityScore * 100)}%
+                        </div>
+                        <div style={{ color: '#64748b', fontSize: '0.65rem' }}>coords: [{m.x}, {m.y}]</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Point Inspector */}
+              <div style={{ background: '#1e293b', border: `1.5px solid ${selectedPoint ? selectedPoint.color : '#334155'}`, borderRadius: '10px', padding: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ color: selectedPoint ? selectedPoint.color : '#94a3b8', fontSize: '0.8rem', fontWeight: 800 }}>
+                    {selectedPoint ? `Node: "${selectedPoint.label}"` : 'Point Inspector'}
+                  </span>
+                  {selectedPoint && (
+                    <span style={{ background: `${selectedPoint.color}25`, color: selectedPoint.color, padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
+                      {selectedPoint.category}
+                    </span>
+                  )}
+                </div>
+
+                {selectedPoint ? (
+                  <div>
+                    <p style={{ color: '#cbd5e1', fontSize: '0.78rem', margin: '0 0 0.6rem', lineHeight: '1.4' }}>
+                      {selectedPoint.desc}
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: '#0f172a', padding: '0.6rem', borderRadius: '6px', fontSize: '0.72rem' }}>
+                      <div><strong style={{ color: '#94a3b8' }}>2D Coordinate:</strong> <span style={{ color: '#38bdf8', fontFamily: 'monospace' }}>[{selectedPoint.x}, {selectedPoint.y}]</span></div>
+                      <div><strong style={{ color: '#94a3b8' }}>1536D Vector:</strong> <span style={{ color: '#a78bfa', fontFamily: 'monospace' }}>[0.012, -0.045, ...]</span></div>
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ color: '#64748b', fontSize: '0.78rem', margin: 0 }}>
+                    Click any node or cluster bubble on the 2D coordinate map above to inspect its exact vector dimensions, cluster category, and semantic definitions.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═════════ TAB 1: COSINE SIMILARITY ANGULAR CALCULATOR ═════════ */}
+        {activeTab === 1 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Drag the angle slider to see how Cosine Similarity measures the directional alignment between two vectors:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', alignItems: 'center' }}>
+              {/* Controls */}
+              <div style={{ background: '#0f172a', padding: '1.25rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ color: '#38bdf8', fontSize: '0.8rem', fontWeight: 700 }}>Angle Between Vectors (&theta;):</span>
+                  <span style={{ color: '#f8fafc', fontSize: '0.9rem', fontFamily: 'monospace', fontWeight: 800 }}>{angleDeg}&deg;</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="180"
+                  step="1"
+                  value={angleDeg}
+                  onChange={(e) => setAngleDeg(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#8b5cf6', cursor: 'pointer', marginBottom: '1rem' }}
+                />
+
+                <div style={{ background: '#1e293b', padding: '0.85rem', borderRadius: '8px', border: '1px solid #334155', marginBottom: '0.75rem' }}>
+                  <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Computed Cosine Score:</div>
+                  <div style={{ color: Number(cosValue) > 0.7 ? '#34d399' : Number(cosValue) > 0.2 ? '#38bdf8' : Number(cosValue) > -0.2 ? '#f59e0b' : '#ef4444', fontSize: '1.5rem', fontWeight: 900, fontFamily: 'monospace' }}>
+                    cos({angleDeg}&deg;) = {cosValue}
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.78rem', color: '#cbd5e1', lineHeight: '1.4' }}>
+                  {angleDeg === 0 && <strong style={{ color: '#34d399' }}>Identical Concepts (1.00): e.g., "car" and "automobile" point in the exact same vector direction.</strong>}
+                  {angleDeg > 0 && angleDeg <= 45 && <strong style={{ color: '#38bdf8' }}>High Semantic Proximity (0.70 to 0.99): e.g., "rotary drill" and "power saw".</strong>}
+                  {angleDeg > 45 && angleDeg <= 85 && <strong style={{ color: '#f59e0b' }}>Moderate / Loose Relation (0.10 to 0.69): e.g., "screwdriver" and "kitchen table".</strong>}
+                  {angleDeg > 85 && angleDeg <= 95 && <strong style={{ color: '#a78bfa' }}>Orthogonal / Unrelated (0.00): e.g., "microwave" and "grass" share no latent features.</strong>}
+                  {angleDeg > 95 && <strong style={{ color: '#ef4444' }}>Negative / Diametric Opposites (-1.00): e.g., "blistering heat" vs "freezing blizzard".</strong>}
+                </div>
+              </div>
+
+              {/* Vector Compass Visualization */}
+              <div style={{ background: '#090d16', border: '1.5px solid #1e293b', borderRadius: '12px', padding: '1.25rem', textAlign: 'center' }}>
+                <svg viewBox="0 0 240 240" style={{ width: '100%', maxWidth: '240px', margin: '0 auto', display: 'block' }}>
+                  {/* Unit Circle */}
+                  <circle cx="120" cy="120" r="80" fill="none" stroke="#334155" strokeWidth="1.5" strokeDasharray="3 3" />
+                  <line x1="120" y1="20" x2="120" y2="220" stroke="#1e293b" strokeWidth="1" />
+                  <line x1="20" y1="120" x2="220" y2="120" stroke="#1e293b" strokeWidth="1" />
+
+                  {/* Vector A (Fixed along X axis) */}
+                  <line x1="120" y1="120" x2="200" y2="120" stroke="#38bdf8" strokeWidth="3" markerEnd="url(#arrowBlue)" />
+                  <text x="208" y="124" fill="#38bdf8" fontSize="11" fontWeight="800">Vector A</text>
+
+                  {/* Vector B (Rotated by angleDeg) */}
+                  <line
+                    x1="120"
+                    y1="120"
+                    x2={120 + 80 * vecBx}
+                    y2={120 - 80 * vecBy}
+                    stroke="#c084fc"
+                    strokeWidth="3"
+                  />
+                  <circle cx={120 + 80 * vecBx} cy={120 - 80 * vecBy} r="4" fill="#c084fc" />
+                  <text
+                    x={120 + 95 * vecBx}
+                    y={120 - 90 * vecBy}
+                    fill="#c084fc"
+                    fontSize="11"
+                    fontWeight="800"
+                    textAnchor="middle"
+                  >
+                    Vector B
+                  </text>
+
+                  {/* Center Origin */}
+                  <circle cx="120" cy="120" r="3" fill="#ffffff" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═════════ TAB 2: 1536D TO 2D COMPRESSION (PCA / t-SNE) ═════════ */}
+        {activeTab === 2 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              How dimensionality reduction algorithms project 1536-dimensional hyper-space vectors down to human-interpretable 2D planes:
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.85rem', marginBottom: '1rem' }}>
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '1rem' }}>
+                <div style={{ color: '#38bdf8', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>1. Raw High-D Vector (1536 Dimensions)</div>
+                <div style={{ color: '#f8fafc', fontSize: '0.82rem', marginBottom: '0.5rem' }}>Complete dense semantic representation produced by model.</div>
+                <pre style={{ background: '#090d16', padding: '0.6rem', borderRadius: '6px', color: '#a78bfa', fontSize: '0.68rem', fontFamily: 'monospace', margin: 0, overflowX: 'auto' }}>
+                  [-0.0124, 0.0482, -0.0913, 0.0341, ... 1532 more floats]
+                </pre>
+              </div>
+
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '1rem' }}>
+                <div style={{ color: '#f59e0b', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>2. Principal Component Analysis (PCA)</div>
+                <div style={{ color: '#f8fafc', fontSize: '0.82rem', marginBottom: '0.5rem' }}>Linear orthogonal transformation that maximizes global variance.</div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>
+                  Preserves macro clusters across large databases with minimal computation cost.
+                </div>
+              </div>
+
+              <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '1rem' }}>
+                <div style={{ color: '#10b981', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>3. t-SNE &amp; UMAP Projections</div>
+                <div style={{ color: '#f8fafc', fontSize: '0.82rem', marginBottom: '0.5rem' }}>Non-linear graph embeddings preserving local cluster neighborhoods.</div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>
+                  Produces clean semantic islands like the 7 distinct clusters on our 2D scatter blueprint.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═════════ TAB 3: SEMANTIC VS KEYWORD SEARCH SANDBOX ═════════ */}
+        {activeTab === 3 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
+              Compare why traditional keyword matching fails while vector embedding search retrieves correct domain matches:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {[
+                {
+                  query: 'automobile maintenance handbook',
+                  targetDoc: 'Car repair manual with engine specs',
+                  keywordMatch: '0 matches (Missed because words "automobile" != "car" and "handbook" != "manual")',
+                  vectorMatch: '0.94 Cosine Match (Found: "automobile" and "car" share nearly identical embedding vectors)',
+                  success: true
+                },
+                {
+                  query: 'chilly beverage chilling machine',
+                  targetDoc: 'Energy-star refrigerator cooling appliance',
+                  keywordMatch: '0 matches (Missed: completely disjoint vocabulary)',
+                  vectorMatch: '0.89 Cosine Match (Found: "beverage chilling" vectors map directly to the refrigerator cluster)',
+                  success: true
+                },
+                {
+                  query: 'hole maker with high rotary torque',
+                  targetDoc: 'Cordless hammer drill with battery dock',
+                  keywordMatch: '0 matches (Missed)',
+                  vectorMatch: '0.92 Cosine Match (Found: drill cluster in Power Tools quadrant)',
+                  success: true
+                }
+              ].map((bench, idx) => (
+                <div key={idx} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '10px', padding: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <span style={{ color: '#f8fafc', fontWeight: 800, fontSize: '0.84rem' }}>User Query: "{bench.query}"</span>
+                    <span style={{ color: '#38bdf8', fontSize: '0.74rem', fontFamily: 'monospace' }}>Target: "{bench.targetDoc}"</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.6rem' }}>
+                    <div style={{ background: '#3b1212', border: '1px solid #ef4444', borderRadius: '6px', padding: '0.6rem' }}>
+                      <div style={{ color: '#f87171', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Keyword Search (BM25):</div>
+                      <div style={{ color: '#fecaca', fontSize: '0.75rem' }}>{bench.keywordMatch}</div>
+                    </div>
+
+                    <div style={{ background: '#092d1a', border: '1px solid #10b981', borderRadius: '6px', padding: '0.6rem' }}>
+                      <div style={{ color: '#34d399', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Vector Embedding Search:</div>
+                      <div style={{ color: '#d1fae5', fontSize: '0.75rem' }}>{bench.vectorMatch}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
 // ─── MINI PROJECT EDITOR ───────────────────────────────────────────────────
 const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -8987,7 +9716,7 @@ sys.stdout = _stdout_capture
 };
 
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9', 'ai-2-p1', 'ai-3-1', 'ai-3-2', 'ai-3-3', 'ai-3-4', 'ai-3-5', 'ai-3-6', 'ai-3-7', 'ai-4-1', 'ai-4-2', 'ai-4-3', 'ai-4-4', 'ai-4-5', 'ai-4-6', 'ai-4-7', 'ai-4-8', 'ai-4-9', 'ai-5-1', 'ai-5-2'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9', 'ai-2-p1', 'ai-3-1', 'ai-3-2', 'ai-3-3', 'ai-3-4', 'ai-3-5', 'ai-3-6', 'ai-3-7', 'ai-4-1', 'ai-4-2', 'ai-4-3', 'ai-4-4', 'ai-4-5', 'ai-4-6', 'ai-4-7', 'ai-4-8', 'ai-4-9', 'ai-5-1', 'ai-5-2', 'ai-5-3'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -9283,6 +10012,11 @@ export default function AILessonArticlePage() {
             {/* Knowledge Base Ingestion & Chunking Diagram */}
             {lesson.diagram.type === 'knowledge_base_ingestion' && (
               <KnowledgeBaseIngestionDiagram />
+            )}
+
+            {/* Vector Embeddings & 2D Projection Diagram */}
+            {lesson.diagram.type === 'vector_embeddings' && (
+              <VectorEmbeddingsDiagram />
             )}
 
             {/* Industry Grid Diagram */}

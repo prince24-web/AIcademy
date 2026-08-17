@@ -205,7 +205,7 @@ const aiModules = [
     lessons: [
       { id: 'ai-5-1', name: 'Why LLMs Forget & Knowledge Cutoffs', nodeType: 'concept', status: 'active' },
       { id: 'ai-5-2', name: 'Building Custom Knowledge Bases', nodeType: 'star', status: 'active' },
-      { id: 'ai-5-3', name: 'Generating Vector Embeddings', nodeType: 'concept', status: 'locked' },
+      { id: 'ai-5-3', name: 'Generating Vector Embeddings', nodeType: 'concept', status: 'active' },
       { id: 'ai-5-4', name: 'Vector Databases (Chroma/Pinecone)', nodeType: 'concept', status: 'locked' },
       { id: 'ai-5-5', name: 'Semantic Search vs Keyword Search', nodeType: 'lightbulb', status: 'locked' },
       { id: 'ai-5-6', name: 'Complete Retrieval Pipeline', nodeType: 'star', status: 'locked' },

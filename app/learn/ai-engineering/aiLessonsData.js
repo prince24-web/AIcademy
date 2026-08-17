@@ -4749,6 +4749,141 @@ print(f"Total chunks in knowledge base: {len(kb.knowledge_store)}")`
       correctIndex: 1,
       explanation: 'Spot on! Chunk overlap ensures that boundary sentences spanning across chunk thresholds are duplicated into both neighboring chunks, preventing critical context or numbers from being split and lost.'
     }
+  },
+
+  'ai-5-3': {
+    id: 'ai-5-3',
+    title: 'Generating Vector Embeddings',
+    subtitle: 'Transforming Words & Documents into High-Dimensional Geometric Vectors for Semantic Search',
+    section: 'Module 5 · Chapter 3',
+    estimatedTime: '8 min read',
+    gfgUrl: 'https://www.geeksforgeeks.org/word-embeddings-in-nlp/',
+
+    badgeText: 'MATHEMATICAL EMBEDDINGS',
+    badgeColor: '#06b6d4',
+
+    illustrationImage: {
+      src: '/vector-embeddings-cluster-space.png',
+      title: '2D Vector Embedding Projection & Semantic Clusters',
+      badge: 'PCA / t-SNE 2D Projection',
+      caption: '2D projection of word and document embeddings showing how semantic similarity translates to geometric closeness in vector space. Click image to expand.'
+    },
+
+    sections: [
+      {
+        heading: 'From Strings to Dense Geometry: What is an Embedding?',
+        paragraphs: [
+          'Computers cannot inherently understand the meaning of human words like "sofa", "couch", "screwdriver", or "refrigerator". Traditional search engines treat text as discrete strings of ASCII characters and rely on lexical keyword matching (BM25 or TF-IDF).',
+          'Keyword search fails continuously because language is full of synonyms, idioms, and contextual nuances. If a user searches for "automobile repair manual", a keyword search will completely miss a relevant document titled "car maintenance handbook" simply because the letters C-A-R do not match A-U-T-O-M-O-B-I-L-E.',
+          'Vector Embeddings solve this fundamentally. An embedding model takes any text input (a word, sentence, or 500-token chunk) and maps it into a dense numerical vector—a long array of floating-point numbers (e.g., 1536 numbers for OpenAI text-embedding-3-small).',
+          'The core breakthrough of vector geometry: Words, sentences, and concepts with similar semantic meanings are placed geometrically close to each other in high-dimensional vector space.'
+        ]
+      },
+      {
+        heading: 'How Modern Embedding Models Work (1536-Dimensional Space)',
+        paragraphs: [
+          'When an embedding model processes text, each dimension in its high-dimensional space represents an abstract semantic latent feature learned during pre-training on billions of documents.',
+          'For instance, in a simplified conceptual space, Dimension 1 might capture "appliance vs tool", Dimension 2 might capture "indoor vs outdoor", Dimension 3 might capture "liquid/plumbing vs electrical", and Dimension 4 might capture "brand specificity".',
+          'In production models like OpenAI text-embedding-3-small (1536 dimensions) or text-embedding-3-large (3072 dimensions), these geometric coordinates capture subtle relationships like nuance, sentiment, domain, and functionality.',
+          'Because humans cannot visualize 1536 dimensions directly, mathematical dimensionality reduction algorithms (such as PCA—Principal Component Analysis, or t-SNE) compress the 1536 dimensions down to 2D coordinates [X, Y] while preserving local neighborhood clusters.'
+        ]
+      },
+      {
+        heading: 'Cosine Similarity vs Euclidean Distance (L2) vs Dot Product',
+        paragraphs: [
+          'Once text is represented as vectors, how do we measure whether two vectors are semantically similar? We use geometric distance metrics:',
+          '1. Cosine Similarity: Measures the cosine of the angle between two vectors: cos(theta) = (A · B) / (||A|| * ||B||). A score of 1.0 indicates identical semantic direction, 0.0 indicates completely unrelated/orthogonal concepts, and -1.0 indicates diametric opposites. Crucially, Cosine Similarity is invariant to vector magnitude (document length).',
+          '2. Dot Product: The sum of products of corresponding coordinates: A · B = sum(A_i * B_i). When vectors are pre-normalized to unit length (length = 1.0), the Dot Product is mathematically identical to Cosine Similarity but computes in a fraction of the CPU cycles on GPUs and vectorized AVX registers.',
+          '3. Euclidean Distance (L2): Measures the straight-line physical distance between two coordinate points: sqrt(sum((A_i - B_i)^2)). L2 distance is sensitive to document length, making Cosine Similarity the preferred standard in RAG.'
+        ],
+        codeBlockTitle: 'Generating & Comparing Embeddings with Python',
+        codeBlock: `import numpy as np
+from typing import List, Dict
+
+# Example simulated 4-dimensional normalized vector embeddings
+embeddings_db: Dict[str, np.ndarray] = {
+    # Kitchen / Appliances cluster
+    "refrigerator": np.array([-0.34, 0.63, 0.61, 0.35]),
+    "microwave":    np.array([-0.05, 0.68, 0.65, 0.33]),
+    "oven":         np.array([-0.20, 0.70, 0.60, 0.34]),
+    
+    # Power Tools cluster
+    "drill":        np.array([0.55, -0.16, -0.70, 0.42]),
+    "saw":          np.array([0.56, 0.07, -0.72, 0.40]),
+    "bosch":        np.array([0.61, -0.04, -0.68, 0.41]),
+    
+    # Bathroom / Plumbing cluster
+    "faucet":       np.array([-0.44, -0.14, 0.30, -0.83]),
+    "bathtub":      np.array([-0.58, -0.09, 0.32, -0.75])
+}
+
+def cosine_similarity(vec_a: np.ndarray, vec_b: np.ndarray) -> float:
+    """Computes cosine similarity between two vector arrays."""
+    dot_product = np.dot(vec_a, vec_b)
+    norm_a = np.linalg.norm(vec_a)
+    norm_b = np.linalg.norm(vec_b)
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return float(dot_product / (norm_a * norm_b))
+
+def semantic_search(query_vec: np.ndarray, top_k: int = 3) -> List[tuple]:
+    """Finds top-K nearest semantic neighbors in the vector store."""
+    scores = []
+    for word, vec in embeddings_db.items():
+        score = cosine_similarity(query_vec, vec)
+        scores.append((word, score))
+    
+    # Sort by highest cosine similarity
+    scores.sort(key=lambda x: x[1], reverse=True)
+    return scores[:top_k]
+
+# Query: "cordless power tool for cutting wood" (simulated vector close to saw/drill)
+query_vector = np.array([0.54, 0.02, -0.71, 0.39])
+results = semantic_search(query_vector, top_k=3)
+
+print("Top 3 Semantic Matches:")
+for rank, (word, score) in enumerate(results, 1):
+    print(f"#{rank} {word}: Cosine Similarity = {score:.4f}")`
+      },
+      {
+        heading: 'Batching & Rate Limits in Enterprise Production',
+        paragraphs: [
+          'In production RAG systems ingesting thousands of PDF pages, sending one HTTP request per sentence will quickly trigger API rate limits and add minutes of network latency.',
+          'Always batch your embedding calls: pass up to 100 to 2,048 chunks per single API request to maximize throughput and utilize parallel GPU inference on the provider.',
+          'Additionally, cache your vector embeddings in a persistent vector database (like Chroma or Pinecone) with an MD5 hash of the chunk text as the cache key so you never pay twice to embed the exact same content.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Global GPS Navigation System for Ideas',
+      text: 'Think of vector embeddings like GPS coordinates on a multi-dimensional globe. Just as physical GPS coordinates [Latitude, Longitude] place Paris right next to Versailles and thousands of miles away from Tokyo, embedding coordinates place "refrigerator" and "microwave" in the exact same semantic neighborhood, while "chainsaw" and "rotary drill" occupy a completely different corner of the globe. When you search, the engine simply calculates the shortest flight distance between your query coordinate and all stored knowledge points!'
+    },
+
+    diagram: {
+      type: 'vector_embeddings',
+      title: 'Interactive 2D Vector Space Projection & Semantic Clusters'
+    },
+
+    takeaways: [
+      'Embeddings translate linguistic meaning into dense geometric coordinates where distance equals semantic dissimilarity.',
+      'Cosine Similarity evaluates the angle between vectors, making it robust against document length differences.',
+      'Dimensionality reduction (t-SNE / PCA) allows high-dimensional 1536D embedding spaces to be visualized on 2D scatter plots.',
+      'Unit-normalized vector embeddings allow lightning-fast dot product calculations on modern hardware.',
+      'Batching embedding requests and caching with content hashes prevents redundant API costs and API rate limit throttling.'
+    ],
+
+    quiz: {
+      question: 'Why is Cosine Similarity preferred over Euclidean Distance (L2) for measuring text embedding similarity across documents of varying lengths?',
+      options: [
+        'Cosine similarity requires no mathematical computation',
+        'Cosine similarity evaluates the directional angle between vectors, remaining unaffected by vector magnitude/text length differences',
+        'Cosine similarity only works on short 1-word inputs',
+        'Euclidean distance cannot be used in Python'
+      ],
+      correctIndex: 1,
+      explanation: 'Spot on! Cosine similarity measures the angle between vectors rather than their absolute length (magnitude). Two articles about "Quantum Physics"—one a 10-word summary and one a 5,000-word treatise—point in the exact same direction in vector space even though the longer document has a much larger vector magnitude.'
+    }
   }
 };
 
