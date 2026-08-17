@@ -232,6 +232,96 @@ const IconTrophy = ({ size = 28, style = {} }) => (
   </svg>
 );
 
+const IconImageDoc = ({ size = 18, color = '#7c3aed', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+    <circle cx="8.5" cy="8.5" r="1.5"/>
+    <polyline points="21 15 16 10 5 21"/>
+  </svg>
+);
+
+const IconFileText = ({ size = 22, color = '#f87171', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+    <polyline points="10 9 9 9 8 9"/>
+  </svg>
+);
+
+const IconExtract = ({ size = 22, color = '#38bdf8', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </svg>
+);
+
+const IconScissors = ({ size = 22, color = '#ec4899', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+    <line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/>
+    <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+  </svg>
+);
+
+const IconCpuApi = ({ size = 22, color = '#a78bfa', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/>
+    <line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/>
+    <line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/>
+    <line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/>
+    <line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>
+  </svg>
+);
+
+const IconVectorGrid = ({ size = 22, color = '#2dd4bf', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+    <circle cx="18" cy="10" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="6" cy="14" r="2"/>
+  </svg>
+);
+
+const IconIndexZap = ({ size = 22, color = '#fbbf24', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    <polygon points="12 6 8 13 13 13 10 18 16 11 11 11 12 6" fill={color}/>
+  </svg>
+);
+
+const IconDatabaseBox = ({ size = 22, color = '#38bdf8', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+  </svg>
+);
+
+const IconUserChat = ({ size = 22, color = '#4ade80', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+
+const IconSearchVec = ({ size = 22, color = '#f472b6', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+);
+
+const IconBrainCog = ({ size = 22, color = '#c084fc', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04Z"/>
+    <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04Z"/>
+  </svg>
+);
+
+const IconShieldCheck = ({ size = 22, color = '#34d399', style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>
+  </svg>
+);
+
 // ─── COMPREHENSIVE SYNTAX HIGHLIGHTER LEXER (PYTHON / JSON / PROMPT) ────────
 function highlightCode(code) {
   if (!code || typeof code !== 'string') return '';
@@ -7276,6 +7366,11 @@ User: My hotel is located near Gion district.`}
 const KnowledgeBaseIngestionDiagram = () => {
   const [activeTab, setActiveTab] = useState(0);
   
+  // Tab 0: Architecture Flow Selection / Active Node Inspector
+  const [selectedArchNode, setSelectedArchNode] = useState('overview');
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [activeStepAnim, setActiveStepAnim] = useState(null);
+
   // Tab 1: Live Chunking Simulator State
   const [chunkSize, setChunkSize] = useState(250);
   const [chunkOverlap, setChunkOverlap] = useState(50);
@@ -7292,6 +7387,113 @@ const KnowledgeBaseIngestionDiagram = () => {
   // Tab 4: Metadata Query Simulator
   const [queryDept, setQueryDept] = useState('All');
   const [queryYear, setQueryYear] = useState('All');
+
+  const runSimulation = () => {
+    if (isSimulating) return;
+    setIsSimulating(true);
+    const steps = ['pdf', 'extract', 'chunks', 'embed_api_ingest', 'vectors', 'index', 'kb', 'user_query', 'embed_query', 'semantic_search', 'top_k', 'llm', 'answer'];
+    steps.forEach((st, idx) => {
+      setTimeout(() => {
+        setActiveStepAnim(st);
+        setSelectedArchNode(st);
+        if (idx === steps.length - 1) {
+          setTimeout(() => {
+            setIsSimulating(false);
+            setActiveStepAnim(null);
+          }, 1200);
+        }
+      }, idx * 600);
+    });
+  };
+
+  const archNodes = {
+    overview: {
+      title: 'End-to-End RAG Architecture Overview',
+      subtitle: 'Two distinct pipelines working together: Offline Ingestion & Online Query/Retrieval',
+      color: '#7c3aed',
+      description: 'Retrieval-Augmented Generation separates knowledge creation (top track) from real-time question answering (bottom track). Click on any component or hit "Simulate Full Pipeline" below to inspect how data flows through the system.'
+    },
+    pdf: {
+      title: '1. Source Documents (PDFs, Docs, Wikis)',
+      subtitle: 'Unstructured enterprise raw knowledge',
+      color: '#ef4444',
+      description: 'The raw inputs to your knowledge base. These include product manuals, PDFs, customer tickets, Word documents, and Markdown wikis containing proprietary domain facts.'
+    },
+    extract: {
+      title: '2. Data Extraction & Parsing',
+      subtitle: 'Converting binary formats into clean text streams',
+      color: '#38bdf8',
+      description: 'Parsers (like PyPDF, Docling, Unstructured, or OCR engines) extract text, preserve table layouts, and strip out non-text noise and binary artifacts.'
+    },
+    chunks: {
+      title: '3. Text Slicing & Chunking (Chunks 1–4)',
+      subtitle: 'Decomposing large documents into semantic passages',
+      color: '#ec4899',
+      description: 'Documents are divided into 200–500 token chunks (e.g. Chunk 1, Chunk 2, Chunk 3, Chunk 4) with 10–20% overlap so key facts and sentences are never fractured across boundaries.'
+    },
+    embed_api_ingest: {
+      title: '4. Embedding API (Batch Conversion)',
+      subtitle: 'Translating text into mathematical vectors',
+      color: '#818cf8',
+      description: 'Every chunk is passed to an embedding model (e.g., text-embedding-3-small) which outputs a high-dimensional vector (e.g. 1536 floating point numbers) capturing its semantic meaning.'
+    },
+    vectors: {
+      title: '5. Vector Embeddings (Embedding 1–4)',
+      subtitle: 'Dense geometric representations of meaning',
+      color: '#2dd4bf',
+      description: 'Each text chunk is mapped to a vector coordinate in vector space. Chunks with similar semantic meaning are placed close to each other in this multidimensional space.'
+    },
+    index: {
+      title: '6. Build Semantic Index',
+      subtitle: 'Fast approximate nearest neighbor (ANN) index',
+      color: '#fbbf24',
+      description: 'Constructs an optimized vector search index (HNSW, IVF, or Flat) that allows querying millions of vectors in under 15 milliseconds.'
+    },
+    kb: {
+      title: '7. Knowledge Base (Vector Database)',
+      subtitle: 'Persistent storage for chunks + embeddings + metadata',
+      color: '#06b6d4',
+      description: 'Systems like ChromaDB, Pinecone, FAISS, Milvus, and Azure AI Search store two essential items: (1) Vector Embeddings for similarity math, and (2) Raw text chunks + metadata for prompt injection.'
+    },
+    user_query: {
+      title: '8. User Query Submission',
+      subtitle: 'Natural language question from end user',
+      color: '#22c55e',
+      description: 'The user asks a question in plain English (e.g. "What is our refund claim SLA for Enterprise tier?"). At this point, the LLM has not seen the prompt yet.'
+    },
+    embed_query: {
+      title: '9. Query Embedding Generation',
+      subtitle: 'Vectorizing the user question',
+      color: '#fbbf24',
+      description: 'The exact same embedding model used during ingestion vectorizes the user question into a 1536-dimensional query vector.'
+    },
+    semantic_search: {
+      title: '10. Semantic Vector Search',
+      subtitle: 'Cosine similarity comparison against Knowledge Base',
+      color: '#ec4899',
+      description: 'The vector database compares the query vector against all indexed chunk vectors using cosine similarity or dot product math in milliseconds.'
+    },
+    top_k: {
+      title: '11. Ranked Top-K Results',
+      subtitle: 'Extracting only the 2–5 most relevant chunk passages',
+      color: '#38bdf8',
+      description: 'The database returns the top-K highest scoring chunks (e.g. Top 3 results). Irrelevant noise from the rest of the 500-page document is completely filtered out.'
+    },
+    llm: {
+      title: '12. Large Language Model (LLM) Grounding',
+      subtitle: 'Injecting retrieved context + query into prompt',
+      color: '#c084fc',
+      description: 'The LLM (GPT-4o, Claude 3.5, Gemini 1.5) receives the user query alongside the retrieved top-K context chunks. It synthesizes a grounded answer with zero hallucination.'
+    },
+    answer: {
+      title: '13. Verified Grounded Answer',
+      subtitle: 'Accurate response returned to user with citations',
+      color: '#10b981',
+      description: 'The user receives a precise, verified answer backed directly by the source document chunks with page/section citations.'
+    }
+  };
+
+  const activeNodeData = archNodes[selectedArchNode] || archNodes.overview;
 
   const presets = {
     sla: `# Enterprise SLA & Billing Policy
@@ -7475,10 +7677,11 @@ All workstations must maintain active disk encryption (FileVault or BitLocker) a
         {/* Tab Navigation */}
         <div style={{ display: 'flex', gap: '0.4rem', padding: '1.25rem 1.5rem 0', flexWrap: 'wrap' }}>
           {[
-            { label: 'Live Chunking & Overlap Simulator', color: '#7c3aed' },
-            { label: '4-Stage Ingestion Pipeline', color: '#38bdf8' },
-            { label: 'Chunking Strategies Compared', color: '#f59e0b' },
-            { label: 'Metadata & Hybrid Pre-Filtering', color: '#10b981' }
+            { label: 'End-to-End Architecture Illustration', color: '#7c3aed' },
+            { label: 'Live Chunking & Overlap Simulator', color: '#38bdf8' },
+            { label: '4-Stage Ingestion Pipeline', color: '#f59e0b' },
+            { label: 'Chunking Strategies Compared', color: '#10b981' },
+            { label: 'Metadata & Hybrid Pre-Filtering', color: '#ec4899' }
           ].map((tab, i) => (
             <button
               key={i}
@@ -7500,8 +7703,440 @@ All workstations must maintain active disk encryption (FileVault or BitLocker) a
           ))}
         </div>
 
-        {/* ═════════ TAB 0: LIVE CHUNKING SIMULATOR ═════════ */}
+        {/* ═════════ TAB 0: END-TO-END ARCHITECTURE ILLUSTRATION ═════════ */}
         {activeTab === 0 && (
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h4 style={{ color: '#f8fafc', margin: '0 0 0.25rem', fontSize: '1.05rem', fontWeight: 800 }}>
+                  End-to-End Knowledge Base Ingestion &amp; RAG Architecture
+                </h4>
+                <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: 0 }}>
+                  The blueprint below illustrates the two synchronized tracks: Document Ingestion (Offline) &amp; Semantic Query Retrieval (Online).
+                </p>
+              </div>
+              <button
+                onClick={runSimulation}
+                disabled={isSimulating}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.45rem 1rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: isSimulating ? '#4c1d95' : 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: isSimulating ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.35)'
+                }}
+              >
+                {isSimulating ? (
+                  <>
+                    <IconSpinner size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span>Simulating Pipeline Flow...</span>
+                  </>
+                ) : (
+                  <>
+                    <IconPlay size={12} />
+                    <span>Simulate Pipeline Flow</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* ─── LITERAL ARCHITECTURE ILLUSTRATION IMAGE ─── */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', padding: '1rem', marginBottom: '1.5rem', border: '1.5px solid #334155', boxShadow: '0 8px 30px rgba(0,0,0,0.5)', textAlign: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', padding: '0 0.5rem' }}>
+                <span style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <IconImageDoc size={18} color="#7c3aed" /> Knowledge Base &amp; RAG Architecture Blueprint
+                </span>
+                <span style={{ background: '#7c3aed15', color: '#7c3aed', padding: '0.15rem 0.55rem', borderRadius: '6px', fontSize: '0.68rem', fontWeight: 700 }}>
+                  Complete Ingestion &amp; Query Pipeline
+                </span>
+              </div>
+              <img 
+                src="/rag-knowledge-base-architecture.png" 
+                alt="End-to-End Knowledge Base Ingestion and RAG Architecture" 
+                style={{ width: '100%', maxHeight: '460px', objectFit: 'contain', borderRadius: '8px', cursor: 'zoom-in', display: 'block', margin: '0 auto' }}
+                onClick={() => typeof window !== 'undefined' && window.open('/rag-knowledge-base-architecture.png', '_blank')}
+              />
+              <div style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '0.6rem' }}>
+                <em>Click the illustration to view in full resolution</em>
+              </div>
+            </div>
+
+            {/* Interactive Architecture Flow Explorer */}
+            <div style={{ marginBottom: '0.75rem', color: '#cbd5e1', fontSize: '0.82rem', fontWeight: 700 }}>
+              Interactive Component Breakdown (Click any block to inspect):
+            </div>
+
+            {/* Architecture Canvas (Matching User Reference Diagram) */}
+            <div style={{ background: '#090d16', border: '1.5px solid #1e293b', borderRadius: '16px', padding: '1.5rem', overflowX: 'auto', marginBottom: '1.25rem' }}>
+              <div style={{ minWidth: '940px', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+
+                {/* ─── TRACK 1: OFFLINE DOCUMENT INGESTION & INDEXING ─── */}
+                <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '1rem 1.25rem', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: '-10px', left: '16px', background: '#7c3aed', color: '#fff', fontSize: '0.68rem', fontWeight: 800, padding: '0.15rem 0.6rem', borderRadius: '999px', letterSpacing: '0.5px' }}>
+                    TRACK 1: OFFLINE KNOWLEDGE BASE INGESTION (BUILD TIME)
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginTop: '0.5rem' }}>
+                    {/* PDFs */}
+                    <div
+                      onClick={() => setSelectedArchNode('pdf')}
+                      style={{
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        background: selectedArchNode === 'pdf' || activeStepAnim === 'pdf' ? '#ef444425' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'pdf' || activeStepAnim === 'pdf' ? '#ef4444' : '#334155'}`,
+                        borderRadius: '10px',
+                        width: '90px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'pdf' ? 'scale(1.06)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
+                        <IconFileText size={28} color="#f87171" />
+                      </div>
+                      <div style={{ color: '#f87171', fontSize: '0.72rem', fontWeight: 800 }}>PDFs / Docs</div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 800 }}>➔</div>
+
+                    {/* Extract Data */}
+                    <div
+                      onClick={() => setSelectedArchNode('extract')}
+                      style={{
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        background: selectedArchNode === 'extract' || activeStepAnim === 'extract' ? '#38bdf825' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'extract' || activeStepAnim === 'extract' ? '#38bdf8' : '#334155'}`,
+                        borderRadius: '10px',
+                        width: '100px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'extract' ? 'scale(1.06)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
+                        <IconExtract size={28} color="#38bdf8" />
+                      </div>
+                      <div style={{ color: '#38bdf8', fontSize: '0.72rem', fontWeight: 800 }}>Extract Data</div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 800 }}>➔</div>
+
+                    {/* Split into Chunks */}
+                    <div
+                      onClick={() => setSelectedArchNode('chunks')}
+                      style={{
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.35rem',
+                        padding: '0.65rem 0.85rem',
+                        background: selectedArchNode === 'chunks' || activeStepAnim === 'chunks' ? '#ec489920' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'chunks' || activeStepAnim === 'chunks' ? '#ec4899' : '#334155'}`,
+                        borderRadius: '10px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'chunks' ? 'scale(1.05)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', color: '#f472b6', fontSize: '0.7rem', fontWeight: 800, textAlign: 'center' }}>
+                        <IconScissors size={14} color="#f472b6" />
+                        <span>Chunks of text</span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem' }}>
+                        {['Chunk 1', 'Chunk 2', 'Chunk 3', 'Chunk 4'].map((c, idx) => (
+                          <div key={idx} style={{ background: '#f472b620', border: '1px solid #f472b6', color: '#f472b6', padding: '0.2rem 0.45rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, textAlign: 'center' }}>
+                            {c}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 800 }}>➔</div>
+
+                    {/* Embedding API */}
+                    <div
+                      onClick={() => setSelectedArchNode('embed_api_ingest')}
+                      style={{
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        background: selectedArchNode === 'embed_api_ingest' || activeStepAnim === 'embed_api_ingest' ? '#818cf825' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'embed_api_ingest' || activeStepAnim === 'embed_api_ingest' ? '#818cf8' : '#334155'}`,
+                        borderRadius: '10px',
+                        width: '105px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'embed_api_ingest' ? 'scale(1.06)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
+                        <IconCpuApi size={28} color="#a78bfa" />
+                      </div>
+                      <div style={{ color: '#a78bfa', fontSize: '0.72rem', fontWeight: 800 }}>Embedding API</div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 800 }}>➔</div>
+
+                    {/* Vectors */}
+                    <div
+                      onClick={() => setSelectedArchNode('vectors')}
+                      style={{
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.35rem',
+                        padding: '0.65rem 0.85rem',
+                        background: selectedArchNode === 'vectors' || activeStepAnim === 'vectors' ? '#2dd4bf20' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'vectors' || activeStepAnim === 'vectors' ? '#2dd4bf' : '#334155'}`,
+                        borderRadius: '10px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'vectors' ? 'scale(1.05)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', color: '#2dd4bf', fontSize: '0.7rem', fontWeight: 800, textAlign: 'center' }}>
+                        <IconVectorGrid size={14} color="#2dd4bf" />
+                        <span>Vector Embeddings</span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem' }}>
+                        {['Vector 1', 'Vector 2', 'Vector 3', 'Vector 4'].map((v, idx) => (
+                          <div key={idx} style={{ background: '#2dd4bf20', border: '1px solid #2dd4bf', color: '#2dd4bf', padding: '0.2rem 0.45rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700, textAlign: 'center', fontFamily: 'monospace' }}>
+                            [0.12, ...]
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 800 }}>➔</div>
+
+                    {/* Build Semantic Index */}
+                    <div
+                      onClick={() => setSelectedArchNode('index')}
+                      style={{
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        background: selectedArchNode === 'index' || activeStepAnim === 'index' ? '#fbbf2425' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'index' || activeStepAnim === 'index' ? '#fbbf24' : '#334155'}`,
+                        borderRadius: '10px',
+                        width: '110px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'index' ? 'scale(1.06)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
+                        <IconIndexZap size={28} color="#fbbf24" />
+                      </div>
+                      <div style={{ color: '#fbbf24', fontSize: '0.72rem', fontWeight: 800 }}>Build Semantic Index</div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 800 }}>➔</div>
+
+                    {/* Knowledge Base */}
+                    <div
+                      onClick={() => setSelectedArchNode('kb')}
+                      style={{
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        background: selectedArchNode === 'kb' || activeStepAnim === 'kb' ? '#06b6d425' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'kb' || activeStepAnim === 'kb' ? '#06b6d4' : '#334155'}`,
+                        borderRadius: '10px',
+                        width: '120px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'kb' ? 'scale(1.06)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
+                        <IconDatabaseBox size={28} color="#38bdf8" />
+                      </div>
+                      <div style={{ color: '#38bdf8', fontSize: '0.74rem', fontWeight: 800 }}>Knowledge Base</div>
+                      <div style={{ color: '#64748b', fontSize: '0.62rem' }}>Chroma / Pinecone</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ─── TRACK 2: ONLINE USER QUERY & RETRIEVAL (RUNTIME) ─── */}
+                <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '1rem 1.25rem', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: '-10px', left: '16px', background: '#10b981', color: '#0f172a', fontSize: '0.68rem', fontWeight: 800, padding: '0.15rem 0.6rem', borderRadius: '999px', letterSpacing: '0.5px' }}>
+                    TRACK 2: ONLINE QUERY, RETRIEVAL &amp; LLM GENERATION (RUN TIME)
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginTop: '0.5rem' }}>
+                    {/* User */}
+                    <div
+                      onClick={() => setSelectedArchNode('user_query')}
+                      style={{
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        background: selectedArchNode === 'user_query' || activeStepAnim === 'user_query' ? '#22c55e25' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'user_query' || activeStepAnim === 'user_query' ? '#22c55e' : '#334155'}`,
+                        borderRadius: '10px',
+                        width: '90px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'user_query' ? 'scale(1.06)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
+                        <IconUserChat size={28} color="#4ade80" />
+                      </div>
+                      <div style={{ color: '#4ade80', fontSize: '0.72rem', fontWeight: 800 }}>User Query</div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 800 }}>➔</div>
+
+                    {/* Embedding API Query */}
+                    <div
+                      onClick={() => setSelectedArchNode('embed_query')}
+                      style={{
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        background: selectedArchNode === 'embed_query' || activeStepAnim === 'embed_query' ? '#fbbf2425' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'embed_query' || activeStepAnim === 'embed_query' ? '#fbbf24' : '#334155'}`,
+                        borderRadius: '10px',
+                        width: '105px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'embed_query' ? 'scale(1.06)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
+                        <IconVectorGrid size={28} color="#fbbf24" />
+                      </div>
+                      <div style={{ color: '#fbbf24', fontSize: '0.72rem', fontWeight: 800 }}>Query Vector</div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 800 }}>➔</div>
+
+                    {/* Semantic Search */}
+                    <div
+                      onClick={() => setSelectedArchNode('semantic_search')}
+                      style={{
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        background: selectedArchNode === 'semantic_search' || activeStepAnim === 'semantic_search' ? '#ec489925' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'semantic_search' || activeStepAnim === 'semantic_search' ? '#ec4899' : '#334155'}`,
+                        borderRadius: '10px',
+                        width: '115px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'semantic_search' ? 'scale(1.06)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
+                        <IconSearchVec size={28} color="#f472b6" />
+                      </div>
+                      <div style={{ color: '#f472b6', fontSize: '0.72rem', fontWeight: 800 }}>Semantic Search</div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 800 }}>➔</div>
+
+                    {/* Ranked Results (Top K) */}
+                    <div
+                      onClick={() => setSelectedArchNode('top_k')}
+                      style={{
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.35rem',
+                        padding: '0.65rem 0.85rem',
+                        background: selectedArchNode === 'top_k' || activeStepAnim === 'top_k' ? '#38bdf820' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'top_k' || activeStepAnim === 'top_k' ? '#38bdf8' : '#334155'}`,
+                        borderRadius: '10px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'top_k' ? 'scale(1.05)' : 'none'
+                      }}
+                    >
+                      <div style={{ color: '#38bdf8', fontSize: '0.7rem', fontWeight: 800, textAlign: 'center' }}>Ranked Top-K</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <div style={{ background: '#34d39925', color: '#34d399', padding: '0.15rem 0.4rem', borderRadius: '4px', fontSize: '0.62rem', fontWeight: 700 }}>
+                          #1 Match: SLA 99.95% (94%)
+                        </div>
+                        <div style={{ background: '#38bdf825', color: '#38bdf8', padding: '0.15rem 0.4rem', borderRadius: '4px', fontSize: '0.62rem', fontWeight: 700 }}>
+                          #2 Match: Refund Claim (89%)
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 800 }}>➔</div>
+
+                    {/* LLM */}
+                    <div
+                      onClick={() => setSelectedArchNode('llm')}
+                      style={{
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        background: selectedArchNode === 'llm' || activeStepAnim === 'llm' ? '#c084fc25' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'llm' || activeStepAnim === 'llm' ? '#c084fc' : '#334155'}`,
+                        borderRadius: '10px',
+                        width: '120px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'llm' ? 'scale(1.06)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
+                        <IconBrainCog size={28} color="#c084fc" />
+                      </div>
+                      <div style={{ color: '#c084fc', fontSize: '0.72rem', fontWeight: 800 }}>LLM Reasoning</div>
+                      <div style={{ color: '#64748b', fontSize: '0.62rem' }}>Context Grounding</div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '1.1rem', fontWeight: 800 }}>➔</div>
+
+                    {/* Verified Answer */}
+                    <div
+                      onClick={() => setSelectedArchNode('answer')}
+                      style={{
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        background: selectedArchNode === 'answer' || activeStepAnim === 'answer' ? '#10b98125' : '#1e293b',
+                        border: `1.5px solid ${selectedArchNode === 'answer' || activeStepAnim === 'answer' ? '#10b981' : '#334155'}`,
+                        borderRadius: '10px',
+                        width: '115px',
+                        transition: 'all 0.2s',
+                        transform: activeStepAnim === 'answer' ? 'scale(1.06)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.35rem' }}>
+                        <IconShieldCheck size={28} color="#34d399" />
+                      </div>
+                      <div style={{ color: '#34d399', fontSize: '0.72rem', fontWeight: 800 }}>Accurate Answer</div>
+                      <div style={{ color: '#64748b', fontSize: '0.62rem' }}>With Citations</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Selected Node Details Inspector Box */}
+            <div style={{ background: '#1e293b', border: `1.5px solid ${activeNodeData.color}`, borderRadius: '12px', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <h4 style={{ color: activeNodeData.color, margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
+                  {activeNodeData.title}
+                </h4>
+                <span style={{ background: `${activeNodeData.color}25`, color: activeNodeData.color, padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 800 }}>
+                  {activeNodeData.subtitle}
+                </span>
+              </div>
+              <p style={{ color: '#cbd5e1', fontSize: '0.84rem', lineHeight: '1.5', margin: 0 }}>
+                {activeNodeData.description}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ═════════ TAB 1: LIVE CHUNKING SIMULATOR ═════════ */}
+        {activeTab === 1 && (
           <div style={{ padding: '1.25rem 1.5rem' }}>
             <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
               Experiment with Chunk Size and Overlap in real time to observe how documents are sliced without cutting thoughts in half:
@@ -7657,8 +8292,8 @@ All workstations must maintain active disk encryption (FileVault or BitLocker) a
           </div>
         )}
 
-        {/* ═════════ TAB 1: 4-STAGE INGESTION PIPELINE ═════════ */}
-        {activeTab === 1 && (
+        {/* ═════════ TAB 2: 4-STAGE INGESTION PIPELINE ═════════ */}
+        {activeTab === 2 && (
           <div style={{ padding: '1.25rem 1.5rem' }}>
             <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
               Click through the 5 sequential stages of the Knowledge Base ETL pipeline:
@@ -7719,8 +8354,8 @@ All workstations must maintain active disk encryption (FileVault or BitLocker) a
           </div>
         )}
 
-        {/* ═════════ TAB 2: CHUNKING STRATEGIES COMPARED ═════════ */}
-        {activeTab === 2 && (
+        {/* ═════════ TAB 3: CHUNKING STRATEGIES COMPARED ═════════ */}
+        {activeTab === 3 && (
           <div style={{ padding: '1.25rem 1.5rem' }}>
             <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
               Compare the 4 primary text chunking strategies used across enterprise RAG deployments:
@@ -7784,8 +8419,8 @@ All workstations must maintain active disk encryption (FileVault or BitLocker) a
           </div>
         )}
 
-        {/* ═════════ TAB 3: METADATA & PRE-FILTERING ═════════ */}
-        {activeTab === 3 && (
+        {/* ═════════ TAB 4: METADATA & PRE-FILTERING ═════════ */}
+        {activeTab === 4 && (
           <div style={{ padding: '1.25rem 1.5rem' }}>
             <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '0 0 1rem' }}>
               Simulate how attaching metadata (department, publication year, file path) enables instant SQL pre-filtering before running vector search:
@@ -8435,6 +9070,31 @@ export default function AILessonArticlePage() {
           <h1 className={styles.articleTitle}>{lesson.title}</h1>
           <p className={styles.articleSubtitle}>{lesson.subtitle}</p>
         </div>
+
+        {/* OPTIONAL HERO ILLUSTRATION IMAGE */}
+        {lesson.illustrationImage && (
+          <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', marginBottom: '2rem', border: '1.5px solid #334155', boxShadow: '0 10px 35px rgba(0,0,0,0.5)', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', padding: '0 0.5rem' }}>
+              <span style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <IconImageDoc size={20} color="#7c3aed" /> {lesson.illustrationImage.title || 'Architecture Blueprint'}
+              </span>
+              <span style={{ background: '#7c3aed15', color: '#7c3aed', padding: '0.2rem 0.65rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700 }}>
+                {lesson.illustrationImage.badge || 'System Flow Diagram'}
+              </span>
+            </div>
+            <img 
+              src={lesson.illustrationImage.src} 
+              alt={lesson.illustrationImage.title || 'Lesson Architecture Diagram'} 
+              style={{ width: '100%', maxHeight: '480px', objectFit: 'contain', borderRadius: '8px', cursor: 'zoom-in', display: 'block', margin: '0 auto' }}
+              onClick={() => typeof window !== 'undefined' && window.open(lesson.illustrationImage.src, '_blank')}
+            />
+            {lesson.illustrationImage.caption && (
+              <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.6rem' }}>
+                <em>{lesson.illustrationImage.caption}</em>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* MAIN TEXT SECTIONS */}
         {lesson.sections &&

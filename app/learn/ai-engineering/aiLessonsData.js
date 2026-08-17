@@ -4574,6 +4574,13 @@ print(f"Alice Returning: Favorite Cuisine = {alice_profile['favorite_cuisine']}"
     badgeText: 'CORE RAG ARCHITECTURE',
     badgeColor: '#7c3aed',
 
+    illustrationImage: {
+      src: '/rag-knowledge-base-architecture.png',
+      title: 'End-to-End RAG Knowledge Base Architecture Blueprint',
+      badge: 'Offline Ingestion + Online Retrieval',
+      caption: 'Full architectural flow: (1) Offline document extraction, recursive chunking, embedding generation & vector storage, (2) Online user query embedding, semantic search comparison, and LLM context synthesis. Click image to expand.'
+    },
+
     sections: [
       {
         heading: 'The Foundation of RAG: What is a Custom Knowledge Base?',
@@ -4672,7 +4679,7 @@ class CustomKnowledgeBase:
             }
             self.knowledge_store.append(chunk_record)
             
-        print(f"✅ Ingested '{doc_id}': Created {len(raw_chunks)} searchable chunks.")
+        print(f"[SUCCESS] Ingested '{doc_id}': Created {len(raw_chunks)} searchable chunks.")
 
 # Example Ingestion Run
 kb = CustomKnowledgeBase(chunk_size=300, chunk_overlap=60)
