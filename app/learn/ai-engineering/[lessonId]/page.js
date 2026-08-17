@@ -8504,7 +8504,6 @@ const VectorEmbeddingsDiagram = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [queryInput, setQueryInput] = useState('');
   const [activeQueryCoord, setActiveQueryCoord] = useState({ x: 0.52, y: -0.10, label: 'rotary hammer drill' });
   const [showImageComparison, setShowImageComparison] = useState(false);
   const [angleDeg, setAngleDeg] = useState(32);
@@ -8623,22 +8622,6 @@ const VectorEmbeddingsDiagram = () => {
 
   const top3Matches = rankedNeighbors.slice(0, 3);
 
-  // Handle custom query submit
-  const handleCustomQuery = (e) => {
-    e.preventDefault();
-    if (!queryInput.trim()) return;
-    
-    // Hash query string into bounded 2D point
-    let hash = 0;
-    for (let i = 0; i < queryInput.length; i++) {
-      hash = queryInput.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const pseudoX = (((Math.abs(hash) % 100) / 100) * 1.4) - 0.7;
-    const pseudoY = (((Math.abs(hash >> 3) % 100) / 100) * 1.6) - 0.8;
-
-    setActiveQueryCoord({ x: pseudoX, y: pseudoY, label: queryInput });
-  };
-
   // Math for Tab 1: Cosine Angle Slider
   const angleRad = (angleDeg * Math.PI) / 180;
   const cosValue = Math.cos(angleRad).toFixed(3);
@@ -8726,8 +8709,8 @@ const VectorEmbeddingsDiagram = () => {
             )}
 
             {/* Interactive Query Dropper Toolbar */}
-            <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '1rem', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+            <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ color: '#38bdf8', fontSize: '0.76rem', fontWeight: 800 }}>Drop Query Vector:</span>
                 
                 {queryPresets.map((qp, idx) => (
@@ -8749,40 +8732,6 @@ const VectorEmbeddingsDiagram = () => {
                   </button>
                 ))}
               </div>
-
-              {/* Custom Input */}
-              <form onSubmit={handleCustomQuery} style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  placeholder="Type any custom query (e.g., 'submersible water pump', 'halogen reading lamp')..."
-                  value={queryInput}
-                  onChange={(e) => setQueryInput(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '0.45rem 0.85rem',
-                    borderRadius: '8px',
-                    border: '1px solid #334155',
-                    background: '#090d16',
-                    color: '#f8fafc',
-                    fontSize: '0.78rem'
-                  }}
-                />
-                <button
-                  type="submit"
-                  style={{
-                    padding: '0.45rem 1rem',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: '#06b6d4',
-                    color: '#090d16',
-                    fontWeight: 800,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Embed &amp; Search
-                </button>
-              </form>
             </div>
 
             {/* Category Cluster Filters */}
