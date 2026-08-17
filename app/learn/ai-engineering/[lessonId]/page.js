@@ -8510,14 +8510,14 @@ const VectorEmbeddingsDiagram = () => {
 
   // Exact 2D PCA Coordinates matching User Reference Scatter Plot
   const embeddingPoints = [
-    // 🟡 Kitchen & Appliances
+    // [Cluster 1] Kitchen & Appliances (Yellow)
     { id: 'lg', label: 'lg', category: 'appliances', x: -0.13, y: 0.81, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', labelColor: '#a16207', labelPos: 'right', desc: 'Global home electronics & smart appliance brand' },
     { id: 'oven', label: 'oven', category: 'appliances', x: -0.20, y: 0.70, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', labelColor: '#a16207', labelPos: 'left', desc: 'Thermal culinary baking & heating chamber' },
     { id: 'refrigerator', label: 'refrigerator', category: 'appliances', x: -0.34, y: 0.63, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', labelColor: '#a16207', labelPos: 'left', desc: 'Cold food storage and preservation unit' },
     { id: 'microwave', label: 'microwave', category: 'appliances', x: -0.05, y: 0.68, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', labelColor: '#a16207', labelPos: 'right', desc: 'Electromagnetic high-frequency food reheating unit' },
     { id: 'ge', label: 'ge', category: 'appliances', x: 0.03, y: 0.58, color: '#eab308', fill: '#fef08a', stroke: '#ca8a04', labelColor: '#a16207', labelPos: 'right', desc: 'General Electric consumer appliances manufacturer' },
 
-    // 🩵 Bathroom & Plumbing
+    // [Cluster 2] Bathroom & Plumbing (Cyan)
     { id: 'kitchen', label: 'kitchen', category: 'bathroom', x: -0.46, y: 0.23, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'right', desc: 'Food preparation and washing workstation' },
     { id: 'vanity', label: 'vanity', category: 'bathroom', x: -0.58, y: 0.15, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'left', desc: 'Bathroom sink cabinet and grooming mirror fixture' },
     { id: 'sink', label: 'sink', category: 'bathroom', x: -0.59, y: 0.08, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'left', desc: 'Water wash basin with drain and faucet fixtures' },
@@ -8527,12 +8527,12 @@ const VectorEmbeddingsDiagram = () => {
     { id: 'faucet', label: 'faucet', category: 'bathroom', x: -0.44, y: -0.14, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'left', desc: 'Mechanical valve tap controlling liquid flow' },
     { id: 'table', label: 'table', category: 'bathroom', x: -0.27, y: 0.13, color: '#06b6d4', fill: '#67e8f9', stroke: '#0891b2', labelColor: '#0284c7', labelPos: 'right', desc: 'Flat elevated furniture surface' },
 
-    // 🟠 Paint & Finishes
+    // [Cluster 3] Paint & Finishes (Orange)
     { id: 'finish', label: 'finish', category: 'paint', x: -0.46, y: -0.40, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', labelColor: '#c2410c', labelPos: 'left', desc: 'Protective topcoat surface texture and sheen' },
     { id: 'color', label: 'color', category: 'paint', x: -0.34, y: -0.51, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', labelColor: '#c2410c', labelPos: 'left', desc: 'Visual chromatic pigment and tint' },
     { id: 'paint', label: 'paint', category: 'paint', x: -0.21, y: -0.56, color: '#ea580c', fill: '#fdba74', stroke: '#c2410c', labelColor: '#c2410c', labelPos: 'right', desc: 'Liquid pigmented wall coating and primer' },
 
-    // 🔴 Power Tools & Hardware
+    // [Cluster 4] Power Tools & Hardware (Maroon)
     { id: 'tool', label: 'tool', category: 'tools', x: 0.43, y: -0.06, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'left', desc: 'Mechanical hardware and assembly implement' },
     { id: 'battery', label: 'battery', category: 'tools', x: 0.48, y: 0.22, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'left', desc: 'Rechargeable cordless power cell pack' },
     { id: 'charger', label: 'charger', category: 'tools', x: 0.53, y: 0.28, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'right', desc: 'Electrical charging station for power tools' },
@@ -8541,13 +8541,13 @@ const VectorEmbeddingsDiagram = () => {
     { id: 'drill', label: 'drill', category: 'tools', x: 0.55, y: -0.16, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'right', desc: 'High-torque motorized rotary fastener and hole maker' },
     { id: 'dewalt', label: 'dewalt', category: 'tools', x: 0.65, y: 0.06, color: '#881337', fill: '#991b1b', stroke: '#4c0519', labelColor: '#881337', labelPos: 'right', desc: 'Professional heavy-duty construction tool brand' },
 
-    // 🔵 Lighting & Electricity
+    // [Cluster 5] Lighting & Electricity (Blue)
     { id: 'fan', label: 'fan', category: 'lighting', x: -0.02, y: 0.28, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', labelColor: '#1d4ed8', labelPos: 'left', desc: 'Motorized blade air cooling and circulation fixture' },
     { id: 'light', label: 'light', category: 'lighting', x: 0.05, y: 0.19, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', labelColor: '#1d4ed8', labelPos: 'bottom', desc: 'Electromagnetic illumination and luminance source' },
     { id: 'led', label: 'led', category: 'lighting', x: 0.17, y: 0.30, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', labelColor: '#1d4ed8', labelPos: 'top', desc: 'Solid-state semiconductor energy-efficient lighting' },
     { id: 'bulb', label: 'bulb', category: 'lighting', x: 0.28, y: 0.44, color: '#2563eb', fill: '#60a5fa', stroke: '#1d4ed8', labelColor: '#1d4ed8', labelPos: 'right', desc: 'Glass incandescent or LED light fitting' },
 
-    // 🟢 Garden & Irrigation
+    // [Cluster 6] Garden & Irrigation (Green)
     { id: 'shower', label: 'shower', category: 'garden', x: -0.33, y: -0.16, color: '#16a34a', fill: '#86efac', stroke: '#15803d', labelColor: '#15803d', labelPos: 'left', desc: 'Overhead spray water delivery stall' },
     { id: 'valve', label: 'valve', category: 'garden', x: -0.04, y: -0.25, color: '#16a34a', fill: '#86efac', stroke: '#15803d', labelColor: '#15803d', labelPos: 'left', desc: 'Plumbing and pipe fluid regulation shutoff' },
     { id: 'kit', label: 'kit', category: 'garden', x: 0.09, y: -0.10, color: '#16a34a', fill: '#86efac', stroke: '#15803d', labelColor: '#15803d', labelPos: 'right', desc: 'Assembly package and irrigation connector kit' },
@@ -8555,7 +8555,7 @@ const VectorEmbeddingsDiagram = () => {
     { id: 'hose', label: 'hose', category: 'garden', x: 0.34, y: -0.49, color: '#16a34a', fill: '#86efac', stroke: '#15803d', labelColor: '#15803d', labelPos: 'right', desc: 'Flexible pressurized water conduit' },
     { id: 'sprinkler', label: 'sprinkler', category: 'garden', x: 0.56, y: -0.51, color: '#16a34a', fill: '#86efac', stroke: '#15803d', labelColor: '#15803d', labelPos: 'right', desc: 'Automated 360-degree lawn spray irrigation head' },
 
-    // 🌌 Ground Materials & Structures
+    // [Cluster 7] Ground Materials & Structures (Navy/Slate)
     { id: 'deck', label: 'deck', category: 'ground', x: 0.07, y: -0.40, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', labelColor: '#0f172a', labelPos: 'right', desc: 'Outdoor timber or composite structural patio floor' },
     { id: 'concrete', label: 'concrete', category: 'ground', x: -0.03, y: -0.73, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', labelColor: '#0f172a', labelPos: 'right', desc: 'Heavy cement and aggregate architectural slab' },
     { id: 'grass', label: 'grass', category: 'ground', x: 0.25, y: -0.74, color: '#0f172a', fill: '#1e1b4b', stroke: '#020617', labelColor: '#0f172a', labelPos: 'right', desc: 'Natural green lawn turf vegetation cover' }
@@ -8573,14 +8573,14 @@ const VectorEmbeddingsDiagram = () => {
     { key: 'ground', label: 'Ground & Structures', color: '#0f172a' }
   ];
 
-  // Preset Query Positions for Semantic Search Simulation
+  // Preset Query Positions for Semantic Search Simulation (Color-coded indicators, no emojis)
   const queryPresets = [
-    { label: '🔨 "cordless impact drill"', x: 0.54, y: -0.10, queryName: 'cordless impact drill' },
-    { label: '❄️ "kitchen food freezer"', x: -0.28, y: 0.65, queryName: 'kitchen food freezer' },
-    { label: '🚿 "porcelain hand wash basin"', x: -0.55, y: 0.11, queryName: 'porcelain hand wash basin' },
-    { label: '💡 "dimmable ceiling light"', x: 0.12, y: 0.24, queryName: 'dimmable ceiling light' },
-    { label: '🎨 "matte wall acrylic paint"', x: -0.30, y: -0.50, queryName: 'matte wall acrylic paint' },
-    { label: '🌿 "automatic lawn watering pipe"', x: 0.38, y: -0.50, queryName: 'automatic lawn watering pipe' }
+    { label: '"cordless impact drill"', color: '#881337', x: 0.54, y: -0.10, queryName: 'cordless impact drill' },
+    { label: '"kitchen food freezer"', color: '#eab308', x: -0.28, y: 0.65, queryName: 'kitchen food freezer' },
+    { label: '"porcelain hand wash basin"', color: '#06b6d4', x: -0.55, y: 0.11, queryName: 'porcelain hand wash basin' },
+    { label: '"dimmable ceiling light"', color: '#2563eb', x: 0.12, y: 0.24, queryName: 'dimmable ceiling light' },
+    { label: '"matte wall acrylic paint"', color: '#ea580c', x: -0.30, y: -0.50, queryName: 'matte wall acrylic paint' },
+    { label: '"automatic lawn watering pipe"', color: '#16a34a', x: 0.38, y: -0.50, queryName: 'automatic lawn watering pipe' }
   ];
 
   // Filtered Points
@@ -8723,7 +8723,7 @@ const VectorEmbeddingsDiagram = () => {
 
             {/* Interactive Query Dropper Toolbar */}
             <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ color: '#38bdf8', fontSize: '0.76rem', fontWeight: 800 }}>Drop Query Vector:</span>
                 
                 {queryPresets.map((qp, idx) => (
@@ -8731,17 +8731,21 @@ const VectorEmbeddingsDiagram = () => {
                     key={idx}
                     onClick={() => setActiveQueryCoord({ x: qp.x, y: qp.y, label: qp.queryName })}
                     style={{
-                      padding: '0.3rem 0.65rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      padding: '0.35rem 0.7rem',
                       borderRadius: '6px',
                       border: `1px solid ${activeQueryCoord.label === qp.queryName ? '#38bdf8' : '#334155'}`,
                       background: activeQueryCoord.label === qp.queryName ? '#38bdf825' : '#1e293b',
-                      color: activeQueryCoord.label === qp.queryName ? '#38bdf8' : '#94a3b8',
-                      fontSize: '0.72rem',
+                      color: activeQueryCoord.label === qp.queryName ? '#38bdf8' : '#cbd5e1',
+                      fontSize: '0.74rem',
                       fontWeight: 700,
                       cursor: 'pointer'
                     }}
                   >
-                    {qp.label}
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: qp.color }} />
+                    <span>{qp.label}</span>
                   </button>
                 ))}
               </div>
