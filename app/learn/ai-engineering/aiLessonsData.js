@@ -4884,6 +4884,232 @@ for rank, (word, score) in enumerate(results, 1):
       correctIndex: 1,
       explanation: 'Spot on! Cosine similarity measures the angle between vectors rather than their absolute length (magnitude). Two articles about "Quantum Physics"—one a 10-word summary and one a 5,000-word treatise—point in the exact same direction in vector space even though the longer document has a much larger vector magnitude.'
     }
+  },
+
+  'ai-5-4': {
+    id: 'ai-5-4',
+    title: 'Vector Databases (Chroma/Pinecone)',
+    subtitle: 'Indexing, storing, and retrieving high-dimensional vectors at lightning speed with specialized Vector DB engines.',
+    duration: '25 min read',
+    level: 'Intermediate',
+    module: 'Module 5: Retrieval-Augmented Generation (RAG)',
+    badgeText: 'CORE VECTOR DB',
+    badgeColor: '#10b981',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Understand why traditional SQL/NoSQL databases fail at multi-dimensional vector similarity search.',
+      'Master Approximate Nearest Neighbor (ANN) indexing structures including HNSW graphs and Inverted File (IVF) indexes.',
+      'Explore the vector database ecosystem: ChromaDB, Pinecone, Qdrant, Weaviate, Milvus, pgvector, and FAISS.',
+      'Build end-to-end Python pipelines with ChromaDB for local zero-config prototyping.',
+      'Implement enterprise cloud vector upserts, indexing, and metadata filtering with Pinecone.',
+      'Apply practical decision frameworks to choose the right vector storage solution for your production architecture.'
+    ],
+
+    sections: [
+      {
+        heading: 'Why Traditional Databases Fail at Vector Search',
+        paragraphs: [
+          'In traditional relational (PostgreSQL, MySQL) and NoSQL (MongoDB, DynamoDB) systems, indexing relies on B-Trees, Hash Tables, or inverted keyword indexes. These indexes excel at scalar lookups: "WHERE user_id = 4592" or "WHERE price BETWEEN 20 AND 50" executed in O(log N) logarithmic time.',
+          'However, vector embeddings are not single numbers—they are dense floating-point arrays with 768 to 3,072 continuous dimensions. In 1,536-dimensional space, the concept of "alphabetical sorting" or "greater than / less than" does not exist. There is no simple 1D order along which a B-tree can split.',
+          'Without specialized vector indexing, finding the most semantically similar chunks requires a brute-force Flat Search (k-Nearest Neighbors / k-NN). The database must compute the cosine distance between your query vector and every single stored document vector in the entire database (an O(N * D) operation).',
+          'At 100,000 documents with 1536D embeddings, a single query requires 153,600,000 floating-point operations. At 10,000,000 documents, query latency explodes to seconds or minutes, rendering real-time conversational AI applications impossible.'
+        ]
+      },
+      {
+        heading: 'How Vector Databases Work: Approximate Nearest Neighbors (ANN)',
+        paragraphs: [
+          'Vector databases solve the latency bottleneck by trading an infinitesimal amount of absolute mathematical precision (e.g., 99.5% accuracy instead of 100.0%) for a 1,000x to 10,000x speedup using Approximate Nearest Neighbor (ANN) indexing.',
+          'The dominant vector indexing algorithms in modern production engines include:',
+          '1. HNSW (Hierarchical Navigable Small World): Organizes vectors into a multi-layered graph hierarchy similar to a subway transit map or skip list. Top layers contain sparse highway connections between distant vector clusters, allowing the search query to jump rapidly across semantic neighborhoods before descending into dense local layers for precision nearest-neighbor refinement.',
+          '2. IVF (Inverted File Index): Clusters the vector space into Voronoi cells using k-Means clustering. When a query arrives, the engine only searches vectors inside the nearest 3–5 cluster centroids (nprobe), skipping 95%+ of the database completely.',
+          '3. Product Quantization (PQ): Compresses high-dimensional 32-bit floating point vectors into compact 8-bit quantized byte codes, enabling billions of vectors to fit directly inside high-speed GPU/CPU memory caches.'
+        ]
+      },
+      {
+        heading: 'The Vector Database Landscape & Brand Comparison',
+        paragraphs: [
+          'Modern AI engineers have access to a rich spectrum of vector database technologies tailored to different infrastructure needs:',
+          'ChromaDB: The undisputed standard for local experimentation, Jupyter notebooks, and lightweight Python apps. It runs embedded in-memory or persists directly to SQLite and Apache Arrow Parquet files on disk with zero external server dependencies.',
+          'Pinecone: The pioneer of fully-managed, serverless cloud vector infrastructure. It provides instant auto-scaling, sub-50ms p95 query latency, multi-region replication, and automated index management with zero DevOps overhead.',
+          'Qdrant: A lightning-fast, Rust-native vector search engine built for high-throughput production. Qdrant stands out for its payload filtering capabilities, allowing complex SQL-style boolean filters to be evaluated simultaneously with vector distance calculations.',
+          'Weaviate: An open-source, AI-first modular vector database featuring built-in vectorizer modules (OpenAI, HuggingFace, Cohere) and GraphQL APIs with support for multi-modal text, image, and audio embeddings.',
+          'Milvus & Zilliz: Distributed, Kubernetes-native vector databases engineered for massive enterprise scale (hundreds of millions to billions of vectors) with separated compute and storage architecture.',
+          'pgvector (PostgreSQL): An open-source extension for PostgreSQL that adds vector storage, HNSW/IVFFlat indexes, and cosine distance operators (<=>) directly into your existing SQL tables, eliminating the need to maintain an extra database.',
+          'FAISS (Meta): Facebook AI Similarity Search—a battle-tested, highly optimized C++ library with Python bindings designed for GPU-accelerated in-memory vector similarity searches across massive datasets.'
+        ]
+      },
+      {
+        heading: 'Hands-on Local Prototyping with ChromaDB',
+        paragraphs: [
+          'ChromaDB is designed from the ground up for developer ergonomics. You can initialize a vector store, ingest documents with automated embedding generation, and execute top-k semantic similarity queries in under 15 lines of Python code:',
+          'Let us inspect a complete working ChromaDB implementation with persistent local storage and metadata pre-filtering:'
+        ],
+        codeBlock: `# Hands-on Vector Storage with ChromaDB
+# pip install chromadb
+
+import chromadb
+from chromadb.utils import embedding_functions
+
+# 1. Initialize persistent disk-backed Chroma client
+client = chromadb.PersistentClient(path="./local_chroma_db")
+
+# 2. Configure embedding function (uses default sentence-transformers or custom API)
+openai_ef = embedding_functions.DefaultEmbeddingFunction()
+
+# 3. Create or load a vector collection
+collection = client.get_or_create_collection(
+    name="company_kb_vectors",
+    embedding_function=openai_ef,
+    metadata={"hnsw:space": "cosine"}  # "cosine", "l2", or "ip" (inner product)
+)
+
+# 4. Ingest knowledge chunks with text, IDs, and rich metadata
+collection.upsert(
+    documents=[
+        "Our standard refund window is 30 days from the purchase date for full credit.",
+        "Enterprise plans include 24/7 dedicated phone support with a 15-minute SLA.",
+        "All customer data is encrypted at rest using AES-256 and in transit with TLS 1.3.",
+        "To reset your API credentials, navigate to Settings > Security > API Keys."
+    ],
+    metadatas=[
+        {"category": "billing", "tier": "all", "version": 2026},
+        {"category": "support", "tier": "enterprise", "version": 2026},
+        {"category": "security", "tier": "all", "version": 2026},
+        {"category": "security", "tier": "all", "version": 2026}
+    ],
+    ids=["doc_refund_01", "doc_sla_02", "doc_sec_03", "doc_api_04"]
+)
+
+print(f"[SUCCESS] Collection populated! Total items: {collection.count()}")
+
+# 5. Execute Semantic Search with Metadata Filter
+query_text = "How do we protect user database records?"
+results = collection.query(
+    query_texts=[query_text],
+    n_results=2,
+    where={"category": "security"}  # Pre-filter: only inspect security documents
+)
+
+print(f"\\nQuery: '{query_text}'")
+for idx, doc in enumerate(results["documents"][0]):
+    doc_id = results["ids"][0][idx]
+    distance = results["distances"][0][idx]
+    meta = results["metadatas"][0][idx]
+    print(f"  Rank #{idx+1} [ID: {doc_id}] (Cosine Distance: {distance:.4f})")
+    print(f"    Text: {doc}")
+    print(f"    Metadata: {meta}")`
+      },
+      {
+        heading: 'Enterprise Managed Cloud with Pinecone',
+        paragraphs: [
+          'For production web services serving millions of active users, serverless cloud vector databases like Pinecone eliminate the headache of managing clusters, index backups, and memory provisioning.',
+          'In Pinecone, you define an index with a specified dimension (e.g. 1536 for text-embedding-3-small) and distance metric. Documents are upserted as vector tuples containing vector embeddings, unique IDs, and metadata payloads:',
+          'Here is the standard production workflow for indexing and querying Pinecone vectors in Python:'
+        ],
+        codeBlock: `# Enterprise Vector Indexing with Pinecone
+# pip install pinecone-client
+
+from pinecone import Pinecone, ServerlessSpec
+
+# 1. Initialize Pinecone client with API key
+pc = Pinecone(api_key="YOUR_PINECONE_API_KEY")
+
+index_name = "enterprise-kb-index"
+
+# 2. Provision serverless index if it doesn't already exist
+existing_indexes = [idx.name for idx in pc.list_indexes()]
+if index_name not in existing_indexes:
+    pc.create_index(
+        name=index_name,
+        dimension=1536,  # Must match embedding model dimension exactly
+        metric="cosine",
+        spec=ServerlessSpec(
+            cloud="aws",
+            region="us-east-1"
+        )
+    )
+    print(f"Index '{index_name}' created on AWS us-east-1.")
+
+# 3. Connect to the target index
+index = pc.Index(index_name)
+
+# 4. Upsert dense vector embeddings with metadata payloads
+# Vectors are tuples: (id, [float_values...], {metadata_dict})
+sample_vectors = [
+    (
+        "policy_sec_01",
+        [0.0142, -0.0512, 0.0891, 0.0314],  # Truncated 1536D vector representation
+        {"department": "Infra", "topic": "encryption", "public": True}
+    ),
+    (
+        "policy_billing_02",
+        [-0.0421, 0.0219, -0.0154, 0.0763],
+        {"department": "Finance", "topic": "invoicing", "public": False}
+    )
+]
+
+# Upsert batch into namespace
+index.upsert(vectors=sample_vectors, namespace="production-kb")
+
+# 5. Query nearest neighbors with high-speed ANN traversal
+query_embedding = [0.0139, -0.0498, 0.0880, 0.0320]
+query_response = index.query(
+    namespace="production-kb",
+    vector=query_embedding,
+    top_k=2,
+    include_metadata=True,
+    filter={"department": {"$eq": "Infra"}}  # High-speed payload filter
+)
+
+print("\\n--- Pinecone Query Results ---")
+for match in query_response.matches:
+    print(f"Match ID: {match.id} | Score: {match.score:.4f}")
+    print(f"Metadata: {match.metadata}")`
+      },
+      {
+        heading: 'Production Architecture: Which Vector DB Should You Choose?',
+        paragraphs: [
+          'Selecting the right vector database depends on your scale, hosting constraints, budget, and existing infrastructure stack:',
+          '1. Rapid Prototyping & MVPs -> ChromaDB: Zero setup cost, runs inside Python process, perfect for hackathons and local development.',
+          '2. Serverless Production Apps -> Pinecone: No infrastructure maintenance, automatic scaling from zero to millions of queries, pay-as-you-go pricing.',
+          '3. Existing PostgreSQL Stack -> pgvector: If your app already relies on Postgres for user accounts and transactional data, pgvector lets you execute unified SQL queries joining relational tables with vector similarity without spinning up a second database.',
+          '4. High-Performance On-Premises or Private Cloud -> Qdrant or Milvus: Open-source, Docker/Kubernetes deployable, strict data sovereignty compliance, and unmatched throughput under sustained heavy workloads.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Airport Baggage Sorting vs. Sifting Every Bag on the Runway',
+      text: 'Imagine an international airport baggage hub processing 100,000 suitcases daily. A brute-force database search is like dumping all 100,000 bags onto the tarmac and manually inspecting each barcode one-by-one until you find flight #402 (Flat Search). A Vector Database with HNSW indexing is like a multi-tiered automated conveyor network: fast overhead conveyor belts immediately route bags to the International Terminal (Layer 2), then to Gate 14 (Layer 1), and directly to Cart 3 (Layer 0). In under 2 seconds, the exact bag is located without ever touching the other 99,990 bags!'
+    },
+
+    diagram: {
+      type: 'vector_databases',
+      title: 'Interactive Vector Database Ecosystem, Architecture & Live Query Explorer'
+    },
+
+    takeaways: [
+      'Traditional B-Tree indexes cannot index multi-dimensional vectors, causing brute-force O(N*D) query lag on large datasets.',
+      'Approximate Nearest Neighbor (ANN) algorithms like HNSW and IVF achieve sub-50ms search latencies over millions of vectors.',
+      'ChromaDB is the premier zero-config choice for local Python development and embedded prototyping.',
+      'Pinecone provides enterprise serverless cloud scaling with zero cluster management.',
+      'pgvector enables relational joins between standard SQL tables and high-dimensional vector embeddings in PostgreSQL.',
+      'Metadata filtering (pre-filtering) prunes irrelevant vector candidates before distance calculations, drastically accelerating query speeds.'
+    ],
+
+    quiz: {
+      question: 'What is the primary advantage of HNSW (Hierarchical Navigable Small World) indexing in vector databases over naive Flat Search?',
+      options: [
+        'HNSW encrypts vectors so they cannot be read by LLMs',
+        'HNSW organizes vectors into a multi-layered graph hierarchy that enables logarithmic O(log N) approximate nearest neighbor traversal instead of linear O(N) brute force search',
+        'HNSW converts text into images before embedding',
+        'HNSW eliminates the need to use embedding models'
+      ],
+      correctIndex: 1,
+      explanation: 'Exactly right! HNSW constructs a multi-layered graph where upper layers feature sparse highway links between clusters and lower layers contain dense neighborhood connections. This allows the search query to rapidly navigate towards the nearest vector cluster in O(log N) time, avoiding scanning every item in the database.'
+    }
   }
 };
 

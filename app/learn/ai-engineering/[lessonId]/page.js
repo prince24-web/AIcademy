@@ -9181,6 +9181,729 @@ const VectorEmbeddingsDiagram = () => {
   );
 };
 
+// ─── VECTOR DATABASES SHOWCASE & LIVE ARCHITECTURE EXPLORER ────────────────
+const VectorDatabasesDiagram = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedDbId, setSelectedDbId] = useState('chroma');
+  const [codeDbId, setCodeDbId] = useState('chroma');
+  const [decisionProfile, setDecisionProfile] = useState('mvp');
+  const [docScale, setDocScale] = useState(500000);
+
+  // Vector Database Directory with Brand Logos & Specs
+  const vectorDatabases = [
+    {
+      id: 'chroma',
+      name: 'ChromaDB',
+      tagline: 'The open-source AI application database',
+      category: 'Embedded / Local',
+      badgeColor: '#ec4899',
+      badgeBg: '#fdf2f8',
+      badgeBorder: '#fbcfe8',
+      type: 'Open Source (Apache 2.0)',
+      hosting: 'In-Memory, Local SQLite/Parquet, or Client/Server',
+      bestFor: 'Rapid prototyping, local LLM development, Jupyter notebooks, desktop AI apps',
+      indexEngine: 'HNSW (Hierarchical Navigable Small World)',
+      latency: '< 15ms (Local disk)',
+      dimensions: 'Up to 4,096 dimensions',
+      distanceMetrics: 'Cosine, L2 (Euclidean), Inner Product (IP)',
+      pros: ['Zero-config setup with pip install chromadb', 'Runs directly inside your Python or JS process', 'Automatic embedding function support (OpenAI, HuggingFace, Cohere)'],
+      cons: ['Not designed for multi-region distributed sharding', 'Requires manual server management for high-concurrency cloud deployments'],
+      logoSvg: (
+        <svg viewBox="0 0 40 40" width="38" height="38" style={{ display: 'block' }}>
+          <rect width="40" height="40" rx="9" fill="#0f172a" />
+          <rect x="7" y="7" width="11" height="11" rx="2.5" fill="#ec4899" />
+          <rect x="22" y="7" width="11" height="11" rx="2.5" fill="#f59e0b" />
+          <rect x="7" y="22" width="11" height="11" rx="2.5" fill="#06b6d4" />
+          <rect x="22" y="22" width="11" height="11" rx="2.5" fill="#8b5cf6" />
+        </svg>
+      )
+    },
+    {
+      id: 'pinecone',
+      name: 'Pinecone',
+      tagline: 'Serverless vector database for production AI',
+      category: 'Serverless Cloud',
+      badgeColor: '#10b981',
+      badgeBg: '#ecfdf5',
+      badgeBorder: '#a7f3d0',
+      type: 'Fully Managed Cloud SaaS',
+      hosting: 'Serverless (AWS, GCP, Azure)',
+      bestFor: 'Production web apps, high-concurrency enterprise RAG, zero-DevOps cloud scale',
+      indexEngine: 'Proprietary graph ANN & Vector index',
+      latency: '< 40ms p95 globally',
+      dimensions: 'Up to 20,000 dimensions',
+      distanceMetrics: 'Cosine, Euclidean, Dot Product',
+      pros: ['Zero server management or cluster sizing', 'Pay only for storage and read units consumed', 'Automated multi-AZ replication, backups, and instant scaling'],
+      cons: ['Closed-source proprietary cloud service', 'Requires outbound internet network connection to Pinecone API'],
+      logoSvg: (
+        <svg viewBox="0 0 40 40" width="38" height="38" style={{ display: 'block' }}>
+          <rect width="40" height="40" rx="9" fill="#064e3b" />
+          <path d="M20 7 L26 14 L22.5 14 L28 21 L24 21 L30 29 L10 29 L16 21 L12 21 L17.5 14 L14 14 Z" fill="#10b981" />
+          <rect x="18" y="29" width="4" height="4" fill="#059669" />
+        </svg>
+      )
+    },
+    {
+      id: 'qdrant',
+      name: 'Qdrant',
+      tagline: 'Ultra-fast vector search engine written in Rust',
+      category: 'High-Performance Engine',
+      badgeColor: '#dc2626',
+      badgeBg: '#fef2f2',
+      badgeBorder: '#fecaca',
+      type: 'Open Source (Apache 2.0) & Cloud',
+      hosting: 'Self-Hosted Docker/K8s or Managed Cloud',
+      bestFor: 'Complex payload filtering, high-throughput search, custom on-prem deployments',
+      indexEngine: 'Custom Rust HNSW with Payload Quantization',
+      latency: '< 10ms (Native Rust)',
+      dimensions: 'Up to 65,535 dimensions',
+      distanceMetrics: 'Cosine, Dot, Euclidean, Manhattan',
+      pros: ['Rich JSON payload filtering evaluated during vector graph traversal', 'Memory-mapped storage enables billions of vectors on cost-effective disks', 'Native Rust speed and safety'],
+      cons: ['Self-hosting requires Kubernetes management for distributed clusters'],
+      logoSvg: (
+        <svg viewBox="0 0 40 40" width="38" height="38" style={{ display: 'block' }}>
+          <rect width="40" height="40" rx="9" fill="#1e1b4b" />
+          <path d="M20 8 L32 15 L32 29 L20 36 L8 29 L8 15 Z" fill="#dc2626" opacity="0.9" />
+          <path d="M20 8 L32 15 L20 22 L8 15 Z" fill="#f87171" />
+          <path d="M20 22 L32 15 L32 29 L20 36 Z" fill="#b91c1c" />
+        </svg>
+      )
+    },
+    {
+      id: 'weaviate',
+      name: 'Weaviate',
+      tagline: 'AI-native open-source modular vector database',
+      category: 'AI-First / Multi-Modal',
+      badgeColor: '#7c3aed',
+      badgeBg: '#f5f3ff',
+      badgeBorder: '#ddd6fe',
+      type: 'Open Source (BSD-3) & Cloud',
+      hosting: 'Docker, Kubernetes, or Weaviate Cloud (WCD)',
+      bestFor: 'Multi-modal search (text, image, audio), GraphQL APIs, built-in vectorization pipelines',
+      indexEngine: 'HNSW, Dynamic Indexing, Inverted Index',
+      latency: '< 20ms',
+      dimensions: 'Unlimited dimensions',
+      distanceMetrics: 'Cosine, Dot, L2-Squared, Hamming, Manhattan',
+      pros: ['Built-in vectorizer modules directly transform raw text or images into vectors', 'Hybrid search combining BM25 keyword matching with dense vector search', 'Flexible GraphQL and REST interfaces'],
+      cons: ['Higher RAM consumption for large HNSW graph topologies'],
+      logoSvg: (
+        <svg viewBox="0 0 40 40" width="38" height="38" style={{ display: 'block' }}>
+          <rect width="40" height="40" rx="9" fill="#090d16" />
+          <circle cx="20" cy="20" r="13" fill="none" stroke="#7c3aed" strokeWidth="2" strokeDasharray="4 3" />
+          <circle cx="14" cy="16" r="3" fill="#a78bfa" />
+          <circle cx="26" cy="16" r="3" fill="#a78bfa" />
+          <circle cx="20" cy="26" r="3" fill="#c084fc" />
+          <line x1="14" y1="16" x2="26" y2="16" stroke="#c084fc" strokeWidth="1.5" />
+          <line x1="14" y1="16" x2="20" y2="26" stroke="#c084fc" strokeWidth="1.5" />
+          <line x1="26" y1="16" x2="20" y2="26" stroke="#c084fc" strokeWidth="1.5" />
+        </svg>
+      )
+    },
+    {
+      id: 'milvus',
+      name: 'Milvus & Zilliz',
+      tagline: 'Distributed vector database built for massive scale',
+      category: 'Distributed Enterprise',
+      badgeColor: '#0284c7',
+      badgeBg: '#f0f9ff',
+      badgeBorder: '#bae6fd',
+      type: 'Open Source (Apache 2.0) & Zilliz Cloud',
+      hosting: 'Kubernetes Cluster (Cloud Native) or Zilliz SaaS',
+      bestFor: 'Massive enterprise datasets (100M to 10B+ vectors), multi-tenant banking & e-commerce',
+      indexEngine: 'HNSW, IVF_FLAT, IVF_SQ8, SCaNN, DiskANN',
+      latency: '< 10ms at billions scale',
+      dimensions: 'Up to 32,768 dimensions',
+      distanceMetrics: 'L2, IP, Cosine, Jaccard, Hamming',
+      pros: ['Separated compute and storage architecture for independent auto-scaling', 'Supports hardware acceleration via GPUs and specialized SIMD instructions', 'Extensive index algorithm portfolio including DiskANN'],
+      cons: ['Significant infrastructure complexity to operate on self-hosted Kubernetes'],
+      logoSvg: (
+        <svg viewBox="0 0 40 40" width="38" height="38" style={{ display: 'block' }}>
+          <rect width="40" height="40" rx="9" fill="#082f49" />
+          <path d="M11 29 L20 9 L29 29 L20 23 Z" fill="#0ea5e9" />
+          <path d="M20 9 L29 29 L24.5 29 L20 18 Z" fill="#38bdf8" />
+        </svg>
+      )
+    },
+    {
+      id: 'pgvector',
+      name: 'pgvector (PostgreSQL)',
+      tagline: 'Vector similarity search inside standard PostgreSQL',
+      category: 'Relational + Vector',
+      badgeColor: '#2563eb',
+      badgeBg: '#eff6ff',
+      badgeBorder: '#bfdbfe',
+      type: 'Open Source PostgreSQL Extension',
+      hosting: 'Any PostgreSQL 13+ (RDS, Supabase, Neon, Self-hosted)',
+      bestFor: 'Apps already using Postgres that want to avoid maintaining a separate vector database',
+      indexEngine: 'HNSW and IVFFlat',
+      latency: '< 25ms (with HNSW index)',
+      dimensions: 'Up to 2,000 dimensions',
+      distanceMetrics: 'Cosine (<=>), L2 (<->), Inner Product (<#>)',
+      pros: ['Join relational customer tables directly with vector similarity in a single SQL query', 'Leverages existing PostgreSQL backups, ACID transactions, and auth security', 'Zero additional database operational overhead'],
+      cons: ['Re-indexing very large datasets (> 10M rows) consumes substantial database IO'],
+      logoSvg: (
+        <svg viewBox="0 0 40 40" width="38" height="38" style={{ display: 'block' }}>
+          <rect width="40" height="40" rx="9" fill="#1e293b" />
+          <circle cx="20" cy="20" r="12" fill="#336791" />
+          <path d="M16 16 C16 12 24 12 24 16 C24 20 20 20 20 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+          <rect x="22" y="22" width="12" height="7" rx="2" fill="#10b981" />
+          <text x="28" y="27.2" fontSize="5.5" fontWeight="900" fill="#ffffff" textAnchor="middle" fontFamily="sans-serif">VEC</text>
+        </svg>
+      )
+    },
+    {
+      id: 'faiss',
+      name: 'FAISS (Meta)',
+      tagline: 'High-speed library for dense vector clustering and similarity',
+      category: 'In-Memory Library',
+      badgeColor: '#0081fb',
+      badgeBg: '#eff6ff',
+      badgeBorder: '#bfdbfe',
+      type: 'Open Source C++ / Python Library (MIT)',
+      hosting: 'Embedded in Python process (CPU / GPU)',
+      bestFor: 'Data science research, offline batch vector clustering, raw algorithmic benchmarks',
+      indexEngine: 'IndexFlatL2, IndexIVFFlat, IndexHNSW, GPU-accelerated IVF',
+      latency: '< 2ms (GPU acceleration)',
+      dimensions: 'Arbitrary dimensions',
+      distanceMetrics: 'L2 (Euclidean), Inner Product (Cosine when normalized)',
+      pros: ['World-class GPU acceleration utilizing CUDA cores for microsecond search', 'Highly flexible index parameter tuning for research optimization', 'Ultra-low overhead without network latency'],
+      cons: ['Not a full database: lacks persistent storage, CRUD mutations, and metadata filters out-of-the-box'],
+      logoSvg: (
+        <svg viewBox="0 0 40 40" width="38" height="38" style={{ display: 'block' }}>
+          <rect width="40" height="40" rx="9" fill="#0f172a" />
+          <path d="M13 20 C13 16 16 15 18 17 C20 19 20 21 22 23 C24 25 27 24 27 20 C27 16 24 15 22 17 C20 19 20 21 18 23 C16 25 13 24 13 20 Z" fill="none" stroke="#0081fb" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      )
+    }
+  ];
+
+  const selectedDb = vectorDatabases.find(d => d.id === selectedDbId) || vectorDatabases[0];
+
+  // Code snippets for Tab 1
+  const codeSnippets = {
+    chroma: `# 1. Install ChromaDB
+# pip install chromadb
+
+import chromadb
+from chromadb.utils import embedding_functions
+
+# Initialize persistent disk client (Zero-config local database)
+client = chromadb.PersistentClient(path="./my_knowledge_base")
+
+# Create or load collection with Cosine similarity space
+collection = client.get_or_create_collection(
+    name="product_manuals",
+    metadata={"hnsw:space": "cosine"}
+)
+
+# Ingest knowledge documents with automated embedding & metadata
+collection.upsert(
+    documents=[
+        "Cordless hammer drill with 18V brushless motor and 2-speed gearbox.",
+        "Precision circular saw with laser guide line and dust extraction port.",
+        "Rechargeable lithium-ion 5.0Ah power tool battery pack with thermal safety."
+    ],
+    metadatas=[
+        {"category": "tools", "voltage": 18, "in_stock": True},
+        {"category": "tools", "voltage": 18, "in_stock": True},
+        {"category": "accessories", "voltage": 18, "in_stock": False}
+    ],
+    ids=["tool_01", "tool_02", "tool_03"]
+)
+
+# Execute Semantic Query with Metadata Pre-Filtering
+results = collection.query(
+    query_texts=["motorized cutting implement for carpentry"],
+    n_results=2,
+    where={"in_stock": True}  # Metadata Pre-Filter
+)
+
+print("Top Semantic Matches:", results["documents"][0])`,
+
+    pinecone: `# 1. Install Pinecone Client
+# pip install pinecone-client
+
+from pinecone import Pinecone, ServerlessSpec
+
+# Initialize cloud client with API credentials
+pc = Pinecone(api_key="pcsk_your_secret_api_key_here")
+
+index_name = "enterprise-rag-vectors"
+
+# Create serverless index on AWS us-east-1 if it does not exist
+if index_name not in [idx.name for idx in pc.list_indexes()]:
+    pc.create_index(
+        name=index_name,
+        dimension=1536,  # OpenAI text-embedding-3-small dimension
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1")
+    )
+
+# Connect to the cloud index
+index = pc.Index(index_name)
+
+# Upsert dense vector tuples: (id, [float_values...], metadata_dict)
+index.upsert(
+    vectors=[
+        (
+            "doc_sla_001",
+            [0.0182, -0.0491, 0.0894, 0.0125],  # 1536D dense vector values
+            {"tier": "enterprise", "department": "legal", "year": 2026}
+        ),
+        (
+            "doc_refund_002",
+            [-0.0315, 0.0621, -0.0142, 0.0487],
+            {"tier": "all", "department": "billing", "year": 2026}
+        )
+    ],
+    namespace="production_kb"
+)
+
+# Execute sub-40ms vector similarity query with metadata filter
+query_vector = [0.0179, -0.0485, 0.0888, 0.0130]
+results = index.query(
+    namespace="production_kb",
+    vector=query_vector,
+    top_k=2,
+    include_metadata=True,
+    filter={"department": {"$eq": "legal"}}
+)
+
+for match in results.matches:
+    print(f"Match: {match.id} (Score: {match.score:.4f}) -> {match.metadata}")`,
+
+    pgvector: `-- 1. Enable pgvector extension in PostgreSQL
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- 2. Create standard relational table with 1536D vector column
+CREATE TABLE document_knowledge (
+    id SERIAL PRIMARY KEY,
+    document_title VARCHAR(255) NOT NULL,
+    chunk_content TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    embedding vector(1536)  -- pgvector column type
+);
+
+-- 3. Create high-speed HNSW index for sub-20ms cosine search
+CREATE INDEX ON document_knowledge 
+USING hnsw (embedding vector_cosine_ops)
+WITH (m = 16, ef_construction = 64);
+
+-- 4. Hybrid Relational + Vector Semantic Search in Pure SQL!
+SELECT 
+    id, 
+    document_title, 
+    chunk_content, 
+    1 - (embedding <=> '[0.0182, -0.0491, 0.0894, ...]') AS cosine_similarity
+FROM document_knowledge
+WHERE category = 'security'  -- Relational SQL filter
+ORDER BY embedding <=> '[0.0182, -0.0491, 0.0894, ...]'  -- Cosine distance operator
+LIMIT 5;`
+  };
+
+  // Decision Tree recommendations for Tab 2
+  const decisionProfiles = [
+    {
+      id: 'mvp',
+      title: 'Local Prototyping & Hackathons',
+      description: 'You are building a rapid POC, local script, or Jupyter notebook and want zero setup friction.',
+      winner: 'ChromaDB',
+      winnerId: 'chroma',
+      reasoning: 'Installs in 5 seconds with pip install chromadb. Runs in-memory or persists to a local SQLite folder with zero servers or cloud credentials to configure.'
+    },
+    {
+      id: 'serverless',
+      title: 'High-Traffic Web App / Next.js SaaS',
+      description: 'You need an auto-scaling, managed vector database for a production web application with zero DevOps maintenance.',
+      winner: 'Pinecone',
+      winnerId: 'pinecone',
+      reasoning: 'Serverless pricing charges only for vectors stored and queries processed. Guaranteed sub-50ms p95 latency with automatic multi-AZ redundancy.'
+    },
+    {
+      id: 'postgres',
+      title: 'Existing PostgreSQL Architecture',
+      description: 'Your application already uses PostgreSQL (Supabase, RDS, Neon) for users, auth, and business data.',
+      winner: 'pgvector (PostgreSQL)',
+      winnerId: 'pgvector',
+      reasoning: 'Avoid data duplication and avoid paying for a 2nd database! Join your user tables directly with vector chunks in a single ACID SQL transaction.'
+    },
+    {
+      id: 'enterprise_onprem',
+      title: 'Enterprise 100M+ Vectors / On-Prem',
+      description: 'Strict data sovereignty requirements, private Kubernetes cloud, and hundreds of millions of vectors.',
+      winner: 'Qdrant or Milvus',
+      winnerId: 'qdrant',
+      reasoning: 'Rust-native Qdrant provides unmatched throughput and complex payload filtering on bare metal, while Milvus scales to billions on Kubernetes.'
+    }
+  ];
+
+  const activeDecision = decisionProfiles.find(d => d.id === decisionProfile) || decisionProfiles[0];
+
+  // Mathematical latency simulator for Tab 3
+  const flatOps = docScale * 1536;
+  const flatLatencyMs = (docScale * 0.0018).toFixed(1);
+  const hnswOps = Math.round(Math.log2(docScale) * 16 * 1536);
+  const hnswLatencyMs = (Math.log2(docScale) * 0.85).toFixed(1);
+  const speedup = Math.round(Number(flatLatencyMs) / Number(hnswLatencyMs));
+
+  return (
+    <div style={{ background: '#090d16', border: '1.5px solid #1e293b', borderRadius: '16px', overflow: 'hidden', margin: '2rem 0', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' }}>
+      {/* ─── HEADER ─── */}
+      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ background: '#10b98125', color: '#34d399', border: '1px solid #10b981', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800 }}>
+              VECTOR DB ECOSYSTEM
+            </span>
+            <h3 style={{ color: '#f8fafc', fontSize: '1rem', fontWeight: 800, margin: 0 }}>
+              Vector Database Catalog &amp; Architecture Studio
+            </h3>
+          </div>
+          <p style={{ color: '#94a3b8', fontSize: '0.75rem', margin: '0.2rem 0 0' }}>
+            Explore industry-leading vector storage engines, compare code implementations, and evaluate indexing algorithms.
+          </p>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', gap: '0.35rem', background: '#090d16', padding: '0.25rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
+          {[
+            { label: 'Database Directory', tab: 0 },
+            { label: 'Code Comparison', tab: 1 },
+            { label: 'Decision Wizard', tab: 2 },
+            { label: 'HNSW vs Flat Benchmark', tab: 3 }
+          ].map((t) => (
+            <button
+              key={t.tab}
+              onClick={() => setActiveTab(t.tab)}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                background: activeTab === t.tab ? '#7c3aed' : 'transparent',
+                color: activeTab === t.tab ? '#ffffff' : '#94a3b8',
+                fontSize: '0.73rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 0: VECTOR DB DIRECTORY & DEEP-DIVE INSPECTOR ─── */}
+      {activeTab === 0 && (
+        <div style={{ padding: '1.25rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0 0 1rem' }}>
+            Click any vector database card to inspect its architectural specs, latency guarantees, and optimal production use-cases:
+          </p>
+
+          {/* Database Grid Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            {vectorDatabases.map((db) => {
+              const isSelected = db.id === selectedDbId;
+              return (
+                <div
+                  key={db.id}
+                  onClick={() => setSelectedDbId(db.id)}
+                  style={{
+                    background: isSelected ? '#1e1b4b' : '#0f172a',
+                    border: `1.5px solid ${isSelected ? db.badgeColor : '#1e293b'}`,
+                    borderRadius: '12px',
+                    padding: '0.85rem 0.65rem',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: isSelected ? `0 0 16px ${db.badgeColor}35` : 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                    {db.logoSvg}
+                  </div>
+                  <div style={{ color: '#f8fafc', fontWeight: 800, fontSize: '0.82rem', marginBottom: '0.2rem' }}>
+                    {db.name}
+                  </div>
+                  <div style={{ color: db.badgeColor, fontSize: '0.65rem', fontWeight: 700 }}>
+                    {db.category}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Deep Dive Inspector Card */}
+          <div style={{ background: '#0f172a', border: `1.5px solid ${selectedDb.badgeColor}`, borderRadius: '12px', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                {selectedDb.logoSvg}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <h4 style={{ color: '#ffffff', fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>{selectedDb.name}</h4>
+                    <span style={{ background: `${selectedDb.badgeColor}20`, color: selectedDb.badgeColor, border: `1px solid ${selectedDb.badgeColor}`, padding: '0.1rem 0.45rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 700 }}>
+                      {selectedDb.type}
+                    </span>
+                  </div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: '0.15rem' }}>{selectedDb.tagline}</div>
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ color: '#64748b', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>Expected Latency:</div>
+                <div style={{ color: '#34d399', fontSize: '0.95rem', fontWeight: 800, fontFamily: 'monospace' }}>{selectedDb.latency}</div>
+              </div>
+            </div>
+
+            {/* Specs Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem', marginBottom: '1rem' }}>
+              <div style={{ background: '#090d16', padding: '0.75rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                <div style={{ color: '#38bdf8', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Hosting &amp; Architecture:</div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.78rem' }}>{selectedDb.hosting}</div>
+              </div>
+
+              <div style={{ background: '#090d16', padding: '0.75rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                <div style={{ color: '#a78bfa', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Indexing Algorithm:</div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.78rem' }}>{selectedDb.indexEngine}</div>
+              </div>
+
+              <div style={{ background: '#090d16', padding: '0.75rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                <div style={{ color: '#f59e0b', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Supported Metrics:</div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.78rem' }}>{selectedDb.distanceMetrics}</div>
+              </div>
+
+              <div style={{ background: '#090d16', padding: '0.75rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                <div style={{ color: '#34d399', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.2rem' }}>Max Dimensions:</div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.78rem' }}>{selectedDb.dimensions}</div>
+              </div>
+            </div>
+
+            {/* Best For Callout */}
+            <div style={{ background: '#1e1b4b', border: '1px solid #4338ca', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+              <strong style={{ color: '#c084fc', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>Recommended Best Use Case:</strong>
+              <span style={{ color: '#e0e7ff', fontSize: '0.82rem' }}>{selectedDb.bestFor}</span>
+            </div>
+
+            {/* Pros & Cons List */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ background: '#062817', border: '1px solid #059669', borderRadius: '8px', padding: '0.75rem' }}>
+                <div style={{ color: '#34d399', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.4rem' }}>Key Strengths:</div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#d1fae5', fontSize: '0.76rem', lineHeight: '1.5' }}>
+                  {selectedDb.pros.map((p, idx) => <li key={idx}>{p}</li>)}
+                </ul>
+              </div>
+
+              <div style={{ background: '#270e11', border: '1px solid #dc2626', borderRadius: '8px', padding: '0.75rem' }}>
+                <div style={{ color: '#f87171', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.4rem' }}>Considerations &amp; Trade-offs:</div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#fee2e2', fontSize: '0.76rem', lineHeight: '1.5' }}>
+                  {selectedDb.cons.map((c, idx) => <li key={idx}>{c}</li>)}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 1: LIVE CODE COMPARISON STUDIO ─── */}
+      {activeTab === 1 && (
+        <div style={{ padding: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
+              Compare standard Python / SQL vector ingestion and querying across top engines:
+            </span>
+
+            {/* Code Selector Buttons */}
+            <div style={{ display: 'flex', gap: '0.35rem' }}>
+              {[
+                { id: 'chroma', label: 'ChromaDB (Local Python)' },
+                { id: 'pinecone', label: 'Pinecone (Serverless Cloud)' },
+                { id: 'pgvector', label: 'pgvector (PostgreSQL)' }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setCodeDbId(item.id)}
+                  style={{
+                    padding: '0.3rem 0.65rem',
+                    borderRadius: '6px',
+                    border: `1px solid ${codeDbId === item.id ? '#38bdf8' : '#334155'}`,
+                    background: codeDbId === item.id ? '#38bdf825' : '#0f172a',
+                    color: codeDbId === item.id ? '#38bdf8' : '#94a3b8',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <pre style={{
+            background: '#090d16',
+            border: '1px solid #1e293b',
+            borderRadius: '10px',
+            padding: '1.1rem',
+            color: '#cbd5e1',
+            fontSize: '0.74rem',
+            fontFamily: 'Consolas, Monaco, monospace',
+            lineHeight: '1.5',
+            overflowX: 'auto',
+            margin: 0
+          }}>
+            {codeSnippets[codeDbId]}
+          </pre>
+        </div>
+      )}
+
+      {/* ─── TAB 2: DECISION MATRIX & ARCHITECTURE WIZARD ─── */}
+      {activeTab === 2 && (
+        <div style={{ padding: '1.25rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0 0 1rem' }}>
+            Select your project requirement to see the industry recommended vector database architecture:
+          </p>
+
+          {/* Profile Selectors */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            {decisionProfiles.map((p) => (
+              <div
+                key={p.id}
+                onClick={() => setDecisionProfile(p.id)}
+                style={{
+                  background: decisionProfile === p.id ? '#1e1b4b' : '#0f172a',
+                  border: `1.5px solid ${decisionProfile === p.id ? '#8b5cf6' : '#1e293b'}`,
+                  borderRadius: '10px',
+                  padding: '0.85rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <div style={{ color: decisionProfile === p.id ? '#c084fc' : '#f8fafc', fontWeight: 800, fontSize: '0.82rem', marginBottom: '0.3rem' }}>
+                  {p.title}
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', lineHeight: '1.3' }}>
+                  {p.description}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Recommendation Output Card */}
+          <div style={{ background: '#0f172a', border: '1.5px solid #7c3aed', borderRadius: '12px', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ color: '#38bdf8', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                Recommended Vector Engine:
+              </div>
+              <span style={{ background: '#7c3aed25', color: '#c084fc', border: '1px solid #7c3aed', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800 }}>
+                Top Recommendation
+              </span>
+            </div>
+
+            <div style={{ color: '#ffffff', fontSize: '1.25rem', fontWeight: 900, marginBottom: '0.5rem' }}>
+              {activeDecision.winner}
+            </div>
+
+            <p style={{ color: '#cbd5e1', fontSize: '0.82rem', lineHeight: '1.5', margin: 0 }}>
+              {activeDecision.reasoning}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: HNSW VS FLAT BENCHMARK SIMULATOR ─── */}
+      {activeTab === 3 && (
+        <div style={{ padding: '1.25rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0 0 1rem' }}>
+            Drag the database size slider to observe why specialized HNSW graph indexes are mandatory for high-scale semantic search:
+          </p>
+
+          {/* Scale Slider */}
+          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '10px', padding: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ color: '#38bdf8', fontSize: '0.8rem', fontWeight: 700 }}>Total Stored Knowledge Vectors:</span>
+              <span style={{ color: '#f8fafc', fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 900 }}>
+                {docScale.toLocaleString()} vectors (1536D)
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="10000"
+              max="5000000"
+              step="50000"
+              value={docScale}
+              onChange={(e) => setDocScale(Number(e.target.value))}
+              style={{ width: '100%', accentColor: '#10b981', cursor: 'pointer', marginBottom: '0.5rem' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '0.68rem', fontFamily: 'monospace' }}>
+              <span>10K vectors</span>
+              <span>1M vectors</span>
+              <span>5M vectors</span>
+            </div>
+          </div>
+
+          {/* Side-by-Side Comparison */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+            {/* Flat Search */}
+            <div style={{ background: '#270e11', border: '1.5px solid #dc2626', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ color: '#f87171', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.3rem' }}>
+                Naive Flat Search (Brute Force O(N))
+              </div>
+              <div style={{ color: '#fee2e2', fontSize: '0.75rem', marginBottom: '0.75rem' }}>
+                Scans all {docScale.toLocaleString()} vectors one by one.
+              </div>
+
+              <div style={{ background: '#1c090b', padding: '0.75rem', borderRadius: '6px', marginBottom: '0.5rem' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.68rem' }}>Floating Point Calculations:</div>
+                <div style={{ color: '#f87171', fontSize: '1.1rem', fontWeight: 800, fontFamily: 'monospace' }}>
+                  {flatOps.toLocaleString()} ops
+                </div>
+              </div>
+
+              <div style={{ background: '#1c090b', padding: '0.75rem', borderRadius: '6px' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.68rem' }}>Query Latency:</div>
+                <div style={{ color: '#f87171', fontSize: '1.3rem', fontWeight: 900, fontFamily: 'monospace' }}>
+                  ~{flatLatencyMs} ms
+                </div>
+              </div>
+            </div>
+
+            {/* HNSW Search */}
+            <div style={{ background: '#062817', border: '1.5px solid #10b981', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                <span style={{ color: '#34d399', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                  HNSW Graph Index (ANN O(log N))
+                </span>
+                <span style={{ background: '#10b98125', color: '#34d399', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 800 }}>
+                  {speedup}x Faster
+                </span>
+              </div>
+              <div style={{ color: '#d1fae5', fontSize: '0.75rem', marginBottom: '0.75rem' }}>
+                Navigates multi-layer highway small world graph.
+              </div>
+
+              <div style={{ background: '#041d11', padding: '0.75rem', borderRadius: '6px', marginBottom: '0.5rem' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.68rem' }}>Floating Point Calculations:</div>
+                <div style={{ color: '#34d399', fontSize: '1.1rem', fontWeight: 800, fontFamily: 'monospace' }}>
+                  {hnswOps.toLocaleString()} ops
+                </div>
+              </div>
+
+              <div style={{ background: '#041d11', padding: '0.75rem', borderRadius: '6px' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.68rem' }}>Query Latency:</div>
+                <div style={{ color: '#34d399', fontSize: '1.3rem', fontWeight: 900, fontFamily: 'monospace' }}>
+                  ~{hnswLatencyMs} ms
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
 // ─── MINI PROJECT EDITOR ───────────────────────────────────────────────────
 const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -9669,7 +10392,7 @@ sys.stdout = _stdout_capture
 };
 
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9', 'ai-2-p1', 'ai-3-1', 'ai-3-2', 'ai-3-3', 'ai-3-4', 'ai-3-5', 'ai-3-6', 'ai-3-7', 'ai-4-1', 'ai-4-2', 'ai-4-3', 'ai-4-4', 'ai-4-5', 'ai-4-6', 'ai-4-7', 'ai-4-8', 'ai-4-9', 'ai-5-1', 'ai-5-2', 'ai-5-3'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9', 'ai-2-p1', 'ai-3-1', 'ai-3-2', 'ai-3-3', 'ai-3-4', 'ai-3-5', 'ai-3-6', 'ai-3-7', 'ai-4-1', 'ai-4-2', 'ai-4-3', 'ai-4-4', 'ai-4-5', 'ai-4-6', 'ai-4-7', 'ai-4-8', 'ai-4-9', 'ai-5-1', 'ai-5-2', 'ai-5-3', 'ai-5-4'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -9970,6 +10693,11 @@ export default function AILessonArticlePage() {
             {/* Vector Embeddings & 2D Projection Diagram */}
             {lesson.diagram.type === 'vector_embeddings' && (
               <VectorEmbeddingsDiagram />
+            )}
+
+            {/* Vector Databases Diagram */}
+            {lesson.diagram.type === 'vector_databases' && (
+              <VectorDatabasesDiagram />
             )}
 
             {/* Industry Grid Diagram */}
