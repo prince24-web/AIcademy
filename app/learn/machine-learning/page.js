@@ -10,26 +10,26 @@ const MLLogo = ({ size = 24 }) => (
     <circle cx="50" cy="50" r="45" fill="url(#mlGrad)" />
     <defs>
       <radialGradient id="mlGrad" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(50 50) rotate(90) scale(45)">
-        <stop stopColor="#059669"/>
-        <stop offset="1" stopColor="#064e3b"/>
+        <stop stopColor="#475569"/>
+        <stop offset="1" stopColor="#1e293b"/>
       </radialGradient>
     </defs>
     {/* Neural network nodes */}
-    <circle cx="25" cy="30" r="5" fill="#6ee7b7"/>
-    <circle cx="25" cy="50" r="5" fill="#6ee7b7"/>
-    <circle cx="25" cy="70" r="5" fill="#6ee7b7"/>
-    <circle cx="50" cy="35" r="6" fill="#a7f3d0"/>
-    <circle cx="50" cy="65" r="6" fill="#a7f3d0"/>
+    <circle cx="25" cy="30" r="5" fill="#cbd5e1"/>
+    <circle cx="25" cy="50" r="5" fill="#cbd5e1"/>
+    <circle cx="25" cy="70" r="5" fill="#cbd5e1"/>
+    <circle cx="50" cy="35" r="6" fill="#e2e8f0"/>
+    <circle cx="50" cy="65" r="6" fill="#e2e8f0"/>
     <circle cx="75" cy="50" r="7" fill="#ffffff"/>
     {/* Connections */}
-    <line x1="25" y1="30" x2="50" y2="35" stroke="#6ee7b7" strokeWidth="1.5" opacity="0.7"/>
-    <line x1="25" y1="30" x2="50" y2="65" stroke="#6ee7b7" strokeWidth="1.5" opacity="0.7"/>
-    <line x1="25" y1="50" x2="50" y2="35" stroke="#6ee7b7" strokeWidth="1.5" opacity="0.7"/>
-    <line x1="25" y1="50" x2="50" y2="65" stroke="#6ee7b7" strokeWidth="1.5" opacity="0.7"/>
-    <line x1="25" y1="70" x2="50" y2="35" stroke="#6ee7b7" strokeWidth="1.5" opacity="0.7"/>
-    <line x1="25" y1="70" x2="50" y2="65" stroke="#6ee7b7" strokeWidth="1.5" opacity="0.7"/>
-    <line x1="50" y1="35" x2="75" y2="50" stroke="#a7f3d0" strokeWidth="2" opacity="0.8"/>
-    <line x1="50" y1="65" x2="75" y2="50" stroke="#a7f3d0" strokeWidth="2" opacity="0.8"/>
+    <line x1="25" y1="30" x2="50" y2="35" stroke="#cbd5e1" strokeWidth="1.5" opacity="0.7"/>
+    <line x1="25" y1="30" x2="50" y2="65" stroke="#cbd5e1" strokeWidth="1.5" opacity="0.7"/>
+    <line x1="25" y1="50" x2="50" y2="35" stroke="#cbd5e1" strokeWidth="1.5" opacity="0.7"/>
+    <line x1="25" y1="50" x2="50" y2="65" stroke="#cbd5e1" strokeWidth="1.5" opacity="0.7"/>
+    <line x1="25" y1="70" x2="50" y2="35" stroke="#cbd5e1" strokeWidth="1.5" opacity="0.7"/>
+    <line x1="25" y1="70" x2="50" y2="65" stroke="#cbd5e1" strokeWidth="1.5" opacity="0.7"/>
+    <line x1="50" y1="35" x2="75" y2="50" stroke="#e2e8f0" strokeWidth="2" opacity="0.8"/>
+    <line x1="50" y1="65" x2="75" y2="50" stroke="#e2e8f0" strokeWidth="2" opacity="0.8"/>
   </svg>
 );
 
@@ -466,7 +466,7 @@ export default function MLFundamentalsJourneyPage() {
               <path
                 d={svgPathData}
                 fill="none"
-                stroke="#a7f3d0"
+                stroke="#e2e8f0"
                 strokeWidth="16"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -475,7 +475,7 @@ export default function MLFundamentalsJourneyPage() {
               <path
                 d={svgPathData}
                 fill="none"
-                stroke="#34d399"
+                stroke="#94a3b8"
                 strokeWidth="5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -616,7 +616,7 @@ export default function MLFundamentalsJourneyPage() {
               <a href="#" className={styles.widgetAction}>View</a>
             </div>
             <div className={styles.leaderboardBox}>
-              <div style={{ color: '#059669', display: 'flex' }}>
+              <div style={{ color: '#475569', display: 'flex' }}>
                 <IconTarget size={28} />
               </div>
               <div className={styles.leaderboardText}>

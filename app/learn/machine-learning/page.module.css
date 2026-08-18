@@ -70,15 +70,15 @@
 }
 
 .navBtn:hover {
-  background: #ecfdf5;
-  color: #059669;
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .navBtnActive {
-  background: #ecfdf5;
-  color: #059669;
-  border: 2px solid #059669;
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.18);
+  background: #f1f5f9;
+  color: #475569;
+  border: 2px solid #475569;
+  box-shadow: 0 4px 12px rgba(71, 85, 105, 0.18);
 }
 
 .navTooltip {
@@ -145,10 +145,10 @@
 }
 
 .scrollTopBtn:hover {
-  border-color: #059669;
-  color: #059669;
+  border-color: #475569;
+  color: #475569;
   transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(5, 150, 105, 0.25);
+  box-shadow: 0 10px 24px rgba(71, 85, 105, 0.25);
 }
 
 /* Sticky Breadcrumb Header inside path area */
@@ -209,11 +209,11 @@
   background: #ffffff;
   padding: 8px 24px;
   border-radius: 30px;
-  border: 2px solid #059669;
+  border: 2px solid #475569;
   font-size: 0.95rem;
   font-weight: 800;
-  color: #065f46;
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.12);
+  color: #1e293b;
+  box-shadow: 0 4px 12px rgba(71, 85, 105, 0.12);
 }
 
 /* ─── CONNECTED PATH CANVAS ──────────────────────────────────────────── */
@@ -314,9 +314,9 @@
 .nodeCompleted .node3dTop    { background: #22c55e; color: #ffffff; }
 
 /* Active Current Node (Rich 3D Teal / ML Theme) */
-.nodeActive .node3dShadow { background: #064e3b; }
-.nodeActive .node3dDepth  { background: #047857; }
-.nodeActive .node3dTop    { background: #059669; color: #ffffff; box-shadow: inset 0 3px 0 rgba(255,255,255,0.4); }
+.nodeActive .node3dShadow { background: #1e293b; }
+.nodeActive .node3dDepth  { background: #334155; }
+.nodeActive .node3dTop    { background: #475569; color: #ffffff; box-shadow: inset 0 3px 0 rgba(255,255,255,0.4); }
 
 .nodeActiveGlow {
   position: absolute;
@@ -325,7 +325,7 @@
   width: 104px;
   height: 92px;
   clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-  background: rgba(5, 150, 105, 0.32);
+  background: rgba(71, 85, 105, 0.32);
   animation: pulseGlow 2s infinite ease-in-out;
   z-index: 3;
 }
@@ -348,10 +348,10 @@
   left: 50%;
   transform: translateX(-50%);
   background: #ffffff;
-  border: 2px solid #059669;
+  border: 2px solid #475569;
   border-radius: 16px;
   padding: 14px 20px;
-  box-shadow: 0 12px 32px rgba(5, 150, 105, 0.18);
+  box-shadow: 0 12px 32px rgba(71, 85, 105, 0.18);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -369,7 +369,7 @@
   transform: translateX(-50%);
   border-width: 10px 10px 0 10px;
   border-style: solid;
-  border-color: #059669 transparent transparent transparent;
+  border-color: #475569 transparent transparent transparent;
 }
 
 @keyframes popIn {
@@ -387,7 +387,7 @@
 .popoverBtn {
   width: 100%;
   padding: 10px 24px;
-  background: #059669;
+  background: #475569;
   color: #ffffff;
   border: none;
   border-radius: 12px;
@@ -395,19 +395,19 @@
   font-weight: 800;
   letter-spacing: 0.5px;
   cursor: pointer;
-  box-shadow: 0 4px 0 #047857;
+  box-shadow: 0 4px 0 #334155;
   transition: all 0.15s ease;
 }
 
 .popoverBtn:hover {
-  background: #047857;
+  background: #334155;
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 #064e3b;
+  box-shadow: 0 5px 0 #1e293b;
 }
 
 .popoverBtn:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 #064e3b;
+  box-shadow: 0 1px 0 #1e293b;
 }
 
 /* Jump Here floating callout badge */
@@ -508,8 +508,8 @@
 
 /* Offer Promo Card */
 .promoCard {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-  border: 2px solid #059669;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border: 2px solid #475569;
   position: relative;
   overflow: hidden;
 }
@@ -517,7 +517,7 @@
 .promoTitle {
   font-size: 1.1rem;
   font-weight: 900;
-  color: #064e3b;
+  color: #0f172a;
   margin-bottom: 4px;
 }
 
@@ -532,7 +532,7 @@
 .promoTimer {
   font-size: 0.85rem;
   font-weight: 800;
-  color: #047857;
+  color: #475569;
   margin-bottom: 14px;
 }
 
