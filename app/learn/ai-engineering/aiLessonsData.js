@@ -5110,6 +5110,188 @@ for match in query_response.matches:
       correctIndex: 1,
       explanation: 'Exactly right! HNSW constructs a multi-layered graph where upper layers feature sparse highway links between clusters and lower layers contain dense neighborhood connections. This allows the search query to rapidly navigate towards the nearest vector cluster in O(log N) time, avoiding scanning every item in the database.'
     }
+  },
+
+  'ai-5-5': {
+    id: 'ai-5-5',
+    title: 'Semantic Search vs Keyword Search',
+    subtitle: 'Comparing BM25 lexical matching with dense vector similarity, and mastering modern Hybrid Search with Reciprocal Rank Fusion (RRF).',
+    duration: '25 min read',
+    level: 'Intermediate',
+    module: 'Module 5: Retrieval-Augmented Generation (RAG)',
+    badgeText: 'HYBRID SEARCH',
+    badgeColor: '#8b5cf6',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Contrast lexical keyword search (BM25/TF-IDF) with dense neural semantic vector search.',
+      'Identify the critical failure modes of pure keyword search (synonyms, polysemy, conceptual phrasing).',
+      'Understand where pure semantic search breaks down (exact identifiers, SKU codes, acronyms, rare technical jargon).',
+      'Master Hybrid Search architecture combining sparse inverted indexes with dense vector embeddings.',
+      'Implement Reciprocal Rank Fusion (RRF) to merge and normalize ranking scores across disparate retrieval algorithms.',
+      'Build two-stage retrieval pipelines combining high-recall Bi-Encoders with high-precision Cross-Encoder Re-rankers.'
+    ],
+
+    sections: [
+      {
+        heading: 'The Two Search Paradigms: Lexical vs Semantic',
+        paragraphs: [
+          'Information Retrieval (IR) in AI engineering is fundamentally divided into two complementary approaches: Lexical (Keyword) Search and Semantic (Dense Vector) Search.',
+          'Lexical Keyword Search (such as BM25 and TF-IDF) works on exact string token matching. It maintains an Inverted Index mapping every token to the list of documents containing it. It scores relevance based on Term Frequency (how often the word appears in the document) and Inverse Document Frequency (how rare and discriminative the word is across the entire corpus). If the exact search term is not in the text, BM25 returns 0 matches.',
+          'Semantic Search (Dense Embeddings) encodes documents and queries into high-dimensional geometric coordinates using neural embedding models. Instead of matching literal character strings, it computes the cosine angle or dot product in latent concept space. It understands that "how to repair an automobile" is identical in meaning to "car maintenance instructions", even though they share zero vocabulary words!'
+        ]
+      },
+      {
+        heading: 'Where Keyword Search (BM25) Fails',
+        paragraphs: [
+          'While BM25 has been the battle-tested backbone of search engines (like Elasticsearch, Lucene, and Solr) for over 30 years, it suffers from three structural flaws:',
+          '1. The Synonym Problem: If a user searches for "heart attack treatment", BM25 will completely overlook medical papers discussing "myocardial infarction therapies" unless an exhaustive manual synonym dictionary is maintained.',
+          '2. Polysemy & Context Blindness: The word "apple" means a fruit in a culinary database, a tech company in a financial index, and a record label in music history. BM25 cannot distinguish the context based on surrounding intent.',
+          '3. Conceptual & Conversational Queries: Users rarely search using formal document phrasing. When a user asks "how do I stop feeling freezing during winter storms?", BM25 fails if the document is titled "Thermal Insulation & Heating Strategies for Blizzard Conditions".'
+        ]
+      },
+      {
+        heading: 'Where Pure Semantic Search Fails (The Blindspots of Vectors)',
+        paragraphs: [
+          'Given the power of vector embeddings, why not abandon keyword search entirely? In enterprise production, pure semantic vector search introduces severe failure modes of its own:',
+          '1. Exact Product Codes and Serial Numbers: A user searching for "Part #SKU-89412-B" or error code "ERR_0x80070005" will often get completely incorrect results from vector search! Neural embedding models compress text into high-level concept abstractions, often blurring out single-digit character differences between "SKU-89412-B" and "SKU-89412-C".',
+          '2. Rare Proper Nouns and Acronyms: Specialized pharmaceutical drug names (e.g. "Pembrolizumab"), internal company codenames ("Project Apollo-V2"), or emerging terminology not present in the embedding model\'s training set produce low-confidence or noisy vector coordinates.',
+          '3. Negative Constraints: Queries containing explicit negation like "hotels in Paris without swimming pools" often retrieve hotels with swimming pools because the embedding vector is dominated by the strong semantic tokens "hotels", "Paris", and "swimming pool".'
+        ]
+      },
+      {
+        heading: 'The Modern Solution: Hybrid Search Architecture',
+        paragraphs: [
+          'In production RAG systems, the industry best practice is Hybrid Search: executing both BM25 Keyword Search (Sparse) and Dense Vector Search (Dense) in parallel, then fusing their results into a unified ranking.',
+          'Hybrid search guarantees that you never miss an exact SKU code or serial number (caught by BM25) while simultaneously catching conceptual paraphrasing and synonyms (caught by Vector Search).',
+          'How do we combine scores from BM25 (unbounded numbers like 14.82) and Cosine Similarity (floats between 0.0 and 1.0)? The gold standard algorithm is Reciprocal Rank Fusion (RRF):'
+        ],
+        codeBlock: `# Hands-on Hybrid Search with Reciprocal Rank Fusion (RRF)
+# Combines BM25 lexical search and Cosine vector search
+
+import math
+from typing import List, Dict, Any
+
+def reciprocal_rank_fusion(
+    bm25_results: List[str],
+    vector_results: List[str],
+    k: int = 60
+) -> List[Dict[str, Any]]:
+    """
+    Combines two ranked lists using Reciprocal Rank Fusion (RRF).
+    Formula: Score(d) = SUM( 1 / (k + rank_i(d)) )
+    """
+    rrf_scores = {}
+
+    # Score BM25 rankings
+    for rank, doc_id in enumerate(bm25_results):
+        if doc_id not in rrf_scores:
+            rrf_scores[doc_id] = {"doc_id": doc_id, "bm25_rank": rank + 1, "vector_rank": None, "score": 0.0}
+        rrf_scores[doc_id]["score"] += 1.0 / (k + (rank + 1))
+
+    # Score Vector rankings
+    for rank, doc_id in enumerate(vector_results):
+        if doc_id not in rrf_scores:
+            rrf_scores[doc_id] = {"doc_id": doc_id, "bm25_rank": None, "vector_rank": rank + 1, "score": 0.0}
+        else:
+            rrf_scores[doc_id]["vector_rank"] = rank + 1
+        rrf_scores[doc_id]["score"] += 1.0 / (k + (rank + 1))
+
+    # Sort by descending RRF score
+    sorted_results = sorted(rrf_scores.values(), key=lambda x: x["score"], reverse=True)
+    return sorted_results
+
+# Example Execution
+# Query: "car battery replacement guide SKU-BAT-89"
+bm25_top = ["doc_sku_bat_89", "doc_battery_spec", "doc_unrelated_car"]
+vector_top = ["doc_car_maintenance", "doc_battery_spec", "doc_sku_bat_89"]
+
+hybrid_fused = reciprocal_rank_fusion(bm25_top, vector_top, k=60)
+
+print("--- Hybrid Search Fused Rankings (RRF) ---")
+for rank, item in enumerate(hybrid_fused, 1):
+    print(f"Rank #{rank}: {item['doc_id']} | Score: {item['score']:.5f} (BM25 Rank: {item['bm25_rank']}, Vector Rank: {item['vector_rank']})")`
+      },
+      {
+        heading: 'Two-Stage Retrieval: Bi-Encoder + Cross-Encoder Re-ranking',
+        paragraphs: [
+          'For ultra-high precision enterprise RAG, search engines implement a Two-Stage Retrieval Pipeline:',
+          'Stage 1 — Fast Candidate Retrieval (Bi-Encoder): The system uses Hybrid Search (BM25 + Vector DB) to rapidly scan 1,000,000 documents and retrieve the top 50–100 candidates in under 20 milliseconds.',
+          'Stage 2 — High-Precision Re-ranking (Cross-Encoder): The top 50 candidates are passed to a Cross-Encoder model (such as Cohere Rerank or BAAI/bge-reranker-large). Unlike bi-encoders that process queries and documents separately, a Cross-Encoder feeds both query and document simultaneously into multi-head self-attention layers to compute deep token-to-token semantic interactions.',
+          'The Cross-Encoder assigns a hyper-accurate relevance score (0.0 to 1.0) and prunes the candidate list down to the top 3–5 highest-quality chunks before passing them to the generative LLM prompt.'
+        ],
+        codeBlock: `# Two-Stage Retrieval with Cross-Encoder Re-ranking
+# pip install sentence-transformers
+
+from sentence_transformers import CrossEncoder
+
+# 1. Initialize high-precision Cross-Encoder model
+reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+query = "What is the return window for enterprise software licenses?"
+
+# Stage 1 Candidates retrieved by fast Hybrid Search (Top 4)
+candidates = [
+    "Enterprise licenses include 24/7 dedicated telephone support.",
+    "Software licenses can be refunded within 30 days of initial purchase.",
+    "Hardware returns require an RMA form within 14 days.",
+    "Enterprise customers receive annual security audits and compliance reports."
+]
+
+# 2. Pair query with each candidate document
+query_doc_pairs = [[query, doc] for doc in candidates]
+
+# 3. Compute cross-attention deep relevance scores
+scores = reranker.predict(query_doc_pairs)
+
+# 4. Sort and select top-1 gold standard context chunk
+ranked_results = sorted(zip(candidates, scores), key=lambda x: x[1], reverse=True)
+
+print("--- Two-Stage Re-ranking Results ---")
+for doc, score in ranked_results:
+    print(f"Relevance Score: {score:+.4f} | Document: {doc}")`
+      },
+      {
+        heading: 'Decision Matrix: When to Use Keyword, Vector, or Hybrid Search',
+        paragraphs: [
+          'Choose your retrieval strategy based on your data characteristics and user query patterns:',
+          '1. Use Pure BM25 Keyword Search: When searching log files, error codes, source code repositories, medical catalog numbers, or legal statutes where exact character matching is non-negotiable.',
+          '2. Use Pure Semantic Vector Search: When searching natural language user FAQs, customer support dialogues, audio/image embeddings, or multi-lingual corpora where synonyms and high-level concepts dominate.',
+          '3. Use Hybrid Search + RRF (Industry Best Practice): For all production enterprise RAG systems, customer-facing knowledge bases, and multi-tenant documentation platforms to maximize both precision on exact tokens and recall on conceptual synonyms.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Index Card File vs The Master Librarian vs The Dream Team',
+      text: 'Imagine searching for information in a giant library. Keyword Search (BM25) is like an automated index card box: you type "cardiac arrest" and it instantly flips to cards with the exact words "cardiac arrest". But if a book is titled "Heart Attack Emergency", the card box completely misses it! Pure Semantic Search is like an intuitive librarian who understands themes and says "Here are 5 books on general cardiovascular health", but if you ask for "Form #MED-891-B", they might hand you the wrong form because all medical forms feel similar. Hybrid Search is the Dream Team: the automated box instantly finds the exact form number, the librarian finds the conceptual books, and together they deliver the perfect answer!'
+    },
+
+    diagram: {
+      type: 'semantic_vs_keyword',
+      title: 'Interactive Search Arena: Keyword (BM25) vs Dense Vector vs Hybrid RRF'
+    },
+
+    takeaways: [
+      'Lexical search (BM25) matches exact character tokens using term frequency and inverse document frequency.',
+      'Semantic vector search matches latent concepts and synonyms in high-dimensional embedding space.',
+      'BM25 fails on synonyms and paraphrasing; Vector search fails on exact product SKUs, error codes, and negations.',
+      'Hybrid Search executes BM25 and Vector search in parallel, combining results via Reciprocal Rank Fusion (RRF).',
+      'Two-Stage Retrieval (Bi-Encoder candidate retrieval + Cross-Encoder re-ranking) is the gold standard for high-accuracy enterprise RAG.'
+    ],
+
+    quiz: {
+      question: 'Why is Hybrid Search with Reciprocal Rank Fusion (RRF) preferred over pure Vector Search for production enterprise RAG?',
+      options: [
+        'Hybrid search completely eliminates the need for an embedding model',
+        'Hybrid search combines BM25 exact keyword precision (for product SKUs, error codes, and proper nouns) with vector semantic understanding (for synonyms and conceptual phrasing)',
+        'Hybrid search only works on SQL databases',
+        'RRF reduces embedding vector dimensions from 1536 down to 2'
+      ],
+      correctIndex: 1,
+      explanation: 'Spot on! Pure vector search frequently fails on exact serial numbers, error codes, and rare acronyms because embeddings compress text into general concepts. Hybrid search combines BM25 exact lexical matching with dense vector semantic recall, delivering optimal precision and recall.'
+    }
   }
 };
 

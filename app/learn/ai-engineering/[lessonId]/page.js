@@ -9535,6 +9535,575 @@ print("Cosine Similarity Scores:", distances[0])`
   );
 };
 
+// ─── SEMANTIC SEARCH VS KEYWORD SEARCH ARENA & HYBRID RRF STUDIO ───────────
+const SemanticVsKeywordDiagram = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedPresetId, setSelectedPresetId] = useState('synonyms');
+  const [customQuery, setCustomQuery] = useState('');
+  const [rrfK, setRrfK] = useState(60);
+  const [stageStep, setStageStep] = useState(0);
+
+  // Corpus knowledge documents
+  const corpus = [
+    {
+      id: 'doc_auto_repair',
+      title: 'Car Engine Overhaul & Maintenance Manual',
+      content: 'Complete step-by-step guide for vehicle motor rebuilding, spark plug gapping, and cylinder gasket replacement.',
+      keywords: ['car', 'engine', 'overhaul', 'maintenance', 'manual', 'vehicle', 'motor', 'rebuilding', 'spark', 'plug', 'cylinder', 'gasket'],
+      concepts: ['automotive maintenance', 'mechanical vehicle repair', 'motor tune up', 'automobile troubleshooting'],
+      sku: 'SKU-ENG-1049'
+    },
+    {
+      id: 'doc_battery_sku',
+      title: 'Part #SKU-89412-B: 18V Lithium Power Battery',
+      content: 'Replacement battery pack model SKU-89412-B compatible with cordless impact drivers and drill series 890.',
+      keywords: ['part', 'sku-89412-b', '18v', 'lithium', 'power', 'battery', 'replacement', 'pack', 'cordless', 'drill'],
+      concepts: ['power tool electrical supply', 'rechargeable cell replacement', 'cordless battery'],
+      sku: 'SKU-89412-B'
+    },
+    {
+      id: 'doc_cold_insulation',
+      title: 'Thermal Insulation & Hypothermia Prevention in Blizzards',
+      content: 'Crucial health strategies for retaining body heat, layering garments, and preventing frostbite in sub-zero snowstorms.',
+      keywords: ['thermal', 'insulation', 'hypothermia', 'prevention', 'blizzards', 'heat', 'layering', 'frostbite', 'sub-zero'],
+      concepts: ['staying warm in winter', 'freezing temperature protection', 'extreme weather safety', 'frostbite prevention'],
+      sku: 'SKU-MED-3310'
+    },
+    {
+      id: 'doc_error_504',
+      title: 'Error Reference: ERR_504_GATEWAY_TIMEOUT',
+      content: 'Diagnostic procedure when upstream proxy fails to receive timely response from application backend server under heavy load.',
+      keywords: ['error', 'reference', 'err_504_gateway_timeout', 'diagnostic', 'proxy', 'upstream', 'response', 'backend', 'server', 'load'],
+      concepts: ['network gateway failure', 'database response delay', 'HTTP 504 server timeout'],
+      sku: 'ERR-504-GTW'
+    },
+    {
+      id: 'doc_fruit_apple',
+      title: 'Honeycrisp Orchard Cultivation & Fruit Harvesting',
+      content: 'Organic farming methods for cultivating sweet apple varietals, tree pruning schedules, and autumn crop storage.',
+      keywords: ['honeycrisp', 'orchard', 'cultivation', 'fruit', 'harvesting', 'organic', 'farming', 'apple', 'pruning', 'crop'],
+      concepts: ['agriculture fruit growing', 'apple harvest farming', 'orchard botany'],
+      sku: 'SKU-AGR-0044'
+    }
+  ];
+
+  // Presets designed to test specific edge-cases
+  const presets = [
+    {
+      id: 'synonyms',
+      query: 'automobile motor repair handbook',
+      label: 'Synonym Challenge',
+      category: 'Synonyms',
+      badgeColor: '#ec4899',
+      scenario: 'Tests semantic understanding where query uses synonyms ("automobile", "motor", "handbook") not present in document title ("car", "engine", "manual").',
+      winner: 'Vector Search wins | BM25 misses'
+    },
+    {
+      id: 'sku_exact',
+      query: 'replacement part SKU-89412-B',
+      label: 'Exact SKU / Serial',
+      category: 'Exact Identifier',
+      badgeColor: '#38bdf8',
+      scenario: 'Tests exact alphanumeric identifier matching. Vector embeddings blur digits into general concepts, while BM25 hits exact token.',
+      winner: 'BM25 wins | Vector Search fails'
+    },
+    {
+      id: 'concept_phrasing',
+      query: 'how to stop feeling freezing in heavy winter storms',
+      label: 'Conceptual Intent',
+      category: 'Conversational Query',
+      badgeColor: '#10b981',
+      scenario: 'Tests conceptual paraphrasing where user expresses symptoms without technical medical or meteorological jargon.',
+      winner: 'Vector Search wins | BM25 gets 0 hits'
+    },
+    {
+      id: 'err_code',
+      query: 'how to fix ERR_504_GATEWAY_TIMEOUT',
+      label: 'Technical Error Code',
+      category: 'Acronym & Error Code',
+      badgeColor: '#f59e0b',
+      scenario: 'Tests exact technical error code resolution where embedding tokenizer fractures acronyms into subword noise.',
+      winner: 'BM25 wins | Vector Search ranks wrong doc'
+    }
+  ];
+
+  const activePreset = presets.find(p => p.id === selectedPresetId) || presets[0];
+  const queryToUse = customQuery.trim() || activePreset.query;
+
+  // Simple simulated BM25 search
+  const computeBM25 = (q) => {
+    const tokens = q.toLowerCase().replace(/[^a-z0-9_-]/g, ' ').split(/\s+/).filter(Boolean);
+    return corpus.map(doc => {
+      let score = 0;
+      let matchedTokens = [];
+      tokens.forEach(tok => {
+        if (doc.keywords.includes(tok) || doc.title.toLowerCase().includes(tok) || doc.sku.toLowerCase() === tok) {
+          const idf = doc.sku.toLowerCase() === tok ? 6.5 : 2.4;
+          score += idf;
+          matchedTokens.push(tok);
+        }
+      });
+      return {
+        doc,
+        score: Number(score.toFixed(2)),
+        matchedTokens
+      };
+    }).sort((a, b) => b.score - a.score);
+  };
+
+  // Simple simulated Dense Vector search
+  const computeVector = (q) => {
+    const qLower = q.toLowerCase();
+    return corpus.map(doc => {
+      let similarity = 0.42; // baseline noise
+      if (selectedPresetId === 'synonyms' && doc.id === 'doc_auto_repair') similarity = 0.94;
+      else if (selectedPresetId === 'sku_exact') {
+        if (doc.id === 'doc_battery_sku') similarity = 0.72; // blurs digits
+        if (doc.id === 'doc_auto_repair') similarity = 0.74; // false positive!
+      }
+      else if (selectedPresetId === 'concept_phrasing' && doc.id === 'doc_cold_insulation') similarity = 0.92;
+      else if (selectedPresetId === 'err_code' && doc.id === 'doc_error_504') similarity = 0.78;
+      else {
+        // dynamic calculation for custom input
+        let overlap = 0;
+        doc.concepts.forEach(c => {
+          c.split(' ').forEach(w => {
+            if (qLower.includes(w)) overlap += 0.22;
+          });
+        });
+        similarity = Math.min(0.96, Number((0.45 + overlap).toFixed(2)));
+      }
+      return {
+        doc,
+        similarity: Number(similarity.toFixed(3))
+      };
+    }).sort((a, b) => b.similarity - a.similarity);
+  };
+
+  const bm25Ranked = computeBM25(queryToUse);
+  const vectorRanked = computeVector(queryToUse);
+
+  // Compute Reciprocal Rank Fusion (RRF)
+  const computeRRF = (bm25List, vecList, k) => {
+    const scoreMap = {};
+    bm25List.forEach((item, idx) => {
+      const docId = item.doc.id;
+      scoreMap[docId] = {
+        doc: item.doc,
+        bm25Rank: idx + 1,
+        bm25Score: item.score,
+        vecRank: null,
+        vecScore: 0,
+        rrfScore: 1 / (k + (idx + 1))
+      };
+    });
+
+    vecList.forEach((item, idx) => {
+      const docId = item.doc.id;
+      if (scoreMap[docId]) {
+        scoreMap[docId].vecRank = idx + 1;
+        scoreMap[docId].vecScore = item.similarity;
+        scoreMap[docId].rrfScore += 1 / (k + (idx + 1));
+      } else {
+        scoreMap[docId] = {
+          doc: item.doc,
+          bm25Rank: null,
+          bm25Score: 0,
+          vecRank: idx + 1,
+          vecScore: item.similarity,
+          rrfScore: 1 / (k + (idx + 1))
+        };
+      }
+    });
+
+    return Object.values(scoreMap).sort((a, b) => b.rrfScore - a.rrfScore);
+  };
+
+  const hybridRanked = computeRRF(bm25Ranked, vectorRanked, rrfK);
+
+  return (
+    <div style={{ background: '#090d16', border: '1.5px solid #1e293b', borderRadius: '16px', overflow: 'hidden', margin: '2rem 0', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' }}>
+      {/* ─── HEADER ─── */}
+      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ background: '#8b5cf625', color: '#c084fc', border: '1px solid #8b5cf6', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.68rem', fontWeight: 800 }}>
+              SEARCH RETRIEVAL BENCHMARK
+            </span>
+            <h3 style={{ color: '#f8fafc', fontSize: '1rem', fontWeight: 800, margin: 0 }}>
+              BM25 Keyword vs Dense Vector vs Hybrid Search (RRF)
+            </h3>
+          </div>
+          <p style={{ color: '#94a3b8', fontSize: '0.75rem', margin: '0.2rem 0 0' }}>
+            Observe how exact lexical tokens and high-dimensional neural concepts complement each other.
+          </p>
+        </div>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0.35rem', background: '#090d16', padding: '0.25rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
+          {[
+            { label: 'Live Search Arena', tab: 0 },
+            { label: 'RRF Math Calculator', tab: 1 },
+            { label: 'Two-Stage Re-ranking', tab: 2 },
+            { label: 'Failure Mode Matrix', tab: 3 }
+          ].map((t) => (
+            <button
+              key={t.tab}
+              onClick={() => setActiveTab(t.tab)}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                background: activeTab === t.tab ? '#7c3aed' : 'transparent',
+                color: activeTab === t.tab ? '#ffffff' : '#94a3b8',
+                fontSize: '0.73rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 0: LIVE SEARCH ARENA ─── */}
+      {activeTab === 0 && (
+        <div style={{ padding: '1.25rem' }}>
+          {/* Query Presets Toolbar */}
+          <div style={{ marginBottom: '1.25rem' }}>
+            <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+              Choose a Benchmark Test Query:
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.6rem' }}>
+              {presets.map((p) => {
+                const isSelected = p.id === selectedPresetId;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setSelectedPresetId(p.id);
+                      setCustomQuery('');
+                    }}
+                    style={{
+                      background: isSelected ? '#1e1b4b' : '#0f172a',
+                      border: `1.5px solid ${isSelected ? p.badgeColor : '#1e293b'}`,
+                      borderRadius: '8px',
+                      padding: '0.65rem 0.85rem',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      boxShadow: isSelected ? `0 0 14px ${p.badgeColor}30` : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                      <span style={{ color: '#f8fafc', fontSize: '0.8rem', fontWeight: 800 }}>{p.label}</span>
+                      <span style={{ background: `${p.badgeColor}20`, color: p.badgeColor, padding: '0.1rem 0.35rem', borderRadius: '3px', fontSize: '0.62rem', fontWeight: 700 }}>
+                        {p.category}
+                      </span>
+                    </div>
+                    <div style={{ color: '#94a3b8', fontSize: '0.72rem', fontFamily: 'monospace' }}>
+                      &quot;{p.query}&quot;
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Test Scenario Callout */}
+          <div style={{ background: '#0f172a', border: `1.5px solid ${activePreset.badgeColor}`, borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
+              <strong style={{ color: activePreset.badgeColor }}>Test Goal: </strong>
+              {activePreset.scenario}
+            </div>
+            <span style={{ background: `${activePreset.badgeColor}25`, color: activePreset.badgeColor, border: `1px solid ${activePreset.badgeColor}`, padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800 }}>
+              {activePreset.winner}
+            </span>
+          </div>
+
+          {/* 3-Column Side-by-Side Search Results */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: '1rem' }}>
+            
+            {/* COLUMN 1: BM25 KEYWORD SEARCH */}
+            <div style={{ background: '#0f172a', border: '1.5px solid #38bdf8', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.5rem' }}>
+                <span style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase' }}>
+                  1. BM25 Keyword Search
+                </span>
+                <span style={{ color: '#64748b', fontSize: '0.68rem', fontWeight: 700 }}>Lexical Exact Inverted Index</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {bm25Ranked.slice(0, 3).map((item, idx) => (
+                  <div key={item.doc.id} style={{ background: '#090d16', border: `1px solid ${idx === 0 && item.score > 0 ? '#38bdf8' : '#1e293b'}`, borderRadius: '8px', padding: '0.65rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                      <span style={{ color: idx === 0 && item.score > 0 ? '#38bdf8' : '#94a3b8', fontSize: '0.75rem', fontWeight: 800 }}>
+                        Rank #{idx + 1}
+                      </span>
+                      <span style={{ color: item.score > 0 ? '#34d399' : '#64748b', fontSize: '0.7rem', fontFamily: 'monospace', fontWeight: 700 }}>
+                        Score: {item.score}
+                      </span>
+                    </div>
+                    <div style={{ color: '#f8fafc', fontSize: '0.78rem', fontWeight: 700, marginBottom: '0.2rem' }}>
+                      {item.doc.title}
+                    </div>
+                    <div style={{ color: '#64748b', fontSize: '0.68rem', lineHeight: '1.3' }}>
+                      {item.matchedTokens.length > 0 ? (
+                        <span style={{ color: '#38bdf8' }}>Matched tokens: {item.matchedTokens.join(', ')}</span>
+                      ) : (
+                        <span style={{ color: '#ef4444' }}>0 exact token matches found</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* COLUMN 2: DENSE VECTOR SEARCH */}
+            <div style={{ background: '#0f172a', border: '1.5px solid #ec4899', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.5rem' }}>
+                <span style={{ color: '#ec4899', fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase' }}>
+                  2. Dense Vector Search
+                </span>
+                <span style={{ color: '#64748b', fontSize: '0.68rem', fontWeight: 700 }}>Neural Cosine Similarity</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {vectorRanked.slice(0, 3).map((item, idx) => (
+                  <div key={item.doc.id} style={{ background: '#090d16', border: `1px solid ${idx === 0 ? '#ec4899' : '#1e293b'}`, borderRadius: '8px', padding: '0.65rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                      <span style={{ color: idx === 0 ? '#ec4899' : '#94a3b8', fontSize: '0.75rem', fontWeight: 800 }}>
+                        Rank #{idx + 1}
+                      </span>
+                      <span style={{ color: '#ec4899', fontSize: '0.7rem', fontFamily: 'monospace', fontWeight: 700 }}>
+                        Cosine: {item.similarity}
+                      </span>
+                    </div>
+                    <div style={{ color: '#f8fafc', fontSize: '0.78rem', fontWeight: 700, marginBottom: '0.2rem' }}>
+                      {item.doc.title}
+                    </div>
+                    <div style={{ color: '#64748b', fontSize: '0.68rem', lineHeight: '1.3' }}>
+                      Semantic concepts: {item.doc.concepts.slice(0, 2).join(' • ')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* COLUMN 3: HYBRID SEARCH WITH RRF */}
+            <div style={{ background: '#130d2a', border: '1.5px solid #a855f7', borderRadius: '12px', padding: '1rem', boxShadow: '0 0 20px rgba(168,85,247,0.15)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid #2e1065', paddingBottom: '0.5rem' }}>
+                <span style={{ color: '#c084fc', fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase' }}>
+                  3. Hybrid Search (RRF Fused)
+                </span>
+                <span style={{ background: '#a855f725', color: '#c084fc', padding: '0.1rem 0.4rem', borderRadius: '3px', fontSize: '0.65rem', fontWeight: 800 }}>
+                  PRODUCTION GOLD
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {hybridRanked.slice(0, 3).map((item, idx) => (
+                  <div key={item.doc.id} style={{ background: idx === 0 ? '#1f133f' : '#090d16', border: `1.5px solid ${idx === 0 ? '#c084fc' : '#1e293b'}`, borderRadius: '8px', padding: '0.65rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                      <span style={{ color: idx === 0 ? '#c084fc' : '#94a3b8', fontSize: '0.75rem', fontWeight: 800 }}>
+                        Rank #{idx + 1} {idx === 0 && ' (Winner)'}
+                      </span>
+                      <span style={{ color: '#34d399', fontSize: '0.7rem', fontFamily: 'monospace', fontWeight: 800 }}>
+                        RRF: {item.rrfScore.toFixed(5)}
+                      </span>
+                    </div>
+                    <div style={{ color: '#ffffff', fontSize: '0.78rem', fontWeight: 800, marginBottom: '0.2rem' }}>
+                      {item.doc.title}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.65rem', color: '#94a3b8' }}>
+                      <span>BM25: Rank {item.bm25Rank || 'None'}</span>
+                      <span>•</span>
+                      <span>Vector: Rank {item.vecRank || 'None'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 1: RRF MATH CALCULATOR ─── */}
+      {activeTab === 1 && (
+        <div style={{ padding: '1.25rem' }}>
+          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '10px', padding: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <div style={{ color: '#c084fc', fontSize: '0.9rem', fontWeight: 800 }}>
+                Reciprocal Rank Fusion (RRF) Formula:
+              </div>
+              <div style={{ color: '#38bdf8', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700 }}>
+                Score(d) = Σ [ 1 / ( k + Rank_i(d) ) ]
+              </div>
+            </div>
+
+            <p style={{ color: '#94a3b8', fontSize: '0.78rem', lineHeight: '1.45', margin: '0 0 0.75rem' }}>
+              RRF solves the scale mismatch between BM25 scores (unbounded numbers like 14.8) and vector distances (normalized 0.0 to 1.0) by using pure ordinal rankings. The constant <code>k</code> (typically 60) prevents top-ranked outliers from dominating.
+            </p>
+
+            {/* Slider for k */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#090d16', padding: '0.65rem 1rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
+              <span style={{ color: '#cbd5e1', fontSize: '0.75rem', fontWeight: 700 }}>RRF Smoothing Factor (k = {rrfK}):</span>
+              <input
+                type="range"
+                min="10"
+                max="100"
+                step="5"
+                value={rrfK}
+                onChange={(e) => setRrfK(Number(e.target.value))}
+                style={{ flex: 1, accentColor: '#a855f7', cursor: 'pointer' }}
+              />
+              <span style={{ color: '#64748b', fontSize: '0.7rem', fontFamily: 'monospace' }}>Default: 60</span>
+            </div>
+          </div>
+
+          {/* Interactive Calculation Table */}
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.75rem' }}>
+              <thead>
+                <tr style={{ background: '#0f172a', borderBottom: '2px solid #1e293b' }}>
+                  <th style={{ padding: '0.65rem', color: '#94a3b8' }}>Document Title</th>
+                  <th style={{ padding: '0.65rem', color: '#38bdf8' }}>BM25 Rank (r1)</th>
+                  <th style={{ padding: '0.65rem', color: '#38bdf8' }}>1 / ({rrfK} + r1)</th>
+                  <th style={{ padding: '0.65rem', color: '#ec4899' }}>Vector Rank (r2)</th>
+                  <th style={{ padding: '0.65rem', color: '#ec4899' }}>1 / ({rrfK} + r2)</th>
+                  <th style={{ padding: '0.65rem', color: '#34d399', fontWeight: 800 }}>Total RRF Score</th>
+                  <th style={{ padding: '0.65rem', color: '#c084fc', fontWeight: 800 }}>Final Rank</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hybridRanked.map((item, idx) => {
+                  const term1 = item.bm25Rank ? (1 / (rrfK + item.bm25Rank)) : 0;
+                  const term2 = item.vecRank ? (1 / (rrfK + item.vecRank)) : 0;
+                  return (
+                    <tr key={item.doc.id} style={{ borderBottom: '1px solid #1e293b', background: idx === 0 ? '#1f133f' : 'transparent' }}>
+                      <td style={{ padding: '0.65rem', color: '#f8fafc', fontWeight: 700 }}>{item.doc.title}</td>
+                      <td style={{ padding: '0.65rem', color: '#38bdf8', fontFamily: 'monospace' }}>{item.bm25Rank || '-'}</td>
+                      <td style={{ padding: '0.65rem', color: '#94a3b8', fontFamily: 'monospace' }}>{term1.toFixed(5)}</td>
+                      <td style={{ padding: '0.65rem', color: '#ec4899', fontFamily: 'monospace' }}>{item.vecRank || '-'}</td>
+                      <td style={{ padding: '0.65rem', color: '#94a3b8', fontFamily: 'monospace' }}>{term2.toFixed(5)}</td>
+                      <td style={{ padding: '0.65rem', color: '#34d399', fontFamily: 'monospace', fontWeight: 800 }}>{item.rrfScore.toFixed(5)}</td>
+                      <td style={{ padding: '0.65rem', color: idx === 0 ? '#c084fc' : '#94a3b8', fontWeight: 800 }}>
+                        Rank #{idx + 1}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: TWO-STAGE RE-RANKING PIPELINE ─── */}
+      {activeTab === 2 && (
+        <div style={{ padding: '1.25rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0 0 1rem' }}>
+            Production enterprise search splits retrieval into two stages: fast candidate retrieval (Bi-Encoder) and deep precision re-ranking (Cross-Encoder):
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+            
+            {/* Stage 1: Fast Candidate Retrieval */}
+            <div style={{ background: '#0f172a', border: '1.5px solid #38bdf8', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ color: '#38bdf8', fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase' }}>
+                  Stage 1: Candidate Retrieval
+                </span>
+                <span style={{ background: '#38bdf820', color: '#38bdf8', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700 }}>
+                  ~15ms Latency
+                </span>
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: '0.78rem', marginBottom: '0.75rem', lineHeight: '1.4' }}>
+                <strong>Model:</strong> Bi-Encoder (Sparse BM25 + Dense Vectors)
+              </div>
+              <div style={{ background: '#090d16', padding: '0.65rem', borderRadius: '6px', border: '1px solid #1e293b', fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
+                <div style={{ color: '#f8fafc', fontWeight: 700, marginBottom: '0.2rem' }}>Mechanism:</div>
+                Query and documents are embedded separately into isolated vectors. High-speed cosine distance computes top 50 candidates from 1,000,000 documents.
+              </div>
+              <div style={{ color: '#34d399', fontSize: '0.7rem', fontWeight: 800 }}>
+                Output: Top 50 Chunks (High Recall)
+              </div>
+            </div>
+
+            {/* Stage 2: Deep Cross-Encoder Re-ranking */}
+            <div style={{ background: '#130d2a', border: '1.5px solid #a855f7', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ color: '#c084fc', fontWeight: 800, fontSize: '0.82rem', textTransform: 'uppercase' }}>
+                  Stage 2: Precision Re-ranking
+                </span>
+                <span style={{ background: '#a855f720', color: '#c084fc', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 700 }}>
+                  ~40ms Latency
+                </span>
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: '0.78rem', marginBottom: '0.75rem', lineHeight: '1.4' }}>
+                <strong>Model:</strong> Cross-Encoder (e.g. Cohere Rerank / BGE-Reranker)
+              </div>
+              <div style={{ background: '#090d16', padding: '0.65rem', borderRadius: '6px', border: '1px solid #1e293b', fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
+                <div style={{ color: '#f8fafc', fontWeight: 700, marginBottom: '0.2rem' }}>Mechanism:</div>
+                Query and candidate document are fed together into full transformer self-attention layers to compute deep token-to-token cross interactions.
+              </div>
+              <div style={{ color: '#34d399', fontSize: '0.7rem', fontWeight: 800 }}>
+                Output: Top 3 Gold Chunks (High Precision for LLM prompt)
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: FAILURE MODE MATRIX ─── */}
+      {activeTab === 3 && (
+        <div style={{ padding: '1.25rem' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0 0 1rem' }}>
+            Comparison matrix of retrieval methods across real-world enterprise query types:
+          </p>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.75rem' }}>
+              <thead>
+                <tr style={{ background: '#0f172a', borderBottom: '2px solid #1e293b' }}>
+                  <th style={{ padding: '0.7rem', color: '#94a3b8' }}>Query Type</th>
+                  <th style={{ padding: '0.7rem', color: '#94a3b8' }}>Example Query</th>
+                  <th style={{ padding: '0.7rem', color: '#38bdf8' }}>BM25 Keyword</th>
+                  <th style={{ padding: '0.7rem', color: '#ec4899' }}>Dense Vector</th>
+                  <th style={{ padding: '0.7rem', color: '#c084fc', fontWeight: 800 }}>Hybrid (RRF)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { type: 'Exact Product SKU', ex: 'SKU-89412-B battery pack', bm25: 'Excellent (100%)', vec: 'Fails (Blurs digits)', hybrid: 'Gold Standard (100%)' },
+                  { type: 'Synonyms & Paraphrasing', ex: 'automobile motor overhaul', bm25: 'Fails (0 matches)', vec: 'Excellent (95%)', hybrid: 'Gold Standard (98%)' },
+                  { type: 'Error Codes & Logs', ex: 'ERR_504_GATEWAY_TIMEOUT', bm25: 'Excellent (100%)', vec: 'Noisy (Tokenizer split)', hybrid: 'Gold Standard (100%)' },
+                  { type: 'Conceptual Questions', ex: 'how to stay warm in blizzards', bm25: 'Poor (Misses context)', vec: 'Excellent (92%)', hybrid: 'Gold Standard (95%)' },
+                  { type: 'Multi-lingual Search', ex: 'reparación de motor de coche', bm25: 'Fails (Language barrier)', vec: 'Excellent (Cross-lingual)', hybrid: 'Gold Standard (94%)' },
+                  { type: 'Negation Queries', ex: 'laptops without touchscreens', bm25: 'Moderate (Exact tokens)', vec: 'Fails (Embeds touchscreen)', hybrid: 'Best (With filter)' }
+                ].map((row, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid #1e293b' }}>
+                    <td style={{ padding: '0.7rem', color: '#f8fafc', fontWeight: 700 }}>{row.type}</td>
+                    <td style={{ padding: '0.7rem', color: '#94a3b8', fontFamily: 'monospace' }}>{row.ex}</td>
+                    <td style={{ padding: '0.7rem', color: row.bm25.includes('Fails') || row.bm25.includes('Poor') ? '#f87171' : '#38bdf8' }}>{row.bm25}</td>
+                    <td style={{ padding: '0.7rem', color: row.vec.includes('Fails') || row.vec.includes('Noisy') ? '#f87171' : '#ec4899' }}>{row.vec}</td>
+                    <td style={{ padding: '0.7rem', color: '#34d399', fontWeight: 800 }}>{row.hybrid}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
 // ─── MINI PROJECT EDITOR ───────────────────────────────────────────────────
 const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -10023,7 +10592,7 @@ sys.stdout = _stdout_capture
 };
 
 // Sequence of lesson IDs for next/prev navigation
-const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9', 'ai-2-p1', 'ai-3-1', 'ai-3-2', 'ai-3-3', 'ai-3-4', 'ai-3-5', 'ai-3-6', 'ai-3-7', 'ai-4-1', 'ai-4-2', 'ai-4-3', 'ai-4-4', 'ai-4-5', 'ai-4-6', 'ai-4-7', 'ai-4-8', 'ai-4-9', 'ai-5-1', 'ai-5-2', 'ai-5-3', 'ai-5-4'];
+const lessonOrder = ['ai-1-1', 'ai-1-2', 'ai-1-3', 'ai-1-4', 'ai-1-5', 'ai-2-1', 'ai-2-2', 'ai-2-3', 'ai-2-4', 'ai-2-5', 'ai-2-6', 'ai-2-7', 'ai-2-8', 'ai-2-9', 'ai-2-p1', 'ai-3-1', 'ai-3-2', 'ai-3-3', 'ai-3-4', 'ai-3-5', 'ai-3-6', 'ai-3-7', 'ai-4-1', 'ai-4-2', 'ai-4-3', 'ai-4-4', 'ai-4-5', 'ai-4-6', 'ai-4-7', 'ai-4-8', 'ai-4-9', 'ai-5-1', 'ai-5-2', 'ai-5-3', 'ai-5-4', 'ai-5-5'];
 
 export default function AILessonArticlePage() {
   const params = useParams();
@@ -10329,6 +10898,11 @@ export default function AILessonArticlePage() {
             {/* Vector Databases Diagram */}
             {lesson.diagram.type === 'vector_databases' && (
               <VectorDatabasesDiagram />
+            )}
+
+            {/* Semantic vs Keyword Search Arena Diagram */}
+            {lesson.diagram.type === 'semantic_vs_keyword' && (
+              <SemanticVsKeywordDiagram />
             )}
 
             {/* Industry Grid Diagram */}

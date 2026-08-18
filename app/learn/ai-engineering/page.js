@@ -207,7 +207,7 @@ const aiModules = [
       { id: 'ai-5-2', name: 'Building Custom Knowledge Bases', nodeType: 'star', status: 'active' },
       { id: 'ai-5-3', name: 'Generating Vector Embeddings', nodeType: 'concept', status: 'active' },
       { id: 'ai-5-4', name: 'Vector Databases (Chroma/Pinecone)', nodeType: 'concept', status: 'active' },
-      { id: 'ai-5-5', name: 'Semantic Search vs Keyword Search', nodeType: 'lightbulb', status: 'locked' },
+      { id: 'ai-5-5', name: 'Semantic Search vs Keyword Search', nodeType: 'lightbulb', status: 'active' },
       { id: 'ai-5-6', name: 'Complete Retrieval Pipeline', nodeType: 'star', status: 'locked' },
       { id: 'ai-5-7', name: 'Mini Project: PDF Question-Answering', nodeType: 'project', status: 'locked', isProject: true },
     ]
