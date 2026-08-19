@@ -3978,7 +3978,867 @@ const DataSplitsDiagram = () => {
   );
 };
 
-// ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
+// ─── OVERFITTING & UNDERFITTING INTERACTIVE STUDIO DIAGRAM ─────────────────
+const OverfittingUnderfittingDiagram = () => {
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Tab 0: Interactive Mode & Hover
+  const [selectedModelType, setSelectedModelType] = useState('all'); // 'all' | 'classification' | 'regression'
+  const [hoveredCard, setHoveredCard] = useState(null);
+
+  // Tab 1: Learning Curve Epoch Scrubber
+  const [currentEpoch, setCurrentEpoch] = useState(45);
+  const [isEpochPlaying, setIsEpochPlaying] = useState(false);
+
+  // Tab 2: Polynomial Degree Slider
+  const [polyDegree, setPolyDegree] = useState(2);
+
+  // Simulated scatter points for Classification
+  const classPoints = [
+    // Class A (Navy Blue - Upper cluster)
+    { x: 35, y: 35, cls: 0 }, { x: 55, y: 25, cls: 0 }, { x: 75, y: 38, cls: 0 },
+    { x: 95, y: 30, cls: 0 }, { x: 115, y: 40, cls: 0 }, { x: 135, y: 28, cls: 0 },
+    { x: 155, y: 36, cls: 0 }, { x: 60, y: 55, cls: 0 }, { x: 125, y: 50, cls: 0 },
+    { x: 90, y: 60, cls: 0 }, { x: 145, y: 62, cls: 0 }, { x: 45, y: 70, cls: 0 },
+    // Class B (Amber - Lower cluster with a couple boundary overlaps)
+    { x: 30, y: 105, cls: 1 }, { x: 50, y: 120, cls: 1 }, { x: 70, y: 110, cls: 1 },
+    { x: 90, y: 125, cls: 1 }, { x: 110, y: 115, cls: 1 }, { x: 130, y: 122, cls: 1 },
+    { x: 150, y: 110, cls: 1 }, { x: 165, y: 128, cls: 1 }, { x: 65, y: 90, cls: 1 },
+    { x: 135, y: 95, cls: 1 }, { x: 100, y: 85, cls: 1 },
+    // Noise/Outliers for overfitting
+    { x: 80, y: 88, cls: 0 }, { x: 120, y: 78, cls: 1 }
+  ];
+
+  // Simulated scatter points for Regression (U-shaped parabola with noise)
+  const regPoints = [
+    { x: 25, y: 88 }, { x: 35, y: 100 }, { x: 45, y: 112 }, { x: 55, y: 120 },
+    { x: 65, y: 126 }, { x: 75, y: 130 }, { x: 85, y: 128 }, { x: 95, y: 122 },
+    { x: 105, y: 115 }, { x: 115, y: 104 }, { x: 125, y: 95 }, { x: 135, y: 86 },
+    { x: 145, y: 78 }, { x: 155, y: 70 },
+    // Add jitter
+    { x: 30, y: 95 }, { x: 50, y: 108 }, { x: 70, y: 135 }, { x: 90, y: 116 },
+    { x: 110, y: 120 }, { x: 130, y: 90 }, { x: 150, y: 82 }
+  ];
+
+  // Epoch player simulation
+  const handlePlayEpochs = () => {
+    setIsEpochPlaying(true);
+    setCurrentEpoch(1);
+    let ep = 1;
+    const interval = setInterval(() => {
+      ep += 2;
+      if (ep <= 100) {
+        setCurrentEpoch(ep);
+        if (ep === 45) {
+          triggerConfetti(0.5, 0.6);
+        }
+      } else {
+        clearInterval(interval);
+        setIsEpochPlaying(false);
+      }
+    }, 80);
+  };
+
+  // Compute loss curves at given epoch
+  const computeLosses = (ep) => {
+    // Training loss: monotonically drops from 0.95 -> 0.03
+    const trainLoss = (0.95 * Math.exp(-ep / 22) + 0.03).toFixed(3);
+    // Validation loss: drops from 1.10 -> 0.18 at ep=45, then rises to 0.85
+    let valLoss;
+    if (ep <= 45) {
+      valLoss = (0.18 + 0.92 * Math.pow((45 - ep) / 45, 1.8)).toFixed(3);
+    } else {
+      valLoss = (0.18 + 0.67 * Math.pow((ep - 45) / 55, 1.9)).toFixed(3);
+    }
+    return { trainLoss, valLoss };
+  };
+
+  const { trainLoss: curTrainLoss, valLoss: curValLoss } = computeLosses(currentEpoch);
+
+  // Polynomial degree metrics
+  const getPolyMetrics = (deg) => {
+    if (deg === 1) return { trainErr: '0.42 (High)', valErr: '0.45 (High)', status: 'Underfitting (High Bias)', color: '#dc2626' };
+    if (deg === 2 || deg === 3) return { trainErr: '0.08 (Low)', valErr: '0.09 (Optimal)', status: 'Right Fit (Optimal Generalization)', color: '#16a34a' };
+    if (deg >= 4 && deg <= 7) return { trainErr: '0.04 (Very Low)', valErr: '0.14 (Slight Overfit)', status: 'Moderate Complexity', color: '#d97706' };
+    return { trainErr: '0.00 (Zero Error!)', valErr: '0.88 (Catastrophic!)', status: 'Severe Overfitting (High Variance)', color: '#dc2626' };
+  };
+
+  const polyMetrics = getPolyMetrics(polyDegree);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #c2d4f2',
+      borderRadius: '20px',
+      padding: '1.75rem',
+      margin: '2rem 0',
+      boxShadow: '0 8px 30px rgba(0, 31, 84, 0.06)',
+      overflow: 'hidden'
+    }}>
+      {/* Header & Tabs */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f0f4fc',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{
+              background: '#f0f4fc',
+              color: '#001f54',
+              fontSize: '0.72rem',
+              fontWeight: 900,
+              padding: '0.25rem 0.65rem',
+              borderRadius: '6px',
+              border: '1px solid #c2d4f2'
+            }}>
+              MODEL CAPACITY & GENERALIZATION
+            </span>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#001f54', margin: 0 }}>
+              Overfitting vs. Right Fit vs. Underfitting
+            </h3>
+          </div>
+          <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0.35rem 0 0' }}>
+            Interactive 2×3 visual geometry matrix, learning loss curves, and early stopping checkpoint arena.
+          </p>
+        </div>
+
+        {/* Tab Controls */}
+        <div style={{
+          display: 'flex',
+          gap: '0.35rem',
+          background: '#f0f4fc',
+          padding: '0.35rem',
+          borderRadius: '12px',
+          border: '1.5px solid #c2d4f2',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { label: '2×3 Geometry Matrix', tab: 0 },
+            { label: 'Learning Curves & Early Stopping', tab: 1 },
+            { label: 'Polynomial Morph Simulator', tab: 2 },
+            { label: 'Remedies & Regularization', tab: 3 }
+          ].map((t) => (
+            <button
+              key={t.tab}
+              onClick={() => setActiveTab(t.tab)}
+              style={{
+                padding: '0.45rem 0.9rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === t.tab ? '#001f54' : 'transparent',
+                color: activeTab === t.tab ? '#ffffff' : '#001f54',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: activeTab === t.tab ? '0 3px 10px rgba(0,31,84,0.25)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 0: 2x3 GEOMETRY MATRIX (MATCHING USER'S IMAGE 1) ─── */}
+      {activeTab === 0 && (
+        <div>
+          {/* Sub-Filter Controls */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              {[
+                { id: 'all', label: 'Show Both (2×3 Matrix)' },
+                { id: 'classification', label: 'Classification Only' },
+                { id: 'regression', label: 'Regression Only' }
+              ].map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => setSelectedModelType(b.id)}
+                  style={{
+                    padding: '0.35rem 0.8rem',
+                    borderRadius: '8px',
+                    border: `1.5px solid ${selectedModelType === b.id ? '#001f54' : '#cbd5e1'}`,
+                    background: selectedModelType === b.id ? '#001f54' : '#ffffff',
+                    color: selectedModelType === b.id ? '#ffffff' : '#475569',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+
+            <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
+              Hover over any plot to inspect its decision boundary and mathematical properties.
+            </span>
+          </div>
+
+          {/* 2x3 Grid Container */}
+          <div style={{
+            background: '#f8fafc',
+            border: '2px solid #001f54',
+            borderRadius: '16px',
+            padding: '1.5rem 1rem',
+            boxShadow: '0 4px 16px rgba(0,31,84,0.04)'
+          }}>
+
+            {/* Column Headers */}
+            <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr 1fr 1fr', gap: '1rem', marginBottom: '0.75rem', textAlign: 'center' }}>
+              <div />
+              <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#dc2626' }}>Overfitting</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#16a34a' }}>Right Fit</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#2563eb' }}>Underfitting</div>
+            </div>
+
+            {/* ─── ROW 1: CLASSIFICATION ─── */}
+            {(selectedModelType === 'all' || selectedModelType === 'classification') && (
+              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr 1fr 1fr', gap: '1rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#001f54', paddingLeft: '0.5rem' }}>
+                  Classification
+                </div>
+
+                {/* 1. Overfitting Classification */}
+                <div
+                  onMouseEnter={() => setHoveredCard('clf-over')}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  style={{
+                    background: '#ffffff',
+                    border: `1.5px solid ${hoveredCard === 'clf-over' ? '#dc2626' : '#cbd5e1'}`,
+                    borderRadius: '12px',
+                    padding: '0.65rem',
+                    boxShadow: hoveredCard === 'clf-over' ? '0 4px 14px rgba(220,38,38,0.15)' : 'none',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <svg width="100%" height="150" viewBox="0 0 190 150">
+                    {/* Axis lines */}
+                    <line x1="20" y1="15" x2="20" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+                    <line x1="20" y1="135" x2="180" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+
+                    {/* Data Points */}
+                    {classPoints.map((p, idx) => (
+                      <circle
+                        key={`cp1-${idx}`}
+                        cx={p.x}
+                        cy={p.y}
+                        r="4"
+                        fill={p.cls === 0 ? '#1e40af' : '#d97706'}
+                      />
+                    ))}
+
+                    {/* Overfitting Serpentine Boundary (Wiggles around outliers) */}
+                    <path
+                      d="M 22 35 Q 35 55, 45 48 T 65 72 Q 72 105, 82 82 T 95 62 Q 105 105, 118 70 Q 128 55, 140 75 Q 155 90, 172 65"
+                      fill="none"
+                      stroke="#0f172a"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#dc2626', textAlign: 'center', marginTop: '0.25rem' }}>
+                    Complex Wiggly Boundary (High Var)
+                  </div>
+                </div>
+
+                {/* 2. Right Fit Classification */}
+                <div
+                  onMouseEnter={() => setHoveredCard('clf-right')}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  style={{
+                    background: '#ffffff',
+                    border: `1.5px solid ${hoveredCard === 'clf-right' ? '#16a34a' : '#cbd5e1'}`,
+                    borderRadius: '12px',
+                    padding: '0.65rem',
+                    boxShadow: hoveredCard === 'clf-right' ? '0 4px 14px rgba(22,163,74,0.15)' : 'none',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <svg width="100%" height="150" viewBox="0 0 190 150">
+                    {/* Axis lines */}
+                    <line x1="20" y1="15" x2="20" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+                    <line x1="20" y1="135" x2="180" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+
+                    {/* Data Points */}
+                    {classPoints.map((p, idx) => (
+                      <circle
+                        key={`cp2-${idx}`}
+                        cx={p.x}
+                        cy={p.y}
+                        r="4"
+                        fill={p.cls === 0 ? '#1e40af' : '#d97706'}
+                      />
+                    ))}
+
+                    {/* Right Fit Smooth Parabolic Curve */}
+                    <path
+                      d="M 22 95 Q 95 38, 170 120"
+                      fill="none"
+                      stroke="#0f172a"
+                      strokeWidth="2.2"
+                    />
+                  </svg>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', textAlign: 'center', marginTop: '0.25rem' }}>
+                    Smooth Non-Linear Curve (Optimal)
+                  </div>
+                </div>
+
+                {/* 3. Underfitting Classification */}
+                <div
+                  onMouseEnter={() => setHoveredCard('clf-under')}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  style={{
+                    background: '#ffffff',
+                    border: `1.5px solid ${hoveredCard === 'clf-under' ? '#2563eb' : '#cbd5e1'}`,
+                    borderRadius: '12px',
+                    padding: '0.65rem',
+                    boxShadow: hoveredCard === 'clf-under' ? '0 4px 14px rgba(37,99,235,0.15)' : 'none',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <svg width="100%" height="150" viewBox="0 0 190 150">
+                    {/* Axis lines */}
+                    <line x1="20" y1="15" x2="20" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+                    <line x1="20" y1="135" x2="180" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+
+                    {/* Data Points */}
+                    {classPoints.map((p, idx) => (
+                      <circle
+                        key={`cp3-${idx}`}
+                        cx={p.x}
+                        cy={p.y}
+                        r="4"
+                        fill={p.cls === 0 ? '#1e40af' : '#d97706'}
+                      />
+                    ))}
+
+                    {/* Underfitting Straight Line */}
+                    <line
+                      x1="24"
+                      y1="55"
+                      x2="175"
+                      y2="105"
+                      stroke="#0f172a"
+                      strokeWidth="2.2"
+                    />
+                  </svg>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#2563eb', textAlign: 'center', marginTop: '0.25rem' }}>
+                    Rigid Straight Line (High Bias)
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ─── ROW 2: REGRESSION ─── */}
+            {(selectedModelType === 'all' || selectedModelType === 'regression') && (
+              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr 1fr 1fr', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#001f54', paddingLeft: '0.5rem' }}>
+                  Regression
+                </div>
+
+                {/* 1. Overfitting Regression */}
+                <div
+                  onMouseEnter={() => setHoveredCard('reg-over')}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  style={{
+                    background: '#ffffff',
+                    border: `1.5px solid ${hoveredCard === 'reg-over' ? '#dc2626' : '#cbd5e1'}`,
+                    borderRadius: '12px',
+                    padding: '0.65rem',
+                    boxShadow: hoveredCard === 'reg-over' ? '0 4px 14px rgba(220,38,38,0.15)' : 'none',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <svg width="100%" height="150" viewBox="0 0 190 150">
+                    {/* Axis lines */}
+                    <line x1="20" y1="15" x2="20" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+                    <line x1="20" y1="135" x2="180" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+
+                    {/* Data Points */}
+                    {regPoints.map((p, idx) => (
+                      <circle
+                        key={`rp1-${idx}`}
+                        cx={p.x}
+                        cy={p.y}
+                        r="3.5"
+                        fill="#d97706"
+                      />
+                    ))}
+
+                    {/* Overfitting Oscillating Polynomial */}
+                    <path
+                      d="M 28 85 Q 35 110, 42 98 T 58 122 T 74 132 T 90 114 T 106 124 T 122 92 T 138 90 T 154 62 L 160 80"
+                      fill="none"
+                      stroke="#0284c7"
+                      strokeWidth="2.2"
+                    />
+                  </svg>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#dc2626', textAlign: 'center', marginTop: '0.25rem' }}>
+                    Wild Oscillations (Memorizes Noise)
+                  </div>
+                </div>
+
+                {/* 2. Right Fit Regression */}
+                <div
+                  onMouseEnter={() => setHoveredCard('reg-right')}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  style={{
+                    background: '#ffffff',
+                    border: `1.5px solid ${hoveredCard === 'reg-right' ? '#16a34a' : '#cbd5e1'}`,
+                    borderRadius: '12px',
+                    padding: '0.65rem',
+                    boxShadow: hoveredCard === 'reg-right' ? '0 4px 14px rgba(22,163,74,0.15)' : 'none',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <svg width="100%" height="150" viewBox="0 0 190 150">
+                    {/* Axis lines */}
+                    <line x1="20" y1="15" x2="20" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+                    <line x1="20" y1="135" x2="180" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+
+                    {/* Data Points */}
+                    {regPoints.map((p, idx) => (
+                      <circle
+                        key={`rp2-${idx}`}
+                        cx={p.x}
+                        cy={p.y}
+                        r="3.5"
+                        fill="#d97706"
+                      />
+                    ))}
+
+                    {/* Right Fit Clean Parabola */}
+                    <path
+                      d="M 28 92 Q 80 135, 160 68"
+                      fill="none"
+                      stroke="#0284c7"
+                      strokeWidth="2.4"
+                    />
+                  </svg>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', textAlign: 'center', marginTop: '0.25rem' }}>
+                    Quadratic Parabola (Captures Signal)
+                  </div>
+                </div>
+
+                {/* 3. Underfitting Regression */}
+                <div
+                  onMouseEnter={() => setHoveredCard('reg-under')}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  style={{
+                    background: '#ffffff',
+                    border: `1.5px solid ${hoveredCard === 'reg-under' ? '#2563eb' : '#cbd5e1'}`,
+                    borderRadius: '12px',
+                    padding: '0.65rem',
+                    boxShadow: hoveredCard === 'reg-under' ? '0 4px 14px rgba(37,99,235,0.15)' : 'none',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <svg width="100%" height="150" viewBox="0 0 190 150">
+                    {/* Axis lines */}
+                    <line x1="20" y1="15" x2="20" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+                    <line x1="20" y1="135" x2="180" y2="135" stroke="#0f172a" strokeWidth="1.8" />
+
+                    {/* Data Points */}
+                    {regPoints.map((p, idx) => (
+                      <circle
+                        key={`rp3-${idx}`}
+                        cx={p.x}
+                        cy={p.y}
+                        r="3.5"
+                        fill="#d97706"
+                      />
+                    ))}
+
+                    {/* Underfitting Straight Line */}
+                    <line
+                      x1="28"
+                      y1="115"
+                      x2="165"
+                      y2="92"
+                      stroke="#0284c7"
+                      strokeWidth="2.2"
+                    />
+                  </svg>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#2563eb', textAlign: 'center', marginTop: '0.25rem' }}>
+                    Straight Linear Fit (Misses Curve)
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Diagnostic Footer Info */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginTop: '1.25rem', borderTop: '1px solid #cbd5e1', paddingTop: '1rem' }}>
+              <div style={{ background: '#fef2f2', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #fecaca', fontSize: '0.74rem', color: '#991b1b' }}>
+                <strong>Overfitting Diagnosis:</strong> Low Train Loss + High Val Loss. Fix: Add L1/L2 regularization, dropout, collect more data.
+              </div>
+              <div style={{ background: '#f0fdf4', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #bbf7d0', fontSize: '0.74rem', color: '#166534' }}>
+                <strong>Right Fit Diagnosis:</strong> Low Train Loss + Low Val Loss. Optimal generalization to new unseen production inputs.
+              </div>
+              <div style={{ background: '#eff6ff', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #bfdbfe', fontSize: '0.74rem', color: '#1e40af' }}>
+                <strong>Underfitting Diagnosis:</strong> High Train Loss + High Val Loss. Fix: Increase capacity, add polynomial features, reduce regularization.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 1: LEARNING CURVES & EARLY STOPPING (MATCHING USER'S IMAGE 2) ─── */}
+      {activeTab === 1 && (
+        <div>
+          {/* Controls & Epoch Scrubber */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '260px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#001f54' }}>
+                Epoch: <span style={{ color: '#2563eb' }}>{currentEpoch} / 100</span>
+              </span>
+              <input
+                type="range"
+                min="1"
+                max="100"
+                value={currentEpoch}
+                onChange={(e) => setCurrentEpoch(Number(e.target.value))}
+                style={{ flex: 1, accentColor: '#001f54', cursor: 'pointer' }}
+              />
+            </div>
+
+            <button
+              onClick={handlePlayEpochs}
+              disabled={isEpochPlaying}
+              style={{
+                padding: '0.45rem 1.1rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: isEpochPlaying ? '#94a3b8' : '#001f54',
+                color: '#ffffff',
+                fontSize: '0.78rem',
+                fontWeight: 900,
+                cursor: isEpochPlaying ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <IconSparkles size={14} /> {isEpochPlaying ? 'Training Epochs...' : 'Simulate Training Run'}
+            </button>
+          </div>
+
+          {/* SVG Learning Curve Canvas */}
+          <div style={{
+            background: '#ffffff',
+            border: '2px solid #001f54',
+            borderRadius: '16px',
+            padding: '1.5rem 1.25rem',
+            boxShadow: '0 4px 16px rgba(0,31,84,0.04)',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
+              <svg width="640" height="320" viewBox="0 0 640 320" style={{ maxWidth: '100%' }}>
+                {/* ─── AXES ─── */}
+                <line x1="70" y1="30" x2="70" y2="260" stroke="#0f172a" strokeWidth="2.5" />
+                <line x1="70" y1="260" x2="580" y2="260" stroke="#0f172a" strokeWidth="2.5" />
+
+                {/* Axis Labels */}
+                <text x="25" y="145" fontSize="16" fontWeight="900" fill="#0f172a" textAnchor="middle">
+                  Loss
+                </text>
+                <text x="325" y="295" fontSize="15" fontWeight="900" fill="#0f172a" textAnchor="middle">
+                  Epochs
+                </text>
+
+                {/* ─── REGION LABELS AT TOP ─── */}
+                <text x="175" y="25" fontSize="16" fontWeight="900" fill="#001f54" textAnchor="middle">
+                  Underfitting
+                </text>
+                <text x="430" y="25" fontSize="16" fontWeight="900" fill="#dc2626" textAnchor="middle">
+                  Overfitting
+                </text>
+
+                {/* ─── VERTICAL DASHED DIVIDING LINE AT EPOCH 45 ─── */}
+                <line
+                  x1="300"
+                  y1="35"
+                  x2="300"
+                  y2="260"
+                  stroke="#0f172a"
+                  strokeWidth="2"
+                  strokeDasharray="6 6"
+                />
+
+                {/* Early Stopping Pointer & Curved Arrow */}
+                <path
+                  d="M 215 295 Q 260 305, 296 272"
+                  fill="none"
+                  stroke="#0f172a"
+                  strokeWidth="2"
+                  markerEnd="url(#arrowhead)"
+                />
+                <text x="135" y="295" fontSize="14" fontWeight="900" fill="#0f172a">
+                  early stopping
+                </text>
+
+                {/* ─── BLUE TRAINING LOSS CURVE ─── */}
+                <path
+                  d="M 90 70 Q 150 170, 260 215 T 560 240"
+                  fill="none"
+                  stroke="#0284c7"
+                  strokeWidth="3.5"
+                />
+                <text x="575" y="244" fontSize="14" fontWeight="900" fill="#0284c7">
+                  training
+                </text>
+
+                {/* ─── ORANGE VALIDATION LOSS CURVE ─── */}
+                <path
+                  d="M 90 55 Q 180 150, 300 160 Q 430 165, 560 95"
+                  fill="none"
+                  stroke="#ea580c"
+                  strokeWidth="3.5"
+                />
+                <text x="575" y="98" fontSize="14" fontWeight="900" fill="#ea580c">
+                  validation
+                </text>
+
+                {/* ─── CURRENT SCRUBBER POSITION LINE & DOTS ─── */}
+                {(() => {
+                  const scrubX = 90 + ((currentEpoch - 1) / 99) * 470;
+                  return (
+                    <g>
+                      <line
+                        x1={scrubX}
+                        y1="35"
+                        x2={scrubX}
+                        y2="260"
+                        stroke="#4f46e5"
+                        strokeWidth="1.5"
+                        strokeDasharray="3 3"
+                      />
+                      <circle cx={scrubX} cy={260} r="5" fill="#4f46e5" />
+                    </g>
+                  );
+                })()}
+              </svg>
+            </div>
+
+            {/* Live Metrics at Current Epoch */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '1rem',
+              marginTop: '1rem',
+              borderTop: '1px solid #cbd5e1',
+              paddingTop: '1rem'
+            }}>
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369a1', textTransform: 'uppercase' }}>Training Loss</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0284c7' }}>{curTrainLoss}</div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Continues dropping asymptotically</div>
+              </div>
+
+              <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '10px', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#c2410c', textTransform: 'uppercase' }}>Validation Loss</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#ea580c' }}>{curValLoss}</div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Minimum achieved at Epoch 45</div>
+              </div>
+
+              <div style={{
+                background: currentEpoch < 40 ? '#eff6ff' : currentEpoch <= 50 ? '#ecfdf5' : '#fef2f2',
+                border: `1.5px solid ${currentEpoch < 40 ? '#93c5fd' : currentEpoch <= 50 ? '#6ee7b7' : '#fca5a5'}`,
+                borderRadius: '10px',
+                padding: '0.75rem',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 900, color: currentEpoch < 40 ? '#1e40af' : currentEpoch <= 50 ? '#065f46' : '#991b1b', textTransform: 'uppercase' }}>
+                  Current Zone Status
+                </div>
+                <div style={{ fontSize: '0.86rem', fontWeight: 900, color: currentEpoch < 40 ? '#1e40af' : currentEpoch <= 50 ? '#047857' : '#dc2626', marginTop: '0.2rem' }}>
+                  {currentEpoch < 40 && 'Underfitting (Keep Training)'}
+                  {currentEpoch >= 40 && currentEpoch <= 50 && 'Optimal Early Stopping Point!'}
+                  {currentEpoch > 50 && 'Overfitting! (Learning Noise)'}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '0.2rem' }}>
+                  {currentEpoch < 40 && 'Model is still improving on validation data.'}
+                  {currentEpoch >= 40 && currentEpoch <= 50 && 'Validation loss is at its lowest global point.'}
+                  {currentEpoch > 50 && 'Generalization is degrading as model memorizes noise.'}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: POLYNOMIAL DEGREE MORPH SIMULATOR ─── */}
+      {activeTab === 2 && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
+              <span style={{ fontSize: '0.84rem', fontWeight: 900, color: '#001f54' }}>
+                Polynomial Degree: <span style={{ color: polyMetrics.color }}>d = {polyDegree}</span>
+              </span>
+              <input
+                type="range"
+                min="1"
+                max="12"
+                value={polyDegree}
+                onChange={(e) => setPolyDegree(Number(e.target.value))}
+                style={{ flex: 1, accentColor: '#001f54', cursor: 'pointer' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              {[
+                { deg: 1, label: 'Deg 1 (Underfit)' },
+                { deg: 2, label: 'Deg 2 (Right Fit)' },
+                { deg: 12, label: 'Deg 12 (Overfit)' }
+              ].map((b) => (
+                <button
+                  key={b.deg}
+                  onClick={() => setPolyDegree(b.deg)}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '8px',
+                    border: `1.5px solid ${polyDegree === b.deg ? '#001f54' : '#cbd5e1'}`,
+                    background: polyDegree === b.deg ? '#001f54' : '#ffffff',
+                    color: polyDegree === b.deg ? '#ffffff' : '#475569',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Morph Canvas */}
+          <div style={{
+            background: '#ffffff',
+            border: '2px solid #001f54',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            boxShadow: '0 4px 16px rgba(0,31,84,0.04)',
+            marginBottom: '1.25rem'
+          }}>
+            <svg width="100%" height="220" viewBox="0 0 600 220">
+              {/* Axes */}
+              <line x1="40" y1="20" x2="40" y2="190" stroke="#0f172a" strokeWidth="2" />
+              <line x1="40" y1="190" x2="570" y2="190" stroke="#0f172a" strokeWidth="2" />
+
+              {/* Data points */}
+              {regPoints.map((p, idx) => (
+                <circle
+                  key={`morp-${idx}`}
+                  cx={p.x * 3.4}
+                  cy={p.y * 1.2}
+                  r="4"
+                  fill="#d97706"
+                />
+              ))}
+
+              {/* Dynamic Polynomial Curve */}
+              {polyDegree === 1 && (
+                <line x1="80" y1="145" x2="540" y2="105" stroke="#0284c7" strokeWidth="3" />
+              )}
+              {polyDegree === 2 && (
+                <path d="M 80 115 Q 260 170, 540 85" fill="none" stroke="#16a34a" strokeWidth="3.5" />
+              )}
+              {polyDegree === 3 && (
+                <path d="M 80 118 Q 230 168, 380 145 T 540 82" fill="none" stroke="#16a34a" strokeWidth="3.2" />
+              )}
+              {polyDegree >= 4 && polyDegree <= 7 && (
+                <path d="M 80 112 Q 150 140, 220 160 Q 300 130, 380 155 Q 460 110, 540 75" fill="none" stroke="#d97706" strokeWidth="3" />
+              )}
+              {polyDegree > 7 && (
+                <path d="M 75 95 Q 110 165, 140 120 T 210 170 T 280 130 T 350 165 T 420 100 T 480 160 T 545 60" fill="none" stroke="#dc2626" strokeWidth="3" />
+              )}
+            </svg>
+
+            {/* Live Diagnosis Bar */}
+            <div style={{
+              background: '#f8fafc',
+              border: `1.5px solid ${polyMetrics.color}`,
+              borderRadius: '12px',
+              padding: '0.85rem 1.25rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+              marginTop: '0.75rem'
+            }}>
+              <div>
+                <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800 }}>DIAGNOSIS:</span>
+                <span style={{ fontSize: '0.88rem', fontWeight: 900, color: polyMetrics.color, marginLeft: '0.4rem' }}>
+                  {polyMetrics.status}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.78rem', fontWeight: 800 }}>
+                <span style={{ color: '#001f54' }}>Train MSE: <strong>{polyMetrics.trainErr}</strong></span>
+                <span style={{ color: polyMetrics.color }}>Test MSE: <strong>{polyMetrics.valErr}</strong></span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: REMEDIES & REGULARIZATION MATRIX ─── */}
+      {activeTab === 3 && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            
+            {/* Fixing Underfitting Card */}
+            <div style={{ background: '#eff6ff', border: '2px solid #3b82f6', borderRadius: '14px', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#1e40af', fontWeight: 900, fontSize: '0.88rem', marginBottom: '0.6rem' }}>
+                How to Fix UNDERFITTING (High Bias)
+              </div>
+              <ul style={{ fontSize: '0.76rem', color: '#1e3a8a', lineHeight: '1.6', margin: '0 0 0.85rem', paddingLeft: '1.2rem' }}>
+                <li><strong>Increase Model Complexity:</strong> Switch to a non-linear algorithm (e.g. Random Forest, Neural Network, higher polynomial degree).</li>
+                <li><strong>Feature Engineering:</strong> Add interaction features (x1 * x2), polynomial terms (x^2), or domain-specific indicators.</li>
+                <li><strong>Reduce Regularization:</strong> Decrease alpha/lambda penalties so the model is free to fit the underlying curvature.</li>
+              </ul>
+              <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '0.65rem', fontFamily: 'Consolas, monospace', fontSize: '0.72rem', color: '#1e40af', lineHeight: '1.4' }}>
+                <div># Fix: Increase capacity & add features</div>
+                <div>model = RandomForestRegressor(n_estimators=100)</div>
+              </div>
+            </div>
+
+            {/* Fixing Overfitting Card */}
+            <div style={{ background: '#fef2f2', border: '2px solid #ef4444', borderRadius: '14px', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#991b1b', fontWeight: 900, fontSize: '0.88rem', marginBottom: '0.6rem' }}>
+                How to Fix OVERFITTING (High Variance)
+              </div>
+              <ul style={{ fontSize: '0.76rem', color: '#7f1d1d', lineHeight: '1.6', margin: '0 0 0.85rem', paddingLeft: '1.2rem' }}>
+                <li><strong>L1 / L2 Regularization:</strong> Apply Ridge (L2 penalty) to shrink weights or Lasso (L1 penalty) to zero out useless features.</li>
+                <li><strong>Collect More Training Data:</strong> More data dilutes sample noise and exposes the true underlying distribution.</li>
+                <li><strong>Early Stopping & Pruning:</strong> Halt training when validation loss stops improving; limit decision tree max_depth.</li>
+              </ul>
+              <div style={{ background: '#ffffff', border: '1px solid #fca5a5', borderRadius: '8px', padding: '0.65rem', fontFamily: 'Consolas, monospace', fontSize: '0.72rem', color: '#991b1b', lineHeight: '1.4' }}>
+                <div># Fix: Add L2 Ridge penalty</div>
+                <div>model = Ridge(alpha=1.0) # Shrinks w → 0</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 const lessonOrder = ['ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1'];
 
 export default function MLLessonArticlePage() {
@@ -4128,6 +4988,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'training_val_test_splits' && (
               <DataSplitsDiagram />
+            )}
+            {lesson.diagram.type === 'overfitting_underfitting' && (
+              <OverfittingUnderfittingDiagram />
             )}
           </div>
         )}

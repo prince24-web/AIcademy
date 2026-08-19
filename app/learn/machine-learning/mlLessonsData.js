@@ -841,8 +841,156 @@ export const mlLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! When you tune hyperparameters to maximize performance on the test set, the test set is no longer an independent, unbiased measure of real-world generalization—it has been contaminated by your tuning choices.'
     }
+  },
+
+  'ml-1-7': {
+    id: 'ml-1-7',
+    title: 'Overfitting & Underfitting',
+    subtitle: 'Mastering model capacity, polynomial complexity, training vs validation loss curves, early stopping, and regularization techniques.',
+    duration: '18 min read',
+    level: 'Beginner',
+    module: 'Module 1: ML Fundamentals',
+    badgeText: 'MODEL GENERALIZATION',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Understand the Goldilocks dilemma in machine learning: finding the sweet spot between model simplicity and complexity.',
+      'Define Underfitting (High Bias): when a model is too rigid to capture the true underlying data patterns.',
+      'Define Overfitting (High Variance): when a model memorizes random statistical noise and outliers in the training set.',
+      'Recognize visual geometric symptoms in both Classification (decision boundary shapes) and Regression (curve oscillations).',
+      'Analyze Loss vs Epochs learning curves to identify the inflection point where validation loss begins to diverge (Early Stopping).',
+      'Master industry techniques to fix Underfitting (boost capacity, engineer features) and Overfitting (L1/L2 regularization, more data, early stopping).'
+    ],
+
+    sections: [
+      {
+        heading: 'The Goldilocks Dilemma in Machine Learning',
+        paragraphs: [
+          'The ultimate goal of any machine learning algorithm is generalization: performing accurately on new, unseen data from the real world.',
+          'However, models frequently fall into one of two dangerous failure modes:',
+          '1. Underfitting: The model is too simple, rigid, or constrained. It fails to learn the underlying relationships in the training data and performs poorly on both training and test data.',
+          '2. Overfitting: The model is overly complex with excessive flexibility. It fits the training data almost perfectly by memorizing random noise, outliers, and spurious coincidences, but fails catastrophically on new data.',
+          '3. The Right Fit (Optimal): The model captures the true underlying signal while ignoring random noise, achieving high accuracy on both training and new test data.'
+        ]
+      },
+      {
+        heading: 'Underfitting (Too Simple): High Bias',
+        paragraphs: [
+          'Underfitting occurs when a model lacks sufficient expressive power (capacity) to represent the data distribution.',
+          '• In Regression: Attempting to fit a curved, non-linear parabola with a rigid straight line (Degree 1 polynomial). The line cuts straight across the points with high residual errors everywhere.',
+          '• In Classification: Attempting to separate non-linearly distributed classes with a simple linear boundary line.',
+          '• Key Diagnostic Symptom: High Training Error AND High Validation/Test Error.',
+          '• Remedies for Underfitting:',
+          '  - Use a more powerful, non-linear model architecture (e.g. increase polynomial degree, use Random Forest instead of Linear Regression, deepen neural network).',
+          '  - Add more informative features or engineer interaction terms (e.g. x_1 * x_2, x^2).',
+          '  - Decrease regularization strength (reduce alpha or weight decay).'
+        ]
+      },
+      {
+        heading: 'Overfitting (Too Complex): High Variance & Noise Memorization',
+        paragraphs: [
+          'Overfitting occurs when a model has far too many parameters relative to the amount of available data.',
+          '• In Regression: Fitting a Degree 15 polynomial through 20 points. The curve wildy oscillates up and down, hitting every single training point (0 training error) but shooting off into infinity between points.',
+          '• In Classification: A convoluted, serpentine decision boundary looping around individual outlier dots to achieve 100% training accuracy, destroying the clean separation boundary.',
+          '• Key Diagnostic Symptom: Low/Near-Zero Training Error BUT High Validation/Test Error (a large generalization gap).',
+          '• Remedies for Overfitting:',
+          '  - Collect more training data (more data dilutes noise).',
+          '  - Apply Regularization: L2 Ridge / Weight Decay (shrinks weights towards zero) or L1 Lasso (enforces sparsity).',
+          '  - Reduce model complexity (lower polynomial degree, limit tree depth / max_leaf_nodes).',
+          '  - Implement Early Stopping during training.'
+        ]
+      },
+      {
+        heading: 'Diagnosing via Learning Curves & Early Stopping',
+        paragraphs: [
+          'The most reliable way to monitor overfitting in iterative models (gradient descent, neural networks, boosted trees) is plotting Training Loss vs Validation Loss across training epochs:',
+          '• Phase 1 (Underfitting Zone): Both training loss and validation loss rapidly decrease together as the model learns legitimate patterns.',
+          '• The Sweet Spot (Minimum Validation Loss): The validation error reaches its lowest global point. This is the optimal stopping point!',
+          '• Phase 2 (Overfitting Zone): The training loss continues descending towards zero (memorization), but the validation loss curves upward and increases! The model is now learning noise.',
+          '• Early Stopping: Automatically halts training at the exact epoch where validation loss stops improving, saving the model weights from that optimal checkpoint.'
+        ],
+        codeBlock: [
+          '# Demonstrating Underfitting, Right Fit, and Overfitting in Python',
+          '# ───────────────────────────────────────────────────────────────',
+          'import numpy as np',
+          'from sklearn.pipeline import make_pipeline',
+          'from sklearn.preprocessing import PolynomialFeatures',
+          'from sklearn.linear_model import LinearRegression, Ridge',
+          'from sklearn.metrics import mean_squared_error',
+          '',
+          '# 1. Generate non-linear ground truth: y = cos(1.5 * pi * x) + noise',
+          'np.random.seed(42)',
+          'n_samples = 30',
+          'X_train = np.sort(np.random.rand(n_samples))',
+          'y_train = np.cos(1.5 * np.pi * X_train) + np.random.randn(n_samples) * 0.1',
+          '',
+          'X_test = np.linspace(0, 1, 100)',
+          'y_test_true = np.cos(1.5 * np.pi * X_test)',
+          '',
+          '# 2. Fit 3 Models with different capacities',
+          'degrees = [1, 4, 15]',
+          'models = {}',
+          'labels = {1: "Underfitting (Deg 1)", 4: "Right Fit (Deg 4)", 15: "Overfitting (Deg 15)"}',
+          '',
+          'print("Model Evaluation Summary:")',
+          'print("-" * 55)',
+          'for deg in degrees:',
+          '    pipeline = make_pipeline(PolynomialFeatures(deg), LinearRegression())',
+          '    pipeline.fit(X_train[:, np.newaxis], y_train)',
+          '    ',
+          '    train_pred = pipeline.predict(X_train[:, np.newaxis])',
+          '    test_pred = pipeline.predict(X_test[:, np.newaxis])',
+          '    ',
+          '    train_mse = mean_squared_error(y_train, train_pred)',
+          '    test_mse = mean_squared_error(y_test_true, test_pred)',
+          '    ',
+          '    print(f"{labels[deg]:<24} | Train MSE: {train_mse:.4f} | Test MSE: {test_mse:.4f}")',
+          '',
+          '# 3. Fixing Overfitting via L2 Regularization (Ridge Regression)',
+          'ridge_pipeline = make_pipeline(PolynomialFeatures(15), Ridge(alpha=1.0))',
+          'ridge_pipeline.fit(X_train[:, np.newaxis], y_train)',
+          'ridge_test_mse = mean_squared_error(y_test_true, ridge_pipeline.predict(X_test[:, np.newaxis]))',
+          'print("-" * 55)',
+          'print(f"Fixed with Ridge (Deg 15)  | Train MSE: {mean_squared_error(y_train, ridge_pipeline.predict(X_train[:, np.newaxis])):.4f} | Test MSE: {ridge_test_mse:.4f}")'
+        ].join('\n'),
+        codeBlockTitle: 'polynomial_overfitting_demo.py'
+      }
+    ],
+
+    analogy: {
+      title: 'The Tailored Suit Analogy',
+      text: 'Buying a suit off the rack that is three sizes too big is Underfitting (it has no shape and fits nobody properly). Having a master tailor adjust it to your shoulder and waist measurements is the Right Fit (it looks sharp and allows comfortable movement). Having someone shrink-wrap liquid latex tightly around every skin wrinkle and mole on your body is Overfitting (it fits your current exact posture with 0 error, but the second you try to take a single step forward, the fabric rips to shreds)!'
+    },
+
+    diagram: {
+      type: 'overfitting_underfitting',
+      title: 'Interactive Overfitting vs Underfitting Explorer: 2x3 Geometry & Loss Curve Arena'
+    },
+
+    takeaways: [
+      'Underfitting (High Bias) occurs when a model is too simple to capture true relationships (high train and test error).',
+      'Overfitting (High Variance) occurs when a model is overly complex and memorizes noise (low train error, high test error).',
+      'The Right Fit generalizes cleanly to new data by capturing signal while disregarding statistical noise.',
+      'Learning curves (Loss vs Epochs) show validation loss bottoming out at the optimal Early Stopping checkpoint.',
+      'Overfitting can be combatted with Regularization (L1/L2), reducing complexity, early stopping, and acquiring more data.'
+    ],
+
+    quiz: {
+      question: 'A neural network achieves 99.8% accuracy on the Training set, but only 64.2% accuracy on the Validation set. What is the diagnosis and the most effective remedy?',
+      options: [
+        'The model is Underfitting; increase polynomial degree and add more layers',
+        'The model is Overfitting; apply regularization (L2/dropout) or early stopping to constrain capacity',
+        'The model is working perfectly because training accuracy is near 100%',
+        'The model has high bias; remove features from the dataset'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! A massive gap between near-perfect training accuracy (99.8%) and mediocre validation accuracy (64.2%) is the classic hallmark of Overfitting (memorization). The model needs regularization, early stopping, or reduced capacity to improve generalization.'
+    }
   }
 };
+
 
 
 
