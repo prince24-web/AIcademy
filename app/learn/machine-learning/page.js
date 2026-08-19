@@ -151,8 +151,8 @@ const mlModules = [
     title: 'Module 1: ML Fundamentals',
     subtitle: 'Goal: Understand core ML concepts & terminology.',
     lessons: [
-      { id: 'ml-1-1', name: 'What is Machine Learning?', nodeType: 'lightbulb', status: 'completed' },
-      { id: 'ml-1-2', name: 'AI vs ML vs Deep Learning', nodeType: 'star', status: 'active' },
+      { id: 'ml-1-1', name: 'What is Machine Learning?', nodeType: 'lightbulb', status: 'active' },
+      { id: 'ml-1-2', name: 'AI vs ML vs Deep Learning', nodeType: 'star', status: 'locked' },
       { id: 'ml-1-3', name: 'Supervised vs Unsupervised Learning', nodeType: 'concept', status: 'locked' },
       { id: 'ml-1-4', name: 'Regression vs Classification', nodeType: 'concept', status: 'locked' },
       { id: 'ml-1-5', name: 'Features and Labels', nodeType: 'lightbulb', status: 'locked' },
@@ -284,9 +284,9 @@ const mlModules = [
 ];
 
 export default function MLFundamentalsJourneyPage() {
-  const [activeNodeId, setActiveNodeId] = useState('ml-1-2');
-  const [currentSectionText, setCurrentSectionText] = useState('Section 1 · Chapter 2');
-  const [currentTopicTitle, setCurrentTopicTitle] = useState('AI vs ML vs Deep Learning');
+  const [activeNodeId, setActiveNodeId] = useState('ml-1-1');
+  const [currentSectionText, setCurrentSectionText] = useState('Section 1 · Chapter 1');
+  const [currentTopicTitle, setCurrentTopicTitle] = useState('What is Machine Learning?');
   const [activeTab, setActiveTab] = useState('map');
 
   // Sinusoidal offsets for winding path effect

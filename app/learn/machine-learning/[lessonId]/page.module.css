@@ -1,0 +1,1690 @@
+/* ─── AI LESSON ARTICLE READER STYLES ───────────────────────────────── */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Top Sticky Navigation Header */
+.topNav {
+  height: 64px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.btnBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btnBack:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.navTitleGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.navSectionTag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #7c3aed;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.navLessonTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.readTimeBadge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.btnGfg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btnGfg:hover {
+  background: #d1fae5;
+}
+
+/* Article Reading Layout */
+.articleWrapper {
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 24px 120px 24px;
+}
+
+/* Hero Header Card */
+.heroCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  padding: 32px 36px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.heroBadge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  margin-bottom: 12px;
+}
+
+.articleTitle {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1.25;
+  margin-bottom: 8px;
+}
+
+.articleSubtitle {
+  font-size: 1.1rem;
+  color: #64748b;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Content Blocks */
+.contentSection {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+}
+
+.sectionHeading {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.paragraph {
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: #334155;
+  margin-bottom: 16px;
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}
+
+/* ELI5 Analogy Card */
+.analogyCard {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border: 2px solid #a78bfa;
+  border-radius: 20px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.08);
+}
+
+.analogyTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #5b21b6;
+  margin-bottom: 10px;
+}
+
+.analogyText {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #4c1d95;
+  margin: 0;
+}
+
+/* ─── ANIMATED DIAGRAM CONTAINERS ──────────────────────────────────── */
+.diagramBox {
+  background: #0f172a;
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 28px;
+  color: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+}
+
+.diagramTitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #f8fafc;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Traditional vs AI Diagram */
+.diagramGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.diagramCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.diagramLabel {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #a78bfa;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.diagramStep {
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.diagramArrow {
+  color: #94a3b8;
+  font-size: 1.2rem;
+  margin: 4px 0;
+}
+
+/* Nesting Dolls Diagram */
+.nestingDollsWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nestingLayer {
+  border-radius: 14px;
+  padding: 16px 20px;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
+}
+
+.nestingLayer:hover {
+  transform: translateX(6px);
+}
+
+.layerTitle {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.layerDesc {
+  font-size: 0.88rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* Industry Grid Diagram */
+.industryGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.industryCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.industryHeader {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #38bdf8;
+  margin-bottom: 6px;
+}
+
+.industryDesc {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Key Takeaways Checklist */
+.takeawaysCard {
+  background: #ffffff;
+  border: 2px solid #bbf7d0;
+  border-radius: 20px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+}
+
+.takeawaysTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #15803d;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.takeawaysList {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.takeawayItem {
+  font-size: 0.98rem;
+  color: #166534;
+  line-height: 1.6;
+}
+
+/* ─── INTERACTIVE QUIZ CARD ─────────────────────────────────────────── */
+.quizCard {
+  background: #ffffff;
+  border: 2px solid #7c3aed;
+  border-radius: 24px;
+  padding: 32px;
+  margin-bottom: 36px;
+  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.1);
+}
+
+.quizHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #5b21b6;
+  margin-bottom: 16px;
+}
+
+.quizQuestion {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.quizOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.optionBtn {
+  width: 100%;
+  text-align: left;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.optionBtn:hover {
+  border-color: #a78bfa;
+  background: #f5f3ff;
+  color: #5b21b6;
+}
+
+.optionCorrect {
+  background: #dcfce7 !important;
+  border-color: #22c55e !important;
+  color: #15803d !important;
+  font-weight: 800;
+}
+
+.optionIncorrect {
+  background: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #b91c1c !important;
+}
+
+.explanationBox {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  padding: 16px 20px;
+  color: #166534;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* Navigation Footer */
+.bottomNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.btnNext {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #7c3aed;
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 28px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #5b21b6;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btnNext:hover {
+  background: #6d28d9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #4c1d95;
+}
+
+.btnNext:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #4c1d95;
+}
+
+/* ─── NESTED CIRCLES SVG ILLUSTRATION ─────────────────────────────── */
+.nestedSvgContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 10px 0;
+}
+
+.nestedSvg {
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  overflow: visible;
+}
+
+.circleGroup {
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.circleGroup circle {
+  transition: all 0.25s ease;
+}
+
+.circleGroup:hover circle {
+  stroke-width: 5.5px;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.25));
+}
+
+.nestedInfoCard {
+  width: 100%;
+  max-width: 520px;
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 16px;
+  padding: 14px 20px;
+  margin-top: 18px;
+  text-align: center;
+  font-size: 0.93rem;
+  color: #14532d;
+  line-height: 1.55;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+}
+
+/* ─── LLM PIPELINE FLOWCHART DIAGRAM STYLES ─────────────────────────── */
+.flowchartContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 12px 0;
+}
+
+.flowchartSvg {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  overflow: visible;
+}
+
+.flowNode {
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.flowNode rect, .flowNode polygon {
+  transition: all 0.2s ease;
+}
+
+.flowNode:hover rect, .flowNode:hover polygon {
+  fill: #bbf7d0;
+  stroke-width: 3px;
+  filter: drop-shadow(0 6px 18px rgba(34, 197, 94, 0.35));
+}
+
+.flowchartInfoBox {
+  width: 100%;
+  max-width: 540px;
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 16px;
+  padding: 14px 20px;
+  margin-top: 18px;
+  text-align: center;
+  font-size: 0.93rem;
+  color: #14532d;
+  line-height: 1.55;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+}
+
+/* ─── VIDEO EMBED CARD STYLES ────────────────────────────────────────── */
+.videoCard {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 24px;
+  padding: 28px;
+  margin-bottom: 32px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.videoCardHeader {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.videoEmbedRatio {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
+  border-radius: 16px;
+  overflow: hidden;
+  background: #0f172a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.videoEmbedRatio iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ─── MINI PROJECT EDITOR ──────────────────────────────────────────────── */
+
+.projectWrapper {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+  width: 100%;
+}
+
+.projectHeader {
+  margin-bottom: 32px;
+}
+
+.projectBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.projectTitle {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px;
+  line-height: 1.25;
+}
+
+.projectSubtitle {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0 0 16px;
+}
+
+.projectMeta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.projectMetaChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* Step Progress Bar */
+.stepProgressBar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 28px;
+}
+
+.stepDot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid #e2e8f0;
+  background: #f8fafc;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.stepDotActive {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  border-color: #6d28d9;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+
+.stepDotDone {
+  background: #22c55e;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.stepDotDone:hover {
+  background: #16a34a;
+}
+
+.stepConnector {
+  flex: 1;
+  height: 2px;
+  background: #e2e8f0;
+  position: relative;
+  z-index: 1;
+}
+
+.stepConnectorDone {
+  background: #22c55e;
+}
+
+/* Step label beneath progress bar */
+.stepLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 20px;
+}
+
+.stepLabelTitle {
+  color: #8b5cf6;
+}
+
+/* Instructions Panel */
+.instructionsPanel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.instructionsConcept {
+  font-size: 15px;
+  color: #334155;
+  line-height: 1.7;
+  margin: 0 0 16px;
+}
+
+.instructionsGoalRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f8f4ff;
+  border-left: 3px solid #8b5cf6;
+  border-radius: 0 8px 8px 0;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.instructionsGoalLabel {
+  font-size: 11px;
+  font-weight: 800;
+  color: #7c3aed;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+.instructionsGoalText {
+  font-size: 14px;
+  color: #1e1b4b;
+  line-height: 1.55;
+}
+
+.whyItMatters {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.whyIcon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.whyText {
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.55;
+}
+
+/* Code Editor Area */
+.codeEditorSection {
+  background: #0f172a;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+}
+
+.codeEditorTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.codeEditorDots {
+  display: flex;
+  gap: 6px;
+}
+
+.codeEditorDots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.codeEditorLabel {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.editorContainer {
+  display: flex;
+  position: relative;
+  background: #0f172a;
+  height: 360px;
+  overflow: hidden;
+}
+
+.lineNumbers {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  width: 48px;
+  background: #090d16;
+  border-right: 1px solid #1e293b;
+  color: #475569;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: right;
+  padding-right: 12px;
+  user-select: none;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.lineNumbers span {
+  height: 20.8px;
+}
+
+.codeWindow {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.highlightLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 16px 20px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
+  pointer-events: none;
+  overflow: hidden;
+  box-sizing: border-box;
+  color: #e2e8f0;
+}
+
+.highlightLayer code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.codeArea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: #38bdf8 !important;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  tab-size: 4;
+  white-space: pre;
+  overflow: auto;
+  z-index: 1;
+}
+
+.codeArea::selection {
+  background: rgba(139, 92, 246, 0.4);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Action Buttons Row */
+.editorActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.runBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+}
+
+.runBtn:hover {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4);
+}
+
+.runBtn:active {
+  transform: translateY(0);
+}
+
+.runBtnLoading {
+  background: #475569 !important;
+  cursor: not-allowed;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.hintBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  color: #7c3aed;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border: 1.5px solid #c4b5fd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hintBtn:hover {
+  background: #f5f3ff;
+  border-color: #8b5cf6;
+}
+
+.solutionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.solutionBtn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+/* Hint Box */
+.hintBox {
+  background: #f5f3ff;
+  border: 1px solid #c4b5fd;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+
+.hintBoxTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #7c3aed;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.hintItem {
+  font-size: 13.5px;
+  color: #4c1d95;
+  line-height: 1.55;
+  padding: 4px 0;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.hintItemNum {
+  font-weight: 700;
+  color: #8b5cf6;
+  flex-shrink: 0;
+}
+
+/* Output Panel */
+.outputPanel {
+  background: #020617;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid #1e293b;
+}
+
+.outputTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+}
+
+.outputLabel {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.outputStatusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #334155;
+}
+
+.outputStatusDotSuccess {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+
+.outputStatusDotError {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+.outputContent {
+  padding: 16px 20px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #94a3b8;
+  min-height: 80px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.outputContentSuccess {
+  color: #86efac;
+}
+
+.outputContentError {
+  color: #fca5a5;
+}
+
+.outputPlaceholder {
+  color: #334155;
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* Concept Callout (shown after successful run) */
+.conceptCallout {
+  background: linear-gradient(135deg, #0f172a, #1e1b4b);
+  border: 1px solid #312e81;
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.conceptCalloutIcon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.conceptCalloutText {
+  font-size: 14px;
+  color: #c7d2fe;
+  line-height: 1.65;
+}
+
+.conceptCalloutLabel {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #818cf8;
+  margin-bottom: 5px;
+}
+
+/* Step Navigation */
+.stepNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.stepNavBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.stepNavBtnPrev {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.stepNavBtnPrev:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.stepNavBtnNext {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(139, 92, 246, 0.35);
+}
+
+.stepNavBtnNext:hover {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 18px rgba(139, 92, 246, 0.45);
+}
+
+.stepNavBtnDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Pyodide Loading Screen */
+.pyodideLoader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  background: #0f172a;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  min-height: 200px;
+}
+
+.pyodideLoaderSpinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid #1e293b;
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+  margin-bottom: 18px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.pyodideLoaderText {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pyodideLoaderSub {
+  font-size: 12px;
+  color: #334155;
+  margin-top: 6px;
+}
+
+/* Completion Banner */
+.completionBanner {
+  background: linear-gradient(135deg, #064e3b, #065f46);
+  border: 1px solid #059669;
+  border-radius: 14px;
+  padding: 24px 28px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.completionEmoji {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.completionTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: #6ee7b7;
+  margin-bottom: 6px;
+}
+
+.completionText {
+  font-size: 14px;
+  color: #a7f3d0;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.completionSkills {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.completionSkillChip {
+  background: rgba(6, 78, 59, 0.6);
+  border: 1px solid #059669;
+  color: #6ee7b7;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+/* Mobile notice */
+.mobileNotice {
+  display: none;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 18px 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #78350f;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .mobileNotice {
+    display: block;
+  }
+  .codeArea {
+    font-size: 12px;
+    min-height: 240px;
+  }
+  .projectTitle {
+    font-size: 22px;
+  }
+}
+
+/* ─── SPLIT-PANEL PROJECT LAYOUT (matching Python lesson) ────────────── */
+
+/* Full-height container, no scroll */
+.projectLayout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: #0d0f14;
+  color: #e8eaf6;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Two-column workspace beneath the nav */
+.splitPanel {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left: scrollable lesson / instructions panel */
+.instructionsPanel {
+  width: 480px;
+  min-width: 320px;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 24px 28px 40px;
+  flex-shrink: 0;
+  color: #0f172a;
+}
+
+/* Right: full-height dark code editor panel */
+.editorPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #1a1d27;
+  overflow: hidden;
+}
+
+/* ── Editor Toolbar (top of editor panel) ── */
+.editorToolbar {
+  height: 44px;
+  background: #262b3a;
+  border-bottom: 1px solid #323848;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.fileTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #1a1d27;
+  border: 1px solid #323848;
+  border-radius: 8px 8px 0 0;
+  padding: 6px 14px;
+  border-bottom: none;
+  margin-bottom: -1px;
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.solutionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.solutionBtn:hover {
+  background: #334155;
+  color: #e2e8f0;
+  border-color: #64748b;
+}
+
+/* ── Code editor area (CodeMirror 5) ── */
+.codeWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background: #1a1d27;
+}
+
+/* Full-height mount target for CodeMirror */
+.cmMount {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── CodeMirror global overrides ── */
+/* These must be :global because CodeMirror injects its own class names */
+:global(.CodeMirror) {
+  flex: 1 !important;
+  height: 100% !important;
+  background: #1a1d27 !important;
+  font-family: 'Consolas', 'Cascadia Code', 'Courier New', monospace !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  color: #e2e8f0 !important;
+}
+
+:global(.CodeMirror-scroll) {
+  padding-bottom: 20px;
+}
+
+:global(.CodeMirror-gutters) {
+  background: #20253a !important;
+  border-right: 1px solid #2d3347 !important;
+}
+
+:global(.CodeMirror-linenumber) {
+  color: #4a5568 !important;
+}
+
+:global(.CodeMirror-cursor) {
+  border-left: 2px solid #a78bfa !important;
+}
+
+:global(.CodeMirror-selected) {
+  background: rgba(124, 58, 237, 0.25) !important;
+}
+
+:global(.CodeMirror-activeline-background) {
+  background: rgba(124, 58, 237, 0.08) !important;
+}
+
+:global(.CodeMirror-matchingbracket) {
+  background: rgba(124, 58, 237, 0.35) !important;
+  color: #fff !important;
+}
+
+:global(.CodeMirror-vscrollbar::-webkit-scrollbar),
+:global(.CodeMirror-hscrollbar::-webkit-scrollbar) {
+  width: 7px;
+  height: 7px;
+}
+
+:global(.CodeMirror-vscrollbar::-webkit-scrollbar-thumb),
+:global(.CodeMirror-hscrollbar::-webkit-scrollbar-thumb) {
+  background: #2d3347;
+  border-radius: 4px;
+}
+
+/* Resize handle between editor and output */
+.resizeHandle {
+  height: 6px;
+  flex-shrink: 0;
+  background: #1e2536;
+  border-top: 1px solid #2d3347;
+  border-bottom: 1px solid #2d3347;
+  cursor: ns-resize;
+  position: relative;
+  transition: background 0.18s;
+}
+.resizeHandle:hover,
+.resizeHandle:active {
+  background: #7c3aed;
+}
+.resizeHandle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 2px;
+  background: #4a5568;
+  border-radius: 2px;
+  transition: background 0.18s;
+}
+.resizeHandle:hover::after {
+  background: #a78bfa;
+}
+
+/* Floating run / ask-ai button bar */
+.editorFloatBar {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 10;
+}
+
+.btnAskAI {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btnAskAI:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.btnRunCode {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #7c3aed;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #5b21b6;
+  transition: all 0.15s;
+}
+.btnRunCode:hover {
+  background: #6d28d9;
+}
+.btnRunCode:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.btnRunCodeLoading {
+  background: #4c1d95;
+}
+
+/* Spinning animation for running indicator */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+/* ── Output Panel ── */
+.outputPanel {
+  height: 200px;
+  background: #111827;
+  border-top: 1px solid #1f2937;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.outputHeader {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 16px;
+  height: 38px;
+  background: #1a1d27;
+  border-bottom: 1px solid #1f2937;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.outputTabActive {
+  color: #7c3aed;
+  border-bottom: 2px solid #7c3aed;
+  padding-bottom: 2px;
+}
+
+.outputSplit {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.outputBox,
+.expectedBox {
+  flex: 1;
+  padding: 12px 16px;
+  overflow-y: auto;
+  font-size: 0.82rem;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  line-height: 1.6;
+  color: #94a3b8;
+}
+
+.outputBox {
+  border-right: 1px solid #1f2937;
+}
+
+.outputBoxLabel {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #4a5568;
+  margin-bottom: 6px;
+}
+
+.outputPlaceholder {
+  color: #374151;
+  font-style: italic;
+}
+
+.outputSuccess {
+  color: #34d399;
+}
+
+.outputError {
+  color: #f87171;
+}
+
+/* ── Left panel extras ── */
+
+/* Hint section in left panel */
+.hintSection {
+  margin-top: 16px;
+}
+
+.hintBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #92400e;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.hintBtn:hover {
+  background: #fef3c7;
+}
+
+@media (max-width: 900px) {
+  .splitPanel {
+    flex-direction: column;
+  }
+  .instructionsPanel {
+    width: 100%;
+    max-height: 45vh;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+}
