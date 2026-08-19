@@ -2126,16 +2126,29 @@ const RegressionVsClassificationDiagram = () => {
     { cx: 170, cy: 205, type: 'B' }, { cx: 190, cy: 215, type: 'B' }, { cx: 210, cy: 200, type: 'B' }
   ];
 
-  // Regression scatter cloud dataset (approx 45 points trending along y = 0.72x + 12)
+  // Regression scatter cloud dataset (dense scatter cloud trending along y = 0.72x + 12)
   const regPoints = [
-    { x: 22, y: 15, col: '#10b981' }, { x: 25, y: 28, col: '#0284c7' }, { x: 28, y: 35, col: '#10b981' }, { x: 30, y: 22, col: '#0284c7' },
-    { x: 35, y: 42, col: '#10b981' }, { x: 38, y: 32, col: '#0284c7' }, { x: 40, y: 48, col: '#10b981' }, { x: 42, y: 38, col: '#0284c7' },
-    { x: 45, y: 55, col: '#10b981' }, { x: 48, y: 45, col: '#0284c7' }, { x: 50, y: 62, col: '#10b981' }, { x: 52, y: 50, col: '#0284c7' },
-    { x: 55, y: 68, col: '#10b981' }, { x: 58, y: 58, col: '#0284c7' }, { x: 60, y: 72, col: '#10b981' }, { x: 62, y: 60, col: '#0284c7' },
-    { x: 65, y: 78, col: '#10b981' }, { x: 68, y: 65, col: '#0284c7' }, { x: 70, y: 82, col: '#10b981' }, { x: 72, y: 70, col: '#0284c7' },
-    { x: 75, y: 85, col: '#10b981' }, { x: 78, y: 75, col: '#0284c7' }, { x: 80, y: 90, col: '#10b981' }, { x: 82, y: 80, col: '#0284c7' },
-    { x: 85, y: 92, col: '#10b981' }, { x: 88, y: 84, col: '#0284c7' }, { x: 92, y: 96, col: '#10b981' }, { x: 95, y: 88, col: '#0284c7' },
-    { x: 98, y: 98, col: '#10b981' }, { x: 100, y: 92, col: '#0284c7' }
+    // Lower band (x: 20-35)
+    { x: 21, y: 8, col: '#10b981' }, { x: 22, y: 18, col: '#0284c7' }, { x: 23, y: 28, col: '#10b981' }, { x: 24, y: 38, col: '#0284c7' }, { x: 25, y: 14, col: '#10b981' },
+    { x: 26, y: 24, col: '#0284c7' }, { x: 27, y: 48, col: '#10b981' }, { x: 28, y: 32, col: '#0284c7' }, { x: 29, y: 12, col: '#10b981' }, { x: 30, y: 22, col: '#0284c7' },
+    { x: 31, y: 42, col: '#10b981' }, { x: 32, y: 52, col: '#0284c7' }, { x: 33, y: 36, col: '#10b981' }, { x: 34, y: 26, col: '#0284c7' }, { x: 35, y: 18, col: '#10b981' },
+    // Middle-low band (x: 36-50)
+    { x: 36, y: 34, col: '#0284c7' }, { x: 37, y: 44, col: '#10b981' }, { x: 38, y: 58, col: '#0284c7' }, { x: 39, y: 28, col: '#10b981' }, { x: 40, y: 48, col: '#0284c7' },
+    { x: 41, y: 64, col: '#10b981' }, { x: 42, y: 38, col: '#0284c7' }, { x: 43, y: 52, col: '#10b981' }, { x: 44, y: 24, col: '#0284c7' }, { x: 45, y: 42, col: '#10b981' },
+    { x: 46, y: 56, col: '#0284c7' }, { x: 47, y: 68, col: '#10b981' }, { x: 48, y: 36, col: '#0284c7' }, { x: 49, y: 50, col: '#10b981' }, { x: 50, y: 62, col: '#0284c7' },
+    // Center band (x: 51-65)
+    { x: 51, y: 42, col: '#10b981' }, { x: 52, y: 72, col: '#0284c7' }, { x: 53, y: 54, col: '#10b981' }, { x: 54, y: 66, col: '#0284c7' }, { x: 55, y: 38, col: '#10b981' },
+    { x: 56, y: 48, col: '#0284c7' }, { x: 57, y: 58, col: '#10b981' }, { x: 58, y: 74, col: '#0284c7' }, { x: 59, y: 44, col: '#10b981' }, { x: 60, y: 60, col: '#0284c7' },
+    { x: 61, y: 76, col: '#10b981' }, { x: 62, y: 50, col: '#0284c7' }, { x: 63, y: 68, col: '#10b981' }, { x: 64, y: 56, col: '#0284c7' }, { x: 65, y: 46, col: '#10b981' },
+    // Middle-high band (x: 66-80)
+    { x: 66, y: 64, col: '#0284c7' }, { x: 67, y: 78, col: '#10b981' }, { x: 68, y: 54, col: '#0284c7' }, { x: 69, y: 70, col: '#10b981' }, { x: 70, y: 84, col: '#0284c7' },
+    { x: 71, y: 60, col: '#10b981' }, { x: 72, y: 74, col: '#0284c7' }, { x: 73, y: 52, col: '#10b981' }, { x: 74, y: 66, col: '#0284c7' }, { x: 75, y: 86, col: '#10b981' },
+    { x: 76, y: 72, col: '#0284c7' }, { x: 77, y: 80, col: '#10b981' }, { x: 78, y: 58, col: '#0284c7' }, { x: 79, y: 76, col: '#10b981' }, { x: 80, y: 90, col: '#0284c7' },
+    // Upper band (x: 81-100)
+    { x: 81, y: 68, col: '#10b981' }, { x: 82, y: 82, col: '#0284c7' }, { x: 83, y: 94, col: '#10b981' }, { x: 84, y: 74, col: '#0284c7' }, { x: 85, y: 88, col: '#10b981' },
+    { x: 86, y: 64, col: '#0284c7' }, { x: 87, y: 78, col: '#10b981' }, { x: 88, y: 92, col: '#0284c7' }, { x: 89, y: 72, col: '#10b981' }, { x: 90, y: 84, col: '#0284c7' },
+    { x: 91, y: 96, col: '#10b981' }, { x: 92, y: 80, col: '#0284c7' }, { x: 93, y: 68, col: '#10b981' }, { x: 94, y: 90, col: '#0284c7' }, { x: 95, y: 76, col: '#10b981' },
+    { x: 96, y: 86, col: '#0284c7' }, { x: 97, y: 98, col: '#10b981' }, { x: 98, y: 82, col: '#0284c7' }, { x: 99, y: 94, col: '#10b981' }, { x: 100, y: 88, col: '#0284c7' }
   ];
 
   // Handle clicking inside Classification coordinate box
@@ -2441,7 +2454,7 @@ const RegressionVsClassificationDiagram = () => {
                         key={`rp-${pIdx}`}
                         cx={mappedX}
                         cy={mappedY}
-                        r="5.5"
+                        r="4.5"
                         fill={pt.col}
                         stroke="#ffffff"
                         strokeWidth="1.2"
