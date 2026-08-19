@@ -424,7 +424,138 @@ export const mlLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! Because there are no pre-existing target labels or customer category definitions, an Unsupervised Clustering algorithm (like K-Means) is ideal to discover natural customer groups from behavioral features.'
     }
+  },
+
+  'ml-1-4': {
+    id: 'ml-1-4',
+    title: 'Regression vs Classification',
+    subtitle: 'The two core pillars of supervised learning: predicting continuous numerical values vs categorizing discrete class labels.',
+    duration: '17 min read',
+    level: 'Beginner',
+    module: 'Module 1: ML Fundamentals',
+    badgeText: 'TASK TAXONOMY',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Master the essential difference between continuous numerical target variables (Regression) and discrete categorical labels (Classification).',
+      'Understand the geometric objective: fitting a best-fit trend line/surface vs drawing a separating decision boundary.',
+      'Differentiate between Binary, Multi-Class, and Multi-Label classification problems.',
+      'Recognize key evaluation metric families: MSE, RMSE, MAE, R² (Regression) vs Accuracy, Precision, Recall, F1, ROC-AUC (Classification).',
+      'Identify popular algorithms: Linear Regression, Ridge, SVR vs Logistic Regression, Decision Trees, Random Forests, Naive Bayes.'
+    ],
+
+    sections: [
+      {
+        heading: 'The Foundational Split: Continuous vs Discrete Targets',
+        paragraphs: [
+          'Within Supervised Machine Learning, all algorithms learn from labeled data (X, y). The mathematical nature of the target output y determines whether your problem is Regression or Classification.',
+          '• Regression: The target variable y is a continuous real number on an infinite scale (e.g., house price in dollars, outdoor temperature, car speed, flight delay in minutes). Between any two values (e.g., $250,000.00 and $250,001.00), there are infinitely many intermediate numbers.',
+          '• Classification: The target variable y is a discrete category or qualitative class label (e.g., Spam vs Inbox, Cat vs Dog, High Risk vs Low Risk). The model outputs probabilities or membership in specific separate buckets.'
+        ]
+      },
+      {
+        heading: 'Visualizing the Geometry: Decision Boundary vs Best-Fit Line',
+        paragraphs: [
+          'The geometry of what the model learns highlights the fundamental difference between both tasks:',
+          '1. Classification Geometry (Decision Boundary): The model constructs a mathematical boundary (a line, curve, or high-dimensional hyperplane) that partitions the feature space into distinct colored regions. New data points that land on one side of the line are assigned Class 0, while points on the other side become Class 1.',
+          '2. Regression Geometry (Best-Fit Curve): The model fits a continuous trajectory (a line, polynomial curve, or multi-dimensional surface) directly through the cloud of scatter points. For any coordinate x along the horizontal axis, the line calculates the exact predicted height y_pred.'
+        ]
+      },
+      {
+        heading: 'Types of Classification Tasks',
+        paragraphs: [
+          'Classification is widely applied across technology and industry in three distinct structures:',
+          '• Binary Classification: Only two mutually exclusive outcomes (0 or 1, True or False). Examples: Fraudulent vs Legitimate transaction, Malignant vs Benign tumor, Pass vs Fail.',
+          '• Multi-Class Classification: Three or more mutually exclusive classes, but each sample belongs to exactly one category. Examples: Recognizing handwritten digits (0 through 9), classifying animal species (Dog, Cat, Horse, Bird).',
+          '• Multi-Label Classification: Each observation can simultaneously belong to multiple non-exclusive tags. Examples: An article tagged with ["Technology", "Finance", "AI"] or a photo containing both a "Car" and a "Tree".'
+        ]
+      },
+      {
+        heading: 'How Success is Measured: Metric Taxonomies',
+        paragraphs: [
+          'Because the outputs represent fundamentally different data types, they require completely separate evaluation metrics:',
+          '• Regression Metrics (Measuring Numerical Distance): Mean Squared Error (MSE), Root Mean Squared Error (RMSE), Mean Absolute Error (MAE), and R-Squared (R²). A prediction of $205,000 when the actual price is $200,000 has an error residual of $5,000.',
+          '• Classification Metrics (Measuring Categorical Accuracy & Confusion): Accuracy Rate (% correct), Precision (how many predicted positives were true positives), Recall (how many actual positives were caught), F1-Score (harmonic mean), and ROC-AUC curve.'
+        ],
+        codeBlock: [
+          '# Comparing Regression vs Classification in Python (Scikit-Learn)',
+          '# ───────────────────────────────────────────────────────────────',
+          'import numpy as np',
+          'from sklearn.linear_model import LinearRegression, LogisticRegression',
+          '',
+          '# Feature: Square footage of 5 houses',
+          'X_sqft = np.array([[800], [1200], [1500], [2100], [3000]])',
+          '',
+          '# 1. REGRESSION TASK: Predict continuous house price in dollars ($)',
+          '# Target (y) is continuous numerical floats',
+          'y_prices = np.array([180000.0, 245000.0, 310000.0, 420000.0, 590000.0])',
+          '',
+          'reg_model = LinearRegression()',
+          'reg_model.fit(X_sqft, y_prices)',
+          '',
+          'sample_house = np.array([[1800]])',
+          'predicted_price = reg_model.predict(sample_house)[0]',
+          'print(f"Regression Price Prediction: \${predicted_price:,.2f}")',
+          '# Output: \$364,524.59 (Continuous numerical value)',
+          '',
+          '',
+          '# 2. CLASSIFICATION TASK: Predict discrete category (1 = Luxury, 0 = Affordable)',
+          '# Target (y) is discrete binary classes',
+          'y_category = np.array([0, 0, 0, 1, 1])',
+          '',
+          'clf_model = LogisticRegression()',
+          'clf_model.fit(X_sqft, y_category)',
+          '',
+          'pred_class = clf_model.predict(sample_house)[0]',
+          'pred_prob = clf_model.predict_proba(sample_house)[0][1]',
+          'print(f"Classification Category: {\'Luxury\' if pred_class == 1 else \'Affordable\'} (Prob: {pred_prob:.1%})")',
+          '# Output: Affordable (Prob: 32.4%)'
+        ].join('\n'),
+        codeBlockTitle: 'regression_vs_classification_demo.py'
+      },
+      {
+        heading: 'Summary Comparison Matrix',
+        paragraphs: [
+          '1. Output Format: Regression outputs continuous quantities (quantities, values); Classification outputs discrete buckets (labels, categories).',
+          '2. Primary Question: Regression asks "How much / How many?"; Classification asks "Which category / Which bucket?".',
+          '3. Core Goal: Regression minimizes error distance residuals from a trend curve; Classification maximizes separation margin across decision boundaries.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Digital Thermometer vs The Traffic Light',
+      text: 'Think of Regression like a digital thermometer: it reports continuous, exact numerical readings like 21.4°C, 36.8°C, or 99.1°C with infinite gradations. Think of Classification like a traffic light: it operates in discrete, unambiguous states—Red (Stop), Yellow (Caution), or Green (Go). There is no "Red-and-a-half" state; it must strictly belong to one discrete category!'
+    },
+
+    diagram: {
+      type: 'regression_vs_classification',
+      title: 'Interactive Geometric Explorer: Decision Boundary (Classification) vs Best-Fit Curve (Regression)'
+    },
+
+    takeaways: [
+      'Regression predicts continuous numerical quantities (e.g., price, temperature, stock value).',
+      'Classification predicts discrete categorical class labels (e.g., spam, disease, animal).',
+      'Classification visually builds a separating Decision Boundary line/hyperplane.',
+      'Regression visually fits a Best-Fit Curve/Line minimizing vertical residual distances.',
+      'Regression is evaluated with MSE, RMSE, MAE; Classification is evaluated with Accuracy, Precision, Recall, F1.'
+    ],
+
+    quiz: {
+      question: 'Which of the following problems is a REGRESSION task rather than a Classification task?',
+      options: [
+        'Predicting whether an uploaded audio clip is speech or background noise',
+        'Predicting the estimated delivery time (in minutes) for a food order given traffic conditions',
+        'Predicting whether an email is spam, promotions, or primary inbox',
+        'Predicting whether a bank customer will accept or reject a credit card offer'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! Estimated delivery time in minutes (e.g. 24.5 minutes) is a continuous numerical quantity on a continuous scale, making it a classic Regression task.'
+    }
   }
 };
+
 
 

@@ -2099,6 +2099,539 @@ const SupervisedVsUnsupervisedDiagram = () => {
   );
 };
 
+// ─── REGRESSION VS CLASSIFICATION DIAGRAM (MATCHING USER IMAGE) ───────────
+const RegressionVsClassificationDiagram = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  
+  // Interactive classification test point
+  const [testPoint, setTestPoint] = useState({ x: 120, y: 110, classType: 'A', label: 'Class A (Green)' });
+  
+  // Interactive regression slider
+  const [sliderX, setSliderX] = useState(60);
+
+  // Classification coordinates dataset (approx 35 points)
+  const classPoints = [
+    // Class A (Green - left of S-curve)
+    { cx: 50, cy: 60, type: 'A' }, { cx: 70, cy: 80, type: 'A' }, { cx: 90, cy: 50, type: 'A' },
+    { cx: 110, cy: 70, type: 'A' }, { cx: 60, cy: 110, type: 'A' }, { cx: 80, cy: 130, type: 'A' },
+    { cx: 100, cy: 100, type: 'A' }, { cx: 120, cy: 85, type: 'A' }, { cx: 55, cy: 155, type: 'A' },
+    { cx: 75, cy: 175, type: 'A' }, { cx: 95, cy: 150, type: 'A' }, { cx: 115, cy: 135, type: 'A' },
+    { cx: 135, cy: 155, type: 'A' }, { cx: 110, cy: 180, type: 'A' }, { cx: 80, cy: 200, type: 'A' },
+    { cx: 130, cy: 195, type: 'A' }, { cx: 150, cy: 175, type: 'A' },
+    // Class B (Blue - right of S-curve)
+    { cx: 160, cy: 45, type: 'B' }, { cx: 180, cy: 65, type: 'B' }, { cx: 200, cy: 50, type: 'B' },
+    { cx: 170, cy: 85, type: 'B' }, { cx: 190, cy: 105, type: 'B' }, { cx: 210, cy: 80, type: 'B' },
+    { cx: 175, cy: 130, type: 'B' }, { cx: 195, cy: 145, type: 'B' }, { cx: 215, cy: 125, type: 'B' },
+    { cx: 165, cy: 165, type: 'B' }, { cx: 185, cy: 185, type: 'B' }, { cx: 205, cy: 170, type: 'B' },
+    { cx: 170, cy: 205, type: 'B' }, { cx: 190, cy: 215, type: 'B' }, { cx: 210, cy: 200, type: 'B' }
+  ];
+
+  // Regression scatter cloud dataset (approx 45 points trending along y = 0.72x + 12)
+  const regPoints = [
+    { x: 22, y: 15, col: '#10b981' }, { x: 25, y: 28, col: '#0284c7' }, { x: 28, y: 35, col: '#10b981' }, { x: 30, y: 22, col: '#0284c7' },
+    { x: 35, y: 42, col: '#10b981' }, { x: 38, y: 32, col: '#0284c7' }, { x: 40, y: 48, col: '#10b981' }, { x: 42, y: 38, col: '#0284c7' },
+    { x: 45, y: 55, col: '#10b981' }, { x: 48, y: 45, col: '#0284c7' }, { x: 50, y: 62, col: '#10b981' }, { x: 52, y: 50, col: '#0284c7' },
+    { x: 55, y: 68, col: '#10b981' }, { x: 58, y: 58, col: '#0284c7' }, { x: 60, y: 72, col: '#10b981' }, { x: 62, y: 60, col: '#0284c7' },
+    { x: 65, y: 78, col: '#10b981' }, { x: 68, y: 65, col: '#0284c7' }, { x: 70, y: 82, col: '#10b981' }, { x: 72, y: 70, col: '#0284c7' },
+    { x: 75, y: 85, col: '#10b981' }, { x: 78, y: 75, col: '#0284c7' }, { x: 80, y: 90, col: '#10b981' }, { x: 82, y: 80, col: '#0284c7' },
+    { x: 85, y: 92, col: '#10b981' }, { x: 88, y: 84, col: '#0284c7' }, { x: 92, y: 96, col: '#10b981' }, { x: 95, y: 88, col: '#0284c7' },
+    { x: 98, y: 98, col: '#10b981' }, { x: 100, y: 92, col: '#0284c7' }
+  ];
+
+  // Handle clicking inside Classification coordinate box
+  const handleClassificationClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    // Approximate S-curve decision boundary: x = 110 + 40 * sin(y / 35)
+    const boundaryX = 110 + 40 * Math.sin((clickY - 40) / 45);
+    const isClassA = clickX < boundaryX;
+
+    setTestPoint({
+      x: clickX,
+      y: clickY,
+      classType: isClassA ? 'A' : 'B',
+      label: isClassA ? 'Class A (Green Region)' : 'Class B (Blue Region)'
+    });
+  };
+
+  // Calculate regression value on line y = 0.72x + 12
+  const regPredictedY = (0.72 * sliderX + 12).toFixed(1);
+
+  // Problem sorter state
+  const [sorterIdx, setSorterIdx] = useState(0);
+  const [sorterFeedback, setSorterFeedback] = useState(null);
+
+  const sorterProblems = [
+    {
+      text: 'Predicting the exact sale price of a 4-bedroom house in dollars ($)',
+      correct: 'regression',
+      reason: 'Sale price in dollars (e.g. $425,500) is a continuous numerical float.'
+    },
+    {
+      text: 'Predicting whether an incoming email is Spam or Primary Inbox',
+      correct: 'classification',
+      reason: 'Spam vs Inbox is a discrete binary categorical label (0 or 1).'
+    },
+    {
+      text: 'Estimating the temperature in degrees Celsius tomorrow afternoon',
+      correct: 'regression',
+      reason: 'Temperature (e.g. 24.6°C) is a continuous numerical measurement.'
+    },
+    {
+      text: 'Determining whether a medical blood test indicates Diabetic vs Healthy',
+      correct: 'classification',
+      reason: 'Medical diagnosis categories are discrete classes.'
+    },
+    {
+      text: 'Predicting the waiting time (in minutes) for an Uber ride',
+      correct: 'regression',
+      reason: 'Waiting time (e.g. 7.4 minutes) is a continuous duration.'
+    }
+  ];
+
+  const handleSorterChoice = (choice) => {
+    const isCorrect = choice === sorterProblems[sorterIdx].correct;
+    setSorterFeedback({ isCorrect, reason: sorterProblems[sorterIdx].reason });
+    if (isCorrect) triggerConfetti(0.5, 0.6);
+  };
+
+  const handleNextSorter = () => {
+    setSorterFeedback(null);
+    setSorterIdx((sorterIdx + 1) % sorterProblems.length);
+  };
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #c2d4f2',
+      borderRadius: '20px',
+      padding: '1.75rem',
+      margin: '2rem 0',
+      boxShadow: '0 8px 30px rgba(0, 31, 84, 0.06)',
+      overflow: 'hidden'
+    }}>
+      {/* Header & Tabs */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f0f4fc',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{
+              background: '#f0f4fc',
+              color: '#001f54',
+              fontSize: '0.72rem',
+              fontWeight: 900,
+              padding: '0.25rem 0.65rem',
+              borderRadius: '6px',
+              border: '1px solid #c2d4f2'
+            }}>
+              SUPERVISED TAXONOMY ARENA
+            </span>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#001f54', margin: 0 }}>
+              Regression vs. Classification Geometry
+            </h3>
+          </div>
+          <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0.35rem 0 0' }}>
+            Interactive comparison of separating decision boundaries vs continuous best-fit trend trajectories.
+          </p>
+        </div>
+
+        {/* Tab Controls */}
+        <div style={{
+          display: 'flex',
+          gap: '0.35rem',
+          background: '#f0f4fc',
+          padding: '0.35rem',
+          borderRadius: '12px',
+          border: '1.5px solid #c2d4f2'
+        }}>
+          {[
+            { label: 'Dual Coordinate Arena', tab: 0 },
+            { label: 'Interactive Sorter Game', tab: 1 },
+            { label: 'Metrics Comparison', tab: 2 }
+          ].map((t) => (
+            <button
+              key={t.tab}
+              onClick={() => setActiveTab(t.tab)}
+              style={{
+                padding: '0.45rem 0.9rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === t.tab ? '#001f54' : 'transparent',
+                color: activeTab === t.tab ? '#ffffff' : '#001f54',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: activeTab === t.tab ? '0 3px 10px rgba(0,31,84,0.25)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 0: DUAL COORDINATE ARENA (MATCHING USER'S IMAGE) ─── */}
+      {activeTab === 0 && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+            
+            {/* ─── PLOT 1: CLASSIFICATION ARENA ─── */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '18px',
+              padding: '1.4rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}>
+              <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54', textTransform: 'uppercase' }}>
+                  Classification
+                </span>
+                <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '0.7rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
+                  Decision Boundary
+                </span>
+              </div>
+
+              {/* SVG Coordinate Box */}
+              <div
+                onClick={handleClassificationClick}
+                style={{
+                  position: 'relative',
+                  width: '260px',
+                  height: '240px',
+                  background: '#ffffff',
+                  border: '2px solid #0f172a',
+                  borderRadius: '10px',
+                  cursor: 'crosshair',
+                  boxShadow: 'inset 0 0 10px rgba(0,0,0,0.02)'
+                }}
+              >
+                <svg width="260" height="240" viewBox="0 0 260 240">
+                  {/* Axis tick marks */}
+                  <line x1="20" y1="220" x2="250" y2="220" stroke="#0f172a" strokeWidth="2" />
+                  <line x1="20" y1="15" x2="20" y2="220" stroke="#0f172a" strokeWidth="2" />
+
+                  {/* Tick labels */}
+                  <text x="5" y="25" fontSize="8" fill="#475569" fontWeight="bold">0.4</text>
+                  <text x="5" y="80" fontSize="8" fill="#475569" fontWeight="bold">0.2</text>
+                  <text x="9" y="130" fontSize="8" fill="#475569" fontWeight="bold">0</text>
+                  <text x="2" y="175" fontSize="8" fill="#475569" fontWeight="bold">-0.2</text>
+                  <text x="2" y="215" fontSize="8" fill="#475569" fontWeight="bold">-0.4</text>
+
+                  <text x="25" y="235" fontSize="8" fill="#475569" fontWeight="bold">-0.5</text>
+                  <text x="80" y="235" fontSize="8" fill="#475569" fontWeight="bold">-0.3</text>
+                  <text x="135" y="235" fontSize="8" fill="#475569" fontWeight="bold">-0.1</text>
+                  <text x="190" y="235" fontSize="8" fill="#475569" fontWeight="bold">0.1</text>
+
+                  {/* Scatter dots */}
+                  {classPoints.map((pt, pIdx) => (
+                    <circle
+                      key={`cp-${pIdx}`}
+                      cx={pt.cx}
+                      cy={pt.cy}
+                      r="5.5"
+                      fill={pt.type === 'A' ? '#10b981' : '#0284c7'}
+                      stroke="#ffffff"
+                      strokeWidth="1.2"
+                    />
+                  ))}
+
+                  {/* S-shaped Decision Boundary Curve (Black Line) */}
+                  <path
+                    d="M 50 220 C 70 190, 80 160, 120 145 C 160 130, 165 80, 175 20"
+                    fill="none"
+                    stroke="#0f172a"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Interactive Dropped Test Marker */}
+                  <g transform={`translate(${testPoint.x}, ${testPoint.y})`}>
+                    <circle r="8" fill="none" stroke="#ef4444" strokeWidth="2.5" />
+                    <line x1="-5" y1="-5" x2="5" y2="5" stroke="#ef4444" strokeWidth="2" />
+                    <line x1="5" y1="-5" x2="-5" y2="5" stroke="#ef4444" strokeWidth="2" />
+                  </g>
+                </svg>
+              </div>
+
+              {/* Click instruction & output feedback */}
+              <div style={{ marginTop: '0.85rem', width: '100%', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.35rem' }}>
+                  Click anywhere in plot to drop test point
+                </div>
+                <div style={{
+                  background: testPoint.classType === 'A' ? '#ecfdf5' : '#eff6ff',
+                  border: `1.5px solid ${testPoint.classType === 'A' ? '#6ee7b7' : '#93c5fd'}`,
+                  borderRadius: '8px',
+                  padding: '0.45rem 0.75rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  color: testPoint.classType === 'A' ? '#065f46' : '#1e40af'
+                }}>
+                  Result: {testPoint.label}
+                </div>
+              </div>
+            </div>
+
+            {/* ─── PLOT 2: REGRESSION ARENA ─── */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '18px',
+              padding: '1.4rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}>
+              <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54', textTransform: 'uppercase' }}>
+                  Regression
+                </span>
+                <span style={{ background: '#f0fdf4', color: '#15803d', fontSize: '0.7rem', fontWeight: 800, padding: '0.2rem 0.55rem', borderRadius: '6px' }}>
+                  Best-Fit Line
+                </span>
+              </div>
+
+              {/* SVG Coordinate Box */}
+              <div style={{
+                position: 'relative',
+                width: '260px',
+                height: '240px',
+                background: '#ffffff',
+                border: '2px solid #0f172a',
+                borderRadius: '10px',
+                boxShadow: 'inset 0 0 10px rgba(0,0,0,0.02)'
+              }}>
+                <svg width="260" height="240" viewBox="0 0 260 240">
+                  {/* Axis border lines */}
+                  <line x1="25" y1="215" x2="245" y2="215" stroke="#0f172a" strokeWidth="2" />
+                  <line x1="25" y1="15" x2="25" y2="215" stroke="#0f172a" strokeWidth="2" />
+
+                  {/* Tick labels */}
+                  <text x="5" y="25" fontSize="8" fill="#475569" fontWeight="bold">100</text>
+                  <text x="8" y="75" fontSize="8" fill="#475569" fontWeight="bold">80</text>
+                  <text x="8" y="125" fontSize="8" fill="#475569" fontWeight="bold">60</text>
+                  <text x="8" y="175" fontSize="8" fill="#475569" fontWeight="bold">40</text>
+
+                  <text x="25" y="230" fontSize="8" fill="#475569" fontWeight="bold">20</text>
+                  <text x="75" y="230" fontSize="8" fill="#475569" fontWeight="bold">40</text>
+                  <text x="130" y="230" fontSize="8" fill="#475569" fontWeight="bold">60</text>
+                  <text x="185" y="230" fontSize="8" fill="#475569" fontWeight="bold">80</text>
+                  <text x="235" y="230" fontSize="8" fill="#475569" fontWeight="bold">100</text>
+
+                  {/* Cloud of points trending up */}
+                  {regPoints.map((pt, pIdx) => {
+                    const mappedX = 25 + ((pt.x - 20) / 80) * 220;
+                    const mappedY = 215 - (pt.y / 100) * 200;
+                    return (
+                      <circle
+                        key={`rp-${pIdx}`}
+                        cx={mappedX}
+                        cy={mappedY}
+                        r="5.5"
+                        fill={pt.col}
+                        stroke="#ffffff"
+                        strokeWidth="1.2"
+                      />
+                    );
+                  })}
+
+                  {/* Best-Fit Regression Line: from (20, 26) to (100, 85) */}
+                  <line
+                    x1="25"
+                    y1={215 - (26 / 100) * 200}
+                    x2="245"
+                    y2={215 - (85 / 100) * 200}
+                    stroke="#0f172a"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Dynamic interactive pin from slider */}
+                  {(() => {
+                    const mappedPinX = 25 + ((sliderX - 20) / 80) * 220;
+                    const mappedPinY = 215 - (Number(regPredictedY) / 100) * 200;
+                    return (
+                      <g>
+                        <line x1={mappedPinX} y1="215" x2={mappedPinX} y2={mappedPinY} stroke="#f97316" strokeWidth="1.5" strokeDasharray="3 3" />
+                        <circle cx={mappedPinX} cy={mappedPinY} r="7" fill="#f97316" stroke="#ffffff" strokeWidth="2" />
+                      </g>
+                    );
+                  })()}
+                </svg>
+              </div>
+
+              {/* Slider Controls */}
+              <div style={{ marginTop: '0.85rem', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '0.72rem', color: '#64748b', marginBottom: '0.2rem' }}>
+                  <span>Input x = {sliderX}</span>
+                  <span style={{ color: '#001f54', fontWeight: 800 }}>Predicted ŷ = {regPredictedY}</span>
+                </div>
+                <input
+                  type="range"
+                  min="20"
+                  max="100"
+                  value={sliderX}
+                  onChange={(e) => setSliderX(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+                />
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 1: INTERACTIVE PROBLEM SORTER GAME ─── */}
+      {activeTab === 1 && (
+        <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+            Problem Sorter Challenge ({sorterIdx + 1} of {sorterProblems.length})
+          </div>
+
+          <div style={{
+            background: '#f8fafc',
+            border: '2px solid #001f54',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            marginBottom: '1.25rem',
+            boxShadow: '0 4px 16px rgba(0,31,84,0.04)'
+          }}>
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: '0 0 1.25rem', lineHeight: '1.5' }}>
+              "{sorterProblems[sorterIdx].text}"
+            </h4>
+
+            {!sorterFeedback ? (
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                <button
+                  onClick={() => handleSorterChoice('classification')}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem 1rem',
+                    borderRadius: '10px',
+                    border: '2px solid #0284c7',
+                    background: '#ffffff',
+                    color: '#0284c7',
+                    fontSize: '0.85rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(2,132,199,0.1)'
+                  }}
+                >
+                  Classification (Discrete)
+                </button>
+                <button
+                  onClick={() => handleSorterChoice('regression')}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem 1rem',
+                    borderRadius: '10px',
+                    border: '2px solid #001f54',
+                    background: '#001f54',
+                    color: '#ffffff',
+                    fontSize: '0.85rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: '0 3px 10px rgba(0,31,84,0.2)'
+                  }}
+                >
+                  Regression (Continuous)
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div style={{
+                  background: sorterFeedback.isCorrect ? '#ecfdf5' : '#fef2f2',
+                  border: `1.5px solid ${sorterFeedback.isCorrect ? '#6ee7b7' : '#fca5a5'}`,
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  color: sorterFeedback.isCorrect ? '#065f46' : '#991b1b',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  marginBottom: '1rem'
+                }}>
+                  {sorterFeedback.isCorrect ? 'Correct! ' : 'Incorrect! '}
+                  {sorterFeedback.reason}
+                </div>
+                <button
+                  onClick={handleNextSorter}
+                  style={{
+                    background: '#001f54',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '0.6rem 1.5rem',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Next Challenge →
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: METRICS & COMPARISON DEEP-DIVE ─── */}
+      {activeTab === 2 && (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+            <thead>
+              <tr style={{ background: '#f0f4fc', borderBottom: '2px solid #001f54', textAlign: 'left' }}>
+                <th style={{ padding: '0.75rem', color: '#001f54', fontWeight: 900 }}>Attribute</th>
+                <th style={{ padding: '0.75rem', color: '#001f54', fontWeight: 900 }}>Regression</th>
+                <th style={{ padding: '0.75rem', color: '#001f54', fontWeight: 900 }}>Classification</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Target Variable (y)</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Continuous Real Numbers ($\mathbb{R}$)</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Discrete Categories / Class Labels</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Geometric Solution</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Best-Fit Trend Curve passing through point cloud</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Decision Boundary separating classes</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Standard Loss Functions</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Mean Squared Error (MSE), Huber Loss</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Binary Cross-Entropy / Log Loss, Hinge Loss</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Evaluation Metrics</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>MSE, RMSE, MAE, R-Squared (R²)</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Accuracy, Precision, Recall, F1, ROC-AUC</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Standard Algorithms</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Linear Regression, Ridge, Lasso, SVR</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Logistic Regression, Random Forest, SVM, Naive Bayes</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = ['ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1'];
 
@@ -2240,6 +2773,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'supervised_vs_unsupervised' && (
               <SupervisedVsUnsupervisedDiagram />
+            )}
+            {lesson.diagram.type === 'regression_vs_classification' && (
+              <RegressionVsClassificationDiagram />
             )}
           </div>
         )}
