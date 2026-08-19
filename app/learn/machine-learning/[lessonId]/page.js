@@ -4839,6 +4839,611 @@ const OverfittingUnderfittingDiagram = () => {
     </div>
   );
 };
+// ─── BIAS VS VARIANCE INTERACTIVE STUDIO DIAGRAM ───────────────────────────
+const BiasVsVarianceDiagram = () => {
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Tab 0: Complexity Slider (1 to 100)
+  const [complexity, setComplexity] = useState(50);
+  const [isFindingOptimum, setIsFindingOptimum] = useState(false);
+
+  // Tab 1: Dartboard Throw State
+  const [dartThrows, setDartThrows] = useState(1);
+  const [isThrowing, setIsThrowing] = useState(false);
+
+  // Mathematical error calculations as a function of complexity c in [1, 100]
+  const calculateErrors = (c) => {
+    // Bias^2: starts high at 0.85 and drops smoothly
+    const biasSq = (0.85 * Math.exp(-c / 25) + 0.04).toFixed(3);
+    // Variance: starts near 0.02 and grows exponentially
+    const variance = (0.02 + 0.82 * Math.pow(c / 100, 2.4)).toFixed(3);
+    // Irreducible noise
+    const noise = (0.08).toFixed(3);
+    // Total Error = Bias^2 + Variance + noise
+    const totalError = (parseFloat(biasSq) + parseFloat(variance) + parseFloat(noise)).toFixed(3);
+
+    return { biasSq, variance, noise, totalError };
+  };
+
+  const { biasSq, variance, noise, totalError } = calculateErrors(complexity);
+
+  const handleFindOptimum = () => {
+    setIsFindingOptimum(true);
+    let c = complexity;
+    const target = 50; // Optimum sweet spot
+    const step = c < target ? 1 : -1;
+
+    const interval = setInterval(() => {
+      if (c === target) {
+        clearInterval(interval);
+        setIsFindingOptimum(false);
+        triggerConfetti(0.5, 0.6);
+      } else {
+        c += step;
+        setComplexity(c);
+      }
+    }, 25);
+  };
+
+  const handleThrowDarts = () => {
+    setIsThrowing(true);
+    setTimeout(() => {
+      setDartThrows((prev) => prev + 1);
+      setIsThrowing(false);
+      triggerConfetti(0.5, 0.6);
+    }, 450);
+  };
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #c2d4f2',
+      borderRadius: '20px',
+      padding: '1.75rem',
+      margin: '2rem 0',
+      boxShadow: '0 8px 30px rgba(0, 31, 84, 0.06)',
+      overflow: 'hidden'
+    }}>
+      {/* Header & Tabs */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f0f4fc',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{
+              background: '#f0f4fc',
+              color: '#001f54',
+              fontSize: '0.72rem',
+              fontWeight: 900,
+              padding: '0.25rem 0.65rem',
+              borderRadius: '6px',
+              border: '1px solid #c2d4f2'
+            }}>
+              STATISTICAL LEARNING THEORY
+            </span>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#001f54', margin: 0 }}>
+              Bias vs. Variance Trade-Off
+            </h3>
+          </div>
+          <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0.35rem 0 0' }}>
+            Interactive Error vs Complexity curve, bullseye dartboard matrix, and generalization error decomposition.
+          </p>
+        </div>
+
+        {/* Tab Controls */}
+        <div style={{
+          display: 'flex',
+          gap: '0.35rem',
+          background: '#f0f4fc',
+          padding: '0.35rem',
+          borderRadius: '12px',
+          border: '1.5px solid #c2d4f2',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { label: 'Trade-Off Error Curve', tab: 0 },
+            { label: 'Bullseye Dartboard Matrix', tab: 1 },
+            { label: 'Mathematical Decomposition', tab: 2 },
+            { label: 'Remedies & Ensembling', tab: 3 }
+          ].map((t) => (
+            <button
+              key={t.tab}
+              onClick={() => setActiveTab(t.tab)}
+              style={{
+                padding: '0.45rem 0.9rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === t.tab ? '#001f54' : 'transparent',
+                color: activeTab === t.tab ? '#ffffff' : '#001f54',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: activeTab === t.tab ? '0 3px 10px rgba(0,31,84,0.25)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 0: TRADE-OFF ERROR CURVE (MATCHING USER'S ILLUSTRATION) ─── */}
+      {activeTab === 0 && (
+        <div>
+          {/* Complexity Slider & Preset Controls */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#001f54' }}>
+                Model Complexity: <span style={{ color: '#2563eb' }}>{complexity}%</span>
+              </span>
+              <input
+                type="range"
+                min="5"
+                max="95"
+                value={complexity}
+                onChange={(e) => setComplexity(Number(e.target.value))}
+                style={{ flex: 1, accentColor: '#001f54', cursor: 'pointer' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setComplexity(15)}
+                style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  border: '1.5px solid #cbd5e1',
+                  background: complexity === 15 ? '#eff6ff' : '#ffffff',
+                  color: '#1e40af',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                High Bias (Low Complexity)
+              </button>
+              <button
+                onClick={handleFindOptimum}
+                disabled={isFindingOptimum}
+                style={{
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#001f54',
+                  color: '#ffffff',
+                  fontSize: '0.74rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
+                }}
+              >
+                <IconSparkles size={13} /> {isFindingOptimum ? 'Finding...' : 'Optimum Balance (50%)'}
+              </button>
+              <button
+                onClick={() => setComplexity(85)}
+                style={{
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  border: '1.5px solid #cbd5e1',
+                  background: complexity === 85 ? '#fef2f2' : '#ffffff',
+                  color: '#dc2626',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                High Variance (High Complexity)
+              </button>
+            </div>
+          </div>
+
+          {/* SVG Vector Canvas for Bias-Variance Trade-Off Curve */}
+          <div style={{
+            background: '#ffffff',
+            border: '2px solid #001f54',
+            borderRadius: '16px',
+            padding: '1.75rem 1.25rem',
+            boxShadow: '0 4px 16px rgba(0,31,84,0.04)',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
+              <svg width="660" height="340" viewBox="0 0 660 340" style={{ maxWidth: '100%' }}>
+                <defs>
+                  <marker id="axis-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <polygon points="0 0, 8 4, 0 8" fill="#0f172a" />
+                  </marker>
+                  <marker id="pink-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <polygon points="0 0, 8 4, 0 8" fill="#f43f5e" />
+                  </marker>
+                  <marker id="blue-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <polygon points="0 0, 8 4, 0 8" fill="#3b82f6" />
+                  </marker>
+                </defs>
+
+                {/* ─── AXES WITH ARROWHEADS ─── */}
+                {/* Vertical Axis: Error */}
+                <line
+                  x1="70"
+                  y1="280"
+                  x2="70"
+                  y2="30"
+                  stroke="#0f172a"
+                  strokeWidth="2.5"
+                  markerEnd="url(#axis-arrow)"
+                />
+                <text x="35" y="155" fontSize="16" fontWeight="900" fill="#0f172a" textAnchor="middle">
+                  Error
+                </text>
+
+                {/* Horizontal Axis: Model Complexity */}
+                <line
+                  x1="70"
+                  y1="280"
+                  x2="600"
+                  y2="280"
+                  stroke="#0f172a"
+                  strokeWidth="2.5"
+                  markerEnd="url(#axis-arrow)"
+                />
+                <text x="340" y="315" fontSize="15" fontWeight="900" fill="#0f172a" textAnchor="middle">
+                  Model complexity
+                </text>
+
+                {/* ─── OPTIMUM MODEL COMPLEXITY (VERTICAL DASHED LINE) ─── */}
+                <line
+                  x1="330"
+                  y1="35"
+                  x2="330"
+                  y2="280"
+                  stroke="#94a3b8"
+                  strokeWidth="1.8"
+                  strokeDasharray="5 5"
+                />
+                <text
+                  x="322"
+                  y="120"
+                  fontSize="11"
+                  fontWeight="800"
+                  fill="#64748b"
+                  transform="rotate(-90 322 120)"
+                  textAnchor="middle"
+                >
+                  Optimum model complexity
+                </text>
+
+                {/* ─── BIAS^2 CURVE (PINK/RED #f43f5e) ─── */}
+                <path
+                  d="M 90 50 Q 200 210, 335 235 T 580 258"
+                  fill="none"
+                  stroke="#f43f5e"
+                  strokeWidth="3.2"
+                  markerEnd="url(#pink-arrow)"
+                />
+                <text x="555" y="245" fontSize="15" fontWeight="900" fill="#f43f5e">
+                  Bias²
+                </text>
+
+                {/* ─── VARIANCE CURVE (BLUE #3b82f6) ─── */}
+                <path
+                  d="M 90 262 Q 220 260, 335 235 T 580 50"
+                  fill="none"
+                  stroke="#3b82f6"
+                  strokeWidth="3.2"
+                  markerEnd="url(#blue-arrow)"
+                />
+                <text x="590" y="115" fontSize="15" fontWeight="900" fill="#3b82f6">
+                  Variance
+                </text>
+
+                {/* ─── TOTAL ERROR CURVE (CHARCOAL / SLATE #334155) ─── */}
+                <path
+                  d="M 90 40 Q 330 250, 570 50"
+                  fill="none"
+                  stroke="#334155"
+                  strokeWidth="3.5"
+                />
+                {/* Dots at the ends of total error */}
+                <circle cx="90" cy="40" r="4.5" fill="#334155" />
+                <circle cx="570" cy="50" r="4.5" fill="#334155" />
+                <text x="500" y="60" fontSize="15" fontWeight="900" fill="#334155">
+                  Total error
+                </text>
+
+                {/* ─── INTERACTIVE PROBE POSITION ─── */}
+                {(() => {
+                  const probeX = 90 + ((complexity - 5) / 90) * 480;
+                  return (
+                    <g>
+                      <line
+                        x1={probeX}
+                        y1="35"
+                        x2={probeX}
+                        y2="280"
+                        stroke="#001f54"
+                        strokeWidth="2"
+                        strokeDasharray="4 4"
+                      />
+                      <circle cx={probeX} cy={280} r="6" fill="#001f54" />
+                    </g>
+                  );
+                })()}
+              </svg>
+            </div>
+
+            {/* Live Error Breakdown Metrics */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: '0.85rem',
+              marginTop: '1.25rem',
+              borderTop: '1px solid #cbd5e1',
+              paddingTop: '1rem'
+            }}>
+              <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '10px', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#be123c', textTransform: 'uppercase' }}>Bias² (Underfit)</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f43f5e' }}>{biasSq}</div>
+                <div style={{ fontSize: '0.66rem', color: '#64748b' }}>Decreases as capacity rises</div>
+              </div>
+
+              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase' }}>Variance (Overfit)</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#3b82f6' }}>{variance}</div>
+                <div style={{ fontSize: '0.66rem', color: '#64748b' }}>Increases as capacity rises</div>
+              </div>
+
+              <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.75rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>Noise (σ²)</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#64748b' }}>{noise}</div>
+                <div style={{ fontSize: '0.66rem', color: '#64748b' }}>Irreducible data noise</div>
+              </div>
+
+              <div style={{
+                background: complexity >= 42 && complexity <= 58 ? '#ecfdf5' : '#f8fafc',
+                border: `2px solid ${complexity >= 42 && complexity <= 58 ? '#10b981' : '#001f54'}`,
+                borderRadius: '10px',
+                padding: '0.75rem',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 900, color: complexity >= 42 && complexity <= 58 ? '#047857' : '#001f54', textTransform: 'uppercase' }}>
+                  Total Generalization Error
+                </div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: complexity >= 42 && complexity <= 58 ? '#059669' : '#001f54' }}>
+                  {totalError}
+                </div>
+                <div style={{ fontSize: '0.66rem', fontWeight: 700, color: complexity >= 42 && complexity <= 58 ? '#047857' : '#64748b' }}>
+                  {complexity >= 42 && complexity <= 58 ? 'Optimal Trade-Off Minimum!' : 'Sum: Bias² + Var + σ²'}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 1: BULLSEYE DARTBOARD TARGET MATRIX ─── */}
+      {activeTab === 1 && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 700 }}>
+              The 4 Quadrants of Model Prediction Stability (Simulated Darts: {dartThrows * 6})
+            </span>
+            <button
+              onClick={handleThrowDarts}
+              disabled={isThrowing}
+              style={{
+                padding: '0.45rem 1rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#001f54',
+                color: '#ffffff',
+                fontSize: '0.76rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <IconSparkles size={14} /> Throw New Volley of Darts
+            </button>
+          </div>
+
+          {/* 2x2 Target Matrix Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            
+            {/* 1. Low Bias & Low Variance (IDEAL) */}
+            <div style={{ background: '#f0fdf4', border: '2px solid #16a34a', borderRadius: '16px', padding: '1.25rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#166534', marginBottom: '0.35rem' }}>
+                Low Bias & Low Variance (IDEAL)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#15803d', marginBottom: '0.75rem' }}>
+                Accurate on average and highly consistent across datasets.
+              </div>
+              <svg width="150" height="150" viewBox="0 0 150 150" style={{ margin: '0 auto' }}>
+                <circle cx="75" cy="75" r="65" fill="#ffffff" stroke="#cbd5e1" strokeWidth="2" />
+                <circle cx="75" cy="75" r="45" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" />
+                <circle cx="75" cy="75" r="25" fill="#bbf7d0" stroke="#86efac" strokeWidth="2" />
+                <circle cx="75" cy="75" r="10" fill="#16a34a" />
+                {/* Darts tightly clustered in center */}
+                <circle cx="73" cy="74" r="3.5" fill="#15803d" />
+                <circle cx="77" cy="72" r="3.5" fill="#15803d" />
+                <circle cx="75" cy="78" r="3.5" fill="#15803d" />
+                <circle cx="71" cy="76" r="3.5" fill="#15803d" />
+                <circle cx="78" cy="77" r="3.5" fill="#15803d" />
+              </svg>
+            </div>
+
+            {/* 2. High Bias & Low Variance (CONSISTENTLY WRONG) */}
+            <div style={{ background: '#fefce8', border: '2px solid #ca8a04', borderRadius: '16px', padding: '1.25rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#854d0e', marginBottom: '0.35rem' }}>
+                High Bias & Low Variance (Underfitting)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#a16207', marginBottom: '0.75rem' }}>
+                Consistently makes the same wrong assumption (misses target).
+              </div>
+              <svg width="150" height="150" viewBox="0 0 150 150" style={{ margin: '0 auto' }}>
+                <circle cx="75" cy="75" r="65" fill="#ffffff" stroke="#cbd5e1" strokeWidth="2" />
+                <circle cx="75" cy="75" r="45" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" />
+                <circle cx="75" cy="75" r="25" fill="#fef08a" stroke="#fde047" strokeWidth="2" />
+                <circle cx="75" cy="75" r="10" fill="#ca8a04" />
+                {/* Darts tightly clustered off-target in upper-right */}
+                <circle cx="115" cy="38" r="3.5" fill="#854d0e" />
+                <circle cx="118" cy="35" r="3.5" fill="#854d0e" />
+                <circle cx="112" cy="42" r="3.5" fill="#854d0e" />
+                <circle cx="120" cy="40" r="3.5" fill="#854d0e" />
+                <circle cx="116" cy="44" r="3.5" fill="#854d0e" />
+              </svg>
+            </div>
+
+            {/* 3. Low Bias & High Variance (UNSTABLE / OVERFITTING) */}
+            <div style={{ background: '#eff6ff', border: '2px solid #3b82f6', borderRadius: '16px', padding: '1.25rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e40af', marginBottom: '0.35rem' }}>
+                Low Bias & High Variance (Overfitting)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#2563eb', marginBottom: '0.75rem' }}>
+                Centered around bullseye on average, but wildly scattered.
+              </div>
+              <svg width="150" height="150" viewBox="0 0 150 150" style={{ margin: '0 auto' }}>
+                <circle cx="75" cy="75" r="65" fill="#ffffff" stroke="#cbd5e1" strokeWidth="2" />
+                <circle cx="75" cy="75" r="45" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" />
+                <circle cx="75" cy="75" r="25" fill="#bfdbfe" stroke="#93c5fd" strokeWidth="2" />
+                <circle cx="75" cy="75" r="10" fill="#2563eb" />
+                {/* Darts scattered in all directions around center */}
+                <circle cx="70" cy="40" r="3.5" fill="#1d4ed8" />
+                <circle cx="110" cy="80" r="3.5" fill="#1d4ed8" />
+                <circle cx="45" cy="95" r="3.5" fill="#1d4ed8" />
+                <circle cx="85" cy="115" r="3.5" fill="#1d4ed8" />
+                <circle cx="50" cy="55" r="3.5" fill="#1d4ed8" />
+              </svg>
+            </div>
+
+            {/* 4. High Bias & High Variance (WORST CASE) */}
+            <div style={{ background: '#fef2f2', border: '2px solid #ef4444', borderRadius: '16px', padding: '1.25rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#991b1b', marginBottom: '0.35rem' }}>
+                High Bias & High Variance (WORST CASE)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#dc2626', marginBottom: '0.75rem' }}>
+                Both systematically inaccurate and wildly erratic.
+              </div>
+              <svg width="150" height="150" viewBox="0 0 150 150" style={{ margin: '0 auto' }}>
+                <circle cx="75" cy="75" r="65" fill="#ffffff" stroke="#cbd5e1" strokeWidth="2" />
+                <circle cx="75" cy="75" r="45" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" />
+                <circle cx="75" cy="75" r="25" fill="#fecaca" stroke="#fca5a5" strokeWidth="2" />
+                <circle cx="75" cy="75" r="10" fill="#ef4444" />
+                {/* Darts scattered far away in bottom right quadrant */}
+                <circle cx="110" cy="110" r="3.5" fill="#b91c1c" />
+                <circle cx="125" cy="90" r="3.5" fill="#b91c1c" />
+                <circle cx="95" cy="130" r="3.5" fill="#b91c1c" />
+                <circle cx="130" cy="125" r="3.5" fill="#b91c1c" />
+                <circle cx="105" cy="95" r="3.5" fill="#b91c1c" />
+              </svg>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: MATHEMATICAL DECOMPOSITION BREAKDOWN ─── */}
+      {activeTab === 2 && (
+        <div>
+          {/* Formula Display Box */}
+          <div style={{
+            background: '#001f54',
+            color: '#ffffff',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            textAlign: 'center',
+            marginBottom: '1.5rem',
+            boxShadow: '0 8px 24px rgba(0,31,84,0.2)'
+          }}>
+            <div style={{ fontSize: '0.78rem', color: '#93c5fd', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+              Generalization Expected Prediction Error Decomposition
+            </div>
+            <div style={{ fontSize: '1.35rem', fontWeight: 900, letterSpacing: '0.03em' }}>
+              Expected Error(x) = <span style={{ color: '#f43f5e' }}>Bias²[f̂(x)]</span> + <span style={{ color: '#60a5fa' }}>Var[f̂(x)]</span> + <span style={{ color: '#fbbf24' }}>σ²</span>
+            </div>
+          </div>
+
+          {/* 3 Component Breakdown Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+            <div style={{ background: '#fff1f2', border: '1.5px solid #f43f5e', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#be123c', marginBottom: '0.4rem' }}>
+                1. Bias² [f̂(x)] = (E[f̂(x)] - f(x))²
+              </div>
+              <p style={{ fontSize: '0.74rem', color: '#881337', margin: 0, lineHeight: '1.5' }}>
+                The systematic error arising from incorrect algorithmic assumptions (e.g. enforcing linearity on non-linear physics).
+              </p>
+            </div>
+
+            <div style={{ background: '#eff6ff', border: '1.5px solid #3b82f6', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#1e40af', marginBottom: '0.4rem' }}>
+                2. Var [f̂(x)] = E[(f̂(x) - E[f̂(x)])²]
+              </div>
+              <p style={{ fontSize: '0.74rem', color: '#1e3a8a', margin: 0, lineHeight: '1.5' }}>
+                The variance across training samples. Measures how violently model predictions fluctuate when trained on different dataset splits.
+              </p>
+            </div>
+
+            <div style={{ background: '#fefce8', border: '1.5px solid #eab308', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#854d0e', marginBottom: '0.4rem' }}>
+                3. Irreducible Noise (σ²)
+              </div>
+              <p style={{ fontSize: '0.74rem', color: '#713f12', margin: 0, lineHeight: '1.5' }}>
+                Random measurement noise in sensor readings, human labeling noise, or unobserved hidden variables. Cannot be reduced by any ML model.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: REMEDIES & ENSEMBLING ─── */}
+      {activeTab === 3 && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            
+            {/* Bagging Card */}
+            <div style={{ background: '#f0fdf4', border: '2px solid #16a34a', borderRadius: '14px', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#166534', marginBottom: '0.5rem' }}>
+                Bagging (Bootstrap Aggregation) → Reduces VARIANCE
+              </div>
+              <p style={{ fontSize: '0.75rem', color: '#14532d', lineHeight: '1.5', margin: '0 0 0.75rem' }}>
+                Trains multiple high-capacity, deep decision trees independently in parallel on bootstrap sample subsets and averages their outputs.
+              </p>
+              <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 800 }}>
+                Example: <strong>Random Forest Regressor / Classifier</strong>
+              </div>
+            </div>
+
+            {/* Boosting Card */}
+            <div style={{ background: '#eff6ff', border: '2px solid #3b82f6', borderRadius: '14px', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1e40af', marginBottom: '0.5rem' }}>
+                Boosting (Sequential Error Fitting) → Reduces BIAS
+              </div>
+              <p style={{ fontSize: '0.75rem', color: '#1e3a8a', lineHeight: '1.5', margin: '0 0 0.75rem' }}>
+                Trains a sequence of weak, shallow trees sequentially where each successive tree explicitly fits the residual errors of prior trees.
+              </p>
+              <div style={{ fontSize: '0.72rem', color: '#1e40af', fontWeight: 800 }}>
+                Example: <strong>Gradient Boosting, XGBoost, LightGBM</strong>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const lessonOrder = ['ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1'];
 
 export default function MLLessonArticlePage() {
@@ -4991,6 +5596,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'overfitting_underfitting' && (
               <OverfittingUnderfittingDiagram />
+            )}
+            {lesson.diagram.type === 'bias_vs_variance' && (
+              <BiasVsVarianceDiagram />
             )}
           </div>
         )}
