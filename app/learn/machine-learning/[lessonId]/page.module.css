@@ -356,14 +356,98 @@
   line-height: 1.6;
 }
 
+/* ─── DARK MODE SYNTAX CODE BLOCK STYLES ────────────────────────────── */
+.codeBlockWrapper {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  overflow: hidden;
+  margin: 24px 0;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25), 0 8px 10px -6px rgba(15, 23, 42, 0.2);
+}
+
+.codeBlockHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e293b;
+  padding: 10px 18px;
+  border-bottom: 1px solid #334155;
+}
+
+.codeHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.codeWindowDots {
+  display: flex;
+  gap: 6px;
+}
+
+.codeDot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.codeDotRed { background: #ef4444; }
+.codeDotYellow { background: #f59e0b; }
+.codeDotGreen { background: #10b981; }
+
+.codeTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.btnCopyCode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #334155;
+  border: 1px solid #475569;
+  color: #e2e8f0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnCopyCode:hover {
+  background: #475569;
+  color: #ffffff;
+}
+
+.btnCopyCodeSuccess {
+  background: #065f46;
+  border-color: #10b981;
+  color: #a7f3d0;
+}
+
+.codePre {
+  margin: 0;
+  padding: 20px 22px;
+  color: #f1f5f9;
+  font-size: 0.88rem;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  line-height: 1.65;
+  overflow-x: auto;
+  background: #0f172a;
+}
+
 /* ─── INTERACTIVE QUIZ CARD ─────────────────────────────────────────── */
 .quizCard {
   background: #ffffff;
-  border: 2px solid #7c3aed;
+  border: 2px solid #059669;
   border-radius: 24px;
   padding: 32px;
   margin-bottom: 36px;
-  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.1);
+  box-shadow: 0 10px 30px rgba(5, 150, 105, 0.08);
 }
 
 .quizHeader {
@@ -372,7 +456,7 @@
   gap: 10px;
   font-size: 1.2rem;
   font-weight: 900;
-  color: #5b21b6;
+  color: #065f46;
   margin-bottom: 16px;
 }
 
@@ -397,39 +481,43 @@
   background: #f8fafc;
   border: 2px solid #e2e8f0;
   border-radius: 14px;
-  padding: 14px 20px;
+  padding: 16px 20px;
   font-size: 0.95rem;
   font-weight: 600;
   color: #334155;
   cursor: pointer;
   transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .optionBtn:hover {
-  border-color: #a78bfa;
-  background: #f5f3ff;
-  color: #5b21b6;
+  border-color: #10b981;
+  background: #ecfdf5;
+  color: #065f46;
 }
 
 .optionCorrect {
-  background: #dcfce7 !important;
-  border-color: #22c55e !important;
-  color: #15803d !important;
+  background: #ecfdf5 !important;
+  border-color: #10b981 !important;
+  color: #065f46 !important;
   font-weight: 800;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
 }
 
 .optionIncorrect {
-  background: #fee2e2 !important;
+  background: #fef2f2 !important;
   border-color: #ef4444 !important;
-  color: #b91c1c !important;
+  color: #991b1b !important;
 }
 
 .explanationBox {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
   border-radius: 14px;
-  padding: 16px 20px;
-  color: #166534;
+  padding: 18px 22px;
+  color: #065f46;
   font-size: 0.95rem;
   line-height: 1.6;
 }
@@ -439,14 +527,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 20px;
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
 }
 
 .btnNext {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #7c3aed;
+  background: #059669;
   color: #ffffff;
   border: none;
   border-radius: 14px;
@@ -454,20 +544,20 @@
   font-size: 1rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 0 #5b21b6;
+  box-shadow: 0 4px 0 #047857;
   text-decoration: none;
   transition: all 0.15s ease;
 }
 
 .btnNext:hover {
-  background: #6d28d9;
+  background: #047857;
   transform: translateY(-2px);
-  box-shadow: 0 6px 0 #4c1d95;
+  box-shadow: 0 6px 0 #064e3b;
 }
 
 .btnNext:active {
   transform: translateY(2px);
-  box-shadow: 0 2px 0 #4c1d95;
+  box-shadow: 0 2px 0 #064e3b;
 }
 
 /* ─── NESTED CIRCLES SVG ILLUSTRATION ─────────────────────────────── */
