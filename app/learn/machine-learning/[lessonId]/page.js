@@ -855,6 +855,578 @@ const WhatIsMLDiagram = () => {
   );
 };
 
+// ─── CONCENTRIC AI VS ML VS DEEP LEARNING DIAGRAM (MATCHING USER IMAGE) ────
+const AiMlDlHierarchyDiagram = () => {
+  const [selectedLayer, setSelectedLayer] = useState('dl');
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedDecisionTask, setSelectedDecisionTask] = useState('tabular');
+
+  const layerData = {
+    ai: {
+      id: 'ai',
+      name: 'Artificial Intelligence (AI)',
+      short: 'AI',
+      color: '#2563eb',
+      lightBg: '#eff6ff',
+      borderColor: '#93c5fd',
+      subtitle: 'The Encompassing Universe (Founded 1956)',
+      scope: 'Any computational system, program, or hardware engineered to simulate human cognitive functions, reasoning, perception, or decision-making.',
+      corePhilosophy: 'Simulating human intelligence via both rule-based heuristics and statistical data learning.',
+      algorithms: ['Symbolic Reasoning', 'Expert Systems (IF-THEN)', 'A* Pathfinding Search', 'Constraint Satisfaction', 'Minimax & Game Trees'],
+      dataProfile: 'Can operate with zero data (using hand-crafted logic) or massive data.',
+      computeProfile: 'Minimal CPU to massive supercomputers depending on implementation.',
+      milestones: 'IBM Deep Blue (1997), MYCIN Expert System (1980s), Roomba Path Planning.'
+    },
+    ml: {
+      id: 'ml',
+      name: 'Machine Learning (ML)',
+      short: 'ML',
+      color: '#059669',
+      lightBg: '#ecfdf5',
+      borderColor: '#6ee7b7',
+      subtitle: 'The Statistical Engine (A Subset of AI)',
+      scope: 'Algorithms that build mathematical models from training data to make predictions or decisions without being explicitly hardcoded.',
+      corePhilosophy: 'Extracting statistical patterns from structured tabular feature matrices (Rows x Columns).',
+      algorithms: ['Linear & Logistic Regression', 'Random Forest', 'Gradient Boosting (XGBoost)', 'Support Vector Machines (SVM)', 'K-Means Clustering'],
+      dataProfile: 'Thrives on thousands to hundreds of thousands of structured tabular rows.',
+      computeProfile: 'Fast training on standard CPUs; highly memory efficient.',
+      milestones: 'Credit Card Fraud Scoring, Email Spam Filters, Netflix Collaborative Filtering.'
+    },
+    dl: {
+      id: 'dl',
+      name: 'Deep Learning (DL)',
+      short: 'DL',
+      color: '#7c3aed',
+      lightBg: '#f5f3ff',
+      borderColor: '#c4b5fd',
+      subtitle: 'Multi-Layer Neural Networks (A Subset of ML)',
+      scope: 'Artificial neural networks with deep stacked hidden layers capable of end-to-end representation learning directly from raw unstructured data.',
+      corePhilosophy: 'Automatically extracting hierarchical representations from raw pixels, audio, and tokens without manual feature engineering.',
+      algorithms: ['Convolutional Neural Networks (CNN)', 'Transformers & Self-Attention', 'Recurrent Neural Networks (LSTM)', 'Diffusion Models', 'Large Language Models (LLMs)'],
+      dataProfile: 'Requires massive unstructured datasets (millions of images/documents) to converge.',
+      computeProfile: 'Demands specialized GPU / TPU clusters for matrix multiplication.',
+      milestones: 'AlexNet (2012), AlphaFold (2020), ChatGPT / GPT-4 (2023), Tesla FSD.'
+    }
+  };
+
+  const curLayer = layerData[selectedLayer];
+
+  const decisionTasks = [
+    {
+      id: 'tabular',
+      title: 'Bank Loan Credit Scoring',
+      type: 'Traditional ML (XGBoost / Random Forest)',
+      reason: 'Structured tabular spreadsheet data (Credit score, income, debt ratio). Traditional ML trains in seconds, prevents overfitting, and offers regulatory compliance transparency.',
+      bestChoice: 'ml',
+      scores: { accuracy: '98%', speed: 'Instant (1.2s)', compute: 'Low (1x CPU)', interpret: 'High (Feature SHAP)' }
+    },
+    {
+      id: 'vision',
+      title: 'Autonomous Car Object Detection',
+      type: 'Deep Learning (YOLO / Vision Transformers)',
+      reason: 'Raw 4K camera streams and lidar point clouds cannot be manually engineered with if-else rules. Deep neural networks extract hierarchical spatial features directly from pixels.',
+      bestChoice: 'dl',
+      scores: { accuracy: '99.4%', speed: '60 FPS real-time', compute: 'High (4x GPU)', interpret: 'Low (Black-box)' }
+    },
+    {
+      id: 'chess',
+      title: 'Sudoku / Route Optimization',
+      type: 'Classical AI (A* Search / Constraint Satisfaction)',
+      reason: 'Mathematical deterministic puzzle with strict formal rules. Search algorithms calculate the provably optimal solution with zero training data or statistical guesswork.',
+      bestChoice: 'ai',
+      scores: { accuracy: '100% (Provable)', speed: 'Milliseconds', compute: 'Minimal CPU', interpret: 'Total (Logic Trace)' }
+    },
+    {
+      id: 'nlp',
+      title: 'Multilingual Conversational Agent',
+      type: 'Deep Learning (Large Language Model Transformers)',
+      reason: 'Human language has billions of contextual permutations. Multi-head self-attention models capture semantic relationships across vast text corpora.',
+      bestChoice: 'dl',
+      scores: { accuracy: 'State-of-the-Art', speed: '50ms token stream', compute: 'Very High (Cluster)', interpret: 'Low (Attention maps)' }
+    }
+  ];
+
+  const curDecision = decisionTasks.find(d => d.id === selectedDecisionTask) || decisionTasks[0];
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #c2d4f2',
+      borderRadius: '20px',
+      padding: '1.75rem',
+      margin: '2rem 0',
+      boxShadow: '0 8px 30px rgba(0, 31, 84, 0.06)',
+      overflow: 'hidden'
+    }}>
+      {/* Header & Tabs */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f0f4fc',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{
+              background: '#f0f4fc',
+              color: '#001f54',
+              fontSize: '0.72rem',
+              fontWeight: 900,
+              padding: '0.25rem 0.65rem',
+              borderRadius: '6px',
+              border: '1px solid #c2d4f2'
+            }}>
+              TAXONOMY & ARCHITECTURE
+            </span>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#001f54', margin: 0 }}>
+              AI vs Machine Learning vs Deep Learning
+            </h3>
+          </div>
+          <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0.35rem 0 0' }}>
+            Click the concentric rings below to explore each layer in the nested artificial intelligence hierarchy.
+          </p>
+        </div>
+
+        {/* Tab Controls */}
+        <div style={{
+          display: 'flex',
+          gap: '0.35rem',
+          background: '#f0f4fc',
+          padding: '0.35rem',
+          borderRadius: '12px',
+          border: '1.5px solid #c2d4f2'
+        }}>
+          {[
+            { label: 'Concentric Hierarchy', tab: 0 },
+            { label: 'Feature Engineering vs DL', tab: 1 },
+            { label: 'Domain Decision Matrix', tab: 2 }
+          ].map((t) => (
+            <button
+              key={t.tab}
+              onClick={() => setActiveTab(t.tab)}
+              style={{
+                padding: '0.45rem 0.9rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === t.tab ? '#001f54' : 'transparent',
+                color: activeTab === t.tab ? '#ffffff' : '#001f54',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: activeTab === t.tab ? '0 3px 10px rgba(0,31,84,0.25)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 0: CONCENTRIC CIRCLES (EXACTLY MATCHING USER'S IMAGE) ─── */}
+      {activeTab === 0 && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', alignItems: 'center' }}>
+            
+            {/* SVG Concentric Diagram Box with Subtle Gradient Background */}
+            <div style={{
+              background: 'linear-gradient(135deg, #e0e7ff 0%, #ecfdf5 50%, #f5f3ff 100%)',
+              border: '1.5px solid #c2d4f2',
+              borderRadius: '20px',
+              padding: '1.25rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', marginBottom: '0.75rem' }}>
+                CLICK ANY RING TO INSPECT:
+              </div>
+
+              {/* Exact Nested SVG Circle Component */}
+              <svg width="320" height="320" viewBox="0 0 320 320" style={{ cursor: 'pointer' }}>
+                
+                {/* 1. OUTER CIRCLE: Artificial Intelligence (AI) */}
+                <circle
+                  cx="160"
+                  cy="160"
+                  r="150"
+                  fill="#3b82f6"
+                  stroke={selectedLayer === 'ai' ? '#ffffff' : '#2563eb'}
+                  strokeWidth={selectedLayer === 'ai' ? '4' : '1'}
+                  filter={selectedLayer === 'ai' ? 'drop-shadow(0 0 12px rgba(59,130,246,0.8))' : 'none'}
+                  onClick={() => setSelectedLayer('ai')}
+                  style={{ transition: 'all 0.2s ease' }}
+                />
+                <text
+                  x="160"
+                  y="52"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="15"
+                  fontWeight="900"
+                  onClick={() => setSelectedLayer('ai')}
+                  style={{ userSelect: 'none' }}
+                >
+                  Artificial
+                </text>
+                <text
+                  x="160"
+                  y="72"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="15"
+                  fontWeight="900"
+                  onClick={() => setSelectedLayer('ai')}
+                  style={{ userSelect: 'none' }}
+                >
+                  Intelligence (AI)
+                </text>
+
+                {/* 2. MIDDLE CIRCLE: Machine Learning (ML) */}
+                <circle
+                  cx="160"
+                  cy="188"
+                  r="105"
+                  fill="#10b981"
+                  stroke={selectedLayer === 'ml' ? '#ffffff' : '#059669'}
+                  strokeWidth={selectedLayer === 'ml' ? '4' : '1'}
+                  filter={selectedLayer === 'ml' ? 'drop-shadow(0 0 12px rgba(16,185,129,0.8))' : 'none'}
+                  onClick={() => setSelectedLayer('ml')}
+                  style={{ transition: 'all 0.2s ease' }}
+                />
+                <text
+                  x="160"
+                  y="126"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="14"
+                  fontWeight="900"
+                  onClick={() => setSelectedLayer('ml')}
+                  style={{ userSelect: 'none' }}
+                >
+                  Machine
+                </text>
+                <text
+                  x="160"
+                  y="144"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="14"
+                  fontWeight="900"
+                  onClick={() => setSelectedLayer('ml')}
+                  style={{ userSelect: 'none' }}
+                >
+                  Learning (ML)
+                </text>
+
+                {/* 3. INNER CIRCLE: Deep Learning (DL) */}
+                <circle
+                  cx="178"
+                  cy="224"
+                  r="56"
+                  fill="#8b5cf6"
+                  stroke={selectedLayer === 'dl' ? '#ffffff' : '#7c3aed'}
+                  strokeWidth={selectedLayer === 'dl' ? '4' : '1'}
+                  filter={selectedLayer === 'dl' ? 'drop-shadow(0 0 12px rgba(139,92,246,0.8))' : 'none'}
+                  onClick={() => setSelectedLayer('dl')}
+                  style={{ transition: 'all 0.2s ease' }}
+                />
+                <text
+                  x="178"
+                  y="218"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="13"
+                  fontWeight="900"
+                  onClick={() => setSelectedLayer('dl')}
+                  style={{ userSelect: 'none' }}
+                >
+                  Deep
+                </text>
+                <text
+                  x="178"
+                  y="235"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="13"
+                  fontWeight="900"
+                  onClick={() => setSelectedLayer('dl')}
+                  style={{ userSelect: 'none' }}
+                >
+                  Learning
+                </text>
+                <text
+                  x="178"
+                  y="251"
+                  textAnchor="middle"
+                  fill="#ffffff"
+                  fontSize="12"
+                  fontWeight="900"
+                  onClick={() => setSelectedLayer('dl')}
+                  style={{ userSelect: 'none' }}
+                >
+                  (DL)
+                </text>
+              </svg>
+
+              {/* Quick layer picker pills */}
+              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.85rem' }}>
+                {[
+                  { id: 'ai', label: 'AI (Outer)', color: '#2563eb' },
+                  { id: 'ml', label: 'ML (Middle)', color: '#059669' },
+                  { id: 'dl', label: 'DL (Inner)', color: '#7c3aed' }
+                ].map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedLayer(p.id)}
+                    style={{
+                      padding: '0.3rem 0.65rem',
+                      borderRadius: '6px',
+                      border: `1.5px solid ${selectedLayer === p.id ? p.color : '#cbd5e1'}`,
+                      background: selectedLayer === p.id ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                      color: selectedLayer === p.id ? p.color : '#475569',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Layer Inspector Card */}
+            <div style={{
+              background: curLayer.lightBg,
+              border: `2px solid ${curLayer.borderColor}`,
+              borderRadius: '16px',
+              padding: '1.5rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.65rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 900, color: curLayer.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {curLayer.subtitle}
+                  </div>
+                  <h4 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0.2rem 0 0' }}>
+                    {curLayer.name}
+                  </h4>
+                </div>
+                <span style={{
+                  background: curLayer.color,
+                  color: '#ffffff',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: 900
+                }}>
+                  {curLayer.short}
+                </span>
+              </div>
+
+              <p style={{ fontSize: '0.82rem', color: '#334155', lineHeight: '1.55', margin: '0 0 1rem' }}>
+                {curLayer.scope}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.78rem' }}>
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem' }}>
+                  <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '0.2rem' }}>Core Mechanism:</div>
+                  <div style={{ color: '#475569' }}>{curLayer.corePhilosophy}</div>
+                </div>
+
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem' }}>
+                  <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '0.3rem' }}>Key Representative Algorithms:</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                    {curLayer.algorithms.map((alg, aIdx) => (
+                      <span key={aIdx} style={{ background: curLayer.lightBg, border: `1px solid ${curLayer.borderColor}`, color: curLayer.color, padding: '0.15rem 0.45rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: 700 }}>
+                        {alg}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem' }}>
+                  <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '0.2rem' }}>Historical Breakthroughs:</div>
+                  <div style={{ color: '#0f172a', fontWeight: 600 }}>{curLayer.milestones}</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 1: FEATURE ENGINEERING VS REPRESENTATION LEARNING ─── */}
+      {activeTab === 1 && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+            
+            {/* Traditional ML Pipeline */}
+            <div style={{ background: '#ecfdf5', border: '2px solid #a7f3d0', borderRadius: '16px', padding: '1.4rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#065f46', textTransform: 'uppercase' }}>
+                  1. Traditional Machine Learning Flow
+                </span>
+                <span style={{ background: '#059669', color: '#ffffff', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800 }}>
+                  Manual Features
+                </span>
+              </div>
+
+              {/* Steps */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1rem' }}>
+                <div style={{ background: '#ffffff', border: '1.5px solid #a7f3d0', borderRadius: '8px', padding: '0.65rem', textAlign: 'center', fontWeight: 800, color: '#065f46', fontSize: '0.8rem' }}>
+                  Input (Raw Vehicle Image)
+                </div>
+                <div style={{ textAlign: 'center', color: '#059669', fontSize: '0.8rem' }}>↓ Handcrafted by Data Scientist ↓</div>
+                <div style={{ background: '#ffffff', border: '2px dashed #059669', borderRadius: '8px', padding: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#047857', textTransform: 'uppercase' }}>Human Feature Extraction</div>
+                  <div style={{ fontSize: '0.8rem', color: '#0f172a', fontWeight: 700, marginTop: '0.2rem' }}>
+                    Calculate circular wheel contours, edge gradients, vehicle length ratio
+                  </div>
+                </div>
+                <div style={{ textAlign: 'center', color: '#059669', fontSize: '0.8rem' }}>↓ Features fed into classifier ↓</div>
+                <div style={{ background: '#ffffff', border: '1.5px solid #a7f3d0', borderRadius: '8px', padding: '0.65rem', textAlign: 'center', fontWeight: 800, color: '#065f46', fontSize: '0.8rem' }}>
+                  Classifier Model (Random Forest / SVM) → Output: "Car"
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '0.75rem', fontSize: '0.75rem', color: '#065f46', lineHeight: '1.5' }}>
+                <strong>Bottleneck: </strong> If human domain experts fail to engineer the exact edge filters, the model cannot distinguish complex visual scenes.
+              </div>
+            </div>
+
+            {/* Deep Learning Pipeline */}
+            <div style={{ background: '#f5f3ff', border: '2px solid #ddd6fe', borderRadius: '16px', padding: '1.4rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#6d28d9', textTransform: 'uppercase' }}>
+                  2. Deep Learning Flow
+                </span>
+                <span style={{ background: '#7c3aed', color: '#ffffff', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800 }}>
+                  End-to-End Neural
+                </span>
+              </div>
+
+              {/* Steps */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1rem' }}>
+                <div style={{ background: '#ffffff', border: '1.5px solid #ddd6fe', borderRadius: '8px', padding: '0.65rem', textAlign: 'center', fontWeight: 800, color: '#6d28d9', fontSize: '0.8rem' }}>
+                  Input (Raw Unstructured Image)
+                </div>
+                <div style={{ textAlign: 'center', color: '#7c3aed', fontSize: '0.8rem' }}>↓ Automated Multi-Layer Representation Learning ↓</div>
+                <div style={{ background: '#ffffff', border: '1.5px solid #8b5cf6', borderRadius: '8px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <div style={{ fontSize: '0.72rem', background: '#f5f3ff', padding: '0.3rem', borderRadius: '4px', color: '#4c1d95', fontWeight: 700 }}>
+                    • Layer 1-4: Detects low-level diagonal edges & color shifts
+                  </div>
+                  <div style={{ fontSize: '0.72rem', background: '#ede9fe', padding: '0.3rem', borderRadius: '4px', color: '#4c1d95', fontWeight: 700 }}>
+                    • Layer 5-16: Combines edges into wheels, windows, mirrors
+                  </div>
+                  <div style={{ fontSize: '0.72rem', background: '#ddd6fe', padding: '0.3rem', borderRadius: '4px', color: '#4c1d95', fontWeight: 800 }}>
+                    • Layer 17+: Assembles complete vehicle concept
+                  </div>
+                </div>
+                <div style={{ textAlign: 'center', color: '#7c3aed', fontSize: '0.8rem' }}>↓ Neural Classification Head ↓</div>
+                <div style={{ background: '#ffffff', border: '1.5px solid #ddd6fe', borderRadius: '8px', padding: '0.65rem', textAlign: 'center', fontWeight: 800, color: '#6d28d9', fontSize: '0.8rem' }}>
+                  Softmax Probability Output: "Sedan" (99.8%)
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', border: '1px solid #ddd6fe', borderRadius: '8px', padding: '0.75rem', fontSize: '0.75rem', color: '#5b21b6', lineHeight: '1.5' }}>
+                <strong>Advantage: </strong> No manual feature engineering required. The neural network learns directly from raw pixels given sufficient data.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: DOMAIN DECISION MATRIX ─── */}
+      {activeTab === 2 && (
+        <div>
+          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 1rem' }}>
+            Select an industry problem to see which tier in the AI hierarchy is the optimal engineering choice:
+          </p>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+            {decisionTasks.map((task) => (
+              <button
+                key={task.id}
+                onClick={() => setSelectedDecisionTask(task.id)}
+                style={{
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '8px',
+                  border: `1.5px solid ${selectedDecisionTask === task.id ? '#001f54' : '#e2e8f0'}`,
+                  background: selectedDecisionTask === task.id ? '#f0f4fc' : '#ffffff',
+                  color: selectedDecisionTask === task.id ? '#001f54' : '#475569',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                {task.title}
+              </button>
+            ))}
+          </div>
+
+          {/* Decision Verdict Card */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1.5px solid #c2d4f2',
+            borderRadius: '16px',
+            padding: '1.5rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Recommended Technology Tier:</div>
+                <h4 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#001f54', margin: '0.2rem 0 0' }}>
+                  {curDecision.type}
+                </h4>
+              </div>
+              <span style={{
+                background: curDecision.bestChoice === 'ml' ? '#059669' : curDecision.bestChoice === 'dl' ? '#7c3aed' : '#2563eb',
+                color: '#ffffff',
+                padding: '0.3rem 0.75rem',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                fontWeight: 900
+              }}>
+                {curDecision.bestChoice.toUpperCase()} SELECTION
+              </span>
+            </div>
+
+            <p style={{ fontSize: '0.82rem', color: '#334155', lineHeight: '1.55', margin: '0 0 1.25rem' }}>
+              {curDecision.reason}
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.65rem' }}>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Accuracy Potential:</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', marginTop: '0.2rem' }}>{curDecision.scores.accuracy}</div>
+              </div>
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.65rem' }}>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Training Speed:</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', marginTop: '0.2rem' }}>{curDecision.scores.speed}</div>
+              </div>
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.65rem' }}>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Compute Budget:</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', marginTop: '0.2rem' }}>{curDecision.scores.compute}</div>
+              </div>
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '0.65rem' }}>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Interpretability:</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', marginTop: '0.2rem' }}>{curDecision.scores.interpret}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = ['ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1'];
 
@@ -991,6 +1563,9 @@ export default function MLLessonArticlePage() {
             {lesson.diagram.type === 'what_is_ml' && (
               <WhatIsMLDiagram />
             )}
+            {lesson.diagram.type === 'ai_ml_dl_hierarchy' && (
+              <AiMlDlHierarchyDiagram />
+            )}
           </div>
         )}
 
@@ -1077,3 +1652,4 @@ export default function MLLessonArticlePage() {
     </div>
   );
 }
+
