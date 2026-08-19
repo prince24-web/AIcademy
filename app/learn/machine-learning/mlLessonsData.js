@@ -1136,8 +1136,129 @@ export const mlLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! Ensemble Bagging (Bootstrap Aggregating, as used in Random Forests) trains multiple diverse high-variance trees on bootstrap samples and averages their outputs, reducing prediction variance by a factor of 1/N while preserving low bias!'
     }
+  },
+
+  'ml-1-p1': {
+    id: 'ml-1-p1',
+    title: 'Mini Project: Predict House Prices',
+    subtitle: 'Assemble an end-to-end housing price predictor using interactive Scratch-style drag-and-drop ML pipeline building blocks.',
+    duration: '25 min build',
+    level: 'Hands-on Project',
+    module: 'Module 1: ML Fundamentals',
+    badgeText: 'CAPSTONE MINI PROJECT',
+    badgeColor: '#10b981',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Synthesize all Module 1 fundamentals into a working end-to-end Machine Learning pipeline.',
+      'Configure feature selection (Square Footage, Bedrooms, Zip Code) against the target label (House Price $y).',
+      'Select data splitting strategies to prevent data leakage and ensure an unbiased test vault benchmark.',
+      'Test model capacities (Linear vs Quadratic vs 15th-Degree) and observe underfitting and overfitting in real time.',
+      'Apply L2 Ridge Regularization and Early Stopping safeguards to achieve champion generalization.',
+      'Run interactive real-time predictions for simulated property buyer inquiries.'
+    ],
+
+    sections: [
+      {
+        heading: 'Capstone Project Overview & Architecture Blueprint',
+        paragraphs: [
+          'Congratulations on reaching the Module 1 Capstone Project! In this hands-on project, you will step into the shoes of a lead ML Engineer tasked with building a real estate valuation engine.',
+          'Instead of writing hundreds of lines of boilerplate code from scratch, you will use our Scratch-style Visual Block Builder to snap together pipeline stages: Data Ingestion → Partitioning → Preprocessing → Model Architecture → Regularization Safeguards.',
+          'Your goal is to achieve Champion Generalization Performance: high test accuracy with zero data leakage and balanced bias/variance!'
+        ]
+      },
+      {
+        heading: 'The 5 Pipeline Stages',
+        paragraphs: [
+          '1. Data Ingestion: Ingesting 20,000 California housing records with property features (Square Footage, Bedrooms, Bathrooms, Median Income, Proximity to Ocean) and the target price ($y).',
+          '2. Splitting Strategy: Dividing data into 80% Train / 10% Validation / 10% Test sets to evaluate generalization rather than memorization.',
+          '3. Preprocessing & Scaling: Standardizing numeric features using StandardScaler fit exclusively on the Training set (preventing Data Leakage).',
+          '4. Model Architecture: Selecting between Linear Regression (fast, simple), Polynomial Degree 2 (captures non-linear curves), or Polynomial Degree 15 (high risk of wild variance).',
+          '5. Regularization & Safeguards: Applying L2 Ridge penalties (alpha=1.0) to shrink large weights and prevent overfitting.'
+        ],
+        codeBlock: [
+          '# Complete Scikit-Learn Housing Price Prediction Pipeline',
+          '# ────────────────────────────────────────────────────────',
+          'import numpy as np',
+          'import pandas as pd',
+          'from sklearn.model_selection import train_test_split',
+          'from sklearn.preprocessing import StandardScaler, PolynomialFeatures',
+          'from sklearn.linear_model import Ridge',
+          'from sklearn.pipeline import Pipeline',
+          'from sklearn.metrics import r2_score, mean_squared_error',
+          '',
+          '# 1. Simulate California Housing Dataset',
+          'np.random.seed(42)',
+          'n_samples = 2000',
+          'sqft = np.random.uniform(800, 4500, n_samples)',
+          'bedrooms = np.random.randint(1, 6, n_samples)',
+          'income = np.random.uniform(2.0, 12.0, n_samples)',
+          '',
+          '# Non-linear price ground truth: price ~ 150k + 120*sqft + 25k*beds + 30k*income + noise',
+          'price = (150000 + 130 * sqft + 20000 * bedrooms + 35000 * income ',
+          '         + 0.015 * (sqft ** 1.8) + np.random.normal(0, 25000, n_samples))',
+          '',
+          'X = pd.DataFrame({"sqft": sqft, "bedrooms": bedrooms, "income": income})',
+          'y = price',
+          '',
+          '# 2. 80% Train / 10% Val / 10% Test Split',
+          'X_train_full, X_test, y_train_full, y_test = train_test_split(X, y, test_size=0.10, random_state=42)',
+          'X_train, X_val, y_train, y_val = train_test_split(X_train_full, y_train_full, test_size=0.1111, random_state=42)',
+          '',
+          '# 3. Clean Pipeline (Scaler -> Polynomial Features -> L2 Ridge)',
+          'housing_pipeline = Pipeline([',
+          '    ("scaler", StandardScaler()),',
+          '    ("poly", PolynomialFeatures(degree=2, include_bias=False)),',
+          '    ("model", Ridge(alpha=1.0))',
+          '])',
+          '',
+          '# 4. Fit exclusively on Training Data',
+          'housing_pipeline.fit(X_train, y_train)',
+          '',
+          '# 5. Evaluate Generalization',
+          'val_preds = housing_pipeline.predict(X_val)',
+          'test_preds = housing_pipeline.predict(X_test)',
+          '',
+          'print(f"Validation R² Score: {r2_score(y_val, val_preds):.3f}")',
+          'print(f"Test Vault R² Score: {r2_score(y_test, test_preds):.3f}")',
+          'print(f"Test RMSE:           ${np.sqrt(mean_squared_error(y_test, test_preds)):,.2f}")'
+        ].join('\n'),
+        codeBlockTitle: 'california_housing_pipeline.py'
+      }
+    ],
+
+    analogy: {
+      title: 'The Modular Engine Assembly Analogy',
+      text: 'Building a machine learning model is just like assembling a high-performance sports car: The dataset is your high-octane fuel, the train/test split is the testing track barrier, the scaler is your transmission gearbox, the model architecture is the engine block, and regularization is the traction control system that prevents you from spinning out of control on tight corners!'
+    },
+
+    diagram: {
+      type: 'house_price_pipeline_project',
+      title: 'Scratch-Style ML Pipeline Builder: Predict House Prices'
+    },
+
+    takeaways: [
+      'A complete ML pipeline connects data ingestion, splitting, feature scaling, model fitting, and regularization.',
+      'Preventing data leakage by isolating X_train is essential for trustworthy production metrics.',
+      'Polynomial degree 2 with L2 Ridge strikes the optimal bias-variance balance for housing price regression.',
+      'Always verify that the model generalizes to new property inquiries without wild prediction oscillations.'
+    ],
+
+    quiz: {
+      question: 'In your housing price pipeline, what happens if you select a 15th-Degree Polynomial without any Ridge regularization?',
+      options: [
+        'The model underfits because it has too few parameters',
+        'The model achieves high training R² but catastrophic test variance, producing erratic price predictions for real houses',
+        'The model runs 10x faster than linear regression',
+        'The model automatically prevents data leakage'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! An unconstrained 15th-degree polynomial has excessive capacity (high variance), causing it to fit every statistical noise fluctuation in the training set and produce wild, unrealistic price predictions for new homes.'
+    }
   }
 };
+
 
 
 

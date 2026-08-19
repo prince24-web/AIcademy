@@ -158,8 +158,8 @@ const mlModules = [
       { id: 'ml-1-5', name: 'Features and Labels', nodeType: 'lightbulb', status: 'completed' },
       { id: 'ml-1-6', name: 'Training, Validation & Test Sets', nodeType: 'concept', status: 'completed' },
       { id: 'ml-1-7', name: 'Overfitting & Underfitting', nodeType: 'star', status: 'completed' },
-      { id: 'ml-1-8', name: 'Bias vs Variance', nodeType: 'concept', status: 'active' },
-      { id: 'ml-1-p1', name: 'Mini Project: Predict House Prices', nodeType: 'project', status: 'locked', isProject: true },
+      { id: 'ml-1-8', name: 'Bias vs Variance', nodeType: 'concept', status: 'completed' },
+      { id: 'ml-1-p1', name: 'Mini Project: Predict House Prices', nodeType: 'project', status: 'active', isProject: true },
     ]
   },
   {

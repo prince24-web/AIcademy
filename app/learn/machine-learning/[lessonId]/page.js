@@ -5444,6 +5444,890 @@ const BiasVsVarianceDiagram = () => {
   );
 };
 
+// ─── CAPSTONE MINI PROJECT: HOUSE PRICE PIPELINE STUDIO (SCRATCH-STYLE) ────
+const HousePricePipelineStudio = () => {
+  // Selected Blocks for 5 Pipeline Stages
+  const [pipeline, setPipeline] = useState({
+    data: 'ca_housing', // 'ca_housing' | 'tiny_sample'
+    split: 'split_80_10_10', // 'split_80_10_10' | 'split_no_test'
+    preprocess: 'scale_train_only', // 'scale_train_only' | 'scale_data_leak' | 'scale_none'
+    model: 'model_poly2', // 'model_poly2' | 'model_linear' | 'model_poly15'
+    safeguards: 'reg_ridge_l2' // 'reg_ridge_l2' | 'reg_none'
+  });
+
+  const [activeTab, setActiveTab] = useState(0); // 0: Visual Builder, 1: Live House Tester, 2: Python Code
+  const [isRunning, setIsRunning] = useState(false);
+  const [executionStep, setExecutionStep] = useState(0);
+  const [hasExecuted, setHasExecuted] = useState(true);
+
+  // House Tester Sliders
+  const [testSqft, setTestSqft] = useState(2400);
+  const [testBeds, setTestBeds] = useState(3);
+  const [testIncome, setTestIncome] = useState(6.5);
+
+  // Block definitions catalog
+  const blockCatalog = {
+    data: [
+      { id: 'ca_housing', label: 'California Housing (20,000 Houses, 5 Features)', tag: 'Recommended', color: '#10b981', shadow: '#059669', bg: '#ecfdf5', desc: 'Representative full dataset with sqft, beds, income, and prices.' },
+      { id: 'tiny_sample', label: 'Tiny Sample (15 Houses Only)', tag: 'High Variance Risk', color: '#059669', shadow: '#047857', bg: '#f0fdf4', desc: 'Too small dataset leading to volatile generalization.' }
+    ],
+    split: [
+      { id: 'split_80_10_10', label: '80% Train / 10% Val / 10% Test Split', tag: 'Clean Isolation', color: '#001f54', shadow: '#00122e', bg: '#f0f4fc', desc: 'Standard 3-way partition with test vault preservation.' },
+      { id: 'split_no_test', label: '100% Train / 0% Test (No Partition)', tag: 'Fatal Memorization', color: '#1e3a8a', shadow: '#0f172a', bg: '#eff6ff', desc: 'Evaluates on training data; no unseen benchmark.' }
+    ],
+    preprocess: [
+      { id: 'scale_train_only', label: 'StandardScaler on X_train ONLY', tag: 'Zero Leakage', color: '#6366f1', shadow: '#4f46e5', bg: '#ede9fe', desc: 'Fits scaler strictly on train; transforms test set.' },
+      { id: 'scale_data_leak', label: 'Scaler on Entire Dataset Before Split', tag: 'Data Leakage Alert', color: '#4f46e5', shadow: '#3730a3', bg: '#e0e7ff', desc: 'Leaks test statistics into training phase.' },
+      { id: 'scale_none', label: 'No Scaling (Raw Numerical Inputs)', tag: 'Unnormalized', color: '#4338ca', shadow: '#312e81', bg: '#f5f3ff', desc: 'Features have unbalanced numerical scales.' }
+    ],
+    model: [
+      { id: 'model_poly2', label: 'Polynomial Degree 2 (Quadratic Parabola)', tag: 'Optimal Curve', color: '#f59e0b', shadow: '#d97706', bg: '#fef3c7', desc: 'Captures non-linear price growth cleanly.' },
+      { id: 'model_linear', label: 'Linear Regression (Degree 1 Straight Line)', tag: 'High Bias Underfit', color: '#d97706', shadow: '#b45309', bg: '#fffbeb', desc: 'Too rigid to capture housing valuation curvature.' },
+      { id: 'model_poly15', label: 'Polynomial Degree 15 (Complex Squiggle)', tag: 'High Variance Overfit', color: '#b45309', shadow: '#78350f', bg: '#fefce8', desc: 'Oscillates wildly through training noise.' }
+    ],
+    safeguards: [
+      { id: 'reg_ridge_l2', label: 'L2 Ridge Regularization (α = 1.0) + Early Stopping', tag: 'Optimal Safeguard', color: '#8b5cf6', shadow: '#6d28d9', bg: '#f5f3ff', desc: 'Penalizes large weights and halts at min val loss.' },
+      { id: 'reg_none', label: 'No Regularization (Unconstrained Capacity)', tag: 'Unbounded Weights', color: '#7c3aed', shadow: '#5b21b6', bg: '#faf5ff', desc: 'No penalty on complex weight explosions.' }
+    ]
+  };
+
+  // Evaluate pipeline diagnostics
+  const evaluatePipeline = () => {
+    // 1. Data Leakage
+    if (pipeline.preprocess === 'scale_data_leak') {
+      return {
+        status: 'leakage',
+        badge: 'CRITICAL ERROR: DATA LEAKAGE',
+        color: '#dc2626',
+        bg: '#fef2f2',
+        border: '#ef4444',
+        shadow: '#b91c1c',
+        trainR2: 0.96,
+        valR2: 0.95,
+        testR2: 0.61,
+        diagnosis: 'Scaler was fit on the full dataset before splitting! Test distribution statistics leaked into training, giving false high validation scores that collapse on unseen production houses.'
+      };
+    }
+
+    // 2. No Split
+    if (pipeline.split === 'split_no_test') {
+      return {
+        status: 'no_split',
+        badge: 'FATAL FLAW: TRAINING MEMORIZATION',
+        color: '#dc2626',
+        bg: '#fef2f2',
+        border: '#ef4444',
+        shadow: '#b91c1c',
+        trainR2: 0.99,
+        valR2: 'N/A',
+        testR2: 0.18,
+        diagnosis: '100% of data was used for training with 0% held-out test data! You are measuring pure memorization rather than real-world generalization.'
+      };
+    }
+
+    // 3. Tiny Dataset + High Poly (Extreme Overfit)
+    if (pipeline.data === 'tiny_sample' && pipeline.model === 'model_poly15') {
+      return {
+        status: 'extreme_overfit',
+        badge: 'SEVERE OVERFITTING: HIGH VARIANCE',
+        color: '#dc2626',
+        bg: '#fef2f2',
+        border: '#ef4444',
+        shadow: '#b91c1c',
+        trainR2: 1.00,
+        valR2: 0.12,
+        testR2: 0.05,
+        diagnosis: 'A 15th-degree polynomial fitted to only 15 houses completely memorizes the points. Predictions oscillate by millions of dollars between data points!'
+      };
+    }
+
+    // 4. High Poly without Regularization
+    if (pipeline.model === 'model_poly15' && pipeline.safeguards === 'reg_none') {
+      return {
+        status: 'overfit',
+        badge: 'OVERFITTING ALERT (HIGH VARIANCE)',
+        color: '#d97706',
+        bg: '#fffbeb',
+        border: '#f59e0b',
+        shadow: '#b45309',
+        trainR2: 0.99,
+        valR2: 0.68,
+        testR2: 0.42,
+        diagnosis: 'Degree 15 polynomial has excessive capacity without L2 Ridge regularization. The model learned random noise fluctuations in the California housing prices.'
+      };
+    }
+
+    // 5. Linear Regression (Underfitting)
+    if (pipeline.model === 'model_linear') {
+      return {
+        status: 'underfit',
+        badge: 'UNDERFITTING ALERT (HIGH BIAS)',
+        color: '#2563eb',
+        bg: '#eff6ff',
+        border: '#3b82f6',
+        shadow: '#1d4ed8',
+        trainR2: 0.62,
+        valR2: 0.61,
+        testR2: 0.60,
+        diagnosis: 'Linear model is too rigid to capture non-linear real estate price compounding (e.g. square footage exponential value in coastal zip codes).'
+      };
+    }
+
+    // 6. High Poly with Ridge (Decent regularization)
+    if (pipeline.model === 'model_poly15' && pipeline.safeguards === 'reg_ridge_l2') {
+      return {
+        status: 'good',
+        badge: 'REGULARIZED COMPLEX MODEL',
+        color: '#059669',
+        bg: '#ecfdf5',
+        border: '#10b981',
+        shadow: '#047857',
+        trainR2: 0.93,
+        valR2: 0.91,
+        testR2: 0.90,
+        diagnosis: 'L2 Ridge penalty successfully shrank the 15th-degree polynomial weights, preventing runaway oscillations and salvaging test performance!'
+      };
+    }
+
+    // 7. Optimal Champion Pipeline (Poly 2 + Clean Split + Ridge)
+    return {
+      status: 'champion',
+      badge: 'CHAMPION ML PIPELINE (OPTIMAL GENERALIZATION)',
+      color: '#16a34a',
+      bg: '#f0fdf4',
+      border: '#22c55e',
+      shadow: '#15803d',
+      trainR2: 0.94,
+      valR2: 0.93,
+      testR2: 0.93,
+      diagnosis: 'Perfection! Balanced capacity (Degree 2 quadratic), clean 3-way split, zero data leakage, and L2 Ridge regularization achieve 93.4% real-world test generalization!'
+    };
+  };
+
+  const results = evaluatePipeline();
+
+  // Run pipeline execution animation
+  const handleExecutePipeline = () => {
+    setIsRunning(true);
+    setExecutionStep(1);
+
+    const interval = setInterval(() => {
+      setExecutionStep((prev) => {
+        if (prev >= 5) {
+          clearInterval(interval);
+          setIsRunning(false);
+          setHasExecuted(true);
+          if (results.status === 'champion') {
+            triggerConfetti(0.5, 0.6);
+          }
+          return 5;
+        }
+        return prev + 1;
+      });
+    }, 450);
+  };
+
+  // Calculate live predicted house price based on pipeline configuration and sliders
+  const calculatePredictedPrice = () => {
+    // Base formula: 150k + 130*sqft + 20k*beds + 35k*income + 0.015*(sqft^1.8)
+    const basePrice = 150000 + 130 * testSqft + 20000 * testBeds + 35000 * testIncome + 0.015 * Math.pow(testSqft, 1.8);
+
+    if (results.status === 'underfit') {
+      // Linear model underestimates large homes and overestimates small homes
+      return Math.round(180000 + 95 * testSqft + 15000 * testBeds);
+    }
+    if (results.status === 'overfit' || results.status === 'extreme_overfit') {
+      // Overfitted model oscillates wildly based on sqft parity
+      const wobble = Math.sin(testSqft / 70) * 220000;
+      return Math.max(120000, Math.round(basePrice + wobble));
+    }
+    return Math.round(basePrice);
+  };
+
+  const predictedPrice = calculatePredictedPrice();
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '2px solid #001f54',
+      borderRadius: '20px',
+      padding: '1.75rem',
+      margin: '2rem 0',
+      boxShadow: '0 8px 30px rgba(0, 31, 84, 0.08)',
+      overflow: 'hidden'
+    }}>
+      {/* ─── TOP CAPSTONE BANNER ───────────────────────────────────── */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '2px solid #f0f4fc',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{
+              background: '#10b981',
+              color: '#ffffff',
+              fontSize: '0.72rem',
+              fontWeight: 900,
+              padding: '0.25rem 0.65rem',
+              borderRadius: '6px',
+              borderBottom: '2px solid #059669',
+              textTransform: 'uppercase'
+            }}>
+              CAPSTONE MINI PROJECT
+            </span>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#001f54', margin: 0 }}>
+              Visual ML Pipeline Builder: Predict House Prices
+            </h3>
+          </div>
+          <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0.35rem 0 0' }}>
+            Snap modular blocks together to assemble a full Machine Learning regression pipeline.
+          </p>
+        </div>
+
+        {/* 2D Tactile Tab Buttons */}
+        <div style={{
+          display: 'flex',
+          gap: '0.4rem',
+          background: '#f0f4fc',
+          padding: '0.35rem',
+          borderRadius: '12px',
+          border: '1.5px solid #c2d4f2',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { label: 'Pipeline Builder Canvas', tab: 0 },
+            { label: 'Live Property Valuation Tester', tab: 1 },
+            { label: 'Generated Python Code', tab: 2 }
+          ].map((t) => (
+            <button
+              key={t.tab}
+              onClick={() => setActiveTab(t.tab)}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === t.tab ? '#001f54' : 'transparent',
+                color: activeTab === t.tab ? '#ffffff' : '#001f54',
+                fontSize: '0.78rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                borderBottom: activeTab === t.tab ? '3px solid #00122e' : 'none',
+                boxShadow: activeTab === t.tab ? '0 2px 8px rgba(0,31,84,0.2)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 0: VISUAL PIPELINE BUILDER CANVAS ─────────────────── */}
+      {activeTab === 0 && (
+        <div>
+          {/* Main 2-Column Studio Grid: Left Toolbox, Right Canvas & Results */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            
+            {/* LEFT: BLOCK TOOLBOX PALETTE */}
+            <div style={{
+              background: '#f8fafc',
+              border: '2px solid #001f54',
+              borderRadius: '16px',
+              padding: '1.25rem',
+              boxShadow: '0 4px 0 #001f54'
+            }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54', textTransform: 'uppercase', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <IconSparkles size={16} /> Block Toolbox (Click to Snap)
+              </div>
+
+              {/* Stage 1: Data Ingestion Blocks */}
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#059669', marginBottom: '0.35rem', textTransform: 'uppercase' }}>
+                  1. Data Ingestion Blocks
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {blockCatalog.data.map((blk) => (
+                    <button
+                      key={blk.id}
+                      onClick={() => setPipeline((prev) => ({ ...prev, data: blk.id }))}
+                      style={{
+                        textAlign: 'left',
+                        padding: '0.6rem 0.8rem',
+                        borderRadius: '10px',
+                        border: `2px solid ${pipeline.data === blk.id ? blk.color : '#cbd5e1'}`,
+                        background: pipeline.data === blk.id ? blk.bg : '#ffffff',
+                        borderBottom: `4px solid ${pipeline.data === blk.id ? blk.shadow : '#94a3b8'}`,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0f172a' }}>{blk.label}</span>
+                        <span style={{ fontSize: '0.64rem', fontWeight: 800, background: blk.color, color: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                          {blk.tag}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{blk.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stage 2: Splitting Strategy Blocks */}
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#001f54', marginBottom: '0.35rem', textTransform: 'uppercase' }}>
+                  2. Partitioning Strategy Blocks
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {blockCatalog.split.map((blk) => (
+                    <button
+                      key={blk.id}
+                      onClick={() => setPipeline((prev) => ({ ...prev, split: blk.id }))}
+                      style={{
+                        textAlign: 'left',
+                        padding: '0.6rem 0.8rem',
+                        borderRadius: '10px',
+                        border: `2px solid ${pipeline.split === blk.id ? blk.color : '#cbd5e1'}`,
+                        background: pipeline.split === blk.id ? blk.bg : '#ffffff',
+                        borderBottom: `4px solid ${pipeline.split === blk.id ? blk.shadow : '#94a3b8'}`,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0f172a' }}>{blk.label}</span>
+                        <span style={{ fontSize: '0.64rem', fontWeight: 800, background: blk.color, color: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                          {blk.tag}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{blk.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stage 3: Preprocessing Blocks */}
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6366f1', marginBottom: '0.35rem', textTransform: 'uppercase' }}>
+                  3. Preprocessing & Scaling Blocks
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {blockCatalog.preprocess.map((blk) => (
+                    <button
+                      key={blk.id}
+                      onClick={() => setPipeline((prev) => ({ ...prev, preprocess: blk.id }))}
+                      style={{
+                        textAlign: 'left',
+                        padding: '0.6rem 0.8rem',
+                        borderRadius: '10px',
+                        border: `2px solid ${pipeline.preprocess === blk.id ? blk.color : '#cbd5e1'}`,
+                        background: pipeline.preprocess === blk.id ? blk.bg : '#ffffff',
+                        borderBottom: `4px solid ${pipeline.preprocess === blk.id ? blk.shadow : '#94a3b8'}`,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0f172a' }}>{blk.label}</span>
+                        <span style={{ fontSize: '0.64rem', fontWeight: 800, background: blk.color, color: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                          {blk.tag}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{blk.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stage 4: Model Architecture Blocks */}
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#d97706', marginBottom: '0.35rem', textTransform: 'uppercase' }}>
+                  4. Model Architecture Blocks
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {blockCatalog.model.map((blk) => (
+                    <button
+                      key={blk.id}
+                      onClick={() => setPipeline((prev) => ({ ...prev, model: blk.id }))}
+                      style={{
+                        textAlign: 'left',
+                        padding: '0.6rem 0.8rem',
+                        borderRadius: '10px',
+                        border: `2px solid ${pipeline.model === blk.id ? blk.color : '#cbd5e1'}`,
+                        background: pipeline.model === blk.id ? blk.bg : '#ffffff',
+                        borderBottom: `4px solid ${pipeline.model === blk.id ? blk.shadow : '#94a3b8'}`,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0f172a' }}>{blk.label}</span>
+                        <span style={{ fontSize: '0.64rem', fontWeight: 800, background: blk.color, color: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                          {blk.tag}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{blk.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stage 5: Regularization & Safeguards Blocks */}
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#8b5cf6', marginBottom: '0.35rem', textTransform: 'uppercase' }}>
+                  5. Regularization & Safeguard Blocks
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {blockCatalog.safeguards.map((blk) => (
+                    <button
+                      key={blk.id}
+                      onClick={() => setPipeline((prev) => ({ ...prev, safeguards: blk.id }))}
+                      style={{
+                        textAlign: 'left',
+                        padding: '0.6rem 0.8rem',
+                        borderRadius: '10px',
+                        border: `2px solid ${pipeline.safeguards === blk.id ? blk.color : '#cbd5e1'}`,
+                        background: pipeline.safeguards === blk.id ? blk.bg : '#ffffff',
+                        borderBottom: `4px solid ${pipeline.safeguards === blk.id ? blk.shadow : '#94a3b8'}`,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#0f172a' }}>{blk.label}</span>
+                        <span style={{ fontSize: '0.64rem', fontWeight: 800, background: blk.color, color: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                          {blk.tag}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>{blk.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT: CONNECTED PIPELINE CANVAS & LIVE SCORECARD */}
+            <div>
+              {/* Connected Assembly Canvas */}
+              <div style={{
+                background: '#ffffff',
+                border: '2px solid #001f54',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                boxShadow: '0 4px 0 #001f54',
+                marginBottom: '1.25rem'
+              }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54', textTransform: 'uppercase', marginBottom: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Assembled Pipeline</span>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>5 of 5 Stages Connected</span>
+                </div>
+
+                {/* Vertical Snap-together Chain of 5 Blocks */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  
+                  {/* Slot 1: Data */}
+                  {(() => {
+                    const blk = blockCatalog.data.find((b) => b.id === pipeline.data);
+                    return (
+                      <div style={{
+                        background: blk.bg,
+                        border: `2px solid ${blk.color}`,
+                        borderBottom: `4px solid ${blk.shadow}`,
+                        borderRadius: '10px',
+                        padding: '0.75rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        boxShadow: executionStep >= 1 ? '0 0 12px rgba(16,185,129,0.4)' : 'none',
+                        transition: 'all 0.2s ease'
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '0.66rem', fontWeight: 900, color: blk.color, textTransform: 'uppercase' }}>STAGE 1: DATA INGESTION</div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#0f172a' }}>{blk.label}</div>
+                        </div>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, background: blk.color, color: '#ffffff', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                          Connected
+                        </span>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Connector Pulse */}
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ width: 4, height: 10, background: executionStep >= 2 ? '#001f54' : '#cbd5e1', borderRadius: 2 }} />
+                  </div>
+
+                  {/* Slot 2: Split */}
+                  {(() => {
+                    const blk = blockCatalog.split.find((b) => b.id === pipeline.split);
+                    return (
+                      <div style={{
+                        background: blk.bg,
+                        border: `2px solid ${blk.color}`,
+                        borderBottom: `4px solid ${blk.shadow}`,
+                        borderRadius: '10px',
+                        padding: '0.75rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        boxShadow: executionStep >= 2 ? '0 0 12px rgba(0,31,84,0.4)' : 'none',
+                        transition: 'all 0.2s ease'
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '0.66rem', fontWeight: 900, color: blk.color, textTransform: 'uppercase' }}>STAGE 2: PARTITIONING</div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#0f172a' }}>{blk.label}</div>
+                        </div>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, background: blk.color, color: '#ffffff', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                          Connected
+                        </span>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Connector Pulse */}
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ width: 4, height: 10, background: executionStep >= 3 ? '#6366f1' : '#cbd5e1', borderRadius: 2 }} />
+                  </div>
+
+                  {/* Slot 3: Preprocessing */}
+                  {(() => {
+                    const blk = blockCatalog.preprocess.find((b) => b.id === pipeline.preprocess);
+                    return (
+                      <div style={{
+                        background: blk.bg,
+                        border: `2px solid ${blk.color}`,
+                        borderBottom: `4px solid ${blk.shadow}`,
+                        borderRadius: '10px',
+                        padding: '0.75rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        boxShadow: executionStep >= 3 ? '0 0 12px rgba(99,102,241,0.4)' : 'none',
+                        transition: 'all 0.2s ease'
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '0.66rem', fontWeight: 900, color: blk.color, textTransform: 'uppercase' }}>STAGE 3: PREPROCESSING</div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#0f172a' }}>{blk.label}</div>
+                        </div>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, background: blk.color, color: '#ffffff', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                          Connected
+                        </span>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Connector Pulse */}
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ width: 4, height: 10, background: executionStep >= 4 ? '#f59e0b' : '#cbd5e1', borderRadius: 2 }} />
+                  </div>
+
+                  {/* Slot 4: Model Architecture */}
+                  {(() => {
+                    const blk = blockCatalog.model.find((b) => b.id === pipeline.model);
+                    return (
+                      <div style={{
+                        background: blk.bg,
+                        border: `2px solid ${blk.color}`,
+                        borderBottom: `4px solid ${blk.shadow}`,
+                        borderRadius: '10px',
+                        padding: '0.75rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        boxShadow: executionStep >= 4 ? '0 0 12px rgba(245,158,11,0.4)' : 'none',
+                        transition: 'all 0.2s ease'
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '0.66rem', fontWeight: 900, color: blk.color, textTransform: 'uppercase' }}>STAGE 4: MODEL ARCHITECTURE</div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#0f172a' }}>{blk.label}</div>
+                        </div>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, background: blk.color, color: '#ffffff', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                          Connected
+                        </span>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Connector Pulse */}
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ width: 4, height: 10, background: executionStep >= 5 ? '#8b5cf6' : '#cbd5e1', borderRadius: 2 }} />
+                  </div>
+
+                  {/* Slot 5: Regularization & Safeguards */}
+                  {(() => {
+                    const blk = blockCatalog.safeguards.find((b) => b.id === pipeline.safeguards);
+                    return (
+                      <div style={{
+                        background: blk.bg,
+                        border: `2px solid ${blk.color}`,
+                        borderBottom: `4px solid ${blk.shadow}`,
+                        borderRadius: '10px',
+                        padding: '0.75rem 1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        boxShadow: executionStep >= 5 ? '0 0 12px rgba(139,92,246,0.4)' : 'none',
+                        transition: 'all 0.2s ease'
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '0.66rem', fontWeight: 900, color: blk.color, textTransform: 'uppercase' }}>STAGE 5: SAFEGUARDS</div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#0f172a' }}>{blk.label}</div>
+                        </div>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 800, background: blk.color, color: '#ffffff', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                          Connected
+                        </span>
+                      </div>
+                    );
+                  })()}
+
+                </div>
+
+                {/* Big 3D Execute Pipeline Button */}
+                <button
+                  onClick={handleExecutePipeline}
+                  disabled={isRunning}
+                  style={{
+                    width: '100%',
+                    marginTop: '1.25rem',
+                    padding: '0.85rem',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: isRunning ? '#94a3b8' : '#001f54',
+                    borderBottom: `4px solid ${isRunning ? '#64748b' : '#00122e'}`,
+                    color: '#ffffff',
+                    fontSize: '0.92rem',
+                    fontWeight: 900,
+                    cursor: isRunning ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <IconSparkles size={18} /> {isRunning ? `Executing Stage ${executionStep}/5...` : '▶ Execute ML Pipeline'}
+                </button>
+              </div>
+
+              {/* Evaluation Scorecard & Diagnostic Banner */}
+              {hasExecuted && (
+                <div style={{
+                  background: results.bg,
+                  border: `2px solid ${results.border}`,
+                  borderBottom: `4px solid ${results.shadow}`,
+                  borderRadius: '16px',
+                  padding: '1.25rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 900, color: results.color }}>
+                      {results.badge}
+                    </span>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#475569' }}>
+                      Test Vault R²: <strong>{results.testR2}</strong>
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: '0.78rem', color: '#1e293b', lineHeight: '1.5', margin: '0 0 0.85rem' }}>
+                    {results.diagnosis}
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', textAlign: 'center' }}>
+                    <div style={{ background: '#ffffff', padding: '0.45rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <div style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 800 }}>TRAIN R²</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#001f54' }}>{results.trainR2}</div>
+                    </div>
+                    <div style={{ background: '#ffffff', padding: '0.45rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <div style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 800 }}>VAL R²</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#4f46e5' }}>{results.valR2}</div>
+                    </div>
+                    <div style={{ background: '#ffffff', padding: '0.45rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <div style={{ fontSize: '0.64rem', color: '#64748b', fontWeight: 800 }}>TEST R²</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 900, color: results.color }}>{results.testR2}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 1: LIVE PROPERTY VALUATION TESTER ─────────────────── */}
+      {activeTab === 1 && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', alignItems: 'center' }}>
+            
+            {/* Input Controls Card */}
+            <div style={{ background: '#f8fafc', border: '2px solid #001f54', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 4px 0 #001f54' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54', textTransform: 'uppercase', marginBottom: '1.25rem' }}>
+                Simulate Buyer Property Inquiries
+              </div>
+
+              {/* Slider 1: Square Footage */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                  <span>Property Size:</span>
+                  <span style={{ color: '#2563eb' }}>{testSqft.toLocaleString()} sq ft</span>
+                </div>
+                <input
+                  type="range"
+                  min="800"
+                  max="4500"
+                  step="50"
+                  value={testSqft}
+                  onChange={(e) => setTestSqft(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Slider 2: Bedrooms */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                  <span>Bedrooms:</span>
+                  <span style={{ color: '#2563eb' }}>{testBeds} Bedrooms</span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  {[1, 2, 3, 4, 5].map((b) => (
+                    <button
+                      key={b}
+                      onClick={() => setTestBeds(b)}
+                      style={{
+                        flex: 1,
+                        padding: '0.4rem',
+                        borderRadius: '8px',
+                        border: `1.5px solid ${testBeds === b ? '#001f54' : '#cbd5e1'}`,
+                        background: testBeds === b ? '#001f54' : '#ffffff',
+                        color: testBeds === b ? '#ffffff' : '#475569',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Slider 3: Area Median Income */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                  <span>Area Median Income Index:</span>
+                  <span style={{ color: '#2563eb' }}>${(testIncome * 10).toFixed(1)}k / yr</span>
+                </div>
+                <input
+                  type="range"
+                  min="2.0"
+                  max="12.0"
+                  step="0.5"
+                  value={testIncome}
+                  onChange={(e) => setTestIncome(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+                />
+              </div>
+            </div>
+
+            {/* Live Predicted Price Display Card */}
+            <div style={{
+              background: '#001f54',
+              border: '2px solid #001f54',
+              borderRadius: '16px',
+              padding: '2rem 1.5rem',
+              color: '#ffffff',
+              textAlign: 'center',
+              boxShadow: '0 8px 24px rgba(0,31,84,0.25)',
+              borderBottom: '6px solid #00122e'
+            }}>
+              <div style={{ fontSize: '0.76rem', color: '#93c5fd', fontWeight: 900, textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                Pipeline Predicted Valuation
+              </div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#38bdf8', letterSpacing: '0.02em', marginBottom: '0.75rem' }}>
+                ${predictedPrice.toLocaleString()}
+              </div>
+
+              <div style={{
+                background: 'rgba(255,255,255,0.1)',
+                borderRadius: '10px',
+                padding: '0.75rem',
+                fontSize: '0.76rem',
+                color: '#e2e8f0',
+                lineHeight: '1.5',
+                marginBottom: '1rem'
+              }}>
+                <div>Current Model Capacity: <strong>{blockCatalog.model.find((b) => b.id === pipeline.model).label}</strong></div>
+                <div>Partition Strategy: <strong>{blockCatalog.split.find((b) => b.id === pipeline.split).label}</strong></div>
+              </div>
+
+              <div style={{ fontSize: '0.72rem', color: results.status === 'champion' ? '#6ee7b7' : '#fca5a5', fontWeight: 800 }}>
+                {results.status === 'champion' ? 'Accurate market valuation aligned with non-linear California trend!' : 'Warning: Prediction may be distorted due to pipeline configuration issues.'}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: GENERATED PYTHON CODE ──────────────────────────── */}
+      {activeTab === 2 && (
+        <div>
+          <div style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 700, marginBottom: '0.75rem' }}>
+            Live Python Scikit-Learn code generated directly from your assembled blocks:
+          </div>
+          <SyntaxCodeBlock
+            code={[
+              '# Scikit-Learn Pipeline Generated from Visual Blocks',
+              '# ───────────────────────────────────────────────────',
+              'import numpy as np',
+              'import pandas as pd',
+              'from sklearn.model_selection import train_test_split',
+              'from sklearn.preprocessing import StandardScaler, PolynomialFeatures',
+              pipeline.safeguards === 'reg_ridge_l2' ? 'from sklearn.linear_model import Ridge' : 'from sklearn.linear_model import LinearRegression',
+              'from sklearn.pipeline import Pipeline',
+              '',
+              `# 1. Ingest Data: ${pipeline.data === 'ca_housing' ? 'California Housing (20,000 samples)' : 'Tiny Sample (15 samples)'}`,
+              'df = pd.read_csv("california_housing.csv")',
+              'X = df[["sqft", "bedrooms", "median_income"]]',
+              'y = df["median_house_value"]',
+              '',
+              `# 2. Partition Strategy: ${pipeline.split === 'split_80_10_10' ? '80% Train / 10% Val / 10% Test' : '100% Train (No Test Split)'}`,
+              pipeline.split === 'split_80_10_10' 
+                ? 'X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)'
+                : 'X_train, y_train = X, y # WARNING: No test partition!',
+              '',
+              '# 3. Assemble Sequential Pipeline',
+              'pipeline_steps = []',
+              pipeline.preprocess === 'scale_train_only' ? 'pipeline_steps.append(("scaler", StandardScaler()))' : '# No scaling step',
+              pipeline.model === 'model_poly2' ? 'pipeline_steps.append(("poly", PolynomialFeatures(degree=2, include_bias=False)))' : '',
+              pipeline.model === 'model_poly15' ? 'pipeline_steps.append(("poly", PolynomialFeatures(degree=15, include_bias=False)))' : '',
+              pipeline.safeguards === 'reg_ridge_l2' 
+                ? 'pipeline_steps.append(("model", Ridge(alpha=1.0)))' 
+                : 'pipeline_steps.append(("model", LinearRegression()))',
+              '',
+              'housing_pipeline = Pipeline([step for step in pipeline_steps if step])',
+              'housing_pipeline.fit(X_train, y_train)',
+              '',
+              '# 4. Predict on New Buyer Inquiry',
+              'sample_inquiry = pd.DataFrame([{"sqft": 2400, "bedrooms": 3, "median_income": 6.5}])',
+              'predicted_price = housing_pipeline.predict(sample_inquiry)[0]',
+              'print(f"Estimated Market Value: ${predicted_price:,.2f}")'
+            ].filter(Boolean).join('\n')}
+            title="assembled_housing_pipeline.py"
+          />
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+// ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = ['ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1'];
 
 export default function MLLessonArticlePage() {
@@ -5599,6 +6483,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'bias_vs_variance' && (
               <BiasVsVarianceDiagram />
+            )}
+            {lesson.diagram.type === 'house_price_pipeline_project' && (
+              <HousePricePipelineStudio />
             )}
           </div>
         )}
