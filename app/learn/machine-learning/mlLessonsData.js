@@ -554,8 +554,158 @@ export const mlLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! Estimated delivery time in minutes (e.g. 24.5 minutes) is a continuous numerical quantity on a continuous scale, making it a classic Regression task.'
     }
+  },
+
+  'ml-1-5': {
+    id: 'ml-1-5',
+    title: 'Features and Labels',
+    subtitle: 'The foundational anatomy of machine learning datasets: decomposing tabular data into input feature matrices (X) and target vectors (y).',
+    duration: '16 min read',
+    level: 'Beginner',
+    module: 'Module 1: ML Fundamentals',
+    badgeText: 'DATA ANATOMY',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Understand the fundamental anatomy of a dataset: samples (rows), features (columns), and the target label.',
+      'Define Features (X) as the independent observable inputs and measurements fed into the model.',
+      'Define Labels (y) as the dependent ground-truth outcome or target variable being predicted.',
+      'Differentiate between Numerical (continuous/discrete), Categorical (nominal/ordinal), and Binary features.',
+      'Master the standard mathematical notation: Feature Matrix X with dimensions (m samples × n features) and Target Vector y with length m.',
+      'Learn how to split tabular Pandas DataFrames into feature matrices (X) and target vectors (y) in Python.'
+    ],
+
+    sections: [
+      {
+        heading: 'The Anatomy of a Machine Learning Dataset',
+        paragraphs: [
+          'Before any machine learning model can learn, data must be structured into a mathematically coherent format. In tabular data, information is arranged in a two-dimensional grid of rows and columns.',
+          '• Observations / Samples (Rows, denoted m): Each row represents a single individual entity, instance, or record (e.g., one specific house, one patient, one financial transaction).',
+          '• Features (Columns X, denoted n): The measurable properties, attributes, and independent variables describing each observation.',
+          '• Label / Target (Column y): The specific attribute or outcome we want the model to learn to predict for new, future observations.'
+        ]
+      },
+      {
+        heading: 'Features (X): The Model Clues and Signals',
+        paragraphs: [
+          'Features are the inputs fed into the algorithm. In mathematical notation, features are typically represented by an uppercase bold letter X because they form an m × n matrix (2D array).',
+          'A single observation feature vector is denoted as x^(i) = [x_1, x_2, ..., x_n].',
+          'For example, when predicting house prices:',
+          '• Feature x_1: Square footage (e.g. 2,150 sq ft)',
+          '• Feature x_2: Number of bedrooms (e.g. 3)',
+          '• Feature x_3: Distance to city center (e.g. 4.2 miles)',
+          '• Feature x_4: Has a garage? (e.g. 1 for Yes, 0 for No)',
+          'The quality, relevance, and cleanliness of your features determine the upper ceiling of your model accuracy.'
+        ]
+      },
+      {
+        heading: 'Labels (y): The Ground-Truth Answer Key',
+        paragraphs: [
+          'The label (also known as the target variable or dependent variable) is the ground-truth answer that the model is tasked with predicting. It is represented by a lowercase letter y because it forms a 1-dimensional vector of length m.',
+          '• In Regression: The label is a continuous quantity (e.g., y = $425,000 house price, y = 38.5°C body temperature).',
+          '• In Classification: The label is a discrete category (e.g., y = 1 for Spam, y = 0 for Inbox; or y = "Dog", "Cat", "Horse").',
+          'During training, the model is shown both features X and labels y. During inference in production, the model is given ONLY features X and must predict the unknown label y_hat.'
+        ]
+      },
+      {
+        heading: 'Feature Modalities & Data Types',
+        paragraphs: [
+          'Features come in several distinct mathematical forms that require different handling during data preparation:',
+          '1. Numerical Features: Quantitative numbers on a meaningful scale.',
+          '   • Continuous: Can take any real value (e.g., Height = 178.4 cm, Weight = 68.2 kg, Price = $19.99).',
+          '   • Discrete: Countable integer values (e.g., Number of bathrooms = 2, Number of children = 3).',
+          '2. Categorical Features: Qualitative groups or descriptive categories.',
+          '   • Nominal: No inherent mathematical ordering (e.g., City = "New York", "London", "Tokyo"; Color = "Red", "Blue").',
+          '   • Ordinal: Categories with a clear rank or hierarchy (e.g., Education Level = "High School" < "Bachelor" < "Master" < "PhD"; Customer Tier = "Bronze" < "Silver" < "Gold").',
+          '3. Binary Features: Exactly two mutually exclusive states (e.g., IsVIP = True/False, HasDefaulted = 0/1).'
+        ],
+        codeBlock: [
+          '# Extracting Features (X) and Labels (y) in Python using Pandas',
+          '# ───────────────────────────────────────────────────────────────',
+          'import pandas as pd',
+          'from sklearn.linear_model import LinearRegression',
+          '',
+          '# 1. Create a sample housing dataset DataFrame',
+          'raw_data = {',
+          '    "SquareFeet": [850, 1200, 1500, 2100, 2800],',
+          '    "Bedrooms": [1, 2, 3, 3, 4],',
+          '    "Bathrooms": [1.0, 1.5, 2.0, 2.5, 3.0],',
+          '    "HasGarage": [0, 1, 1, 1, 1],',
+          '    "Price": [195000, 260000, 315000, 425000, 580000] # TARGET LABEL',
+          '}',
+          'df = pd.DataFrame(raw_data)',
+          'print("Original Dataset:\\n", df)',
+          '',
+          '# 2. Separate into Feature Matrix (X) and Target Vector (y)',
+          '# Feature Matrix X: Drop the target label column',
+          'X = df.drop(columns=["Price"])',
+          '',
+          '# Target Vector y: Extract the target label series',
+          'y = df["Price"]',
+          '',
+          'print(f"\\nFeature Matrix X Shape: {X.shape} (5 samples, 4 features)")',
+          'print(f"Target Vector y Shape:  {y.shape} (5 labels)")',
+          '',
+          '# 3. Train Model on (X, y)',
+          'model = LinearRegression()',
+          'model.fit(X, y)',
+          '',
+          '# 4. Inference on a new house (X_new has features, but NO label!)',
+          'X_new = pd.DataFrame({',
+          '    "SquareFeet": [1800],',
+          '    "Bedrooms": [3],',
+          '    "Bathrooms": [2.0],',
+          '    "HasGarage": [1]',
+          '})',
+          'predicted_price = model.predict(X_new)[0]',
+          'print(f"\\nPredicted Price for New House: \${predicted_price:,.2f}")'
+        ].join('\n'),
+        codeBlockTitle: 'features_and_labels_extraction.py'
+      },
+      {
+        heading: 'Summary Matrix: Features vs Labels',
+        paragraphs: [
+          '1. Role: Features are inputs (Cause / Predictor / X); Labels are outputs (Effect / Target / y).',
+          '2. Dimensions: Features form a 2D matrix (m × n); Labels form a 1D vector (m).',
+          '3. Availability: Features are available during both training and production inference; Labels are available ONLY during training (and evaluation).'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Medical Symptoms vs The Final Diagnosis',
+      text: 'Imagine a patient visiting a clinic. The features (X) are all the observable signals and diagnostic tests: body temperature (39.1°C), blood pressure (130/85), coughing frequency, and white blood cell count. The label (y) is the doctor definitive diagnosis: "Influenza Type A". When a new patient walks in tomorrow, the doctor examines their features (symptoms) to predict their unknown label (illness)!'
+    },
+
+    diagram: {
+      type: 'features_and_labels',
+      title: 'Interactive Dataset Studio: Inspecting Feature Matrices (X) and Target Vectors (y)'
+    },
+
+    takeaways: [
+      'Features (X) are the independent measurable inputs fed into a model (forming an m × n matrix).',
+      'Labels (y) are the dependent ground-truth targets the model is trained to predict (forming an m-length vector).',
+      'Features can be Continuous, Discrete, Nominal Categorical, Ordinal Categorical, or Binary.',
+      'During training, the model learns the relationship between (X, y); during inference, it predicts y given only X.',
+      'In Python, we separate data via X = df.drop("target", axis=1) and y = df["target"].'
+    ],
+
+    quiz: {
+      question: 'In a machine learning project to predict employee salary, a dataset has columns: [Age, YearsOfExperience, EducationLevel, Department, AnnualSalary]. Which of the following correctly describes the Features (X) and Label (y)?',
+      options: [
+        'Features: [AnnualSalary]; Label: [Age, YearsOfExperience]',
+        'Features: [Age, YearsOfExperience, EducationLevel, Department]; Label: [AnnualSalary]',
+        'Features: [Department, AnnualSalary]; Label: [EducationLevel]',
+        'Features: [Age, EducationLevel]; Label: [YearsOfExperience]'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! The attribute we are trying to predict is AnnualSalary (the Target Label y), while all the descriptive background attributes (Age, YearsOfExperience, EducationLevel, Department) serve as the input Features (X).'
+    }
   }
 };
+
 
 
 

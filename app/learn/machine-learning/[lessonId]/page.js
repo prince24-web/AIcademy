@@ -2645,6 +2645,534 @@ const RegressionVsClassificationDiagram = () => {
   );
 };
 
+// ─── FEATURES AND LABELS INTERACTIVE DATASET STUDIO DIAGRAM ────────────────
+const FeaturesAndLabelsDiagram = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedDatasetKey, setSelectedDatasetKey] = useState('housing');
+  const [selectedRowIdx, setSelectedRowIdx] = useState(0);
+  const [isInferencing, setIsInferencing] = useState(false);
+  const [inferenceResult, setInferenceResult] = useState(null);
+
+  const datasets = {
+    housing: {
+      name: 'Real Estate Valuation Dataset (Regression)',
+      taskType: 'Regression (Predict continuous price $)',
+      targetName: 'Price ($)',
+      featureNames: ['SquareFeet', 'Bedrooms', 'Bathrooms', 'ZipCodeScore', 'HasGarage'],
+      featureTypes: ['Continuous', 'Discrete', 'Continuous', 'Continuous', 'Binary'],
+      featureBadges: ['X₁', 'X₂', 'X₃', 'X₄', 'X₅'],
+      rows: [
+        { id: 1, values: [850, 1, 1.0, 6.2, 0], target: '$195,000' },
+        { id: 2, values: [1200, 2, 1.5, 7.5, 1], target: '$260,000' },
+        { id: 3, values: [1550, 3, 2.0, 8.1, 1], target: '$335,000' },
+        { id: 4, values: [2100, 3, 2.5, 8.8, 1], target: '$445,000' },
+        { id: 5, values: [2800, 4, 3.0, 9.4, 1], target: '$595,000' }
+      ],
+      newSample: {
+        values: [1850, 3, 2.0, 8.4, 1],
+        predicted: '$392,400 (Estimated Continuous Market Value)'
+      }
+    },
+    medical: {
+      name: 'Patient Health Diagnostic Dataset (Classification)',
+      taskType: 'Binary Classification (Predict Diabetic vs Healthy)',
+      targetName: 'Diagnosis (0=Healthy, 1=Diabetic)',
+      featureNames: ['GlucoseLevel', 'BMI', 'Age', 'BloodPressure', 'Insulin'],
+      featureTypes: ['Continuous', 'Continuous', 'Discrete', 'Continuous', 'Continuous'],
+      featureBadges: ['X₁', 'X₂', 'X₃', 'X₄', 'X₅'],
+      rows: [
+        { id: 1, values: [85, 22.4, 25, 72, 80], target: '0 (Healthy)' },
+        { id: 2, values: [145, 31.2, 48, 88, 160], target: '1 (Diabetic)' },
+        { id: 3, values: [92, 24.1, 33, 76, 95], target: '0 (Healthy)' },
+        { id: 4, values: [168, 35.8, 54, 94, 210], target: '1 (Diabetic)' },
+        { id: 5, values: [110, 26.5, 29, 80, 115], target: '0 (Healthy)' }
+      ],
+      newSample: {
+        values: [152, 33.1, 51, 90, 185],
+        predicted: 'Class 1 (Diabetic) with 89.4% Probability'
+      }
+    },
+    salary: {
+      name: 'Tech Employee Compensation Dataset (Regression)',
+      taskType: 'Regression (Predict annual base salary $)',
+      targetName: 'AnnualSalary ($)',
+      featureNames: ['YearsExperience', 'EducationRank', 'TeamSize', 'CertificationsCount', 'IsRemote'],
+      featureTypes: ['Continuous', 'Ordinal (1-4)', 'Discrete', 'Discrete', 'Binary'],
+      featureBadges: ['X₁', 'X₂', 'X₃', 'X₄', 'X₅'],
+      rows: [
+        { id: 1, values: [1.5, 2, 0, 1, 1], target: '$75,000' },
+        { id: 2, values: [4.0, 3, 2, 2, 1], target: '$115,000' },
+        { id: 3, values: [7.5, 3, 5, 3, 0], target: '$160,000' },
+        { id: 4, values: [10.0, 4, 12, 4, 0], target: '$210,000' },
+        { id: 5, values: [14.0, 4, 25, 5, 1], target: '$285,000' }
+      ],
+      newSample: {
+        values: [6.0, 3, 4, 3, 1],
+        predicted: '$142,500 (Predicted Annual Base Salary)'
+      }
+    }
+  };
+
+  const curDataset = datasets[selectedDatasetKey];
+  const curRow = curDataset.rows[selectedRowIdx] || curDataset.rows[0];
+
+  const handleRunInference = () => {
+    setIsInferencing(true);
+    setInferenceResult(null);
+    setTimeout(() => {
+      setIsInferencing(false);
+      setInferenceResult(curDataset.newSample.predicted);
+      triggerConfetti(0.5, 0.6);
+    }, 900);
+  };
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #c2d4f2',
+      borderRadius: '20px',
+      padding: '1.75rem',
+      margin: '2rem 0',
+      boxShadow: '0 8px 30px rgba(0, 31, 84, 0.06)',
+      overflow: 'hidden'
+    }}>
+      {/* Header & Tabs */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f0f4fc',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{
+              background: '#f0f4fc',
+              color: '#001f54',
+              fontSize: '0.72rem',
+              fontWeight: 900,
+              padding: '0.25rem 0.65rem',
+              borderRadius: '6px',
+              border: '1px solid #c2d4f2'
+            }}>
+              DATASET ANATOMY STUDIO
+            </span>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#001f54', margin: 0 }}>
+              Feature Matrix (X) vs. Target Vector (y)
+            </h3>
+          </div>
+          <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0.35rem 0 0' }}>
+            Inspect real-world tabular datasets, examine sample vectors, and simulate production inference.
+          </p>
+        </div>
+
+        {/* Tab Controls */}
+        <div style={{
+          display: 'flex',
+          gap: '0.35rem',
+          background: '#f0f4fc',
+          padding: '0.35rem',
+          borderRadius: '12px',
+          border: '1.5px solid #c2d4f2'
+        }}>
+          {[
+            { label: 'Interactive Dataset UI', tab: 0 },
+            { label: 'Matrix Anatomy & Python', tab: 1 },
+            { label: 'Feature Types Inspector', tab: 2 }
+          ].map((t) => (
+            <button
+              key={t.tab}
+              onClick={() => setActiveTab(t.tab)}
+              style={{
+                padding: '0.45rem 0.9rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === t.tab ? '#001f54' : 'transparent',
+                color: activeTab === t.tab ? '#ffffff' : '#001f54',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: activeTab === t.tab ? '0 3px 10px rgba(0,31,84,0.25)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 0: INTERACTIVE DATASET UI STUDIO ─── */}
+      {activeTab === 0 && (
+        <div>
+          {/* Dataset Selector Tabs */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              {[
+                { key: 'housing', label: 'Housing (Regression)' },
+                { key: 'medical', label: 'Medical (Classification)' },
+                { key: 'salary', label: 'Salary (Regression)' }
+              ].map((d) => (
+                <button
+                  key={d.key}
+                  onClick={() => {
+                    setSelectedDatasetKey(d.key);
+                    setSelectedRowIdx(0);
+                    setInferenceResult(null);
+                  }}
+                  style={{
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '8px',
+                    border: `1.5px solid ${selectedDatasetKey === d.key ? '#001f54' : '#cbd5e1'}`,
+                    background: selectedDatasetKey === d.key ? '#001f54' : '#ffffff',
+                    color: selectedDatasetKey === d.key ? '#ffffff' : '#475569',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 800, color: '#0284c7' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '3px', background: '#eff6ff', border: '1.5px solid #0284c7' }} />
+                Features Matrix (X)
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 800, color: '#b45309' }}>
+                <span style={{ width: 10, height: 10, borderRadius: '3px', background: '#fffbeb', border: '1.5px solid #f59e0b' }} />
+                Target Label Vector (y)
+              </span>
+            </div>
+          </div>
+
+          {/* Dataset Table Studio */}
+          <div style={{
+            background: '#ffffff',
+            border: '2px solid #001f54',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            boxShadow: '0 4px 16px rgba(0,31,84,0.04)',
+            marginBottom: '1.5rem'
+          }}>
+            <div style={{ background: '#f0f4fc', padding: '0.65rem 1rem', borderBottom: '1.5px solid #c2d4f2', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>
+              <span>{curDataset.name}</span>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Click any row to inspect its feature vector</span>
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                <thead>
+                  {/* Top Level Category Row */}
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1' }}>
+                    <th style={{ padding: '0.45rem 0.75rem', color: '#64748b', fontSize: '0.68rem', textAlign: 'center' }}>Sample</th>
+                    <th colSpan={curDataset.featureNames.length} style={{ padding: '0.45rem', textAlign: 'center', background: '#eff6ff', color: '#1e40af', fontWeight: 900, fontSize: '0.72rem', borderRight: '2px solid #001f54' }}>
+                      FEATURE MATRIX (X) — Input Variables
+                    </th>
+                    <th style={{ padding: '0.45rem 0.75rem', textAlign: 'center', background: '#fffbeb', color: '#b45309', fontWeight: 900, fontSize: '0.72rem' }}>
+                      TARGET LABEL (y) — Ground Truth
+                    </th>
+                  </tr>
+
+                  {/* Column Names Row */}
+                  <tr style={{ background: '#ffffff', borderBottom: '2px solid #001f54' }}>
+                    <th style={{ padding: '0.65rem 0.75rem', color: '#475569', textAlign: 'center' }}># (m)</th>
+                    {curDataset.featureNames.map((name, fIdx) => (
+                      <th key={`th-${fIdx}`} style={{ padding: '0.65rem 0.75rem', textAlign: 'center', background: '#f8fafc', color: '#0f172a', fontWeight: 800 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+                          <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.62rem', padding: '0.1rem 0.35rem', borderRadius: '4px', fontWeight: 900 }}>
+                            {curDataset.featureBadges[fIdx]}
+                          </span>
+                          <span>{name}</span>
+                        </div>
+                      </th>
+                    ))}
+                    <th style={{ padding: '0.65rem 0.75rem', textAlign: 'center', background: '#fef3c7', color: '#92400e', fontWeight: 900, borderLeft: '2px solid #001f54' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+                        <span style={{ background: '#d97706', color: '#ffffff', fontSize: '0.62rem', padding: '0.1rem 0.45rem', borderRadius: '4px', fontWeight: 900 }}>
+                          y
+                        </span>
+                        <span>{curDataset.targetName}</span>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {curDataset.rows.map((row, rIdx) => {
+                    const isSelected = selectedRowIdx === rIdx;
+                    return (
+                      <tr
+                        key={`row-${row.id}`}
+                        onClick={() => setSelectedRowIdx(rIdx)}
+                        style={{
+                          background: isSelected ? '#f0f4fc' : rIdx % 2 === 0 ? '#ffffff' : '#f8fafc',
+                          borderBottom: '1px solid #e2e8f0',
+                          cursor: 'pointer',
+                          transition: 'background 0.15s ease'
+                        }}
+                      >
+                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', fontWeight: 800, color: isSelected ? '#001f54' : '#64748b' }}>
+                          Row {row.id}
+                        </td>
+                        {row.values.map((val, vIdx) => (
+                          <td key={`val-${vIdx}`} style={{ padding: '0.65rem 0.75rem', textAlign: 'center', color: '#334155', fontWeight: isSelected ? 800 : 500 }}>
+                            {val}
+                          </td>
+                        ))}
+                        <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', fontWeight: 900, color: '#92400e', background: isSelected ? '#fef3c7' : 'rgba(254, 243, 199, 0.4)', borderLeft: '2px solid #001f54' }}>
+                          {row.target}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Row Inspector & Simulated Inference Split */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+            
+            {/* Observation Inspector Box */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1.5px solid #c2d4f2',
+              borderRadius: '14px',
+              padding: '1.25rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#001f54', textTransform: 'uppercase' }}>
+                  Selected Sample x^({curRow.id})
+                </span>
+                <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                  Instance #{curRow.id}
+                </span>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#475569', margin: '0 0 0.75rem' }}>
+                Mathematical representation of observation row #{curRow.id}:
+              </p>
+              <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.65rem 0.85rem', fontFamily: 'Consolas, monospace', fontSize: '0.76rem', color: '#0f172a', lineHeight: '1.6' }}>
+                <div><strong>Feature Vector x^({curRow.id}):</strong> [{curRow.values.join(', ')}]</div>
+                <div style={{ color: '#b45309', marginTop: '0.2rem' }}><strong>Target Label y^({curRow.id}):</strong> {curRow.target}</div>
+              </div>
+            </div>
+
+            {/* Simulated Live Inference Box */}
+            <div style={{
+              background: '#ffffff',
+              border: '2px solid #001f54',
+              borderRadius: '14px',
+              padding: '1.25rem',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#001f54', textTransform: 'uppercase' }}>
+                    Production Inference Simulation
+                  </span>
+                  <span style={{ background: '#f59e0b', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                    Unlabeled Input x_new
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: '#475569', margin: '0 0 0.5rem' }}>
+                  New unseen instance has features, but <strong>NO label</strong> (y is unknown):
+                </p>
+                <div style={{ background: '#f0f4fc', border: '1px solid #c2d4f2', borderRadius: '6px', padding: '0.45rem 0.65rem', fontSize: '0.74rem', fontFamily: 'Consolas, monospace', color: '#001f54', marginBottom: '0.75rem' }}>
+                  x_new = [{curDataset.newSample.values.join(', ')}]
+                </div>
+              </div>
+
+              <div>
+                {!inferenceResult ? (
+                  <button
+                    onClick={handleRunInference}
+                    disabled={isInferencing}
+                    style={{
+                      width: '100%',
+                      padding: '0.55rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: isInferencing ? '#94a3b8' : '#001f54',
+                      color: '#ffffff',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: isInferencing ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.4rem',
+                      boxShadow: '0 3px 10px rgba(0,31,84,0.2)'
+                    }}
+                  >
+                    <IconSparkles size={16} /> {isInferencing ? 'Model Computing f(x)...' : 'Pass x_new into Model f(x)'}
+                  </button>
+                ) : (
+                  <div style={{ background: '#ecfdf5', border: '1.5px solid #10b981', borderRadius: '8px', padding: '0.6rem 0.85rem' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#065f46', textTransform: 'uppercase' }}>
+                      Predicted Label (ŷ_pred):
+                    </div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#047857', marginTop: '0.15rem' }}>
+                      {inferenceResult}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 1: MATRIX ANATOMY & PANDAS SLICING ─── */}
+      {activeTab === 1 && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            
+            {/* Mathematical Matrix Notation */}
+            <div style={{ background: '#f8fafc', border: '1.5px solid #c2d4f2', borderRadius: '16px', padding: '1.4rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54', marginBottom: '0.85rem', textTransform: 'uppercase' }}>
+                Mathematical Representation
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#475569', lineHeight: '1.5', margin: '0 0 1rem' }}>
+                In linear algebra and machine learning theory, the dataset is formalized as a matrix-vector pair:
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.78rem' }}>
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '0.75rem' }}>
+                  <strong style={{ color: '#1e40af' }}>Feature Matrix (X): </strong>
+                  <span style={{ fontFamily: 'Consolas, monospace', color: '#001f54' }}>X ∈ ℝ^(m × n)</span>
+                  <div style={{ fontSize: '0.72rem', color: '#1e3a8a', marginTop: '0.2rem' }}>
+                    m rows (observations) by n columns (features)
+                  </div>
+                </div>
+
+                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '0.75rem' }}>
+                  <strong style={{ color: '#92400e' }}>Target Vector (y): </strong>
+                  <span style={{ fontFamily: 'Consolas, monospace', color: '#92400e' }}>y ∈ ℝ^m</span>
+                  <div style={{ fontSize: '0.72rem', color: '#78350f', marginTop: '0.2rem' }}>
+                    1D column vector of length m containing the ground-truth answers
+                  </div>
+                </div>
+
+                <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.75rem' }}>
+                  <strong style={{ color: '#0f172a' }}>Single Instance: </strong>
+                  <span style={{ fontFamily: 'Consolas, monospace', color: '#0f172a' }}>x^(i) = [x_1, x_2, ..., x_n]</span>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.2rem' }}>
+                    Row index i represents sample #i with target y^(i)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Python / Pandas Slicing Reference */}
+            <div style={{ background: '#ffffff', border: '2px solid #001f54', borderRadius: '16px', padding: '1.4rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54', marginBottom: '0.85rem', textTransform: 'uppercase' }}>
+                Python / Pandas Best Practices
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#475569', lineHeight: '1.5', margin: '0 0 1rem' }}>
+                The two standard idiomatic ways to separate features and labels in Pandas:
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.76rem', fontFamily: 'Consolas, monospace' }}>
+                <div style={{ background: '#0f172a', color: '#f8fafc', padding: '0.85rem', borderRadius: '8px' }}>
+                  <div style={{ color: '#64748b', fontStyle: 'italic', marginBottom: '0.3rem' }}># Method 1: Drop by Column Name (Recommended)</div>
+                  <div><span style={{ color: '#60a5fa' }}>X</span> = df.<span style={{ color: '#38bdf8' }}>drop</span>(columns=[<span style={{ color: '#4ade80' }}>'target_col'</span>])</div>
+                  <div><span style={{ color: '#60a5fa' }}>y</span> = df[<span style={{ color: '#4ade80' }}>'target_col'</span>]</div>
+                </div>
+
+                <div style={{ background: '#0f172a', color: '#f8fafc', padding: '0.85rem', borderRadius: '8px' }}>
+                  <div style={{ color: '#64748b', fontStyle: 'italic', marginBottom: '0.3rem' }}># Method 2: Position-Based Slicing (.iloc)</div>
+                  <div><span style={{ color: '#60a5fa' }}>X</span> = df.<span style={{ color: '#38bdf8' }}>iloc</span>[:, :-<span style={{ color: '#fbbf24' }}>1</span>] <span style={{ color: '#64748b' }}># All columns except last</span></div>
+                  <div><span style={{ color: '#60a5fa' }}>y</span> = df.<span style={{ color: '#38bdf8' }}>iloc</span>[:, -<span style={{ color: '#fbbf24' }}>1</span>]  <span style={{ color: '#64748b' }}># Exactly last column</span></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: FEATURE TYPES & MODALITIES ─── */}
+      {activeTab === 2 && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            
+            <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#1d4ed8', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                Continuous Numerical
+              </div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#1e3a8a', marginBottom: '0.4rem' }}>
+                Infinite Measurements
+              </div>
+              <p style={{ fontSize: '0.76rem', color: '#1e40af', margin: '0 0 0.5rem', lineHeight: '1.45' }}>
+                Any real decimal value within a range.
+              </p>
+              <div style={{ background: '#ffffff', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', color: '#0f172a', fontWeight: 700 }}>
+                Examples: Temperature (36.8°C), Price ($149.50), Weight (72.4 kg)
+              </div>
+            </div>
+
+            <div style={{ background: '#f5f3ff', border: '1.5px solid #ddd6fe', borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#6d28d9', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                Discrete Numerical
+              </div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#4c1d95', marginBottom: '0.4rem' }}>
+                Countable Integers
+              </div>
+              <p style={{ fontSize: '0.76rem', color: '#5b21b6', margin: '0 0 0.5rem', lineHeight: '1.45' }}>
+                Whole integer counts with no decimals.
+              </p>
+              <div style={{ background: '#ffffff', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', color: '#0f172a', fontWeight: 700 }}>
+                Examples: Bedrooms (3), Dependents (2), Store visits (14)
+              </div>
+            </div>
+
+            <div style={{ background: '#ecfdf5', border: '1.5px solid #a7f3d0', borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#047857', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                Nominal Categorical
+              </div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#065f46', marginBottom: '0.4rem' }}>
+                Unordered Groups
+              </div>
+              <p style={{ fontSize: '0.76rem', color: '#047857', margin: '0 0 0.5rem', lineHeight: '1.45' }}>
+                Text labels with no mathematical hierarchy.
+              </p>
+              <div style={{ background: '#ffffff', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', color: '#0f172a', fontWeight: 700 }}>
+                Examples: City ("Paris", "Tokyo"), Color ("Red", "Blue")
+              </div>
+            </div>
+
+            <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '12px', padding: '1.1rem' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#b45309', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                Binary / Boolean
+              </div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#78350f', marginBottom: '0.4rem' }}>
+                Two-State Flags
+              </div>
+              <p style={{ fontSize: '0.76rem', color: '#92400e', margin: '0 0 0.5rem', lineHeight: '1.45' }}>
+                Mutually exclusive 0/1 boolean states.
+              </p>
+              <div style={{ background: '#ffffff', padding: '0.4rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', color: '#0f172a', fontWeight: 700 }}>
+                Examples: HasGarage (0/1), IsSubscriber (True/False)
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = ['ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1'];
 
@@ -2789,6 +3317,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'regression_vs_classification' && (
               <RegressionVsClassificationDiagram />
+            )}
+            {lesson.diagram.type === 'features_and_labels' && (
+              <FeaturesAndLabelsDiagram />
             )}
           </div>
         )}
