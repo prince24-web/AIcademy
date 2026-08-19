@@ -10,8 +10,8 @@ const MLLogo = ({ size = 24 }) => (
     <circle cx="50" cy="50" r="45" fill="url(#mlGrad)" />
     <defs>
       <radialGradient id="mlGrad" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(50 50) rotate(90) scale(45)">
-        <stop stopColor="#475569"/>
-        <stop offset="1" stopColor="#1e293b"/>
+        <stop stopColor="#002d7a"/>
+        <stop offset="1" stopColor="#001f54"/>
       </radialGradient>
     </defs>
     {/* Neural network nodes */}

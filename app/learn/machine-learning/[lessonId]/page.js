@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
@@ -32,9 +32,9 @@ const triggerConfetti = (originX = 0.5, originY = 0.6) => {
     ctx.scale(dpr, dpr);
 
     const colors = [
-      '#10b981', '#059669', '#0284c7', '#38bdf8',
+      '#001f54', '#0a3a82', '#0284c7', '#38bdf8',
       '#6366f1', '#8b5cf6', '#f59e0b', '#ec4899',
-      '#14b8a6', '#06b6d4', '#fbbf24', '#f97316'
+      '#10b981', '#06b6d4', '#fbbf24', '#f97316'
     ];
 
     const particleCount = 140;
@@ -162,11 +162,103 @@ const IconCpu = ({ size = 18, style = {} }) => (
   </svg>
 );
 
-const IconRefresh = ({ size = 16, style = {} }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={style}>
-    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"/>
-  </svg>
-);
+// ─── RICH PYTHON SYNTAX HIGHLIGHTER ─────────────────────────────────────────
+const renderHighlightedPython = (codeString) => {
+  if (!codeString) return null;
+  const lines = codeString.split('\n');
+
+  // Tokenize regex matching comments, strings, keywords, built-ins, numbers, operators
+  const tokenRegex = /(#[^\n]*)|(f?"(?:[^"\\]|\\.)*"|f?'(?:[^'\\]|\\.)*')|(\b(?:def|return|import|from|as|class|if|else|elif|for|while|in|is|not|and|or|True|False|None)\b)|(\b(?:print|np|sklearn|linear_model|LinearRegression|array|model|fit|predict|coef_|intercept_)\b)|(\b\d+(?:\.\d+)?\b)|([+\-*/=<>!%&|^~:]+)|([a-zA-Z_]\w*)|([^\s\w])/g;
+
+  return lines.map((line, lineIdx) => {
+    if (!line.trim()) {
+      return <div key={lineIdx} style={{ height: '1.25em' }}>&nbsp;</div>;
+    }
+
+    if (line.trim().startsWith('#')) {
+      return (
+        <div key={lineIdx} style={{ color: '#64748b', fontStyle: 'italic' }}>
+          {line}
+        </div>
+      );
+    }
+
+    const elements = [];
+    let lastIdx = 0;
+    let match;
+    tokenRegex.lastIndex = 0;
+
+    while ((match = tokenRegex.exec(line)) !== null) {
+      if (match.index > lastIdx) {
+        elements.push(line.slice(lastIdx, match.index));
+      }
+
+      const [full, comment, str, kw, builtin, num, op, ident, punct] = match;
+
+      if (comment) {
+        elements.push(
+          <span key={match.index} style={{ color: '#64748b', fontStyle: 'italic' }}>
+            {comment}
+          </span>
+        );
+      } else if (str) {
+        elements.push(
+          <span key={match.index} style={{ color: '#4ade80' }}>
+            {str}
+          </span>
+        );
+      } else if (kw) {
+        elements.push(
+          <span key={match.index} style={{ color: '#c084fc', fontWeight: 700 }}>
+            {kw}
+          </span>
+        );
+      } else if (builtin) {
+        elements.push(
+          <span key={match.index} style={{ color: '#60a5fa' }}>
+            {builtin}
+          </span>
+        );
+      } else if (num) {
+        elements.push(
+          <span key={match.index} style={{ color: '#fbbf24' }}>
+            {num}
+          </span>
+        );
+      } else if (op) {
+        elements.push(
+          <span key={match.index} style={{ color: '#38bdf8' }}>
+            {op}
+          </span>
+        );
+      } else if (ident) {
+        elements.push(
+          <span key={match.index} style={{ color: '#f8fafc' }}>
+            {ident}
+          </span>
+        );
+      } else {
+        elements.push(
+          <span key={match.index} style={{ color: '#94a3b8' }}>
+            {punct || full}
+          </span>
+        );
+      }
+
+      lastIdx = tokenRegex.lastIndex;
+    }
+
+    if (lastIdx < line.length) {
+      elements.push(line.slice(lastIdx));
+    }
+
+    return (
+      <div key={lineIdx} style={{ whiteSpace: 'pre' }}>
+        {elements}
+      </div>
+    );
+  });
+};
 
 // ─── SYNTAX HIGHLIGHTED DARK-MODE CODE BLOCK ────────────────────────────────
 const SyntaxCodeBlock = ({ code, title = 'Python Script' }) => {
@@ -199,18 +291,17 @@ const SyntaxCodeBlock = ({ code, title = 'Python Script' }) => {
       </div>
 
       <pre className={styles.codePre}>
-        <code>{code}</code>
+        <code>{renderHighlightedPython(code)}</code>
       </pre>
     </div>
   );
 };
 
-// ─── LIVELY & COLORFUL WHAT IS MACHINE LEARNING DIAGRAM ─────────────────────
+// ─── LIVELY & COLORFUL WHAT IS MACHINE LEARNING DIAGRAM (NAVY THEME) ────────
 const WhatIsMLDiagram = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [selectedScenario, setSelectedScenario] = useState('spam');
   const [learningStep, setLearningStep] = useState(0);
-  const [simActive, setSimActive] = useState(false);
 
   // E, T, P Scenarios
   const etpScenarios = [
@@ -227,7 +318,7 @@ const WhatIsMLDiagram = () => {
       id: 'house',
       title: 'Real Estate Valuation',
       category: 'Regression',
-      badgeColor: '#059669',
+      badgeColor: '#001f54',
       task: 'Predict the continuous monetary selling price ($) of a residential home.',
       experience: 'Past records of 50,000 home sales including square footage, zip code, bedrooms, and sale date.',
       performance: 'Root Mean Squared Error (RMSE) and R² Coefficient of Determination.'
@@ -300,7 +391,7 @@ const WhatIsMLDiagram = () => {
       formula: 'y_pred = 2.00 * x + 1.00',
       loss: '0.00',
       lossPercent: 0,
-      lossColor: '#10b981'
+      lossColor: '#001f54'
     }
   ];
 
@@ -313,11 +404,11 @@ const WhatIsMLDiagram = () => {
   return (
     <div style={{
       background: '#ffffff',
-      border: '1.5px solid #e2e8f0',
+      border: '1.5px solid #c2d4f2',
       borderRadius: '20px',
       padding: '1.75rem',
       margin: '2rem 0',
-      boxShadow: '0 8px 30px rgba(0,0,0,0.04)',
+      boxShadow: '0 8px 30px rgba(0, 31, 84, 0.06)',
       overflow: 'hidden'
     }}>
       {/* Header & Tabs */}
@@ -327,24 +418,24 @@ const WhatIsMLDiagram = () => {
         alignItems: 'center',
         flexWrap: 'wrap',
         gap: '1rem',
-        borderBottom: '1.5px solid #f1f5f9',
+        borderBottom: '1.5px solid #f0f4fc',
         paddingBottom: '1.25rem',
         marginBottom: '1.5rem'
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <span style={{
-              background: '#ecfdf5',
-              color: '#059669',
+              background: '#f0f4fc',
+              color: '#001f54',
               fontSize: '0.72rem',
-              fontWeight: 800,
-              padding: '0.2rem 0.6rem',
+              fontWeight: 900,
+              padding: '0.25rem 0.65rem',
               borderRadius: '6px',
-              border: '1px solid #a7f3d0'
+              border: '1px solid #c2d4f2'
             }}>
               INTERACTIVE PARADIGM ARENA
             </span>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#001f54', margin: 0 }}>
               The Mechanics of Machine Learning
             </h3>
           </div>
@@ -357,10 +448,10 @@ const WhatIsMLDiagram = () => {
         <div style={{
           display: 'flex',
           gap: '0.35rem',
-          background: '#f8fafc',
+          background: '#f0f4fc',
           padding: '0.35rem',
           borderRadius: '12px',
-          border: '1.5px solid #e2e8f0'
+          border: '1.5px solid #c2d4f2'
         }}>
           {[
             { label: 'Code vs ML Paradigm', tab: 0 },
@@ -374,12 +465,12 @@ const WhatIsMLDiagram = () => {
                 padding: '0.45rem 0.9rem',
                 borderRadius: '8px',
                 border: 'none',
-                background: activeTab === t.tab ? '#059669' : 'transparent',
-                color: activeTab === t.tab ? '#ffffff' : '#475569',
+                background: activeTab === t.tab ? '#001f54' : 'transparent',
+                color: activeTab === t.tab ? '#ffffff' : '#001f54',
                 fontSize: '0.78rem',
                 fontWeight: 800,
                 cursor: 'pointer',
-                boxShadow: activeTab === t.tab ? '0 3px 10px rgba(5,150,105,0.25)' : 'none',
+                boxShadow: activeTab === t.tab ? '0 3px 10px rgba(0,31,84,0.25)' : 'none',
                 transition: 'all 0.15s ease'
               }}
             >
@@ -441,9 +532,9 @@ const WhatIsMLDiagram = () => {
                   <IconCpu size={16} /> Computer executes instructions line-by-line
                 </div>
 
-                <div style={{ background: '#ecfdf5', border: '2px solid #34d399', borderRadius: '10px', padding: '0.85rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#047857', textTransform: 'uppercase' }}>Output</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#065f46', marginTop: '0.2rem' }}>Answers / Results (y)</div>
+                <div style={{ background: '#f0f4fc', border: '2px solid #001f54', borderRadius: '10px', padding: '0.85rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#0a3a82', textTransform: 'uppercase' }}>Output</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#001f54', marginTop: '0.2rem' }}>Answers / Results (y)</div>
                 </div>
               </div>
 
@@ -455,18 +546,18 @@ const WhatIsMLDiagram = () => {
 
             {/* MACHINE LEARNING CARD */}
             <div style={{
-              background: '#f0fdf4',
-              border: '2px solid #10b981',
+              background: '#f0f4fc',
+              border: '2px solid #001f54',
               borderRadius: '16px',
               padding: '1.4rem',
               position: 'relative',
-              boxShadow: '0 8px 24px rgba(16,185,129,0.08)'
+              boxShadow: '0 8px 24px rgba(0,31,84,0.08)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Machine Learning
                 </span>
-                <span style={{ background: '#059669', color: '#ffffff', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800 }}>
+                <span style={{ background: '#001f54', color: '#ffffff', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800 }}>
                   Data-Driven
                 </span>
               </div>
@@ -478,36 +569,36 @@ const WhatIsMLDiagram = () => {
                     <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase' }}>Observation</div>
                     <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1e40af', marginTop: '0.2rem' }}>Data (x)</div>
                   </div>
-                  <div style={{ flex: 1, background: '#ecfdf5', border: '1.5px solid #a7f3d0', borderRadius: '10px', padding: '0.75rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#047857', textTransform: 'uppercase' }}>Ground Truth</div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#065f46', marginTop: '0.2rem' }}>Answers (y)</div>
+                  <div style={{ flex: 1, background: '#e0f2fe', border: '1.5px solid #bae6fd', borderRadius: '10px', padding: '0.75rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#0369a1', textTransform: 'uppercase' }}>Ground Truth</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#075985', marginTop: '0.2rem' }}>Answers (y)</div>
                   </div>
                 </div>
 
                 <div style={{
                   background: '#ffffff',
-                  border: '1.5px solid #10b981',
+                  border: '1.5px solid #001f54',
                   borderRadius: '10px',
                   padding: '0.65rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem',
-                  color: '#047857',
+                  color: '#001f54',
                   fontSize: '0.8rem',
                   fontWeight: 800
                 }}>
                   <IconSparkles size={16} /> ML Optimizer minimizes error across data
                 </div>
 
-                <div style={{ background: '#f5f3ff', border: '2px solid #8b5cf6', borderRadius: '10px', padding: '0.85rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#6d28d9', textTransform: 'uppercase' }}>Synthesized Output</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#4c1d95', marginTop: '0.2rem' }}>Rules / Model Function f(x)</div>
+                <div style={{ background: '#ffffff', border: '2px solid #0a3a82', borderRadius: '10px', padding: '0.85rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase' }}>Synthesized Output</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#001f54', marginTop: '0.2rem' }}>Rules / Model Function f(x)</div>
                 </div>
               </div>
 
-              <div style={{ background: '#ffffff', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '0.85rem', fontSize: '0.78rem', color: '#065f46', lineHeight: '1.5' }}>
-                <strong style={{ color: '#0f172a' }}>Superpower: </strong>
+              <div style={{ background: '#ffffff', border: '1px solid #c2d4f2', borderRadius: '10px', padding: '0.85rem', fontSize: '0.78rem', color: '#001f54', lineHeight: '1.5' }}>
+                <strong style={{ color: '#001f54' }}>Superpower: </strong>
                 The computer infers mathematical relationships automatically. Once synthesized, passing brand new input x computes accurate predictions without hardcoded heuristics.
               </div>
             </div>
@@ -528,13 +619,13 @@ const WhatIsMLDiagram = () => {
                 style={{
                   padding: '0.5rem 1rem',
                   borderRadius: '10px',
-                  border: `2px solid ${selectedScenario === s.id ? s.badgeColor : '#e2e8f0'}`,
-                  background: selectedScenario === s.id ? '#ffffff' : '#f8fafc',
-                  color: selectedScenario === s.id ? '#0f172a' : '#64748b',
+                  border: `2px solid ${selectedScenario === s.id ? '#001f54' : '#e2e8f0'}`,
+                  background: selectedScenario === s.id ? '#f0f4fc' : '#ffffff',
+                  color: selectedScenario === s.id ? '#001f54' : '#64748b',
                   fontSize: '0.8rem',
                   fontWeight: 800,
                   cursor: 'pointer',
-                  boxShadow: selectedScenario === s.id ? '0 4px 12px rgba(0,0,0,0.06)' : 'none',
+                  boxShadow: selectedScenario === s.id ? '0 4px 12px rgba(0,31,84,0.1)' : 'none',
                   transition: 'all 0.15s ease',
                   display: 'flex',
                   alignItems: 'center',
@@ -600,24 +691,24 @@ const WhatIsMLDiagram = () => {
 
             {/* Performance P */}
             <div style={{
-              background: '#ecfdf5',
-              border: '1.5px solid #a7f3d0',
+              background: '#f0f4fc',
+              border: '1.5px solid #c2d4f2',
               borderRadius: '14px',
               padding: '1.25rem',
-              boxShadow: '0 4px 12px rgba(16,185,129,0.04)'
+              boxShadow: '0 4px 12px rgba(0,31,84,0.04)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                <span style={{ background: '#059669', color: '#ffffff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 900 }}>
+                <span style={{ background: '#001f54', color: '#ffffff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 900 }}>
                   P
                 </span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#047857', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#001f54', textTransform: 'uppercase' }}>
                   Performance Metric
                 </span>
               </div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#064e3b', marginBottom: '0.4rem' }}>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54', marginBottom: '0.4rem' }}>
                 How is improvement mathematically proven?
               </div>
-              <p style={{ fontSize: '0.78rem', color: '#065f46', lineHeight: '1.5', margin: 0 }}>
+              <p style={{ fontSize: '0.78rem', color: '#0a3a82', lineHeight: '1.5', margin: 0 }}>
                 {currentScenario.performance}
               </p>
             </div>
@@ -634,7 +725,7 @@ const WhatIsMLDiagram = () => {
             {/* SVG Visual Plane */}
             <div style={{
               background: '#f8fafc',
-              border: '1.5px solid #e2e8f0',
+              border: '1.5px solid #c2d4f2',
               borderRadius: '16px',
               padding: '1rem',
               display: 'flex',
@@ -643,7 +734,7 @@ const WhatIsMLDiagram = () => {
             }}>
               <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginBottom: '0.5rem' }}>
                 <span>Coordinate Plane: Actual vs Predicted</span>
-                <span style={{ color: '#059669' }}>Target: y = 2x + 1</span>
+                <span style={{ color: '#001f54' }}>Target: y = 2x + 1</span>
               </div>
 
               <svg width="280" height="180" viewBox="0 0 280 180" style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
@@ -709,9 +800,9 @@ const WhatIsMLDiagram = () => {
                       flex: 1,
                       padding: '0.5rem',
                       borderRadius: '8px',
-                      border: `1.5px solid ${learningStep === idx ? '#059669' : '#e2e8f0'}`,
-                      background: learningStep === idx ? '#ecfdf5' : '#ffffff',
-                      color: learningStep === idx ? '#065f46' : '#64748b',
+                      border: `1.5px solid ${learningStep === idx ? '#001f54' : '#e2e8f0'}`,
+                      background: learningStep === idx ? '#f0f4fc' : '#ffffff',
+                      color: learningStep === idx ? '#001f54' : '#64748b',
                       fontSize: '0.74rem',
                       fontWeight: 800,
                       cursor: 'pointer',
@@ -723,7 +814,7 @@ const WhatIsMLDiagram = () => {
                 ))}
               </div>
 
-              <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
+              <div style={{ background: '#f8fafc', border: '1.5px solid #c2d4f2', borderRadius: '14px', padding: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
                     {curStep.title}
@@ -750,7 +841,7 @@ const WhatIsMLDiagram = () => {
 
                 <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.65rem 0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>Derived Rule:</span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', fontFamily: 'Consolas, monospace' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54', fontFamily: 'Consolas, monospace' }}>
                     {curStep.formula}
                   </span>
                 </div>
@@ -800,7 +891,7 @@ export default function MLLessonArticlePage() {
             <IconArrowLeft size={16} /> Roadmap
           </Link>
           <div className={styles.navTitleGroup}>
-            <span className={styles.navSectionTag}>{lesson.module || 'Machine Learning'}</span>
+            <span className={styles.navSectionTag} style={{ color: '#001f54' }}>{lesson.module || 'Machine Learning'}</span>
             <span className={styles.navLessonTitle}>{lesson.title}</span>
           </div>
         </div>
@@ -827,7 +918,7 @@ export default function MLLessonArticlePage() {
         <div className={styles.heroCard}>
           <div
             className={styles.heroBadge}
-            style={{ background: lesson.badgeColor || '#059669' }}
+            style={{ background: lesson.badgeColor || '#001f54' }}
           >
             {lesson.badgeText || 'ML LESSON'}
           </div>
@@ -839,22 +930,22 @@ export default function MLLessonArticlePage() {
         {lesson.learningObjectives && (
           <div style={{
             background: '#ffffff',
-            border: '1.5px solid #e2e8f0',
+            border: '1.5px solid #c2d4f2',
             borderRadius: '20px',
             padding: '1.5rem',
             marginBottom: '2rem',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.02)'
+            boxShadow: '0 4px 16px rgba(0,31,84,0.03)'
           }}>
             <h3 style={{
               fontSize: '1rem',
               fontWeight: 800,
-              color: '#0f172a',
+              color: '#001f54',
               marginBottom: '0.85rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem'
             }}>
-              <IconTarget size={18} style={{ color: '#059669' }} /> In This Lesson, You Will Master:
+              <IconTarget size={18} style={{ color: '#001f54' }} /> In This Lesson, You Will Master:
             </h3>
             <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#334155', fontSize: '0.88rem', lineHeight: '1.7' }}>
               {lesson.learningObjectives.map((obj, idx) => (
@@ -869,7 +960,7 @@ export default function MLLessonArticlePage() {
           lesson.sections.map((sec, idx) => (
             <section key={idx} className={styles.contentSection}>
               <h2 className={styles.sectionHeading}>
-                <IconSparkles size={20} style={{ color: '#059669' }} />
+                <IconSparkles size={20} style={{ color: '#001f54' }} />
                 {sec.heading}
               </h2>
               {sec.paragraphs.map((p, pIdx) => (
@@ -905,14 +996,14 @@ export default function MLLessonArticlePage() {
 
         {/* KEY TAKEAWAYS CHECKLIST */}
         {lesson.takeaways && (
-          <div className={styles.takeawaysCard} style={{ background: '#ffffff', border: '1.5px solid #a7f3d0', boxShadow: '0 4px 16px rgba(5,150,105,0.04)' }}>
-            <h3 className={styles.takeawaysTitle} style={{ color: '#065f46' }}>
-              <IconCheckmark size={22} style={{ color: '#10b981' }} /> Key Takeaways
+          <div className={styles.takeawaysCard} style={{ background: '#ffffff', border: '1.5px solid #c2d4f2', boxShadow: '0 4px 16px rgba(0,31,84,0.04)' }}>
+            <h3 className={styles.takeawaysTitle} style={{ color: '#001f54' }}>
+              <IconCheckmark size={22} style={{ color: '#001f54' }} /> Key Takeaways
             </h3>
             <ul className={styles.takeawaysList}>
               {lesson.takeaways.map((takeaway, idx) => (
-                <li key={idx} className={styles.takeawayItem} style={{ color: '#064e3b' }}>
-                  <span className={styles.takeawayBullet} style={{ background: '#059669' }}></span>
+                <li key={idx} className={styles.takeawayItem} style={{ color: '#001f54' }}>
+                  <span className={styles.takeawayBullet} style={{ background: '#001f54' }}></span>
                   <span>{takeaway}</span>
                 </li>
               ))}
@@ -924,7 +1015,7 @@ export default function MLLessonArticlePage() {
         {lesson.quiz && (
           <div className={styles.quizCard}>
             <div className={styles.quizHeader}>
-              <IconSparkles size={22} style={{ color: '#059669' }} /> Interactive Knowledge Check
+              <IconSparkles size={22} style={{ color: '#001f54' }} /> Interactive Knowledge Check
             </div>
             <p className={styles.quizQuestion}>{lesson.quiz.question}</p>
 
@@ -946,7 +1037,7 @@ export default function MLLessonArticlePage() {
                     className={btnClass}
                   >
                     <span>{opt}</span>
-                    {isAnswered && isCorrect && <IconCheckmark size={18} style={{ color: '#059669' }} />}
+                    {isAnswered && isCorrect && <IconCheckmark size={18} style={{ color: '#001f54' }} />}
                   </button>
                 );
               })}

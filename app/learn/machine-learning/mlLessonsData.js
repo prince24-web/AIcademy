@@ -8,7 +8,7 @@ export const mlLessonsData = {
     level: 'Beginner',
     module: 'Module 1: ML Fundamentals',
     badgeText: 'CORE CONCEPT',
-    badgeColor: '#475569',
+    badgeColor: '#001f54',
     videoUrl: null,
     gfgUrl: null,
 
