@@ -2601,7 +2601,7 @@ const RegressionVsClassificationDiagram = () => {
             <tbody>
               <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Target Variable (y)</td>
-                <td style={{ padding: '0.75rem', color: '#334155' }}>Continuous Real Numbers ($\mathbb{R}$)</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Continuous Real Numbers (ℝ)</td>
                 <td style={{ padding: '0.75rem', color: '#334155' }}>Discrete Categories / Class Labels</td>
               </tr>
               <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
