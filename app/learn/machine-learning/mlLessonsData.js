@@ -703,8 +703,147 @@ export const mlLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! The attribute we are trying to predict is AnnualSalary (the Target Label y), while all the descriptive background attributes (Age, YearsOfExperience, EducationLevel, Department) serve as the input Features (X).'
     }
+  },
+
+  'ml-1-6': {
+    id: 'ml-1-6',
+    title: 'Training, Validation & Test Sets',
+    subtitle: 'Why we split datasets: mastering the 3-way partition (Train/Val/Test), preventing data leakage, and implementing K-Fold cross-validation.',
+    duration: '17 min read',
+    level: 'Beginner',
+    module: 'Module 1: ML Fundamentals',
+    badgeText: 'DATA SPLITTING',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Understand why evaluating a model on its training data creates an illusion of high performance (memorization vs generalization).',
+      'Master the 3-way partition: Training set (parameter optimization), Validation set (hyperparameter tuning), and Test set (unbiased benchmark).',
+      'Learn standard splitting ratios (e.g. 70/15/15, 80/10/10) and stratification techniques for imbalanced labels.',
+      'Implement 2-way and 3-way data splits using Scikit-Learn train_test_split.',
+      'Understand K-Fold Cross-Validation: how rotating validation folds maximizes evaluation reliability on smaller datasets.',
+      'Identify and prevent Data Leakage (e.g., fitting feature scalers or encoders before splitting the dataset).'
+    ],
+
+    sections: [
+      {
+        heading: 'Why You Must Never Evaluate on Training Data',
+        paragraphs: [
+          'If a student is given a copy of the exact final exam questions and answers to study the night before, scoring 100% does not prove they understand the subject—it only proves they have good memorization.',
+          'Machine learning models suffer from the exact same vulnerability. If you train a model on 10,000 records and test its accuracy on those exact same 10,000 records, a high score only tells you how well the model memorized the past, not whether it can generalize to new, unseen future data.',
+          'To measure true generalization ability, we must strictly isolate our data into separate partitions before training begins.'
+        ]
+      },
+      {
+        heading: 'The 3-Way Partition: Train, Validation, and Test',
+        paragraphs: [
+          'In professional machine learning workflows, data is split into three non-overlapping subsets:',
+          '1. Training Set (~70% - 80%): The largest portion. Used by the learning algorithm to calculate internal weights, coefficients, and mathematical parameters (w, b).',
+          '2. Validation Set (Dev Set, ~10% - 15%): Used during the development cycle to compare different algorithms (e.g., Random Forest vs SVM), tune hyperparameters (e.g., learning rate, maximum tree depth, regularization strength), and trigger early stopping.',
+          '3. Test Set (~10% - 15%): The "Gold Standard" evaluation benchmark. Kept completely locked away in a secure vault during development. It is evaluated ONLY ONCE at the very end of the project to provide an unbiased estimate of real-world production performance.'
+        ]
+      },
+      {
+        heading: 'Why We Need a Validation Set (Avoiding Test Set Contamination)',
+        paragraphs: [
+          'A common beginner mistake is splitting data into only two sets: Train (80%) and Test (20%).',
+          'If you repeatedly train models on the Train set and tweak your hyperparameters to maximize performance on the Test set, information from the Test set gradually leaks into your design choices. You end up overfitting to the Test set!',
+          'By introducing an intermediate Validation set for hyperparameter tuning, the Test set remains 100% pristine and uncorrupted.'
+        ]
+      },
+      {
+        heading: 'K-Fold Cross-Validation: Maximizing Data Efficiency',
+        paragraphs: [
+          'When your total dataset is small or medium-sized (e.g. under 50,000 samples), carving out separate validation and test sets leaves too few records for training.',
+          'K-Fold Cross-Validation solves this elegantly:',
+          '1. Split the training data into K equal folds (commonly K = 5 or K = 10).',
+          '2. Train the model on K - 1 folds and evaluate on the remaining 1 fold.',
+          '3. Repeat this process K times so every fold acts as the validation set exactly once.',
+          '4. Average the K validation scores to get a robust, low-variance evaluation metric.'
+        ],
+        codeBlock: [
+          '# Splitting Data into Train, Validation, and Test Sets in Python',
+          '# ─────────────────────────────────────────────────────────────',
+          'import numpy as np',
+          'import pandas as pd',
+          'from sklearn.model_selection import train_test_split, KFold, cross_val_score',
+          'from sklearn.linear_model import Ridge',
+          '',
+          '# 1. Synthesize sample dataset (1,000 samples, 4 features)',
+          'np.random.seed(42)',
+          'X = np.random.randn(1000, 4)',
+          'y = 3.5 * X[:, 0] - 2.0 * X[:, 1] + 1.5 * X[:, 2] + np.random.randn(1000) * 0.5',
+          '',
+          '# 2. Perform a 3-Way Split: 70% Train, 15% Validation, 15% Test',
+          '# Step A: Split off Test set (15%)',
+          'X_train_val, X_test, y_train_val, y_test = train_test_split(',
+          '    X, y, test_size=0.15, random_state=42',
+          ')',
+          '',
+          '# Step B: Split remaining 85% into Train (70% total) and Val (15% total)',
+          '# 0.15 / 0.85 ≈ 0.1765',
+          'X_train, X_val, y_train, y_val = train_test_split(',
+          '    X_train_val, y_train_val, test_size=(0.15 / 0.85), random_state=42',
+          ')',
+          '',
+          'print(f"Total Dataset:     {len(X)} samples (100%)")',
+          'print(f"Training Set:      {len(X_train)} samples ({len(X_train)/len(X)*100:.0f}%) -> Used to fit parameters")',
+          'print(f"Validation Set:    {len(X_val)} samples ({len(X_val)/len(X)*100:.0f}%) -> Used to tune hyperparameters")',
+          'print(f"Test Set (Vault):  {len(X_test)} samples ({len(X_test)/len(X)*100:.0f}%) -> Used ONLY for final evaluation")',
+          '',
+          '# 3. 5-Fold Cross-Validation on the Training Pool',
+          'kf = KFold(n_splits=5, shuffle=True, random_state=42)',
+          'model = Ridge(alpha=1.0)',
+          'cv_scores = cross_val_score(model, X_train_val, y_train_val, cv=kf, scoring="r2")',
+          '',
+          'print(f"\\n5-Fold Cross-Validation R2 Scores: {cv_scores.round(3)}")',
+          'print(f"Mean CV R2 Score: {cv_scores.mean():.4f} (+/- {cv_scores.std():.4f})")'
+        ].join('\n'),
+        codeBlockTitle: 'train_val_test_splits.py'
+      },
+      {
+        heading: 'Data Leakage: The Silent Trap',
+        paragraphs: [
+          'Data Leakage occurs when information from outside the training dataset (such as the validation or test sets) inadvertently leaks into the model training pipeline.',
+          '• The Cardinal Rule: Any data transformation (StandardScaler, MinMaxScaler, Imputation, One-Hot Encoding) MUST be fitted (.fit) ONLY on the Training set, and then used to transform (.transform) the Validation and Test sets.',
+          'If you scale your entire dataset before splitting, the mean and standard deviation of the test set leak into the training process, generating unrealistically optimistic benchmark scores.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'The Academic Analogy: Homework, Practice Mock Exam & Final Exam',
+      text: 'Think of the 3 sets as different stages of school coursework: The Training Set is your daily homework with full answer keys (you practice and learn from mistakes). The Validation Set is a practice mock exam administered by the teacher (used to adjust which topics you need to revise and which study techniques work best). The Test Set is the sealed, proctored Final Exam at the end of the year (taken once with zero hints to assign your final course grade).'
+    },
+
+    diagram: {
+      type: 'training_val_test_splits',
+      title: 'Interactive Dataset Split Studio: 3-Way Partition, K-Fold Rotations & Pipeline Flow'
+    },
+
+    takeaways: [
+      'Never evaluate a model on its training data—this measures memorization rather than generalization.',
+      'The 3-way split divides data into Training (70-80%), Validation (10-15%), and Test (10-15%).',
+      'The Validation set is used to tune hyperparameters; the Test set is kept untouched in a vault until the final benchmark.',
+      'K-Fold Cross-Validation rotates K validation folds across training data to maximize statistical reliability.',
+      'To prevent Data Leakage, always fit scalers and transformers exclusively on X_train.'
+    ],
+
+    quiz: {
+      question: 'Why is it dangerous to tune hyperparameters (such as neural network learning rate or decision tree depth) directly on the TEST set?',
+      options: [
+        'It increases the computational time required to train the model',
+        'It leaks test information into design decisions, causing the test score to become overly optimistic and biased',
+        'It changes the dimensions of the input feature matrix X',
+        'It turns a classification model into a regression model'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! When you tune hyperparameters to maximize performance on the test set, the test set is no longer an independent, unbiased measure of real-world generalization—it has been contaminated by your tuning choices.'
+    }
   }
 };
+
 
 
 

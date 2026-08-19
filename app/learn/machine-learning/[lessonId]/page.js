@@ -3173,6 +3173,533 @@ const FeaturesAndLabelsDiagram = () => {
   );
 };
 
+// ─── DATA SPLITTING & K-FOLD INTERACTIVE STUDIO DIAGRAM ────────────────────
+const DataSplitsDiagram = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  
+  // Tab 0: Split Ratios State
+  const [splitPreset, setSplitPreset] = useState('70_15_15');
+  const [totalSamples] = useState(10000);
+  const [pipelineStep, setPipelineStep] = useState(0); // 0: Idle, 1: Train, 2: Val, 3: Test Done
+  const [isSimulating, setIsSimulating] = useState(false);
+
+  // Tab 1: K-Fold State
+  const [kFolds, setKFolds] = useState(5);
+  const [activeFoldIdx, setActiveFoldIdx] = useState(0);
+  const [isKFoldRunning, setIsKFoldRunning] = useState(false);
+  const [kFoldResults, setKFoldResults] = useState(null);
+
+  const presets = {
+    '70_15_15': { train: 70, val: 15, test: 15, label: '70% / 15% / 15% (Standard Baseline)' },
+    '80_10_10': { train: 80, val: 10, test: 10, label: '80% / 10% / 10% (Large Datasets)' },
+    '60_20_20': { train: 60, val: 20, test: 20, label: '60% / 20% / 20% (Heavy Tuning Focus)' }
+  };
+
+  const curPreset = presets[splitPreset];
+  const trainCount = Math.round((curPreset.train / 100) * totalSamples);
+  const valCount = Math.round((curPreset.val / 100) * totalSamples);
+  const testCount = Math.round((curPreset.test / 100) * totalSamples);
+
+  const handleSimulatePipeline = () => {
+    setIsSimulating(true);
+    setPipelineStep(1);
+    
+    setTimeout(() => {
+      setPipelineStep(2);
+      setTimeout(() => {
+        setPipelineStep(3);
+        setIsSimulating(false);
+        triggerConfetti(0.5, 0.6);
+      }, 1100);
+    }, 1100);
+  };
+
+  const handleRunKFold = () => {
+    setIsKFoldRunning(true);
+    setKFoldResults(null);
+    let step = 0;
+    const interval = setInterval(() => {
+      step++;
+      if (step < kFolds) {
+        setActiveFoldIdx(step);
+      } else {
+        clearInterval(interval);
+        setIsKFoldRunning(false);
+        // Generate pseudo scores based on kFolds
+        const baseScores = [0.932, 0.945, 0.928, 0.951, 0.938, 0.941, 0.935, 0.949, 0.930, 0.944];
+        const scores = baseScores.slice(0, kFolds);
+        const mean = (scores.reduce((a, b) => a + b, 0) / kFolds).toFixed(3);
+        const std = (0.008).toFixed(3);
+        setKFoldResults({ scores, mean, std });
+        triggerConfetti(0.5, 0.6);
+      }
+    }, 450);
+  };
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #c2d4f2',
+      borderRadius: '20px',
+      padding: '1.75rem',
+      margin: '2rem 0',
+      boxShadow: '0 8px 30px rgba(0, 31, 84, 0.06)',
+      overflow: 'hidden'
+    }}>
+      {/* Header & Tabs */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f0f4fc',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{
+              background: '#f0f4fc',
+              color: '#001f54',
+              fontSize: '0.72rem',
+              fontWeight: 900,
+              padding: '0.25rem 0.65rem',
+              borderRadius: '6px',
+              border: '1px solid #c2d4f2'
+            }}>
+              DATA PARTITIONING STUDIO
+            </span>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#001f54', margin: 0 }}>
+              Train vs. Validation vs. Test Sets
+            </h3>
+          </div>
+          <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0.35rem 0 0' }}>
+            Interactive partition ratios, 3-stage training pipeline simulation, and K-Fold cross-validation.
+          </p>
+        </div>
+
+        {/* Tab Controls */}
+        <div style={{
+          display: 'flex',
+          gap: '0.35rem',
+          background: '#f0f4fc',
+          padding: '0.35rem',
+          borderRadius: '12px',
+          border: '1.5px solid #c2d4f2'
+        }}>
+          {[
+            { label: '3-Way Split Studio', tab: 0 },
+            { label: 'K-Fold Cross-Validation', tab: 1 },
+            { label: 'Data Leakage Pitfalls', tab: 2 }
+          ].map((t) => (
+            <button
+              key={t.tab}
+              onClick={() => setActiveTab(t.tab)}
+              style={{
+                padding: '0.45rem 0.9rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === t.tab ? '#001f54' : 'transparent',
+                color: activeTab === t.tab ? '#ffffff' : '#001f54',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: activeTab === t.tab ? '0 3px 10px rgba(0,31,84,0.25)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 0: 3-WAY SPLIT STUDIO & PIPELINE SIMULATOR ─── */}
+      {activeTab === 0 && (
+        <div>
+          {/* Preset Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              {Object.keys(presets).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => {
+                    setSplitPreset(k);
+                    setPipelineStep(0);
+                  }}
+                  style={{
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '8px',
+                    border: `1.5px solid ${splitPreset === k ? '#001f54' : '#cbd5e1'}`,
+                    background: splitPreset === k ? '#001f54' : '#ffffff',
+                    color: splitPreset === k ? '#ffffff' : '#475569',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {presets[k].label}
+                </button>
+              ))}
+            </div>
+
+            <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
+              Total Dataset Size: <strong>10,000 samples (100%)</strong>
+            </span>
+          </div>
+
+          {/* Dynamic Partition Bar */}
+          <div style={{
+            background: '#ffffff',
+            border: '2px solid #001f54',
+            borderRadius: '16px',
+            padding: '1.25rem',
+            marginBottom: '1.5rem',
+            boxShadow: '0 4px 16px rgba(0,31,84,0.04)'
+          }}>
+            <div style={{ display: 'flex', height: '48px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid #cbd5e1', marginBottom: '1rem' }}>
+              {/* Train Segment */}
+              <div style={{
+                width: `${curPreset.train}%`,
+                background: '#001f54',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.78rem',
+                fontWeight: 900,
+                transition: 'width 0.3s ease',
+                borderRight: '2px solid #ffffff'
+              }}>
+                Train ({curPreset.train}%)
+              </div>
+
+              {/* Validation Segment */}
+              <div style={{
+                width: `${curPreset.val}%`,
+                background: '#4f46e5',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.78rem',
+                fontWeight: 900,
+                transition: 'width 0.3s ease',
+                borderRight: '2px solid #ffffff'
+              }}>
+                Val ({curPreset.val}%)
+              </div>
+
+              {/* Test Segment */}
+              <div style={{
+                width: `${curPreset.test}%`,
+                background: '#d97706',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.78rem',
+                fontWeight: 900,
+                transition: 'width 0.3s ease'
+              }}>
+                Test ({curPreset.test}%)
+              </div>
+            </div>
+
+            {/* 3 Detail Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              
+              {/* Training Card */}
+              <div style={{
+                background: pipelineStep === 1 ? '#e0f2fe' : '#f8fafc',
+                border: `1.5px solid ${pipelineStep === 1 ? '#0284c7' : '#cbd5e1'}`,
+                borderRadius: '12px',
+                padding: '0.9rem',
+                transition: 'all 0.2s ease'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#001f54' }}>1. Training Set</span>
+                  <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 900, padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                    {trainCount.toLocaleString()} rows
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.74rem', color: '#475569', margin: 0, lineHeight: '1.4' }}>
+                  <strong>Role:</strong> Fits algorithm weights & parameters (w, b). Model learns features → labels mapping.
+                </p>
+              </div>
+
+              {/* Validation Card */}
+              <div style={{
+                background: pipelineStep === 2 ? '#ede9fe' : '#f8fafc',
+                border: `1.5px solid ${pipelineStep === 2 ? '#7c3aed' : '#cbd5e1'}`,
+                borderRadius: '12px',
+                padding: '0.9rem',
+                transition: 'all 0.2s ease'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#4338ca' }}>2. Validation Set</span>
+                  <span style={{ background: '#4f46e5', color: '#ffffff', fontSize: '0.68rem', fontWeight: 900, padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                    {valCount.toLocaleString()} rows
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.74rem', color: '#475569', margin: 0, lineHeight: '1.4' }}>
+                  <strong>Role:</strong> Hyperparameter tuning (tree depth, learning rate, regularization) and early stopping.
+                </p>
+              </div>
+
+              {/* Test Card */}
+              <div style={{
+                background: pipelineStep === 3 ? '#fef3c7' : '#f8fafc',
+                border: `1.5px solid ${pipelineStep === 3 ? '#d97706' : '#cbd5e1'}`,
+                borderRadius: '12px',
+                padding: '0.9rem',
+                transition: 'all 0.2s ease'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#b45309' }}>3. Test Set (Vault)</span>
+                  <span style={{ background: '#d97706', color: '#ffffff', fontSize: '0.68rem', fontWeight: 900, padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                    {testCount.toLocaleString()} rows
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.74rem', color: '#475569', margin: 0, lineHeight: '1.4' }}>
+                  <strong>Role:</strong> Evaluated ONLY ONCE at the end of the project for an unbiased generalization metric.
+                </p>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Interactive Pipeline Execution Button & Status */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1.5px solid #c2d4f2',
+            borderRadius: '14px',
+            padding: '1.25rem',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '0.6rem' }}>
+              Simulate 3-Stage Training Pipeline Flow
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <button
+                onClick={handleSimulatePipeline}
+                disabled={isSimulating}
+                style={{
+                  padding: '0.6rem 1.4rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: isSimulating ? '#94a3b8' : '#001f54',
+                  color: '#ffffff',
+                  fontSize: '0.82rem',
+                  fontWeight: 900,
+                  cursor: isSimulating ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  boxShadow: '0 3px 10px rgba(0,31,84,0.2)'
+                }}
+              >
+                <IconSparkles size={16} /> {isSimulating ? 'Pipeline Running...' : 'Execute 3-Stage ML Pipeline'}
+              </button>
+            </div>
+
+            {/* Stage Progress Feedback */}
+            {pipelineStep > 0 && (
+              <div style={{
+                background: pipelineStep === 3 ? '#ecfdf5' : '#eff6ff',
+                border: `1.5px solid ${pipelineStep === 3 ? '#6ee7b7' : '#93c5fd'}`,
+                borderRadius: '8px',
+                padding: '0.75rem 1rem',
+                fontSize: '0.8rem',
+                color: pipelineStep === 3 ? '#065f46' : '#1e40af',
+                fontWeight: 700
+              }}>
+                {pipelineStep === 1 && 'Stage 1/3: Model fitting parameters (w, b) on 7,000 Training samples... (Loss: 0.245)'}
+                {pipelineStep === 2 && 'Stage 2/3: Tuning hyperparameter depth & learning rate on 1,500 Validation samples... (Val Loss: 0.182)'}
+                {pipelineStep === 3 && 'Stage 3/3 Complete! Test Vault unlocked: Unbiased Real-World Generalization Score = 94.6% Accuracy!'}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 1: K-FOLD CROSS-VALIDATION ARENA ─── */}
+      {activeTab === 1 && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginRight: '0.4rem' }}>Select K:</span>
+              {[3, 5, 10].map((k) => (
+                <button
+                  key={k}
+                  onClick={() => {
+                    setKFolds(k);
+                    setActiveFoldIdx(0);
+                    setKFoldResults(null);
+                  }}
+                  style={{
+                    padding: '0.35rem 0.8rem',
+                    borderRadius: '8px',
+                    border: `1.5px solid ${kFolds === k ? '#001f54' : '#cbd5e1'}`,
+                    background: kFolds === k ? '#001f54' : '#ffffff',
+                    color: kFolds === k ? '#ffffff' : '#475569',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  K = {k} Folds
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={handleRunKFold}
+              disabled={isKFoldRunning}
+              style={{
+                padding: '0.45rem 1rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: isKFoldRunning ? '#94a3b8' : '#001f54',
+                color: '#ffffff',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: isKFoldRunning ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {isKFoldRunning ? 'Rotating Folds...' : `Run ${kFolds}-Fold Cross-Validation`}
+            </button>
+          </div>
+
+          {/* Visual K-Fold Iterations Matrix */}
+          <div style={{
+            background: '#ffffff',
+            border: '2px solid #001f54',
+            borderRadius: '16px',
+            padding: '1.25rem',
+            marginBottom: '1.25rem',
+            boxShadow: '0 4px 16px rgba(0,31,84,0.04)'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              {Array.from({ length: kFolds }).map((_, iterIdx) => (
+                <div key={`iter-${iterIdx}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ width: '65px', fontSize: '0.72rem', fontWeight: 800, color: '#475569' }}>
+                    Iter {iterIdx + 1}:
+                  </span>
+                  <div style={{ flex: 1, display: 'flex', height: '28px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                    {Array.from({ length: kFolds }).map((_, fIdx) => {
+                      const isVal = fIdx === iterIdx;
+                      return (
+                        <div
+                          key={`f-${fIdx}`}
+                          style={{
+                            flex: 1,
+                            background: isVal ? '#f59e0b' : '#001f54',
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            borderRight: fIdx < kFolds - 1 ? '1px solid #ffffff' : 'none'
+                          }}
+                        >
+                          {isVal ? 'Val Fold' : 'Train'}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', fontSize: '0.72rem', fontWeight: 800 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#001f54' }}>
+                <span style={{ width: 12, height: 12, borderRadius: '3px', background: '#001f54' }} />
+                Training Folds (K - 1)
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#d97706' }}>
+                <span style={{ width: 12, height: 12, borderRadius: '3px', background: '#f59e0b' }} />
+                Validation Fold (1)
+              </span>
+            </div>
+          </div>
+
+          {/* K-Fold Benchmark Results */}
+          {kFoldResults && (
+            <div style={{ background: '#ecfdf5', border: '1.5px solid #10b981', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#065f46', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+                {kFolds}-Fold Cross-Validation Scores:
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
+                {kFoldResults.scores.map((sc, scIdx) => (
+                  <span key={`sc-${scIdx}`} style={{ background: '#ffffff', border: '1px solid #6ee7b7', padding: '0.2rem 0.5rem', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 800, color: '#047857' }}>
+                    Fold {scIdx + 1}: {sc}
+                  </span>
+                ))}
+              </div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#047857' }}>
+                Mean CV Score: {kFoldResults.mean} (± {kFoldResults.std} variance)
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── TAB 2: DATA LEAKAGE PITFALLS ─── */}
+      {activeTab === 2 && (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            
+            {/* Bad Workflow Card */}
+            <div style={{ background: '#fef2f2', border: '2px solid #ef4444', borderRadius: '14px', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#991b1b', fontWeight: 900, fontSize: '0.85rem', marginBottom: '0.6rem' }}>
+                CRITICAL ERROR: Data Leakage Workflow
+              </div>
+              <p style={{ fontSize: '0.76rem', color: '#7f1d1d', lineHeight: '1.45', margin: '0 0 0.85rem' }}>
+                Fitting a scaler on the entire dataset <strong>before</strong> splitting:
+              </p>
+              <div style={{ background: '#ffffff', border: '1px solid #fca5a5', borderRadius: '8px', padding: '0.65rem', fontFamily: 'Consolas, monospace', fontSize: '0.72rem', color: '#991b1b', lineHeight: '1.5' }}>
+                <div># BAD: Leaks test mean & std into train!</div>
+                <div>scaler = StandardScaler()</div>
+                <div><strong>X_scaled = scaler.fit_transform(X)</strong></div>
+                <div>X_train, X_test = train_test_split(X_scaled)</div>
+              </div>
+              <div style={{ marginTop: '0.75rem', fontSize: '0.72rem', color: '#991b1b', fontWeight: 700 }}>
+                Result: Unrealistic, overly optimistic test scores that crash in production.
+              </div>
+            </div>
+
+            {/* Good Workflow Card */}
+            <div style={{ background: '#f0fdf4', border: '2px solid #16a34a', borderRadius: '14px', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#166534', fontWeight: 900, fontSize: '0.85rem', marginBottom: '0.6rem' }}>
+                CORRECT: Clean Isolation Workflow
+              </div>
+              <p style={{ fontSize: '0.76rem', color: '#14532d', lineHeight: '1.45', margin: '0 0 0.85rem' }}>
+                Fitting scaler <strong>ONLY</strong> on the training set:
+              </p>
+              <div style={{ background: '#ffffff', border: '1px solid #86efac', borderRadius: '8px', padding: '0.65rem', fontFamily: 'Consolas, monospace', fontSize: '0.72rem', color: '#166534', lineHeight: '1.5' }}>
+                <div># GOOD: Pristine separation</div>
+                <div>X_train, X_test = train_test_split(X)</div>
+                <div>scaler = StandardScaler()</div>
+                <div><strong>X_train_scaled = scaler.fit_transform(X_train)</strong></div>
+                <div><strong>X_test_scaled = scaler.transform(X_test)</strong></div>
+              </div>
+              <div style={{ marginTop: '0.75rem', fontSize: '0.72rem', color: '#166534', fontWeight: 700 }}>
+                Result: 100% unbiased generalization score representing real production data.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = ['ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1'];
 
@@ -3321,6 +3848,9 @@ export default function MLLessonArticlePage() {
             {lesson.diagram.type === 'features_and_labels' && (
               <FeaturesAndLabelsDiagram />
             )}
+            {lesson.diagram.type === 'training_val_test_splits' && (
+              <DataSplitsDiagram />
+            )}
           </div>
         )}
 
@@ -3407,4 +3937,5 @@ export default function MLLessonArticlePage() {
     </div>
   );
 }
+
 
