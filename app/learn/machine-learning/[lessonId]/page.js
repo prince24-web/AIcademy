@@ -3177,13 +3177,17 @@ const FeaturesAndLabelsDiagram = () => {
 const DataSplitsDiagram = () => {
   const [activeTab, setActiveTab] = useState(0);
   
-  // Tab 0: Split Ratios State
+  // Tab 0: Matrix Split Visual State (Matching User's Illustration)
+  const [hoveredSubset, setHoveredSubset] = useState(null); // 'train' | 'val' | 'test' | null
+  const [isMatrixAnimating, setIsMatrixAnimating] = useState(false);
+
+  // Tab 1: Split Ratios State
   const [splitPreset, setSplitPreset] = useState('70_15_15');
   const [totalSamples] = useState(10000);
   const [pipelineStep, setPipelineStep] = useState(0); // 0: Idle, 1: Train, 2: Val, 3: Test Done
   const [isSimulating, setIsSimulating] = useState(false);
 
-  // Tab 1: K-Fold State
+  // Tab 2: K-Fold State
   const [kFolds, setKFolds] = useState(5);
   const [activeFoldIdx, setActiveFoldIdx] = useState(0);
   const [isKFoldRunning, setIsKFoldRunning] = useState(false);
@@ -3199,6 +3203,22 @@ const DataSplitsDiagram = () => {
   const trainCount = Math.round((curPreset.train / 100) * totalSamples);
   const valCount = Math.round((curPreset.val / 100) * totalSamples);
   const testCount = Math.round((curPreset.test / 100) * totalSamples);
+
+  const handleAnimateMatrixSplit = () => {
+    setIsMatrixAnimating(true);
+    setHoveredSubset('train');
+    setTimeout(() => {
+      setHoveredSubset('val');
+      setTimeout(() => {
+        setHoveredSubset('test');
+        setTimeout(() => {
+          setHoveredSubset(null);
+          setIsMatrixAnimating(false);
+          triggerConfetti(0.5, 0.6);
+        }, 700);
+      }, 700);
+    }, 700);
+  };
 
   const handleSimulatePipeline = () => {
     setIsSimulating(true);
@@ -3225,7 +3245,6 @@ const DataSplitsDiagram = () => {
       } else {
         clearInterval(interval);
         setIsKFoldRunning(false);
-        // Generate pseudo scores based on kFolds
         const baseScores = [0.932, 0.945, 0.928, 0.951, 0.938, 0.941, 0.935, 0.949, 0.930, 0.944];
         const scores = baseScores.slice(0, kFolds);
         const mean = (scores.reduce((a, b) => a + b, 0) / kFolds).toFixed(3);
@@ -3275,7 +3294,7 @@ const DataSplitsDiagram = () => {
             </h3>
           </div>
           <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0.35rem 0 0' }}>
-            Interactive partition ratios, 3-stage training pipeline simulation, and K-Fold cross-validation.
+            Interactive matrix partitioning, split ratios, pipeline simulation, and K-Fold cross-validation.
           </p>
         </div>
 
@@ -3286,12 +3305,14 @@ const DataSplitsDiagram = () => {
           background: '#f0f4fc',
           padding: '0.35rem',
           borderRadius: '12px',
-          border: '1.5px solid #c2d4f2'
+          border: '1.5px solid #c2d4f2',
+          flexWrap: 'wrap'
         }}>
           {[
-            { label: '3-Way Split Studio', tab: 0 },
-            { label: 'K-Fold Cross-Validation', tab: 1 },
-            { label: 'Data Leakage Pitfalls', tab: 2 }
+            { label: 'Matrix Split Visual', tab: 0 },
+            { label: '3-Way Split Studio', tab: 1 },
+            { label: 'K-Fold Cross-Validation', tab: 2 },
+            { label: 'Data Leakage Pitfalls', tab: 3 }
           ].map((t) => (
             <button
               key={t.tab}
@@ -3315,8 +3336,265 @@ const DataSplitsDiagram = () => {
         </div>
       </div>
 
-      {/* ─── TAB 0: 3-WAY SPLIT STUDIO & PIPELINE SIMULATOR ─── */}
+      {/* ─── TAB 0: MATRIX SPLIT VISUAL (REPLICATING USER'S IMAGE) ─── */}
       {activeTab === 0 && (
+        <div>
+          <div style={{
+            background: '#f8fafc',
+            border: '2px solid #001f54',
+            borderRadius: '16px',
+            padding: '1.75rem 1.25rem',
+            position: 'relative',
+            boxShadow: '0 4px 16px rgba(0,31,84,0.04)',
+            marginBottom: '1.25rem'
+          }}>
+            
+            {/* SVG Visual Canvas for Matrix Split */}
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
+              <svg width="680" height="340" viewBox="0 0 680 340" style={{ maxWidth: '100%' }}>
+                <defs>
+                  <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                    <polygon points="0 0, 8 4, 0 8" fill="#0f172a" />
+                  </marker>
+                </defs>
+
+                {/* ─── LEFT BLOCK: GIVEN DATA ─── */}
+                <g transform="translate(40, 20)">
+                  <text x="75" y="15" textAnchor="middle" fontSize="15" fontWeight="900" fill="#001f54">
+                    Given data
+                  </text>
+
+                  {/* 5x6 Grid of Cells */}
+                  {Array.from({ length: 6 }).map((_, r) => (
+                    <g key={`gdr-${r}`}>
+                      {Array.from({ length: 5 }).map((_, c) => {
+                        let cellFill = '#dcfce7'; // Default light green
+                        let cellStroke = '#16a34a';
+
+                        if (hoveredSubset === 'train' && r < 4) {
+                          cellFill = '#dbeafe';
+                          cellStroke = '#2563eb';
+                        } else if (hoveredSubset === 'val' && r === 4) {
+                          cellFill = '#ede9fe';
+                          cellStroke = '#7c3aed';
+                        } else if (hoveredSubset === 'test' && r === 5) {
+                          cellFill = '#fef3c7';
+                          cellStroke = '#d97706';
+                        }
+
+                        return (
+                          <rect
+                            key={`gdc-${r}-${c}`}
+                            x={c * 30}
+                            y={30 + r * 30}
+                            width="28"
+                            height="28"
+                            fill={cellFill}
+                            stroke={cellStroke}
+                            strokeWidth="1.2"
+                            rx="3"
+                            style={{ transition: 'all 0.25s ease' }}
+                          />
+                        );
+                      })}
+                    </g>
+                  ))}
+
+                  {/* Ellipsis dots */}
+                  <text x="75" y="232" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#64748b">
+                    ⋮
+                  </text>
+
+                  {/* Bottom single row */}
+                  {Array.from({ length: 5 }).map((_, c) => (
+                    <rect
+                      key={`gdb-${c}`}
+                      x={c * 30}
+                      y="250"
+                      width="28"
+                      height="28"
+                      fill="#dcfce7"
+                      stroke="#16a34a"
+                      strokeWidth="1.2"
+                      rx="3"
+                    />
+                  ))}
+                </g>
+
+                {/* ─── BRANCHING ARROWS ─── */}
+                {/* Arrow to Training Set */}
+                <line
+                  x1="205"
+                  y1="130"
+                  x2="370"
+                  y2="75"
+                  stroke="#0f172a"
+                  strokeWidth="2.5"
+                  markerEnd="url(#arrowhead)"
+                />
+
+                {/* Arrow to Validation Set */}
+                <line
+                  x1="205"
+                  y1="150"
+                  x2="370"
+                  y2="195"
+                  stroke="#0f172a"
+                  strokeWidth="2.5"
+                  markerEnd="url(#arrowhead)"
+                />
+
+                {/* Arrow to Test Set */}
+                <line
+                  x1="205"
+                  y1="170"
+                  x2="370"
+                  y2="285"
+                  stroke="#0f172a"
+                  strokeWidth="2.5"
+                  markerEnd="url(#arrowhead)"
+                />
+
+                {/* ─── RIGHT SUBSET 1: TRAINING SET (5x5 GRID - BLUE) ─── */}
+                <g
+                  transform="translate(380, 15)"
+                  onMouseEnter={() => setHoveredSubset('train')}
+                  onMouseLeave={() => setHoveredSubset(null)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {Array.from({ length: 5 }).map((_, r) => (
+                    <g key={`trr-${r}`}>
+                      {Array.from({ length: 5 }).map((_, c) => (
+                        <rect
+                          key={`trc-${r}-${c}`}
+                          x={c * 28}
+                          y={r * 28}
+                          width="26"
+                          height="26"
+                          fill={hoveredSubset === 'train' ? '#bfdbfe' : '#dbeafe'}
+                          stroke="#2563eb"
+                          strokeWidth="1.2"
+                          rx="3"
+                        />
+                      ))}
+                    </g>
+                  ))}
+                  <text x="155" y="75" fontSize="14" fontWeight="900" fill="#001f54">
+                    Training set
+                  </text>
+                  <text x="155" y="95" fontSize="11" fontWeight="700" fill="#2563eb">
+                    (~70% - 80% of data)
+                  </text>
+                </g>
+
+                {/* ─── RIGHT SUBSET 2: VALIDATION SET (2x5 GRID - PURPLE/INDIGO) ─── */}
+                <g
+                  transform="translate(380, 175)"
+                  onMouseEnter={() => setHoveredSubset('val')}
+                  onMouseLeave={() => setHoveredSubset(null)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {Array.from({ length: 2 }).map((_, r) => (
+                    <g key={`vlr-${r}`}>
+                      {Array.from({ length: 5 }).map((_, c) => (
+                        <rect
+                          key={`vlc-${r}-${c}`}
+                          x={c * 28}
+                          y={r * 28}
+                          width="26"
+                          height="26"
+                          fill={hoveredSubset === 'val' ? '#ddd6fe' : '#ede9fe'}
+                          stroke="#7c3aed"
+                          strokeWidth="1.2"
+                          rx="3"
+                        />
+                      ))}
+                    </g>
+                  ))}
+                  <text x="155" y="32" fontSize="14" fontWeight="900" fill="#4c1d95">
+                    Validation set
+                  </text>
+                  <text x="155" y="50" fontSize="11" fontWeight="700" fill="#7c3aed">
+                    (~10% - 15% for tuning)
+                  </text>
+                </g>
+
+                {/* ─── RIGHT SUBSET 3: TEST SET (2x5 GRID - AMBER/GOLD) ─── */}
+                <g
+                  transform="translate(380, 255)"
+                  onMouseEnter={() => setHoveredSubset('test')}
+                  onMouseLeave={() => setHoveredSubset(null)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {Array.from({ length: 2 }).map((_, r) => (
+                    <g key={`tsr-${r}`}>
+                      {Array.from({ length: 5 }).map((_, c) => (
+                        <rect
+                          key={`tsc-${r}-${c}`}
+                          x={c * 28}
+                          y={r * 28}
+                          width="26"
+                          height="26"
+                          fill={hoveredSubset === 'test' ? '#fde68a' : '#fef3c7'}
+                          stroke="#d97706"
+                          strokeWidth="1.2"
+                          rx="3"
+                        />
+                      ))}
+                    </g>
+                  ))}
+                  <text x="155" y="32" fontSize="14" fontWeight="900" fill="#92400e">
+                    Test set
+                  </text>
+                  <text x="155" y="50" fontSize="11" fontWeight="700" fill="#d97706">
+                    (~10% - 15% final benchmark)
+                  </text>
+                </g>
+              </svg>
+            </div>
+
+            {/* Interactive Control & Hover Prompt */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginTop: '1rem', borderTop: '1px solid #cbd5e1', paddingTop: '0.85rem' }}>
+              <div style={{ fontSize: '0.76rem', color: '#475569' }}>
+                {hoveredSubset === 'train' && (
+                  <span style={{ color: '#1e40af', fontWeight: 800 }}>Highlighted: Training set rows used to calculate algorithm weights (w, b).</span>
+                )}
+                {hoveredSubset === 'val' && (
+                  <span style={{ color: '#6d28d9', fontWeight: 800 }}>Highlighted: Validation set rows used to tune hyperparameters and avoid test corruption.</span>
+                )}
+                {hoveredSubset === 'test' && (
+                  <span style={{ color: '#b45309', fontWeight: 800 }}>Highlighted: Test set rows locked in vault for unbiased final performance evaluation.</span>
+                )}
+                {!hoveredSubset && 'Hover over any target subset on the right to trace its partition origin.'}
+              </div>
+
+              <button
+                onClick={handleAnimateMatrixSplit}
+                disabled={isMatrixAnimating}
+                style={{
+                  padding: '0.45rem 1.1rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: isMatrixAnimating ? '#94a3b8' : '#001f54',
+                  color: '#ffffff',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  cursor: isMatrixAnimating ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                <IconSparkles size={14} /> {isMatrixAnimating ? 'Partitioning...' : 'Animate Partitioning'}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 1: 3-WAY SPLIT STUDIO & PIPELINE SIMULATOR ─── */}
+      {activeTab === 1 && (
         <div>
           {/* Preset Buttons */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
@@ -3526,8 +3804,8 @@ const DataSplitsDiagram = () => {
         </div>
       )}
 
-      {/* ─── TAB 1: K-FOLD CROSS-VALIDATION ARENA ─── */}
-      {activeTab === 1 && (
+      {/* ─── TAB 2: K-FOLD CROSS-VALIDATION ARENA ─── */}
+      {activeTab === 2 && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
             <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
@@ -3649,8 +3927,8 @@ const DataSplitsDiagram = () => {
         </div>
       )}
 
-      {/* ─── TAB 2: DATA LEAKAGE PITFALLS ─── */}
-      {activeTab === 2 && (
+      {/* ─── TAB 3: DATA LEAKAGE PITFALLS ─── */}
+      {activeTab === 3 && (
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
             
