@@ -1427,6 +1427,678 @@ const AiMlDlHierarchyDiagram = () => {
   );
 };
 
+// ─── SVG VECTOR ICONS FOR SUPERVISED VS UNSUPERVISED DIAGRAM ────────────────
+const IconFruitFish = ({ size = 26, color = '#0284c7' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.46-3.44 6-7 6-3.56 0-7.56-2.54-8.5-6Z" />
+    <path d="M18 12c0-1.66-1.34-3-3-3" />
+    <path d="M2 16l4.5-4L2 8c1.5 2.5 1.5 5.5 0 8Z" />
+    <circle cx="17" cy="10.5" r="0.75" fill={color} />
+  </svg>
+);
+
+const IconFruitPear = ({ size = 26, color = '#8b5cf6' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2v3" />
+    <path d="M10 5c-2 2-3 4-3 7 0 4 2.2 7 5 7s5-3 5-7c0-3-1-5-3-7-1.5-1.5-2.5-1.5-4 0Z" />
+    <path d="M12 2c1.5 0 3 .5 3 1.5" />
+  </svg>
+);
+
+const IconFruitApple = ({ size = 26, color = '#10b981' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2c0 2-1 3-2 4" />
+    <path d="M12 2c1 1 2.5 1 3.5 0" />
+    <path d="M12 6c-3-2.5-7-1.5-7 3 0 5.5 3.5 11 7 11s7-5.5 7-11c0-4.5-4-5.5-7-3Z" />
+    <path d="M12 18v2" />
+  </svg>
+);
+
+// ─── SUPERVISED VS UNSUPERVISED LEARNING DIAGRAM (MATCHING USER IMAGE) ─────
+const SupervisedVsUnsupervisedDiagram = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simStep, setSimStep] = useState(0);
+  const [activeScenario, setActiveScenario] = useState('churn');
+
+  const runSimulation = () => {
+    setIsSimulating(true);
+    setSimStep(1);
+    setTimeout(() => setSimStep(2), 700);
+    setTimeout(() => setSimStep(3), 1400);
+    setTimeout(() => {
+      setIsSimulating(false);
+    }, 2200);
+  };
+
+  const scenarios = [
+    {
+      id: 'churn',
+      title: 'Customer Churn vs Market Segments',
+      supervised: {
+        task: 'Predict if a specific user will cancel their subscription this month (Yes/No).',
+        data: 'Historical table of 100,000 customers with labeled status: "Churned" (1) vs "Retained" (0).',
+        algorithm: 'Random Forest / XGBoost Classifier',
+        metric: 'ROC-AUC & Recall'
+      },
+      unsupervised: {
+        task: 'Discover 4 natural customer personas based on browsing frequency and spend.',
+        data: 'Raw log features with zero labels (Average session duration, purchase total, pages viewed).',
+        algorithm: 'K-Means / DBSCAN Clustering',
+        metric: 'Silhouette Score & Elbow Inertia'
+      }
+    },
+    {
+      id: 'health',
+      title: 'Medical Diagnostics vs Cell Discovery',
+      supervised: {
+        task: 'Classify whether a lung scan contains a Malignant or Benign biopsy-verified nodule.',
+        data: '40,000 CT scans accompanied by verified pathologist biopsy labels.',
+        algorithm: 'Supervised Convolutional Neural Network (ResNet)',
+        metric: 'Sensitivity (>99.5%)'
+      },
+      unsupervised: {
+        task: 'Cluster 500,000 single-cell RNA sequences to discover previously unknown rare cell subtypes.',
+        data: 'Gene expression matrices with zero pre-existing cell classification labels.',
+        algorithm: 'UMAP / t-SNE Dimensionality Reduction + Louvain Clustering',
+        metric: 'Biological Marker Validation'
+      }
+    },
+    {
+      id: 'finance',
+      title: 'Credit Approval vs Anomaly Fraud',
+      supervised: {
+        task: 'Predict the interest rate and default probability for a new loan applicant.',
+        data: 'Past 10 years of repaid vs defaulted loan applications with credit scores.',
+        algorithm: 'Gradient Boosted Trees (LightGBM)',
+        metric: 'Mean Squared Error & F1 Score'
+      },
+      unsupervised: {
+        task: 'Detect novel zero-day credit card transaction anomalies with no prior fraud signature.',
+        data: 'Unlabeled real-time payment stream (Amount, merchant category, time of day).',
+        algorithm: 'Isolation Forest / One-Class SVM',
+        metric: 'Outlier Density Score'
+      }
+    }
+  ];
+
+  const curScenario = scenarios.find(s => s.id === activeScenario) || scenarios[0];
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #c2d4f2',
+      borderRadius: '20px',
+      padding: '1.75rem',
+      margin: '2rem 0',
+      boxShadow: '0 8px 30px rgba(0, 31, 84, 0.06)',
+      overflow: 'hidden'
+    }}>
+      {/* Header & Tabs */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f0f4fc',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{
+              background: '#f0f4fc',
+              color: '#001f54',
+              fontSize: '0.72rem',
+              fontWeight: 900,
+              padding: '0.25rem 0.65rem',
+              borderRadius: '6px',
+              border: '1px solid #c2d4f2'
+            }}>
+              DATA PIPELINE ARCHITECTURE
+            </span>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#001f54', margin: 0 }}>
+              Supervised vs. Unsupervised Learning
+            </h3>
+          </div>
+          <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0.35rem 0 0' }}>
+            Interactive comparison of learning with ground-truth supervisor labels vs autonomous unsupervised pattern discovery.
+          </p>
+        </div>
+
+        {/* Tab Buttons */}
+        <div style={{
+          display: 'flex',
+          gap: '0.35rem',
+          background: '#f0f4fc',
+          padding: '0.35rem',
+          borderRadius: '12px',
+          border: '1.5px solid #c2d4f2'
+        }}>
+          {[
+            { label: 'Dual Pipeline Diagram', tab: 0 },
+            { label: 'Real-World Scenarios', tab: 1 },
+            { label: 'Paradigm Comparison', tab: 2 }
+          ].map((t) => (
+            <button
+              key={t.tab}
+              onClick={() => setActiveTab(t.tab)}
+              style={{
+                padding: '0.45rem 0.9rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: activeTab === t.tab ? '#001f54' : 'transparent',
+                color: activeTab === t.tab ? '#ffffff' : '#001f54',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: activeTab === t.tab ? '0 3px 10px rgba(0,31,84,0.25)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 0: EXACT REPLICATION OF USER'S ILLUSTRATION ─── */}
+      {activeTab === 0 && (
+        <div>
+          {/* Action Toolbar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700 }}>
+              Observe how the presence of the <strong>Supervisor</strong> guides classification vs clustering.
+            </span>
+            <button
+              onClick={runSimulation}
+              disabled={isSimulating}
+              style={{
+                background: isSimulating ? '#94a3b8' : '#001f54',
+                color: '#ffffff',
+                border: 'none',
+                padding: '0.5rem 1.1rem',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                cursor: isSimulating ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 12px rgba(0,31,84,0.2)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <IconSparkles size={16} /> {isSimulating ? 'Processing Dataflow...' : 'Simulate Pipeline Dataflow'}
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            
+            {/* ─── 1. SUPERVISED LEARNING PIPELINE ─── */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1.5px solid #c2d4f2',
+              borderRadius: '18px',
+              padding: '1.5rem',
+              position: 'relative'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                <span style={{
+                  fontSize: '1.05rem',
+                  fontWeight: 900,
+                  color: '#001f54',
+                  letterSpacing: '0.3px',
+                  background: '#f0f4fc',
+                  padding: '0.35rem 1.25rem',
+                  borderRadius: '20px',
+                  border: '1.5px solid #c2d4f2'
+                }}>
+                  Supervised learning
+                </span>
+              </div>
+
+              {/* Grid Layout: Input -> Model -> Output */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(120px, 1.2fr) auto minmax(180px, 2fr) auto minmax(140px, 1.4fr)',
+                alignItems: 'center',
+                gap: '1rem',
+                overflowX: 'auto',
+                paddingBottom: '0.5rem'
+              }}>
+                
+                {/* 1A. Input Data (Mixed) */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginBottom: '0.6rem' }}>
+                    input data
+                  </span>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '0.5rem',
+                    background: '#ffffff',
+                    padding: '0.75rem',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                  }}>
+                    <IconFruitFish size={24} color="#0284c7" />
+                    <IconFruitPear size={24} color="#8b5cf6" />
+                    <IconFruitFish size={24} color="#0284c7" />
+                    <IconFruitApple size={24} color="#10b981" />
+                    <IconFruitApple size={24} color="#10b981" />
+                    <IconFruitPear size={24} color="#8b5cf6" />
+                    <IconFruitPear size={24} color="#8b5cf6" />
+                    <IconFruitFish size={24} color="#0284c7" />
+                    <IconFruitPear size={24} color="#8b5cf6" />
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div style={{ color: '#94a3b8', fontSize: '1.2rem', fontWeight: 900 }}>→</div>
+
+                {/* 1B. Model / Algorithm (Neural Network Canvas) */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <svg width="220" height="130" viewBox="0 0 220 130" style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                    {/* Inter-layer connection lines */}
+                    {[25, 55, 85, 115].map((y1, i) =>
+                      [25, 55, 85, 115].map((y2, j) => (
+                        <line key={`c1-${i}-${j}`} x1="35" y1={y1} x2="85" y2={y2} stroke="#cbd5e1" strokeWidth="0.75" strokeDasharray="2 2" />
+                      ))
+                    )}
+                    {[25, 55, 85, 115].map((y1, i) =>
+                      [25, 55, 85, 115].map((y2, j) => (
+                        <line key={`c2-${i}-${j}`} x1="85" y1={y1} x2="135" y2={y2} stroke="#cbd5e1" strokeWidth="0.75" strokeDasharray="2 2" />
+                      ))
+                    )}
+                    {[25, 55, 85, 115].map((y1, i) =>
+                      [25, 55, 85, 115].map((y2, j) => (
+                        <line key={`c3-${i}-${j}`} x1="135" y1={y1} x2="185" y2={y2} stroke="#cbd5e1" strokeWidth="0.75" strokeDasharray="2 2" />
+                      ))
+                    )}
+
+                    {/* Nodes Column 1 (Light Lavender) */}
+                    {[25, 55, 85, 115].map((y, idx) => (
+                      <circle key={`n1-${idx}`} cx="35" cy={y} r="7" fill={simStep === 1 ? '#38bdf8' : '#cbd5e1'} />
+                    ))}
+                    {/* Nodes Column 2 */}
+                    {[25, 55, 85, 115].map((y, idx) => (
+                      <circle key={`n2-${idx}`} cx="85" cy={y} r="7" fill={simStep === 2 ? '#0284c7' : '#94a3b8'} />
+                    ))}
+                    {/* Nodes Column 3 */}
+                    {[25, 55, 85, 115].map((y, idx) => (
+                      <circle key={`n3-${idx}`} cx="135" cy={y} r="7" fill={simStep === 2 ? '#001f54' : '#64748b'} />
+                    ))}
+                    {/* Nodes Column 4 (Deep Slate) */}
+                    {[25, 55, 85, 115].map((y, idx) => (
+                      <circle key={`n4-${idx}`} cx="185" cy={y} r="7" fill={simStep === 3 ? '#001f54' : '#334155'} />
+                    ))}
+                  </svg>
+                  <span style={{ fontSize: '0.72rem', fontStyle: 'italic', fontWeight: 800, color: '#64748b', marginTop: '0.35rem' }}>
+                    model/algorithm
+                  </span>
+                </div>
+
+                {/* Branching Output Arrow */}
+                <div style={{ color: '#001f54', fontSize: '1.2rem', fontWeight: 900 }}>→</div>
+
+                {/* 1C. Predicted Output (Sorted by Class) */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginBottom: '0.6rem' }}>
+                    Predicted output
+                  </span>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                    background: '#ffffff',
+                    padding: '0.75rem',
+                    borderRadius: '12px',
+                    border: '1px solid #c2d4f2'
+                  }}>
+                    {/* Pears Row */}
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', background: '#f5f3ff', padding: '0.2rem 0.45rem', borderRadius: '6px' }}>
+                      <IconFruitPear size={18} color="#8b5cf6" />
+                      <IconFruitPear size={18} color="#8b5cf6" />
+                      <IconFruitPear size={18} color="#8b5cf6" />
+                      <IconFruitPear size={18} color="#8b5cf6" />
+                    </div>
+                    {/* Fish Row */}
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', background: '#eff6ff', padding: '0.2rem 0.45rem', borderRadius: '6px' }}>
+                      <IconFruitFish size={18} color="#0284c7" />
+                      <IconFruitFish size={18} color="#0284c7" />
+                      <IconFruitFish size={18} color="#0284c7" />
+                    </div>
+                    {/* Apple Row */}
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', background: '#ecfdf5', padding: '0.2rem 0.45rem', borderRadius: '6px' }}>
+                      <IconFruitApple size={18} color="#10b981" />
+                      <IconFruitApple size={18} color="#10b981" />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Supervisor Annotation Guide */}
+              <div style={{
+                marginTop: '1.25rem',
+                background: '#ffffff',
+                border: '1.5px dashed #001f54',
+                borderRadius: '12px',
+                padding: '0.85rem 1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.65rem', fontStyle: 'italic', fontWeight: 800, color: '#0284c7' }}>Fish</span>
+                    <IconFruitFish size={22} color="#0284c7" />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.65rem', fontStyle: 'italic', fontWeight: 800, color: '#8b5cf6' }}>Pear</span>
+                    <IconFruitPear size={22} color="#8b5cf6" />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.65rem', fontStyle: 'italic', fontWeight: 800, color: '#10b981' }}>Apple</span>
+                    <IconFruitApple size={22} color="#10b981" />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#001f54', fontWeight: 800 }}>
+                  <span>↑ labeled data (by supervisor) fed during training</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ─── 2. UNSUPERVISED LEARNING PIPELINE ─── */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1.5px solid #c2d4f2',
+              borderRadius: '18px',
+              padding: '1.5rem',
+              position: 'relative'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                <span style={{
+                  fontSize: '1.05rem',
+                  fontWeight: 900,
+                  color: '#001f54',
+                  letterSpacing: '0.3px',
+                  background: '#f0f4fc',
+                  padding: '0.35rem 1.25rem',
+                  borderRadius: '20px',
+                  border: '1.5px solid #c2d4f2'
+                }}>
+                  Unsupervised learning
+                </span>
+              </div>
+
+              {/* Grid Layout: Input -> Model -> Output */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(120px, 1.2fr) auto minmax(180px, 2fr) auto minmax(140px, 1.4fr)',
+                alignItems: 'center',
+                gap: '1rem',
+                overflowX: 'auto',
+                paddingBottom: '0.5rem'
+              }}>
+                
+                {/* 2A. Unlabeled Input Data */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginBottom: '0.6rem' }}>
+                    unlabeled input data
+                  </span>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '0.5rem',
+                    background: '#ffffff',
+                    padding: '0.75rem',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                  }}>
+                    <IconFruitFish size={24} color="#0284c7" />
+                    <IconFruitPear size={24} color="#8b5cf6" />
+                    <IconFruitFish size={24} color="#0284c7" />
+                    <IconFruitApple size={24} color="#10b981" />
+                    <IconFruitApple size={24} color="#10b981" />
+                    <IconFruitPear size={24} color="#8b5cf6" />
+                    <IconFruitPear size={24} color="#8b5cf6" />
+                    <IconFruitFish size={24} color="#0284c7" />
+                    <IconFruitPear size={24} color="#8b5cf6" />
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div style={{ color: '#94a3b8', fontSize: '1.2rem', fontWeight: 900 }}>→</div>
+
+                {/* 2B. Model / Algorithm (Clustering Network) */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <svg width="220" height="130" viewBox="0 0 220 130" style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                    {/* Inter-layer connection lines */}
+                    {[25, 55, 85, 115].map((y1, i) =>
+                      [25, 55, 85, 115].map((y2, j) => (
+                        <line key={`uc1-${i}-${j}`} x1="35" y1={y1} x2="85" y2={y2} stroke="#cbd5e1" strokeWidth="0.75" strokeDasharray="2 2" />
+                      ))
+                    )}
+                    {[25, 55, 85, 115].map((y1, i) =>
+                      [25, 55, 85, 115].map((y2, j) => (
+                        <line key={`uc2-${i}-${j}`} x1="85" y1={y1} x2="135" y2={y2} stroke="#cbd5e1" strokeWidth="0.75" strokeDasharray="2 2" />
+                      ))
+                    )}
+                    {[25, 55, 85, 115].map((y1, i) =>
+                      [25, 55, 85, 115].map((y2, j) => (
+                        <line key={`uc3-${i}-${j}`} x1="135" y1={y1} x2="185" y2={y2} stroke="#cbd5e1" strokeWidth="0.75" strokeDasharray="2 2" />
+                      ))
+                    )}
+
+                    {/* Nodes Column 1 */}
+                    {[25, 55, 85, 115].map((y, idx) => (
+                      <circle key={`un1-${idx}`} cx="35" cy={y} r="7" fill={simStep === 1 ? '#a855f7' : '#cbd5e1'} />
+                    ))}
+                    {/* Nodes Column 2 */}
+                    {[25, 55, 85, 115].map((y, idx) => (
+                      <circle key={`un2-${idx}`} cx="85" cy={y} r="7" fill={simStep === 2 ? '#7c3aed' : '#94a3b8'} />
+                    ))}
+                    {/* Nodes Column 3 */}
+                    {[25, 55, 85, 115].map((y, idx) => (
+                      <circle key={`un3-${idx}`} cx="135" cy={y} r="7" fill={simStep === 2 ? '#5b21b6' : '#64748b'} />
+                    ))}
+                    {/* Nodes Column 4 */}
+                    {[25, 55, 85, 115].map((y, idx) => (
+                      <circle key={`un4-${idx}`} cx="185" cy={y} r="7" fill={simStep === 3 ? '#4c1d95' : '#334155'} />
+                    ))}
+                  </svg>
+                  <span style={{ fontSize: '0.72rem', fontStyle: 'italic', fontWeight: 800, color: '#64748b', marginTop: '0.35rem' }}>
+                    model/algorithm
+                  </span>
+                </div>
+
+                {/* Branching Output Arrow */}
+                <div style={{ color: '#001f54', fontSize: '1.2rem', fontWeight: 900 }}>→</div>
+
+                {/* 2C. Discovered Clustered Output */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginBottom: '0.6rem' }}>
+                    output (discovered clusters)
+                  </span>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                    background: '#ffffff',
+                    padding: '0.75rem',
+                    borderRadius: '12px',
+                    border: '1px solid #c2d4f2'
+                  }}>
+                    {/* Cluster 1 (Pears) */}
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', background: '#f5f3ff', padding: '0.2rem 0.45rem', borderRadius: '6px' }}>
+                      <IconFruitPear size={18} color="#8b5cf6" />
+                      <IconFruitPear size={18} color="#8b5cf6" />
+                      <IconFruitPear size={18} color="#8b5cf6" />
+                      <IconFruitPear size={18} color="#8b5cf6" />
+                    </div>
+                    {/* Cluster 2 (Fish) */}
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', background: '#eff6ff', padding: '0.2rem 0.45rem', borderRadius: '6px' }}>
+                      <IconFruitFish size={18} color="#0284c7" />
+                      <IconFruitFish size={18} color="#0284c7" />
+                      <IconFruitFish size={18} color="#0284c7" />
+                    </div>
+                    {/* Cluster 3 (Apples) */}
+                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', background: '#ecfdf5', padding: '0.2rem 0.45rem', borderRadius: '6px' }}>
+                      <IconFruitApple size={18} color="#10b981" />
+                      <IconFruitApple size={18} color="#10b981" />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Unsupervised Note */}
+              <div style={{
+                marginTop: '1.25rem',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '0.75rem 1.25rem',
+                fontSize: '0.78rem',
+                color: '#475569',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <IconSparkles size={16} style={{ color: '#001f54' }} />
+                <span><strong>Key Observation: </strong> Notice there is NO supervisor arrow. The model discovered 3 natural clusters purely based on geometry and pixel shape similarities!</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 1: REAL-WORLD SCENARIOS ─── */}
+      {activeTab === 1 && (
+        <div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+            {scenarios.map((sc) => (
+              <button
+                key={sc.id}
+                onClick={() => setActiveScenario(sc.id)}
+                style={{
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '8px',
+                  border: `1.5px solid ${activeScenario === sc.id ? '#001f54' : '#e2e8f0'}`,
+                  background: activeScenario === sc.id ? '#f0f4fc' : '#ffffff',
+                  color: activeScenario === sc.id ? '#001f54' : '#475569',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                {sc.title}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            {/* Supervised Formulation */}
+            <div style={{ background: '#f0f4fc', border: '2px solid #001f54', borderRadius: '16px', padding: '1.4rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54', textTransform: 'uppercase' }}>
+                  Supervised Approach
+                </span>
+                <span style={{ background: '#001f54', color: '#ffffff', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800 }}>
+                  With Labels (X, y)
+                </span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, margin: '0 0 0.75rem' }}>
+                {curScenario.supervised.task}
+              </p>
+              <div style={{ background: '#ffffff', border: '1px solid #c2d4f2', borderRadius: '8px', padding: '0.75rem', fontSize: '0.78rem', marginBottom: '0.75rem', color: '#334155' }}>
+                <strong>Training Data: </strong>{curScenario.supervised.data}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', color: '#001f54', fontWeight: 800 }}>
+                <span>Algorithm: {curScenario.supervised.algorithm}</span>
+                <span>Metric: {curScenario.supervised.metric}</span>
+              </div>
+            </div>
+
+            {/* Unsupervised Formulation */}
+            <div style={{ background: '#f5f3ff', border: '2px solid #7c3aed', borderRadius: '16px', padding: '1.4rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#6d28d9', textTransform: 'uppercase' }}>
+                  Unsupervised Approach
+                </span>
+                <span style={{ background: '#7c3aed', color: '#ffffff', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800 }}>
+                  No Labels (X only)
+                </span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, margin: '0 0 0.75rem' }}>
+                {curScenario.unsupervised.task}
+              </p>
+              <div style={{ background: '#ffffff', border: '1px solid #ddd6fe', borderRadius: '8px', padding: '0.75rem', fontSize: '0.78rem', marginBottom: '0.75rem', color: '#334155' }}>
+                <strong>Training Data: </strong>{curScenario.unsupervised.data}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', color: '#6d28d9', fontWeight: 800 }}>
+                <span>Algorithm: {curScenario.unsupervised.algorithm}</span>
+                <span>Metric: {curScenario.unsupervised.metric}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: PARADIGM COMPARISON MATRIX ─── */}
+      {activeTab === 2 && (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+            <thead>
+              <tr style={{ background: '#f0f4fc', borderBottom: '2px solid #001f54', textAlign: 'left' }}>
+                <th style={{ padding: '0.75rem', color: '#001f54', fontWeight: 900 }}>Dimension</th>
+                <th style={{ padding: '0.75rem', color: '#001f54', fontWeight: 900 }}>Supervised Learning</th>
+                <th style={{ padding: '0.75rem', color: '#001f54', fontWeight: 900 }}>Unsupervised Learning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Training Input</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Features paired with Target Labels: (X, y)</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Features only with NO Labels: (X)</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Supervisor Feedback</td>
+                <td style={{ padding: '0.75rem', color: '#059669', fontWeight: 700 }}>Direct error loss between y_pred and y_actual</td>
+                <td style={{ padding: '0.75rem', color: '#dc2626', fontWeight: 700 }}>None (Self-supervised / distance-based)</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Primary Tasks</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Classification (categories) & Regression (numbers)</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Clustering, Dimensionality Reduction, Anomaly Detection</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Popular Algorithms</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>Linear/Logistic Regression, Random Forest, SVM, XGBoost</td>
+                <td style={{ padding: '0.75rem', color: '#334155' }}>K-Means, Hierarchical, DBSCAN, PCA, Isolation Forest</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Data Annotation Cost</td>
+                <td style={{ padding: '0.75rem', color: '#dc2626', fontWeight: 700 }}>High (Requires human annotators)</td>
+                <td style={{ padding: '0.75rem', color: '#059669', fontWeight: 700 }}>Zero / Minimal (Ingests raw unannotated logs)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = ['ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1'];
 
@@ -1565,6 +2237,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'ai_ml_dl_hierarchy' && (
               <AiMlDlHierarchyDiagram />
+            )}
+            {lesson.diagram.type === 'supervised_vs_unsupervised' && (
+              <SupervisedVsUnsupervisedDiagram />
             )}
           </div>
         )}

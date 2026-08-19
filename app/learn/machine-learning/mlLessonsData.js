@@ -287,6 +287,144 @@ export const mlLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! Tabular datasets with structured rows and columns (credit scores, income, loan amounts) are best solved with Traditional ML algorithms like XGBoost, which train faster, require less compute, and offer superior interpretability on tabular data.'
     }
+  },
+
+  'ml-1-3': {
+    id: 'ml-1-3',
+    title: 'Supervised vs Unsupervised Learning',
+    subtitle: 'Understanding the foundational split: learning with an explicit ground-truth supervisor vs discovering hidden patterns autonomously.',
+    duration: '16 min read',
+    level: 'Beginner',
+    module: 'Module 1: ML Fundamentals',
+    badgeText: 'LEARNING PARADIGMS',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Understand the core distinction between Supervised Learning (labeled data) and Unsupervised Learning (unlabeled data).',
+      'Explain how a Supervisor provides feedback during training via loss functions and ground-truth targets.',
+      'Identify key problem categories: Classification & Regression (Supervised) vs Clustering & Dimensionality Reduction (Unsupervised).',
+      'Compare common algorithms: Linear Regression, SVM, Random Forest vs K-Means, PCA, and DBSCAN.',
+      'Understand the real-world trade-off: The high financial and human cost of data annotation vs the challenge of evaluating unsupervised models.'
+    ],
+
+    sections: [
+      {
+        heading: 'The Core Distinction: The Presence of Ground Truth',
+        paragraphs: [
+          'All machine learning models ingest data and learn statistical relationships. The fundamental question that determines the learning paradigm is: "Does the model receive the correct answer key during training?"',
+          '• Supervised Learning: The training data consists of input features X paired with ground-truth target labels y. The algorithm makes predictions, compares them against the supervisor labels, calculates error, and adjusts its parameters to minimize mistakes.',
+          '• Unsupervised Learning: The algorithm is given only raw input features X with zero target labels y. There is no supervisor, no grading rubric, and no ground truth. Instead, the model discovers intrinsic geometric structures, cluster groupings, distributions, and hidden representations on its own.'
+        ]
+      },
+      {
+        heading: 'Supervised Learning (Learning with a Teacher)',
+        paragraphs: [
+          'In Supervised Learning, a human "supervisor" has pre-labeled the historical data (e.g. tagging emails as Spam/Not Spam, bounding boxes around pedestrians in photos, or recording house sale prices).',
+          'The training objective is to learn a mapping function f(x) = y such that when presented with unseen future inputs x_test, the model predicts the corresponding label y_test with high accuracy.',
+          'Supervised learning branches into two primary families:',
+          '1. Classification: Predicting a discrete category or class label (e.g., Cancer vs Healthy, Fraud vs Legitimate, Cat vs Dog vs Bird).',
+          '2. Regression: Predicting a continuous numerical quantity (e.g., Temperature, Stock Price, House Valuation, Revenue in dollars).',
+          'Common Supervised Algorithms: Linear Regression, Logistic Regression, Decision Trees, Random Forest, Support Vector Machines (SVM), and Gradient Boosted Trees (XGBoost).'
+        ]
+      },
+      {
+        heading: 'Unsupervised Learning (Autonomous Pattern Discovery)',
+        paragraphs: [
+          'In many real-world domains, labeling data is prohibitively expensive, slow, or impossible. Out of millions of customer browsing sessions or network log packets, nobody has time to manually tag each one.',
+          'Unsupervised learning algorithms analyze unannotated datasets to find latent patterns and natural clusters based purely on feature similarities and distances.',
+          'Unsupervised learning branches into three major families:',
+          '1. Clustering: Grouping unlabeled observations into natural subsets where items in the same cluster are geometrically close (e.g., Customer Market Segmentation, Gene Expression Profiling).',
+          '2. Dimensionality Reduction: Compressing high-dimensional feature spaces (e.g. 10,000 genomic markers) into 2 or 3 principal axes while retaining variance (e.g., PCA, t-SNE, UMAP).',
+          '3. Anomaly Detection: Learning the baseline probability density of normal transactions and flagging outliers that deviate significantly (e.g., Network Intrusion Detection, Manufacturing Defect Scanning).',
+          'Common Unsupervised Algorithms: K-Means Clustering, Hierarchical Agglomerative Clustering, DBSCAN, Principal Component Analysis (PCA), and Isolation Forests.'
+        ],
+        codeBlock: [
+          '# Comparing Supervised Learning vs Unsupervised Learning in Python',
+          '# ───────────────────────────────────────────────────────────────────',
+          'import numpy as np',
+          'from sklearn.ensemble import RandomForestClassifier',
+          'from sklearn.cluster import KMeans',
+          '',
+          '# 1. SUPERVISED LEARNING: Training with Input Features (X) + Target Labels (y)',
+          '# Data: [Weight in grams, Smoothness score 1-10]',
+          'X_supervised = np.array([',
+          '    [150, 8],  # Apple',
+          '    [170, 7],  # Apple',
+          '    [130, 9],  # Apple',
+          '    [200, 3],  # Pear',
+          '    [220, 2],  # Pear',
+          '    [210, 4]   # Pear',
+          '])',
+          '# Supervisor provides explicit ground-truth class labels: 0 = Apple, 1 = Pear',
+          'y_supervised = np.array([0, 0, 0, 1, 1, 1])',
+          '',
+          'clf = RandomForestClassifier(n_estimators=10, random_state=42)',
+          'clf.fit(X_supervised, y_supervised) # Learns mapping X -> y',
+          '',
+          'new_fruit = np.array([[160, 8.5]])',
+          'pred_class = clf.predict(new_fruit)[0]',
+          'print(f"Supervised Prediction: {\'Apple\' if pred_class == 0 else \'Pear\'}")',
+          '',
+          '',
+          '# 2. UNSUPERVISED LEARNING: Training with ONLY Features (X) — NO Labels!',
+          '# The algorithm receives identical measurements without any names or labels',
+          'X_unsupervised = np.array([',
+          '    [150, 8], [170, 7], [130, 9],',
+          '    [200, 3], [220, 2], [210, 4]',
+          '])',
+          '',
+          '# K-Means autonomously groups data points into k=2 natural geometric clusters',
+          'kmeans = KMeans(n_clusters=2, random_state=42)',
+          'cluster_labels = kmeans.fit_predict(X_unsupervised)',
+          '',
+          'print(f"Unsupervised Discovered Clusters: {cluster_labels}")',
+          '# Result: [0, 0, 0, 1, 1, 1] — Discovered the exact two fruit groups without labels!'
+        ].join('\n'),
+        codeBlockTitle: 'supervised_vs_unsupervised_demo.py'
+      },
+      {
+        heading: 'Comparative Summary: Supervised vs Unsupervised',
+        paragraphs: [
+          '1. Data Input: Supervised uses labeled data (X, y); Unsupervised uses unlabeled data (X only).',
+          '2. Human Effort: Supervised requires expensive, time-consuming human annotation; Unsupervised leverages abundant raw data directly.',
+          '3. Goal: Supervised aims to predict known target outcomes; Unsupervised aims to discover unknown structure and insights.',
+          '4. Evaluation: Supervised models have clear objective evaluation metrics (Accuracy, MSE, F1 Score); Unsupervised evaluation is subjective and exploratory (Silhouette score, inertia, domain validation).'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Studying with an Answer Key vs Sorting a Toy Box',
+      text: 'Supervised Learning is like a student preparing for an exam with practice questions and a complete answer key. After every attempt, they check the answer key (Supervisor), see their error, and correct their technique. Unsupervised Learning is like a 3-year-old child given a giant box of mixed random toys with no instructions. Without knowing words like "Lego", "Doll", or "Action Figure", the child naturally groups blocks into one pile, soft plushies into another, and toy cars into a third based entirely on their shapes and textures!'
+    },
+
+    diagram: {
+      type: 'supervised_vs_unsupervised',
+      title: 'Interactive Learning Paradigm: Supervised Dataflow vs Unsupervised Clustering'
+    },
+
+    takeaways: [
+      'Supervised Learning trains on feature-label pairs (X, y) with supervisor error feedback.',
+      'Unsupervised Learning trains on feature vectors (X) alone to discover intrinsic groupings.',
+      'Supervised learning solves Classification (categories) and Regression (numbers).',
+      'Unsupervised learning solves Clustering, Dimensionality Reduction, and Anomaly Detection.',
+      'Supervised evaluation is objective (Accuracy/RMSE), while Unsupervised evaluation is exploratory and qualitative.'
+    ],
+
+    quiz: {
+      question: 'A retail eCommerce company has transaction records for 2,000,000 customers with purchase histories, but NO predetermined customer segment categories. They want to group customers into 5 spending personas for targeted marketing. Which approach should they use?',
+      options: [
+        'Supervised Linear Regression',
+        'Unsupervised Clustering (e.g. K-Means or DBSCAN)',
+        'Supervised Logistic Regression with binary labels',
+        'Deterministic IF-THEN hardcoded rules'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! Because there are no pre-existing target labels or customer category definitions, an Unsupervised Clustering algorithm (like K-Means) is ideal to discover natural customer groups from behavioral features.'
+    }
   }
 };
+
 
