@@ -1256,6 +1256,34 @@ export const mlLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! An unconstrained 15th-degree polynomial has excessive capacity (high variance), causing it to fit every statistical noise fluctuation in the training set and produce wild, unrealistic price predictions for new homes.'
     }
+  },
+
+  'ml-2-1': {
+    id: 'ml-2-1',
+    title: 'NumPy Basics',
+    subtitle: 'Numerical Computing in Python',
+    section: 'Module 2 · Chapter 1',
+    module: 'Module 2: Data Preparation',
+    gfgUrl: 'https://www.geeksforgeeks.org/python/numpy-tutorial/',
+    paragraphs: [
+      'NumPy (Numerical Python) is the foundational library for scientific computing and AI in Python. It introduces the ndarray (N-dimensional array), which is memory-efficient and up to 50x faster than standard Python lists.'
+    ],
+    analogy: 'Standard Python lists are like mixed storage drawers. NumPy arrays are uniform grid trays where every item is the exact same data type, allowing lightning-fast computations!',
+    codeExample: `import numpy as np\n\narr = np.array([10, 20, 30])\nprint(arr.sum())`,
+    takeaways: [
+      'NumPy powers numerical computing, machine learning, and data science in Python.',
+      'Homogeneous ndarray data structures offer high performance and low memory overhead.'
+    ],
+    challengeIntro: 'Create a NumPy array arr = np.array([10, 20, 30]) and print its sum.',
+    instructions: [
+      'Import numpy as np',
+      'Create array: arr = np.array([10, 20, 30])',
+      'Print sum: print(arr.sum())'
+    ],
+    initialCode: `import numpy as np\n\n# Create array and calculate sum\narr = np.array([10, 20, 30])\nprint(arr.sum())`,
+    expectedOutput: '60',
+    solutionCode: `import numpy as np\n\narr = np.array([10, 20, 30])\nprint(arr.sum())`,
+    isCodingLesson: true
   }
 };
 

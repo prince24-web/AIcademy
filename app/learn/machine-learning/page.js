@@ -159,7 +159,7 @@ const mlModules = [
       { id: 'ml-1-6', name: 'Training, Validation & Test Sets', nodeType: 'concept', status: 'completed' },
       { id: 'ml-1-7', name: 'Overfitting & Underfitting', nodeType: 'star', status: 'completed' },
       { id: 'ml-1-8', name: 'Bias vs Variance', nodeType: 'concept', status: 'completed' },
-      { id: 'ml-1-p1', name: 'Mini Project: Predict House Prices', nodeType: 'project', status: 'active', isProject: true },
+      { id: 'ml-1-p1', name: 'Mini Project: Predict House Prices', nodeType: 'project', status: 'completed', isProject: true },
     ]
   },
   {
@@ -167,7 +167,7 @@ const mlModules = [
     title: 'Module 2: Data Preparation',
     subtitle: 'Goal: Clean, transform & prepare data for ML.',
     lessons: [
-      { id: 'ml-2-1', name: 'NumPy Basics', nodeType: 'concept', status: 'locked' },
+      { id: 'ml-2-1', name: 'NumPy Basics', nodeType: 'concept', status: 'active' },
       { id: 'ml-2-2', name: 'Pandas for Data Analysis', nodeType: 'star', status: 'locked' },
       { id: 'ml-2-3', name: 'Loading Datasets', nodeType: 'concept', status: 'locked' },
       { id: 'ml-2-4', name: 'Handling Missing Values', nodeType: 'lightbulb', status: 'locked' },
