@@ -1276,13 +1276,13 @@ export const mlLessonsData = {
     ],
     challengeIntro: 'Create a NumPy array arr = np.array([10, 20, 30]) and print its sum.',
     instructions: [
-      'Import numpy as np',
+      'Import numpy: import numpy as np',
       'Create array: arr = np.array([10, 20, 30])',
       'Print sum: print(arr.sum())'
     ],
-    initialCode: `import numpy as np\n\n# Create array and calculate sum\narr = np.array([10, 20, 30])\nprint(arr.sum())`,
+    initialCode: 'import numpy as np\n\narr = np.array([10, 20, 30])\nprint(arr.sum())',
     expectedOutput: '60',
-    solutionCode: `import numpy as np\n\narr = np.array([10, 20, 30])\nprint(arr.sum())`,
+    solutionCode: 'import numpy as np\n\narr = np.array([10, 20, 30])\nprint(arr.sum())',
     isCodingLesson: true
   }
 };
