@@ -10297,6 +10297,16 @@ const MiniProjectEditor = ({ lesson, prevLessonId, nextLessonId }) => {
     setOutputType('idle');
     try {
       const py = window.pyodide;
+      
+      // Auto-load any packages from import statements (e.g. numpy, pandas, scipy)
+      if (py.loadPackagesFromImports) {
+        try {
+          await py.loadPackagesFromImports(currentCode);
+        } catch (pkgErr) {
+          console.warn('Package load warning:', pkgErr);
+        }
+      }
+
       // Capture stdout
       await py.runPythonAsync(`
 import sys, io

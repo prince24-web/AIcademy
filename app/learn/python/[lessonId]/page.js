@@ -280,23 +280,29 @@ export default function LessonPage() {
   const backdropRef = useRef(null);
   const gutterRef = useRef(null);
 
-  // Dynamically load Skulpt scripts
+  // Dynamically load Pyodide WebAssembly runtime (retains identical UI)
   useEffect(() => {
-    if (window.Sk) return;
+    if (window.pyodide) return;
 
-    const script1 = document.createElement('script');
-    script1.src = 'https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js';
-    script1.async = true;
-
-    const script2 = document.createElement('script');
-    script2.src = 'https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js';
-    script2.async = true;
-
-    script1.onload = () => {
-      document.body.appendChild(script2);
-    };
-
-    document.body.appendChild(script1);
+    if (!document.getElementById('pyodide-script')) {
+      const script = document.createElement('script');
+      script.id = 'pyodide-script';
+      script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js';
+      script.async = true;
+      script.onload = async () => {
+        try {
+          if (!window.pyodide && window.loadPyodide) {
+            const py = await window.loadPyodide({
+              indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/'
+            });
+            window.pyodide = py;
+          }
+        } catch (err) {
+          console.error('Pyodide initialization error:', err);
+        }
+      };
+      document.body.appendChild(script);
+    }
   }, []);
 
   useEffect(() => {
@@ -306,76 +312,95 @@ export default function LessonPage() {
     setShowSolution(false);
   }, [lessonId]);
 
-  const handleRunCode = () => {
+  const handleRunCode = async () => {
     setIsRunning(true);
     setOutput('Running...');
 
-    let stdoutBuffer = '';
-
-    const handleOutput = (text) => {
-      stdoutBuffer += text;
-    };
-
-    if (window.Sk) {
-      try {
-        window.Sk.configure({
-          output: handleOutput,
-          read: (x) => {
-            if (window.Sk.builtinFiles === undefined || window.Sk.builtinFiles["files"][x] === undefined) {
-              throw new Error("File not found: '" + x + "'");
-            }
-            return window.Sk.builtinFiles["files"][x];
-          },
-          inputfun: (promptText) => window.prompt(promptText || "Input:") || "",
-          __future__: window.Sk.python3,
+    try {
+      // Ensure Pyodide is ready
+      let py = window.pyodide;
+      if (!py && window.loadPyodide) {
+        py = await window.loadPyodide({
+          indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/'
         });
-
-        const promise = window.Sk.misceval.asyncToPromise(() => {
-          return window.Sk.importMainWithBody("<stdin>", false, code, true);
-        });
-
-        promise
-          .then(() => {
-            const cleanResult = stdoutBuffer.trim();
-            setOutput(cleanResult);
-            setIsRunning(false);
-
-            if (cleanResult === lessonData.expectedOutput.trim()) {
-              setIsPassed(true);
-              triggerConfetti();
-            } else {
-              setIsPassed(false);
-            }
-          })
-          .catch((err) => {
-            setOutput(`Error: ${err.toString()}`);
-            setIsRunning(false);
-            setIsPassed(false);
-          });
-      } catch (err) {
-        setOutput(`Execution Error: ${err.message}`);
-        setIsRunning(false);
+        window.pyodide = py;
       }
-    } else {
-      setTimeout(() => {
-        let simulatedOut = '';
-        if (code.includes('print("Hello Python!")') || code.includes("print('Hello Python!')")) {
-          simulatedOut = 'Hello Python!';
-        } else if (code.includes('print(')) {
-          const match = code.match(/print\s*\(\s*["']?(.*?)["']?\s*\)/);
-          simulatedOut = match ? match[1] : 'Output generated';
-        } else {
-          simulatedOut = 'Code executed successfully.';
+
+      if (py) {
+        // Auto-load packages from imports (e.g. numpy, pandas, scipy, sklearn)
+        if (py.loadPackagesFromImports) {
+          try {
+            await py.loadPackagesFromImports(code);
+          } catch (pkgErr) {
+            console.warn('Package auto-load warning:', pkgErr);
+          }
         }
 
-        setOutput(simulatedOut);
-        setIsRunning(false);
+        // Capture standard output and error in Pyodide
+        await py.runPythonAsync(`
+import sys, io
+_py_stdout_capture = io.StringIO()
+_py_stderr_capture = io.StringIO()
+sys.stdout = _py_stdout_capture
+sys.stderr = _py_stderr_capture
+`);
 
-        if (simulatedOut.trim() === lessonData.expectedOutput.trim()) {
-          setIsPassed(true);
-          triggerConfetti();
+        try {
+          await py.runPythonAsync(code);
+          const stdoutText = await py.runPythonAsync(`_py_stdout_capture.getvalue()`);
+          const stderrText = await py.runPythonAsync(`_py_stderr_capture.getvalue()`);
+          
+          const combinedOutput = (String(stdoutText) + (stderrText ? '\n' + String(stderrText) : '')).trim();
+          const finalOutput = combinedOutput || '(Program executed successfully with no output)';
+
+          setOutput(finalOutput);
+          setIsRunning(false);
+
+          if (lessonData.expectedOutput && combinedOutput === lessonData.expectedOutput.trim()) {
+            setIsPassed(true);
+            triggerConfetti();
+          } else if (!lessonData.expectedOutput) {
+            setIsPassed(true);
+          } else {
+            setIsPassed(false);
+          }
+        } catch (pyExecErr) {
+          const errStr = String(pyExecErr);
+          setOutput(`Error:\n${errStr}`);
+          setIsRunning(false);
+          setIsPassed(false);
+        } finally {
+          await py.runPythonAsync(`
+sys.stdout = sys.__stdout__
+sys.stderr = sys.__stderr__
+`);
         }
-      }, 400);
+      } else {
+        // Fallback simulation if offline or loading
+        setTimeout(() => {
+          let simulatedOut = '';
+          if (code.includes('print("Hello Python!")') || code.includes("print('Hello Python!')")) {
+            simulatedOut = 'Hello Python!';
+          } else if (code.includes('print(')) {
+            const match = code.match(/print\s*\(\s*["']?(.*?)["']?\s*\)/);
+            simulatedOut = match ? match[1] : 'Output generated';
+          } else {
+            simulatedOut = 'Code executed successfully.';
+          }
+
+          setOutput(simulatedOut);
+          setIsRunning(false);
+
+          if (lessonData.expectedOutput && simulatedOut.trim() === lessonData.expectedOutput.trim()) {
+            setIsPassed(true);
+            triggerConfetti();
+          }
+        }, 400);
+      }
+    } catch (err) {
+      setOutput(`Execution Error: ${err.message || String(err)}`);
+      setIsRunning(false);
+      setIsPassed(false);
     }
   };
 
