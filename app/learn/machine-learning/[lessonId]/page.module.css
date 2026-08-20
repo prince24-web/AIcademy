@@ -2333,6 +2333,7 @@
   overflow: hidden;
   background: #0d0f14;
   display: flex;
+  height: 100%;
 }
 
 .lineNumbersGutter {
@@ -2476,7 +2477,7 @@
 }
 
 .outputPanel {
-  height: 220px;
+  height: 160px;
   background: #13161e;
   border-top: 1px solid #2d3248;
   display: flex;
