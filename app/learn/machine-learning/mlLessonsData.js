@@ -1261,29 +1261,56 @@ export const mlLessonsData = {
   'ml-2-1': {
     id: 'ml-2-1',
     title: 'NumPy Basics',
-    subtitle: 'Numerical Computing in Python',
-    section: 'Module 2 · Chapter 1',
+    subtitle: 'High-Performance Numerical Computing & N-Dimensional Arrays in Python',
+    duration: '15 min read',
+    level: 'Beginner',
     module: 'Module 2: Data Preparation',
+    badgeText: 'DATA PREPARATION',
+    badgeColor: '#001f54',
+    videoUrl: null,
     gfgUrl: 'https://www.geeksforgeeks.org/python/numpy-tutorial/',
-    paragraphs: [
-      'NumPy (Numerical Python) is the foundational library for scientific computing and AI in Python. It introduces the ndarray (N-dimensional array), which is memory-efficient and up to 50x faster than standard Python lists.'
+
+    learningObjectives: [
+      'Understand why NumPy is the fundamental computational engine behind modern ML frameworks.',
+      'Master the memory layout and mechanics of homogeneous N-dimensional arrays (ndarray).',
+      'Learn array creation, indexing, slicing, vectorization, and broadcasting arithmetic.'
     ],
-    analogy: 'Standard Python lists are like mixed storage drawers. NumPy arrays are uniform grid trays where every item is the exact same data type, allowing lightning-fast computations!',
-    codeExample: `import numpy as np\n\narr = np.array([10, 20, 30])\nprint(arr.sum())`,
+
+    sections: [
+      {
+        heading: '1. Why NumPy Powers Machine Learning',
+        paragraphs: [
+          'Machine learning algorithms require processing millions or billions of numbers simultaneously. While standard Python lists are flexible, they store pointers to scattered objects in memory and execute slow dynamic type-checks on every single element.',
+          'NumPy (Numerical Python) introduces the ndarray—a contiguous, fixed-type block of raw memory in C. This provides two massive advantages:',
+          '1. Cache Locality: Contiguous memory means modern CPUs can prefetch data in cache lines without cache misses.',
+          '2. SIMD Vectorization: Operations are executed using CPU vector instructions (Single Instruction, Multiple Data), processing entire arrays simultaneously without Python loops.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Mixed Drawers vs Grid Trays',
+      text: 'Standard Python lists are like mixed storage drawers where each slot holds a different random object. NumPy arrays are precision uniform grid trays where every slot contains the exact same data type, allowing lightning-fast bulk operations!'
+    },
+
     takeaways: [
-      'NumPy powers numerical computing, machine learning, and data science in Python.',
-      'Homogeneous ndarray data structures offer high performance and low memory overhead.'
+      'NumPy ndarrays store fixed-type numbers in contiguous memory for high CPU throughput.',
+      'Vectorized operations replace slow Python loops with native C-speed arithmetic.',
+      'Broadcasting automatically stretches compatible array dimensions during element-wise calculations.',
+      'All modern data science libraries (Pandas, Scikit-Learn, PyTorch) build directly upon NumPy.'
     ],
-    challengeIntro: 'Create a NumPy array arr = np.array([10, 20, 30]) and print its sum.',
-    instructions: [
-      'Import numpy: import numpy as np',
-      'Create array: arr = np.array([10, 20, 30])',
-      'Print sum: print(arr.sum())'
-    ],
-    initialCode: 'import numpy as np\n\narr = np.array([10, 20, 30])\nprint(arr.sum())',
-    expectedOutput: '60',
-    solutionCode: 'import numpy as np\n\narr = np.array([10, 20, 30])\nprint(arr.sum())',
-    isCodingLesson: true
+
+    quiz: {
+      question: 'Why are NumPy ndarrays significantly faster than native Python lists for machine learning computations?',
+      options: [
+        'NumPy arrays are stored in contiguous memory blocks with fixed data types, enabling CPU cache optimization and SIMD vectorization',
+        'NumPy automatically converts all floating-point numbers into text strings before computing',
+        'Python lists can only hold integers, while NumPy supports decimals',
+        'NumPy runs on external web servers instead of local hardware'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! NumPy ndarrays use contiguous memory layouts and homogeneous data types, eliminating pointer chasing and allowing CPUs to execute vectorized SIMD instructions at native hardware speeds.'
+    }
   }
 };
 
