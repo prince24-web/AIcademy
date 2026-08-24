@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './page.module.css';
@@ -6460,10 +6460,785 @@ const HousePricePipelineStudio = () => {
   );
 };
 
+// ─── INTERACTIVE LINEAR REGRESSION STUDIO (ML-3-1) ──────────────────────────
+const LinearRegressionInteractiveStudio = () => {
+  // Sample dataset: House Size in '000 sq ft (X) vs Sale Price in $k (Y)
+  const dataPoints = useMemo(() => [
+    { id: 1, x: 1.0, y: 115, label: '1,000 sq ft ($115k)' },
+    { id: 2, x: 1.3, y: 135, label: '1,300 sq ft ($135k)' },
+    { id: 3, x: 1.7, y: 160, label: '1,700 sq ft ($160k)' },
+    { id: 4, x: 2.0, y: 205, label: '2,000 sq ft ($205k)' },
+    { id: 5, x: 2.4, y: 220, label: '2,400 sq ft ($220k)' },
+    { id: 6, x: 2.8, y: 270, label: '2,800 sq ft ($270k)' },
+    { id: 7, x: 3.2, y: 290, label: '3,200 sq ft ($290k)' },
+    { id: 8, x: 3.5, y: 330, label: '3,500 sq ft ($330k)' }
+  ], []);
+
+  // Exact Ordinary Least Squares (OLS) closed-form calculation
+  const optimalParams = useMemo(() => {
+    const n = dataPoints.length;
+    const meanX = dataPoints.reduce((acc, p) => acc + p.x, 0) / n;
+    const meanY = dataPoints.reduce((acc, p) => acc + p.y, 0) / n;
+
+    const numerator = dataPoints.reduce((acc, p) => acc + (p.x - meanX) * (p.y - meanY), 0);
+    const denominator = dataPoints.reduce((acc, p) => acc + Math.pow(p.x - meanX, 2), 0);
+
+    const optSlope = numerator / denominator;
+    const optIntercept = meanY - optSlope * meanX;
+
+    return { slope: Number(optSlope.toFixed(2)), intercept: Number(optIntercept.toFixed(1)) };
+  }, [dataPoints]);
+
+  // Interactive slider states
+  const [slope, setSlope] = useState(0.45); // initial sub-optimal slope
+  const [intercept, setIntercept] = useState(60.0); // initial sub-optimal intercept
+  const [showResiduals, setShowResiduals] = useState(true);
+  const [showSquares, setShowSquares] = useState(false);
+  const [activeTab, setActiveTab] = useState('studio');
+  const [predictorSqFt, setPredictorSqFt] = useState(2.2);
+  const [isOptimalFit, setIsOptimalFit] = useState(false);
+
+  // SVG dimensions & coordinate scale mappings
+  const svgWidth = 680;
+  const svgHeight = 380;
+  const padding = { top: 35, right: 35, bottom: 50, left: 65 };
+
+  const xMin = 0.5;
+  const xMax = 4.0;
+  const yMin = 50;
+  const yMax = 380;
+
+  const scaleX = (x) => padding.left + ((x - xMin) / (xMax - xMin)) * (svgWidth - padding.left - padding.right);
+  const scaleY = (y) => svgHeight - padding.bottom - ((y - yMin) / (yMax - yMin)) * (svgHeight - padding.top - padding.bottom);
+
+  // Calculate live predictions, residuals, and Mean Squared Error (MSE)
+  const calculations = useMemo(() => {
+    let totalSSE = 0;
+    const pointCalcs = dataPoints.map((p) => {
+      const yHat = slope * p.x * 100 + intercept; // slope is per 1000 sq ft ($k / 1000 sqft)
+      const residual = p.y - yHat;
+      const squaredError = Math.pow(residual, 2);
+      totalSSE += squaredError;
+
+      return {
+        ...p,
+        yHat,
+        residual,
+        squaredError,
+        cx: scaleX(p.x),
+        cyActual: scaleY(p.y),
+        cyPred: scaleY(yHat)
+      };
+    });
+
+    const mse = totalSSE / dataPoints.length;
+    const rmse = Math.sqrt(mse);
+
+    return { pointCalcs, totalSSE, mse, rmse };
+  }, [dataPoints, slope, intercept]);
+
+  // Line endpoints on SVG canvas
+  const lineStart = { x: scaleX(xMin), y: scaleY(slope * xMin * 100 + intercept) };
+  const lineEnd = { x: scaleX(xMax), y: scaleY(slope * xMax * 100 + intercept) };
+
+  // Snap to optimal OLS parameters with celebration
+  const handleAutoFitOLS = () => {
+    setSlope(optimalParams.slope);
+    setIntercept(optimalParams.intercept);
+    setIsOptimalFit(true);
+    triggerConfetti(0.5, 0.6);
+  };
+
+  const handleReset = () => {
+    setSlope(0.45);
+    setIntercept(60.0);
+    setIsOptimalFit(false);
+  };
+
+  // Predictor calculation for custom sq ft
+  const predictedValue = (slope * predictorSqFt * 100 + intercept);
+
+  // Performance status evaluation
+  const getQualityBadge = () => {
+    if (Math.abs(slope - optimalParams.slope) < 0.04 && Math.abs(intercept - optimalParams.intercept) < 3) {
+      return { text: 'Optimal OLS Fit (Minimum MSE)', color: '#059669', bg: '#ecfdf5', border: '#10b981' };
+    }
+    if (calculations.mse < 300) {
+      return { text: 'Good Fit (Low Residuals)', color: '#0284c7', bg: '#f0f9ff', border: '#38bdf8' };
+    }
+    return { text: 'Suboptimal Line (High Error)', color: '#dc2626', bg: '#fef2f2', border: '#f87171' };
+  };
+
+  const quality = getQualityBadge();
+
+  return (
+    <div style={{
+      background: '#0d1117',
+      borderRadius: '24px',
+      border: '1.5px solid #21262d',
+      padding: '1.75rem',
+      color: '#f0f6fc',
+      boxShadow: '0 12px 36px rgba(0,0,0,0.3)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER BAR ────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1px solid #21262d',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(2,132,199,0.3)'
+          }}>
+            <IconSparkles size={22} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#ffffff' }}>
+              Interactive Linear Regression Studio
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: '#8b949e' }}>
+              Adjust slope &amp; intercept to discover the mathematical best-fit line with minimum Mean Squared Error
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#161b22',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #30363d',
+          gap: '4px'
+        }}>
+          {[
+            { id: 'studio', label: '📊 Best-Fit Studio' },
+            { id: 'math', label: '📐 Math Breakdown' },
+            { id: 'estimator', label: '🔮 Price Predictor' },
+            { id: 'code', label: '💻 Python Code' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#0284c7' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#8b949e',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: BEST-FIT STUDIO (MAIN INTERACTIVE CANVAS) ───────── */}
+      {activeTab === 'studio' && (
+        <div>
+          {/* Top Scoreboard Metrics */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1rem',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ background: '#161b22', padding: '1rem', borderRadius: '14px', border: '1px solid #30363d' }}>
+              <div style={{ fontSize: '0.72rem', color: '#8b949e', textTransform: 'uppercase', fontWeight: 800 }}>
+                Current Model Equation
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#38bdf8', marginTop: '4px' }}>
+                ŷ = {slope.toFixed(2)}x + {intercept.toFixed(1)}k
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#6e7681', marginTop: '2px' }}>
+                Slope: ${ (slope * 100).toFixed(0) }/sq ft · Intercept: ${intercept.toFixed(1)}k
+              </div>
+            </div>
+
+            <div style={{ background: '#161b22', padding: '1rem', borderRadius: '14px', border: '1px solid #30363d' }}>
+              <div style={{ fontSize: '0.72rem', color: '#8b949e', textTransform: 'uppercase', fontWeight: 800 }}>
+                Cost Function (MSE Loss)
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: calculations.mse < 300 ? '#34d399' : '#f87171', marginTop: '4px' }}>
+                {calculations.mse.toFixed(1)} <span style={{ fontSize: '0.78rem', color: '#8b949e' }}>($k²)</span>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#6e7681', marginTop: '2px' }}>
+                Avg Error (RMSE): ±${calculations.rmse.toFixed(1)}k
+              </div>
+            </div>
+
+            <div style={{
+              background: quality.bg,
+              padding: '1rem',
+              borderRadius: '14px',
+              border: `1px solid ${quality.border}`,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
+            }}>
+              <div style={{ fontSize: '0.72rem', color: quality.color, textTransform: 'uppercase', fontWeight: 800 }}>
+                Fit Status
+              </div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: quality.color, marginTop: '4px' }}>
+                {quality.text}
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive SVG Chart */}
+          <div style={{
+            background: '#090d13',
+            borderRadius: '16px',
+            border: '1px solid #21262d',
+            padding: '0.5rem',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <svg
+              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+              style={{ width: '100%', height: 'auto', display: 'block' }}
+            >
+              {/* Background Grid Lines */}
+              {[100, 150, 200, 250, 300, 350].map((yVal) => (
+                <g key={yVal}>
+                  <line
+                    x1={padding.left}
+                    y1={scaleY(yVal)}
+                    x2={svgWidth - padding.right}
+                    y2={scaleY(yVal)}
+                    stroke="#1b222d"
+                    strokeDasharray="4 4"
+                  />
+                  <text
+                    x={padding.left - 10}
+                    y={scaleY(yVal) + 4}
+                    fill="#6e7681"
+                    fontSize="11"
+                    textAnchor="end"
+                    fontFamily="monospace"
+                  >
+                    ${yVal}k
+                  </text>
+                </g>
+              ))}
+
+              {[1.0, 1.5, 2.0, 2.5, 3.0, 3.5].map((xVal) => (
+                <g key={xVal}>
+                  <line
+                    x1={scaleX(xVal)}
+                    y1={padding.top}
+                    x2={scaleX(xVal)}
+                    y2={svgHeight - padding.bottom}
+                    stroke="#1b222d"
+                    strokeDasharray="4 4"
+                  />
+                  <text
+                    x={scaleX(xVal)}
+                    y={svgHeight - padding.bottom + 20}
+                    fill="#6e7681"
+                    fontSize="11"
+                    textAnchor="middle"
+                    fontFamily="monospace"
+                  >
+                    {xVal}k sqft
+                  </text>
+                </g>
+              ))}
+
+              {/* Coordinate Axes */}
+              <line
+                x1={padding.left}
+                y1={svgHeight - padding.bottom}
+                x2={svgWidth - padding.right}
+                y2={svgHeight - padding.bottom}
+                stroke="#30363d"
+                strokeWidth="2"
+              />
+              <line
+                x1={padding.left}
+                y1={padding.top}
+                x2={padding.left}
+                y2={svgHeight - padding.bottom}
+                stroke="#30363d"
+                strokeWidth="2"
+              />
+
+              {/* Axis Titles */}
+              <text
+                x={svgWidth / 2}
+                y={svgHeight - 12}
+                fill="#8b949e"
+                fontSize="12"
+                fontWeight="700"
+                textAnchor="middle"
+              >
+                House Area in '000 sq ft (Feature x) →
+              </text>
+              <text
+                x={-svgHeight / 2}
+                y={20}
+                fill="#8b949e"
+                fontSize="12"
+                fontWeight="700"
+                textAnchor="middle"
+                transform="rotate(-90)"
+              >
+                Sale Price in $k (Target y) →
+              </text>
+
+              {/* Residual Error Squares (Visualizing Squared Loss) */}
+              {showSquares && calculations.pointCalcs.map((p) => {
+                const side = Math.abs(p.cyPred - p.cyActual);
+                if (side < 2) return null;
+                const topY = Math.min(p.cyActual, p.cyPred);
+                const leftX = p.residual >= 0 ? p.cx : p.cx - side;
+
+                return (
+                  <rect
+                    key={`sq-${p.id}`}
+                    x={leftX}
+                    y={topY}
+                    width={side}
+                    height={side}
+                    fill="rgba(244, 63, 94, 0.15)"
+                    stroke="rgba(244, 63, 94, 0.5)"
+                    strokeWidth="1"
+                    strokeDasharray="2 2"
+                  />
+                );
+              })}
+
+              {/* Residual Error Drop-lines */}
+              {showResiduals && calculations.pointCalcs.map((p) => (
+                <g key={`res-${p.id}`}>
+                  <line
+                    x1={p.cx}
+                    y1={p.cyActual}
+                    x2={p.cx}
+                    y2={p.cyPred}
+                    stroke={Math.abs(p.residual) < 15 ? '#34d399' : '#f87171'}
+                    strokeWidth="2"
+                    strokeDasharray="3 3"
+                  />
+                  {/* Small error badge tag */}
+                  <text
+                    x={p.cx + 6}
+                    y={(p.cyActual + p.cyPred) / 2 + 3}
+                    fill={p.residual >= 0 ? '#34d399' : '#f87171'}
+                    fontSize="9"
+                    fontWeight="800"
+                    fontFamily="monospace"
+                  >
+                    {p.residual >= 0 ? `+${p.residual.toFixed(0)}k` : `${p.residual.toFixed(0)}k`}
+                  </text>
+                </g>
+              ))}
+
+              {/* The Linear Regression Model Line */}
+              <line
+                x1={lineStart.x}
+                y1={lineStart.y}
+                x2={lineEnd.x}
+                y2={lineEnd.y}
+                stroke="#0284c7"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+
+              {/* Actual Data Points (Scatter Dots) */}
+              {calculations.pointCalcs.map((p) => (
+                <g key={`pt-${p.id}`}>
+                  <circle
+                    cx={p.cx}
+                    cy={p.cyActual}
+                    r="7"
+                    fill="#38bdf8"
+                    stroke="#ffffff"
+                    strokeWidth="2"
+                    style={{ cursor: 'pointer', transition: 'all 0.15s' }}
+                  />
+                  {/* Point on the Line (Prediction Target) */}
+                  <circle
+                    cx={p.cx}
+                    cy={p.cyPred}
+                    r="3.5"
+                    fill="#0284c7"
+                    opacity="0.8"
+                  />
+                </g>
+              ))}
+
+              {/* Y-Intercept Indicator Point */}
+              <circle
+                cx={padding.left}
+                cy={scaleY(intercept)}
+                r="5"
+                fill="#f59e0b"
+                stroke="#ffffff"
+                strokeWidth="1.5"
+              />
+              <text
+                x={padding.left + 10}
+                y={scaleY(intercept) - 8}
+                fill="#f59e0b"
+                fontSize="10"
+                fontWeight="800"
+                fontFamily="monospace"
+              >
+                Bias (w₀ = ${intercept.toFixed(1)}k)
+              </text>
+            </svg>
+          </div>
+
+          {/* Interactive Controls Bar */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1.25rem',
+            marginTop: '1.25rem',
+            background: '#161b22',
+            padding: '1.25rem',
+            borderRadius: '16px',
+            border: '1px solid #30363d'
+          }}>
+            {/* Slope Slider */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f0f6fc' }}>
+                  Slope (Weight w₁ / m): <code style={{ color: '#38bdf8' }}>{slope.toFixed(2)}</code>
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#8b949e' }}>
+                  Optimal: {optimalParams.slope}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.10"
+                max="1.60"
+                step="0.02"
+                value={slope}
+                onChange={(e) => {
+                  setSlope(parseFloat(e.target.value));
+                  setIsOptimalFit(false);
+                }}
+                style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}
+              />
+              <div style={{ fontSize: '0.72rem', color: '#6e7681', marginTop: '4px' }}>
+                Controls the steepness ($k per 1,000 sq ft added)
+              </div>
+            </div>
+
+            {/* Intercept Slider */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f0f6fc' }}>
+                  Y-Intercept (Bias w₀ / b): <code style={{ color: '#38bdf8' }}>{intercept.toFixed(1)}k</code>
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#8b949e' }}>
+                  Optimal: {optimalParams.intercept}k
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="120"
+                step="1"
+                value={intercept}
+                onChange={(e) => {
+                  setIntercept(parseFloat(e.target.value));
+                  setIsOptimalFit(false);
+                }}
+                style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}
+              />
+              <div style={{ fontSize: '0.72rem', color: '#6e7681', marginTop: '4px' }}>
+                Controls baseline height when area is 0
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons & View Toggles */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            marginTop: '1rem'
+          }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setShowResiduals(!showResiduals)}
+                style={{
+                  background: showResiduals ? '#1f2937' : '#111827',
+                  color: showResiduals ? '#38bdf8' : '#9ca3af',
+                  border: `1px solid ${showResiduals ? '#0284c7' : '#374151'}`,
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {showResiduals ? '✓ Show Error Lines (eᵢ)' : 'Show Error Lines'}
+              </button>
+
+              <button
+                onClick={() => setShowSquares(!showSquares)}
+                style={{
+                  background: showSquares ? '#881337' : '#111827',
+                  color: showSquares ? '#fda4af' : '#9ca3af',
+                  border: `1px solid ${showSquares ? '#f43f5e' : '#374151'}`,
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {showSquares ? '✓ Show Error Squares (eᵢ²)' : 'Show Squared Error Area'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={handleReset}
+                style={{
+                  background: '#21262d',
+                  color: '#c9d1d9',
+                  border: '1px solid #30363d',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                ↺ Reset Line
+              </button>
+
+              <button
+                onClick={handleAutoFitOLS}
+                style={{
+                  background: 'linear-gradient(135deg, #059669, #047857)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '8px 20px',
+                  borderRadius: '10px',
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(5,150,105,0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                ⚡ Auto-Fit Optimal Line (OLS)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: STEP-BY-STEP MATH BREAKDOWN ─────────────────────── */}
+      {activeTab === 'math' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#161b22', padding: '1.25rem', borderRadius: '16px', border: '1px solid #30363d' }}>
+            <h4 style={{ margin: '0 0 0.75rem 0', color: '#38bdf8', fontSize: '1rem', fontWeight: 800 }}>
+              1. The Prediction Equation: ŷ = w₁x + w₀
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#c9d1d9', lineHeight: '1.6' }}>
+              For any house with area <code style={{ color: '#38bdf8' }}>x</code>, the algorithm computes its estimated price <code style={{ color: '#38bdf8' }}>ŷ</code> using the current weight and bias:
+            </p>
+            <div style={{
+              background: '#090d13',
+              padding: '1rem',
+              borderRadius: '10px',
+              fontFamily: 'monospace',
+              fontSize: '0.95rem',
+              color: '#f0f6fc',
+              marginTop: '0.75rem',
+              border: '1px solid #21262d'
+            }}>
+              Sample Calculation on House 4 (x = 2.0k sq ft, Actual Price y = $205k):<br />
+              ŷ = ({slope.toFixed(2)} × 2.0 × 100) + {intercept.toFixed(1)}k = <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>${(slope * 2.0 * 100 + intercept).toFixed(1)}k</span>
+            </div>
+          </div>
+
+          <div style={{ background: '#161b22', padding: '1.25rem', borderRadius: '16px', border: '1px solid #30363d' }}>
+            <h4 style={{ margin: '0 0 0.75rem 0', color: '#38bdf8', fontSize: '1rem', fontWeight: 800 }}>
+              2. The Residual (Error): eᵢ = yᵢ - ŷᵢ
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#c9d1d9', lineHeight: '1.6' }}>
+              The residual is simply how much the model missed the real-world value by:
+            </p>
+            <div style={{
+              background: '#090d13',
+              padding: '1rem',
+              borderRadius: '10px',
+              fontFamily: 'monospace',
+              fontSize: '0.95rem',
+              color: '#f0f6fc',
+              marginTop: '0.75rem',
+              border: '1px solid #21262d'
+            }}>
+              e₄ = $205.0k - ${(slope * 2.0 * 100 + intercept).toFixed(1)}k = <span style={{ color: (205 - (slope * 2.0 * 100 + intercept)) >= 0 ? '#34d399' : '#f87171', fontWeight: 'bold' }}>
+                {(205 - (slope * 2.0 * 100 + intercept)).toFixed(1)}k
+              </span>
+            </div>
+          </div>
+
+          <div style={{ background: '#161b22', padding: '1.25rem', borderRadius: '16px', border: '1px solid #30363d' }}>
+            <h4 style={{ margin: '0 0 0.75rem 0', color: '#38bdf8', fontSize: '1rem', fontWeight: 800 }}>
+              3. The Mean Squared Error Cost Function: MSE = (1 / N) * Σ eᵢ²
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#c9d1d9', lineHeight: '1.6' }}>
+              We square all 8 residuals and calculate their average to obtain the current loss value:
+            </p>
+            <div style={{
+              background: '#090d13',
+              padding: '1rem',
+              borderRadius: '10px',
+              fontFamily: 'monospace',
+              fontSize: '0.95rem',
+              color: '#f0f6fc',
+              marginTop: '0.75rem',
+              border: '1px solid #21262d'
+            }}>
+              Sum of Squared Errors (SSE) = {calculations.totalSSE.toFixed(1)}<br />
+              Mean Squared Error (MSE) = {calculations.totalSSE.toFixed(1)} / 8 = <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>{calculations.mse.toFixed(1)} ($k²)</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: LIVE PRICE PREDICTOR ────────────────────────────── */}
+      {activeTab === 'estimator' && (
+        <div style={{ background: '#161b22', padding: '1.5rem', borderRadius: '16px', border: '1px solid #30363d' }}>
+          <h4 style={{ margin: '0 0 0.5rem 0', color: '#ffffff', fontSize: '1.05rem', fontWeight: 800 }}>
+            Simulate a New House Valuation Inquiry
+          </h4>
+          <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: '#8b949e' }}>
+            Drag the area slider to test how the fitted linear regression equation calculates predictions for new unseen properties:
+          </p>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f0f6fc' }}>
+                House Area: <code style={{ color: '#38bdf8', fontSize: '1rem' }}>{(predictorSqFt * 1000).toLocaleString()} sq ft</code>
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0.8"
+              max="3.8"
+              step="0.1"
+              value={predictorSqFt}
+              onChange={(e) => setPredictorSqFt(parseFloat(e.target.value))}
+              style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}
+            />
+          </div>
+
+          <div style={{
+            background: '#090d13',
+            padding: '1.5rem',
+            borderRadius: '14px',
+            border: '1.5px solid #0284c7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#8b949e', textTransform: 'uppercase', fontWeight: 800 }}>
+                Estimated Market Price
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 900, color: '#38bdf8', marginTop: '4px' }}>
+                ${(predictedValue * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#6e7681', marginTop: '4px' }}>
+                Model Formula: ({slope.toFixed(2)} × {predictorSqFt.toFixed(1)}k sqft) + ${intercept.toFixed(1)}k
+              </div>
+            </div>
+
+            <div style={{
+              background: '#161b22',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '10px',
+              border: '1px solid #30363d',
+              fontSize: '0.85rem',
+              color: '#c9d1d9'
+            }}>
+              <div>📊 Base Land Value: <strong>${(intercept * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
+              <div>📈 Added Size Value: <strong>${(slope * predictorSqFt * 100 * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: PYTHON SCIKIT-LEARN CODE ────────────────────────── */}
+      {activeTab === 'code' && (
+        <div>
+          <div style={{ fontSize: '0.82rem', color: '#8b949e', fontWeight: 700, marginBottom: '0.75rem' }}>
+            Production Python implementation replicating this interactive studio:
+          </div>
+          <SyntaxCodeBlock
+            code={[
+              '# Linear Regression with Scikit-Learn',
+              '# ─────────────────────────────────────────────────────────────',
+              'import numpy as np',
+              'from sklearn.linear_model import LinearRegression',
+              '',
+              '# 1. Training Dataset (House Size in \'000 sq ft & Price in $k)',
+              'X = np.array([[1.0], [1.3], [1.7], [2.0], [2.4], [2.8], [3.2], [3.5]])',
+              'y = np.array([115, 135, 160, 205, 220, 270, 290, 330])',
+              '',
+              '# 2. Fit Ordinary Least Squares Model',
+              'model = LinearRegression()',
+              'model.fit(X, y)',
+              '',
+              '# 3. Extract Learned Parameters (Weights & Bias)',
+              'slope = model.coef_[0]         # ~$0.84k per 1000 sq ft ($84 / sq ft)',
+              'intercept = model.intercept_   # ~$22.5k baseline land value',
+              '',
+              'print(f"Optimal Equation: ŷ = {slope:.2f}x + {intercept:.1f}")',
+              '',
+              '# 4. Predict on a New Property (2,200 sq ft)',
+              'new_inquiry = np.array([[2.2]])',
+              'predicted_price = model.predict(new_inquiry)[0]',
+              'print(f"Estimated Market Value: ${predicted_price * 1000:,.0f}")'
+            ].join('\n')}
+            title="linear_regression_demo.py"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
-  'ml-2-1'
+  'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1'
 ];
 
 export default function MLLessonArticlePage() {
@@ -6622,6 +7397,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'house_price_pipeline_project' && (
               <HousePricePipelineStudio />
+            )}
+            {lesson.diagram.type === 'linear_regression_interactive_studio' && (
+              <LinearRegressionInteractiveStudio />
             )}
           </div>
         )}

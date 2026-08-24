@@ -1258,58 +1258,158 @@ export const mlLessonsData = {
     }
   },
 
-  'ml-2-1': {
-    id: 'ml-2-1',
-    title: 'NumPy Basics',
-    subtitle: 'High-Performance Numerical Computing & N-Dimensional Arrays in Python',
-    duration: '15 min read',
+  'ml-3-1': {
+    id: 'ml-3-1',
+    title: 'Linear Regression',
+    subtitle: 'The Foundational Machine Learning Algorithm for Continuous Predictions',
+    duration: '18 min read',
     level: 'Beginner',
-    module: 'Module 2: Data Preparation',
-    badgeText: 'DATA PREPARATION',
+    module: 'Module 3: Regression',
+    badgeText: 'REGRESSION CORE',
     badgeColor: '#001f54',
     videoUrl: null,
-    gfgUrl: 'https://www.geeksforgeeks.org/python/numpy-tutorial/',
+    gfgUrl: 'https://www.geeksforgeeks.org/ml-linear-regression/',
 
     learningObjectives: [
-      'Understand why NumPy is the fundamental computational engine behind modern ML frameworks.',
-      'Master the memory layout and mechanics of homogeneous N-dimensional arrays (ndarray).',
-      'Learn array creation, indexing, slicing, vectorization, and broadcasting arithmetic.'
+      'Understand the visual and geometric intuition of finding the optimal best-fit line.',
+      'Demystify every mathematical symbol in the regression equation: ŷ = w₁x + w₀ (or ŷ = mx + b).',
+      'Master the concept of Residuals (prediction errors) and why we minimize the sum of squared errors.',
+      'Learn how computers find optimal parameters: Ordinary Least Squares (OLS) formula vs Gradient Descent.',
+      'Identify the 4 fundamental assumptions required for linear regression models to be statistically valid.',
+      'Implement Linear Regression using Python Scikit-Learn in just 5 lines of clean code.'
     ],
 
     sections: [
       {
-        heading: '1. Why NumPy Powers Machine Learning',
+        heading: '1. What is Linear Regression? (The Trendline Intuition)',
         paragraphs: [
-          'Machine learning algorithms require processing millions or billions of numbers simultaneously. While standard Python lists are flexible, they store pointers to scattered objects in memory and execute slow dynamic type-checks on every single element.',
-          'NumPy (Numerical Python) introduces the ndarray—a contiguous, fixed-type block of raw memory in C. This provides two massive advantages:',
-          '1. Cache Locality: Contiguous memory means modern CPUs can prefetch data in cache lines without cache misses.',
-          '2. SIMD Vectorization: Operations are executed using CPU vector instructions (Single Instruction, Multiple Data), processing entire arrays simultaneously without Python loops.'
+          'Linear Regression is the oldest, most foundational, and most widely used algorithm in all of machine learning and statistics. It is used when you want to predict a continuous numerical quantity (such as house prices, stock values, temperatures, or employee salaries) based on one or more input features (such as square footage, company revenue, or years of experience).',
+          'At its heart, Linear Regression models the relationship between an independent input variable (x) and a dependent target variable (y) by fitting a straight line through historical data points.',
+          'If you plot house sizes on the horizontal X-axis and their sale prices on the vertical Y-axis, the dots will naturally slope upwards—larger homes generally sell for more money. Linear Regression mathematically finds the single straight line that passes through the "center of gravity" of all these scattered points with the smallest possible total error.'
         ]
+      },
+      {
+        heading: '2. Breaking Down the Math: The Equation of a Machine Learning Line',
+        paragraphs: [
+          'In high school algebra, you likely encountered the equation for a straight line as: y = mx + b. In modern machine learning and data science literature, we write this exact same relationship with slightly updated notation:',
+          'ŷ = w₁x + w₀   (or ŷ = mx + b)',
+          'Let us break down each component in plain English so it is crystal clear:',
+          '• ŷ (pronounced "y-hat"): The Model Prediction. The "hat" symbol is universal mathematical notation indicating an estimated value computed by our algorithm, rather than the true observed real-world value (y).',
+          '• x (Input Feature): The given independent variable we feed into the model (e.g., House Area = 1,800 sq ft, or Years of Experience = 5).',
+          '• w₁ or m (Weight / Slope): The steepness of the line. It tells us the rate of change—for every additional 1 unit increase in x, how much does ŷ increase or decrease? For example, if w₁ = 120, each additional square foot adds $120 to the predicted house price.',
+          '• w₀ or b (Bias / Y-Intercept): The baseline starting value where the line touches the vertical Y-axis when x = 0. In housing, this represents the baseline land value before accounting for any building size.'
+        ]
+      },
+      {
+        heading: '3. What is an Error? Residuals & The "Least Squares" Principle',
+        paragraphs: [
+          'Real-world data is never a perfectly straight line—some 1,500 sq ft houses sell for $300k, while others in different neighborhoods sell for $350k. Therefore, our straight line will inevitably miss most data points by a slight amount.',
+          'The vertical distance between the actual real-world value (yᵢ) and our line predicted guess (ŷᵢ) is called a Residual (or Error):',
+          'Residual (eᵢ) = yᵢ - ŷᵢ   (Actual Price - Predicted Price)',
+          'If a point is above the line, the residual is positive (our model under-predicted). If a point is below the line, the residual is negative (our model over-predicted).',
+          'Why do we Square the Residuals? If we simply added up the raw positive and negative errors, an error of +$50k and -$50k would cancel out to 0, falsely making a terrible model look perfect! By squaring each error (eᵢ²), three things happen:',
+          '1. All errors become strictly positive numbers.',
+          '2. Large catastrophic mistakes (e.g. missing by $100k) are penalized exponentially more than tiny acceptable mistakes (e.g. missing by $2k).',
+          '3. The resulting error curve is a smooth convex parabola that is easy for optimization algorithms to differentiate and minimize.',
+          'The average of all these squared errors across your entire dataset gives the famous Mean Squared Error (MSE) Cost Function:'
+        ],
+        codeBlock: [
+          '# Mean Squared Error (MSE) Cost Function Formula',
+          '# J(w, b) = (1 / N) * sum( (y_actual - y_predicted)^2 )',
+          '',
+          'import numpy as np',
+          '',
+          'def compute_mean_squared_error(y_actual, y_predicted):',
+          '    errors = y_actual - y_predicted',
+          '    squared_errors = errors ** 2',
+          '    mse = np.mean(squared_errors)',
+          '    return mse'
+        ].join('\n'),
+        codeBlockTitle: 'cost_function_mse.py'
+      },
+      {
+        heading: '4. How Computers Find the Optimal Line: OLS vs Gradient Descent',
+        paragraphs: [
+          'How does the machine know which values of slope (w₁) and intercept (w₀) will produce the smallest possible Mean Squared Error? There are two primary techniques used in computing:',
+          '1. Ordinary Least Squares (OLS) Closed-Form Formula: For small and medium datasets, calculus allows us to calculate the exact optimal slope and intercept in a single mathematical step by setting the partial derivatives of the loss function to zero:',
+          '   Slope (m) = Σ((xᵢ - x̄)(yᵢ - ȳ)) / Σ((xᵢ - x̄)²)',
+          '   Intercept (b) = ȳ - m(x̄)',
+          '   (Where x̄ and ȳ are the average values of all inputs and outputs).',
+          '2. Gradient Descent (Iterative Optimization): When datasets have millions of rows or thousands of features, calculating the OLS matrix inversion becomes computationally expensive. Instead, the algorithm starts with random weights and takes small downhill steps in the direction that reduces error until it converges at the bottom of the error bowl.'
+        ]
+      },
+      {
+        heading: '5. The 4 Essential Assumptions of Linear Regression',
+        paragraphs: [
+          'Before relying on a Linear Regression model in production, statisticians and machine learning engineers verify four fundamental assumptions (often remembered by the acronym LINE):',
+          '1. Linearity: The relationship between the independent features (x) and dependent target (y) must be reasonably linear. If the true data follows a curved exponential parabola, a straight line will underfit.',
+          '2. Independence of Errors: Observations must be independent of each other (no autocorrelation, common in raw time-series).',
+          '3. Homoscedasticity (Equal Variance): The spread or dispersion of residuals should remain relatively constant across all values of x, rather than fanning out into a widening cone.',
+          '4. Normality of Residuals: The distribution of errors should form a symmetrical bell-shaped normal distribution centered around zero.'
+        ]
+      },
+      {
+        heading: '6. Python Implementation with Scikit-Learn in 5 Lines',
+        paragraphs: [
+          'In production Python environments, you do not need to manually compute slopes and derivatives. Python Scikit-Learn provides an optimized, battle-tested LinearRegression class:',
+          'Here is the complete end-to-end implementation:'
+        ],
+        codeBlock: [
+          'import numpy as np',
+          'from sklearn.linear_model import LinearRegression',
+          '',
+          '# 1. Prepare Feature Matrix X (2D) and Target Vector y (1D)',
+          '# House Area in sq ft',
+          'X = np.array([[1200], [1500], [1800], [2100], [2400], [2800]])',
+          '# House Price in thousands of dollars ($k)',
+          'y = np.array([180, 230, 260, 310, 340, 410])',
+          '',
+          '# 2. Instantiate and Fit the Model (Calculates optimal w1 and w0)',
+          'model = LinearRegression()',
+          'model.fit(X, y)',
+          '',
+          '# 3. Inspect the Learned Parameters',
+          'slope = model.coef_[0]         # Weight w1: ~$0.137k ($137 / sq ft)',
+          'intercept = model.intercept_   # Bias w0: ~$18.6k baseline',
+          '',
+          'print(f"Optimal Equation: Price = ({slope:.3f} * SqFt) + {intercept:.2f}")',
+          '',
+          '# 4. Predict the Price of a New 2,200 sq ft House',
+          'new_house = np.array([[2200]])',
+          'predicted_price = model.predict(new_house)[0]',
+          'print(f"Estimated Price for 2,200 sq ft: ${predicted_price:,.2f}k (${predicted_price * 1000:,.0f})")'
+        ].join('\n'),
+        codeBlockTitle: 'linear_regression_scikit_learn.py'
       }
     ],
 
     analogy: {
-      title: 'Real-World Analogy: Mixed Drawers vs Grid Trays',
-      text: 'Standard Python lists are like mixed storage drawers where each slot holds a different random object. NumPy arrays are precision uniform grid trays where every slot contains the exact same data type, allowing lightning-fast bulk operations!'
+      title: 'Real-World Analogy: The Taut Elastic Tension Cord',
+      text: 'Imagine a room with floating helium balloons representing your data points. You stretch a taut elastic cord through the room. Each balloon is connected to the cord with a small spring. The cord will naturally twist, tilt, and settle in the exact position where the total pulling tension from all the springs is minimized. That resting cord is your Linear Regression best-fit line, and the spring tension is the squared residual error!'
+    },
+
+    diagram: {
+      type: 'linear_regression_interactive_studio'
     },
 
     takeaways: [
-      'NumPy ndarrays store fixed-type numbers in contiguous memory for high CPU throughput.',
-      'Vectorized operations replace slow Python loops with native C-speed arithmetic.',
-      'Broadcasting automatically stretches compatible array dimensions during element-wise calculations.',
-      'All modern data science libraries (Pandas, Scikit-Learn, PyTorch) build directly upon NumPy.'
+      'Linear Regression models numerical relationships using the straight-line equation ŷ = w₁x + w₀ (or ŷ = mx + b).',
+      'ŷ represents the model prediction, w₁ (weight/slope) controls rate of change, and w₀ (bias/intercept) sets the baseline.',
+      'A Residual is the prediction error (y_actual - y_predicted). The best-fit line minimizes the sum of squared residuals (MSE).',
+      'Ordinary Least Squares (OLS) calculates optimal parameters directly, while Gradient Descent finds them through iterative optimization.',
+      'Scikit-Learn makes fitting and predicting with Linear Regression seamless using model.fit(X, y) and model.predict(X_new).'
     ],
 
     quiz: {
-      question: 'Why are NumPy ndarrays significantly faster than native Python lists for machine learning computations?',
+      question: 'In the trained linear regression formula ŷ = 45x + 30000 (where x is years of work experience and ŷ is annual salary in dollars), what does the coefficient 45 represent?',
       options: [
-        'NumPy arrays are stored in contiguous memory blocks with fixed data types, enabling CPU cache optimization and SIMD vectorization',
-        'NumPy automatically converts all floating-point numbers into text strings before computing',
-        'Python lists can only hold integers, while NumPy supports decimals',
-        'NumPy runs on external web servers instead of local hardware'
+        'The baseline starting salary for an employee with 0 years of experience',
+        'The estimated salary increase for each additional year of experience',
+        'The maximum possible salary any employee can ever achieve',
+        'The average error made by the machine learning algorithm'
       ],
-      correctIndex: 0,
-      explanation: 'Correct! NumPy ndarrays use contiguous memory layouts and homogeneous data types, eliminating pointer chasing and allowing CPUs to execute vectorized SIMD instructions at native hardware speeds.'
+      correctIndex: 1,
+      explanation: 'Correct! The slope coefficient (weight w₁ = 45 or 45k) represents the rate of change—how much the target variable (salary) is predicted to increase for every 1-unit increase in the input feature (year of experience). The intercept ($30,000) represents the baseline starting salary when experience is 0.'
     }
   }
 };
