@@ -178,6 +178,26 @@
   margin-bottom: 0;
 }
 
+.mathBlock {
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-left: 4px solid #0284c7;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  overflow-x: auto;
+  font-size: 1.12rem;
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.mathInline {
+  font-size: 1.05em;
+  color: #001f54;
+  font-weight: 600;
+  padding: 0 3px;
+}
+
 /* ELI5 Analogy Card */
 .analogyCard {
   background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);

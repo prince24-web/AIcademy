@@ -3,8 +3,62 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import katex from 'katex';
 import styles from './page.module.css';
 import { mlLessonsData } from '../mlLessonsData';
+
+// ─── KATEX MATH FORMULA RENDERER ────────────────────────────────────────────
+const MathFormula = ({ math, block = false }) => {
+  const html = useMemo(() => {
+    if (!math) return '';
+    try {
+      return katex.renderToString(math, {
+        displayMode: block,
+        throwOnError: false
+      });
+    } catch (e) {
+      return math;
+    }
+  }, [math, block]);
+
+  if (block) {
+    return (
+      <div
+        className={styles.mathBlock}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={styles.mathInline}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+};
+
+const renderTextWithMath = (text) => {
+  if (!text || typeof text !== 'string') return text;
+
+  // Check if paragraph is entirely a block formula $$...$$
+  if (text.startsWith('$$') && text.endsWith('$$')) {
+    return <MathFormula math={text.slice(2, -2).trim()} block={true} />;
+  }
+
+  // Split by $$...$$ (block math) and $...$ (inline math)
+  const parts = text.split(/(\$\$[\s\S]+?\$\$|\$[^\$]+?\$)/g);
+  if (parts.length <= 1) return text;
+
+  return parts.map((part, idx) => {
+    if (part.startsWith('$$') && part.endsWith('$$')) {
+      return <MathFormula key={idx} math={part.slice(2, -2).trim()} block={true} />;
+    } else if (part.startsWith('$') && part.endsWith('$')) {
+      return <MathFormula key={idx} math={part.slice(1, -1).trim()} block={false} />;
+    }
+    return part;
+  });
+};
 
 // ─── CONFETTI CELEBRATION TRIGGER ───────────────────────────────────────────
 const triggerConfetti = (originX = 0.5, originY = 0.6) => {
@@ -6561,55 +6615,55 @@ const LinearRegressionInteractiveStudio = () => {
   // Performance status evaluation
   const getQualityBadge = () => {
     if (Math.abs(slope - optimalParams.slope) < 0.04 && Math.abs(intercept - optimalParams.intercept) < 3) {
-      return { text: 'Optimal OLS Fit (Minimum MSE)', color: '#059669', bg: '#ecfdf5', border: '#10b981' };
+      return { text: 'Optimal OLS Fit (Minimum MSE)', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' };
     }
     if (calculations.mse < 300) {
-      return { text: 'Good Fit (Low Residuals)', color: '#0284c7', bg: '#f0f9ff', border: '#38bdf8' };
+      return { text: 'Good Fit (Low Residuals)', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' };
     }
-    return { text: 'Suboptimal Line (High Error)', color: '#dc2626', bg: '#fef2f2', border: '#f87171' };
+    return { text: 'Suboptimal Line (High Error)', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' };
   };
 
   const quality = getQualityBadge();
 
   return (
     <div style={{
-      background: '#0d1117',
+      background: '#ffffff',
       borderRadius: '24px',
-      border: '1.5px solid #21262d',
+      border: '1.5px solid #e2e8f0',
       padding: '1.75rem',
-      color: '#f0f6fc',
-      boxShadow: '0 12px 36px rgba(0,0,0,0.3)',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
       margin: '2rem 0'
     }}>
-      {/* ─── HEADER BAR ────────────────────────────────────────────── */}
+      {/* ─── HEADER BAR (LIGHT MODE) ─────────────────────────────────── */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '1rem',
-        borderBottom: '1px solid #21262d',
+        borderBottom: '1.5px solid #f1f5f9',
         paddingBottom: '1.25rem',
         marginBottom: '1.5rem'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
-            background: 'linear-gradient(135deg, #0284c7, #0369a1)',
-            width: '40px',
-            height: '40px',
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '42px',
+            height: '42px',
             borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(2,132,199,0.3)'
+            boxShadow: '0 4px 12px rgba(2,132,199,0.25)'
           }}>
             <IconSparkles size={22} style={{ color: '#ffffff' }} />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#ffffff' }}>
+            <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#001f54' }}>
               Interactive Linear Regression Studio
             </h3>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#8b949e' }}>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
               Adjust slope &amp; intercept to discover the mathematical best-fit line with minimum Mean Squared Error
             </p>
           </div>
@@ -6618,15 +6672,15 @@ const LinearRegressionInteractiveStudio = () => {
         {/* Tab Navigation Pill Group */}
         <div style={{
           display: 'flex',
-          background: '#161b22',
+          background: '#f1f5f9',
           padding: '4px',
           borderRadius: '12px',
-          border: '1px solid #30363d',
+          border: '1px solid #e2e8f0',
           gap: '4px'
         }}>
           {[
             { id: 'studio', label: '📊 Best-Fit Studio' },
-            { id: 'math', label: '📐 Math Breakdown' },
+            { id: 'math', label: '📐 KaTeX Math Breakdown' },
             { id: 'estimator', label: '🔮 Price Predictor' },
             { id: 'code', label: '💻 Python Code' }
           ].map((tab) => (
@@ -6634,15 +6688,16 @@ const LinearRegressionInteractiveStudio = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               style={{
-                background: activeTab === tab.id ? '#0284c7' : 'transparent',
-                color: activeTab === tab.id ? '#ffffff' : '#8b949e',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
                 border: 'none',
                 padding: '6px 14px',
                 borderRadius: '8px',
                 fontSize: '0.8rem',
                 fontWeight: 700,
                 cursor: 'pointer',
-                transition: 'all 0.15s'
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
               }}
             >
               {tab.label}
@@ -6651,36 +6706,36 @@ const LinearRegressionInteractiveStudio = () => {
         </div>
       </div>
 
-      {/* ─── TAB 1: BEST-FIT STUDIO (MAIN INTERACTIVE CANVAS) ───────── */}
+      {/* ─── TAB 1: BEST-FIT STUDIO (LIGHT MODE CANVAS) ─────────────── */}
       {activeTab === 'studio' && (
         <div>
-          {/* Top Scoreboard Metrics */}
+          {/* Top Scoreboard Metrics with KaTeX */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: '1rem',
             marginBottom: '1.25rem'
           }}>
-            <div style={{ background: '#161b22', padding: '1rem', borderRadius: '14px', border: '1px solid #30363d' }}>
-              <div style={{ fontSize: '0.72rem', color: '#8b949e', textTransform: 'uppercase', fontWeight: 800 }}>
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>
                 Current Model Equation
               </div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#38bdf8', marginTop: '4px' }}>
-                ŷ = {slope.toFixed(2)}x + {intercept.toFixed(1)}k
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#001f54', marginTop: '6px' }}>
+                <MathFormula math={`\\hat{y} = ${slope.toFixed(2)}x + ${intercept.toFixed(1)}`} />
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#6e7681', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
                 Slope: ${ (slope * 100).toFixed(0) }/sq ft · Intercept: ${intercept.toFixed(1)}k
               </div>
             </div>
 
-            <div style={{ background: '#161b22', padding: '1rem', borderRadius: '14px', border: '1px solid #30363d' }}>
-              <div style={{ fontSize: '0.72rem', color: '#8b949e', textTransform: 'uppercase', fontWeight: 800 }}>
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>
                 Cost Function (MSE Loss)
               </div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: calculations.mse < 300 ? '#34d399' : '#f87171', marginTop: '4px' }}>
-                {calculations.mse.toFixed(1)} <span style={{ fontSize: '0.78rem', color: '#8b949e' }}>($k²)</span>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: calculations.mse < 300 ? '#059669' : '#dc2626', marginTop: '6px' }}>
+                <MathFormula math={`\\text{MSE} = ${calculations.mse.toFixed(1)}`} />
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#6e7681', marginTop: '2px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
                 Avg Error (RMSE): ±${calculations.rmse.toFixed(1)}k
               </div>
             </div>
@@ -6689,7 +6744,7 @@ const LinearRegressionInteractiveStudio = () => {
               background: quality.bg,
               padding: '1rem',
               borderRadius: '14px',
-              border: `1px solid ${quality.border}`,
+              border: `1.5px solid ${quality.border}`,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center'
@@ -6703,11 +6758,11 @@ const LinearRegressionInteractiveStudio = () => {
             </div>
           </div>
 
-          {/* Interactive SVG Chart */}
+          {/* Interactive SVG Chart in Light Mode */}
           <div style={{
-            background: '#090d13',
+            background: '#f8fafc',
             borderRadius: '16px',
-            border: '1px solid #21262d',
+            border: '1.5px solid #cbd5e1',
             padding: '0.5rem',
             position: 'relative',
             overflow: 'hidden'
@@ -6724,13 +6779,13 @@ const LinearRegressionInteractiveStudio = () => {
                     y1={scaleY(yVal)}
                     x2={svgWidth - padding.right}
                     y2={scaleY(yVal)}
-                    stroke="#1b222d"
+                    stroke="#e2e8f0"
                     strokeDasharray="4 4"
                   />
                   <text
                     x={padding.left - 10}
                     y={scaleY(yVal) + 4}
-                    fill="#6e7681"
+                    fill="#64748b"
                     fontSize="11"
                     textAnchor="end"
                     fontFamily="monospace"
@@ -6747,13 +6802,13 @@ const LinearRegressionInteractiveStudio = () => {
                     y1={padding.top}
                     x2={scaleX(xVal)}
                     y2={svgHeight - padding.bottom}
-                    stroke="#1b222d"
+                    stroke="#e2e8f0"
                     strokeDasharray="4 4"
                   />
                   <text
                     x={scaleX(xVal)}
                     y={svgHeight - padding.bottom + 20}
-                    fill="#6e7681"
+                    fill="#64748b"
                     fontSize="11"
                     textAnchor="middle"
                     fontFamily="monospace"
@@ -6769,7 +6824,7 @@ const LinearRegressionInteractiveStudio = () => {
                 y1={svgHeight - padding.bottom}
                 x2={svgWidth - padding.right}
                 y2={svgHeight - padding.bottom}
-                stroke="#30363d"
+                stroke="#475569"
                 strokeWidth="2"
               />
               <line
@@ -6777,7 +6832,7 @@ const LinearRegressionInteractiveStudio = () => {
                 y1={padding.top}
                 x2={padding.left}
                 y2={svgHeight - padding.bottom}
-                stroke="#30363d"
+                stroke="#475569"
                 strokeWidth="2"
               />
 
@@ -6785,7 +6840,7 @@ const LinearRegressionInteractiveStudio = () => {
               <text
                 x={svgWidth / 2}
                 y={svgHeight - 12}
-                fill="#8b949e"
+                fill="#334155"
                 fontSize="12"
                 fontWeight="700"
                 textAnchor="middle"
@@ -6795,7 +6850,7 @@ const LinearRegressionInteractiveStudio = () => {
               <text
                 x={-svgHeight / 2}
                 y={20}
-                fill="#8b949e"
+                fill="#334155"
                 fontSize="12"
                 fontWeight="700"
                 textAnchor="middle"
@@ -6818,9 +6873,9 @@ const LinearRegressionInteractiveStudio = () => {
                     y={topY}
                     width={side}
                     height={side}
-                    fill="rgba(244, 63, 94, 0.15)"
-                    stroke="rgba(244, 63, 94, 0.5)"
-                    strokeWidth="1"
+                    fill="rgba(239, 68, 68, 0.12)"
+                    stroke="rgba(239, 68, 68, 0.45)"
+                    strokeWidth="1.5"
                     strokeDasharray="2 2"
                   />
                 );
@@ -6834,20 +6889,31 @@ const LinearRegressionInteractiveStudio = () => {
                     y1={p.cyActual}
                     x2={p.cx}
                     y2={p.cyPred}
-                    stroke={Math.abs(p.residual) < 15 ? '#34d399' : '#f87171'}
+                    stroke={Math.abs(p.residual) < 15 ? '#059669' : '#ef4444'}
                     strokeWidth="2"
                     strokeDasharray="3 3"
                   />
-                  {/* Small error badge tag */}
+                  {/* Error badge label */}
+                  <rect
+                    x={p.cx + 4}
+                    y={(p.cyActual + p.cyPred) / 2 - 8}
+                    width="32"
+                    height="16"
+                    rx="4"
+                    fill="#ffffff"
+                    stroke={p.residual >= 0 ? '#10b981' : '#f87171'}
+                    strokeWidth="1"
+                  />
                   <text
-                    x={p.cx + 6}
-                    y={(p.cyActual + p.cyPred) / 2 + 3}
-                    fill={p.residual >= 0 ? '#34d399' : '#f87171'}
+                    x={p.cx + 20}
+                    y={(p.cyActual + p.cyPred) / 2 + 4}
+                    fill={p.residual >= 0 ? '#047857' : '#b91c1c'}
                     fontSize="9"
                     fontWeight="800"
                     fontFamily="monospace"
+                    textAnchor="middle"
                   >
-                    {p.residual >= 0 ? `+${p.residual.toFixed(0)}k` : `${p.residual.toFixed(0)}k`}
+                    {p.residual >= 0 ? `+${p.residual.toFixed(0)}` : `${p.residual.toFixed(0)}`}
                   </text>
                 </g>
               ))}
@@ -6869,19 +6935,19 @@ const LinearRegressionInteractiveStudio = () => {
                   <circle
                     cx={p.cx}
                     cy={p.cyActual}
-                    r="7"
-                    fill="#38bdf8"
+                    r="7.5"
+                    fill="#0284c7"
                     stroke="#ffffff"
-                    strokeWidth="2"
-                    style={{ cursor: 'pointer', transition: 'all 0.15s' }}
+                    strokeWidth="2.5"
+                    style={{ cursor: 'pointer', filter: 'drop-shadow(0 2px 4px rgba(2,132,199,0.3))' }}
                   />
                   {/* Point on the Line (Prediction Target) */}
                   <circle
                     cx={p.cx}
                     cy={p.cyPred}
-                    r="3.5"
-                    fill="#0284c7"
-                    opacity="0.8"
+                    r="4"
+                    fill="#001f54"
+                    opacity="0.85"
                   />
                 </g>
               ))}
@@ -6890,15 +6956,15 @@ const LinearRegressionInteractiveStudio = () => {
               <circle
                 cx={padding.left}
                 cy={scaleY(intercept)}
-                r="5"
-                fill="#f59e0b"
+                r="6"
+                fill="#d97706"
                 stroke="#ffffff"
-                strokeWidth="1.5"
+                strokeWidth="2"
               />
               <text
                 x={padding.left + 10}
                 y={scaleY(intercept) - 8}
-                fill="#f59e0b"
+                fill="#d97706"
                 fontSize="10"
                 fontWeight="800"
                 fontFamily="monospace"
@@ -6908,25 +6974,25 @@ const LinearRegressionInteractiveStudio = () => {
             </svg>
           </div>
 
-          {/* Interactive Controls Bar */}
+          {/* Interactive Controls Bar (Light Mode) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '1.25rem',
             marginTop: '1.25rem',
-            background: '#161b22',
+            background: '#f8fafc',
             padding: '1.25rem',
             borderRadius: '16px',
-            border: '1px solid #30363d'
+            border: '1.5px solid #e2e8f0'
           }}>
             {/* Slope Slider */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f0f6fc' }}>
-                  Slope (Weight w₁ / m): <code style={{ color: '#38bdf8' }}>{slope.toFixed(2)}</code>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                  Slope (Weight <MathFormula math="w_1" /> / <MathFormula math="m" />): <code style={{ color: '#0284c7', fontSize: '0.95rem' }}>{slope.toFixed(2)}</code>
                 </span>
-                <span style={{ fontSize: '0.75rem', color: '#8b949e' }}>
-                  Optimal: {optimalParams.slope}
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  Optimal OLS: {optimalParams.slope}
                 </span>
               </div>
               <input
@@ -6941,19 +7007,19 @@ const LinearRegressionInteractiveStudio = () => {
                 }}
                 style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}
               />
-              <div style={{ fontSize: '0.72rem', color: '#6e7681', marginTop: '4px' }}>
-                Controls the steepness ($k per 1,000 sq ft added)
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
+                Controls line tilt ($k per 1,000 sq ft added)
               </div>
             </div>
 
             {/* Intercept Slider */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f0f6fc' }}>
-                  Y-Intercept (Bias w₀ / b): <code style={{ color: '#38bdf8' }}>{intercept.toFixed(1)}k</code>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                  Y-Intercept (Bias <MathFormula math="w_0" /> / <MathFormula math="b" />): <code style={{ color: '#0284c7', fontSize: '0.95rem' }}>{intercept.toFixed(1)}k</code>
                 </span>
-                <span style={{ fontSize: '0.75rem', color: '#8b949e' }}>
-                  Optimal: {optimalParams.intercept}k
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  Optimal OLS: {optimalParams.intercept}k
                 </span>
               </div>
               <input
@@ -6968,8 +7034,8 @@ const LinearRegressionInteractiveStudio = () => {
                 }}
                 style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}
               />
-              <div style={{ fontSize: '0.72rem', color: '#6e7681', marginTop: '4px' }}>
-                Controls baseline height when area is 0
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
+                Controls baseline price when area is 0
               </div>
             </div>
           </div>
@@ -6987,9 +7053,9 @@ const LinearRegressionInteractiveStudio = () => {
               <button
                 onClick={() => setShowResiduals(!showResiduals)}
                 style={{
-                  background: showResiduals ? '#1f2937' : '#111827',
-                  color: showResiduals ? '#38bdf8' : '#9ca3af',
-                  border: `1px solid ${showResiduals ? '#0284c7' : '#374151'}`,
+                  background: showResiduals ? '#e0f2fe' : '#ffffff',
+                  color: showResiduals ? '#0284c7' : '#64748b',
+                  border: `1.5px solid ${showResiduals ? '#0284c7' : '#cbd5e1'}`,
                   padding: '8px 14px',
                   borderRadius: '10px',
                   fontSize: '0.82rem',
@@ -7003,9 +7069,9 @@ const LinearRegressionInteractiveStudio = () => {
               <button
                 onClick={() => setShowSquares(!showSquares)}
                 style={{
-                  background: showSquares ? '#881337' : '#111827',
-                  color: showSquares ? '#fda4af' : '#9ca3af',
-                  border: `1px solid ${showSquares ? '#f43f5e' : '#374151'}`,
+                  background: showSquares ? '#ffe4e6' : '#ffffff',
+                  color: showSquares ? '#e11d48' : '#64748b',
+                  border: `1.5px solid ${showSquares ? '#f43f5e' : '#cbd5e1'}`,
                   padding: '8px 14px',
                   borderRadius: '10px',
                   fontSize: '0.82rem',
@@ -7021,9 +7087,9 @@ const LinearRegressionInteractiveStudio = () => {
               <button
                 onClick={handleReset}
                 style={{
-                  background: '#21262d',
-                  color: '#c9d1d9',
-                  border: '1px solid #30363d',
+                  background: '#ffffff',
+                  color: '#475569',
+                  border: '1.5px solid #cbd5e1',
                   padding: '8px 16px',
                   borderRadius: '10px',
                   fontSize: '0.82rem',
@@ -7045,7 +7111,7 @@ const LinearRegressionInteractiveStudio = () => {
                   fontSize: '0.85rem',
                   fontWeight: 800,
                   cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(5,150,105,0.4)',
+                  boxShadow: '0 4px 14px rgba(5,150,105,0.3)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px'
@@ -7058,92 +7124,92 @@ const LinearRegressionInteractiveStudio = () => {
         </div>
       )}
 
-      {/* ─── TAB 2: STEP-BY-STEP MATH BREAKDOWN ─────────────────────── */}
+      {/* ─── TAB 2: KATEX STEP-BY-STEP MATH BREAKDOWN ───────────────── */}
       {activeTab === 'math' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ background: '#161b22', padding: '1.25rem', borderRadius: '16px', border: '1px solid #30363d' }}>
-            <h4 style={{ margin: '0 0 0.75rem 0', color: '#38bdf8', fontSize: '1rem', fontWeight: 800 }}>
-              1. The Prediction Equation: ŷ = w₁x + w₀
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              1. The Prediction Equation
             </h4>
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#c9d1d9', lineHeight: '1.6' }}>
-              For any house with area <code style={{ color: '#38bdf8' }}>x</code>, the algorithm computes its estimated price <code style={{ color: '#38bdf8' }}>ŷ</code> using the current weight and bias:
+            <MathFormula math="\hat{y}_i = w_1 x_i + w_0 \quad \text{or} \quad \hat{y} = mx + b" block={true} />
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#334155', lineHeight: '1.6' }}>
+              Sample Calculation for House 4 (<MathFormula math="x_4 = 2.0" /> thousand sq ft, Actual Price <MathFormula math="y_4 = \$205\text{k}" />):
             </p>
             <div style={{
-              background: '#090d13',
+              background: '#ffffff',
               padding: '1rem',
               borderRadius: '10px',
-              fontFamily: 'monospace',
-              fontSize: '0.95rem',
-              color: '#f0f6fc',
               marginTop: '0.75rem',
-              border: '1px solid #21262d'
+              border: '1px solid #cbd5e1'
             }}>
-              Sample Calculation on House 4 (x = 2.0k sq ft, Actual Price y = $205k):<br />
-              ŷ = ({slope.toFixed(2)} × 2.0 × 100) + {intercept.toFixed(1)}k = <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>${(slope * 2.0 * 100 + intercept).toFixed(1)}k</span>
+              <MathFormula math={`\\hat{y}_4 = (${slope.toFixed(2)} \\times 2.0 \\times 100) + ${intercept.toFixed(1)} = \\$${(slope * 2.0 * 100 + intercept).toFixed(1)}\\text{k}`} block={true} />
             </div>
           </div>
 
-          <div style={{ background: '#161b22', padding: '1.25rem', borderRadius: '16px', border: '1px solid #30363d' }}>
-            <h4 style={{ margin: '0 0 0.75rem 0', color: '#38bdf8', fontSize: '1rem', fontWeight: 800 }}>
-              2. The Residual (Error): eᵢ = yᵢ - ŷᵢ
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              2. The Residual (Prediction Error)
             </h4>
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#c9d1d9', lineHeight: '1.6' }}>
-              The residual is simply how much the model missed the real-world value by:
-            </p>
+            <MathFormula math="e_i = y_i - \hat{y}_i \quad (\text{Actual Target} - \text{Predicted Value})" block={true} />
             <div style={{
-              background: '#090d13',
+              background: '#ffffff',
               padding: '1rem',
               borderRadius: '10px',
-              fontFamily: 'monospace',
-              fontSize: '0.95rem',
-              color: '#f0f6fc',
               marginTop: '0.75rem',
-              border: '1px solid #21262d'
+              border: '1px solid #cbd5e1'
             }}>
-              e₄ = $205.0k - ${(slope * 2.0 * 100 + intercept).toFixed(1)}k = <span style={{ color: (205 - (slope * 2.0 * 100 + intercept)) >= 0 ? '#34d399' : '#f87171', fontWeight: 'bold' }}>
-                {(205 - (slope * 2.0 * 100 + intercept)).toFixed(1)}k
-              </span>
+              <MathFormula math={`e_4 = \\$205.0\\text{k} - \\$${(slope * 2.0 * 100 + intercept).toFixed(1)}\\text{k} = ${(205 - (slope * 2.0 * 100 + intercept)) >= 0 ? '+' : ''}${(205 - (slope * 2.0 * 100 + intercept)).toFixed(1)}\\text{k}`} block={true} />
             </div>
           </div>
 
-          <div style={{ background: '#161b22', padding: '1.25rem', borderRadius: '16px', border: '1px solid #30363d' }}>
-            <h4 style={{ margin: '0 0 0.75rem 0', color: '#38bdf8', fontSize: '1rem', fontWeight: 800 }}>
-              3. The Mean Squared Error Cost Function: MSE = (1 / N) * Σ eᵢ²
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              3. The Mean Squared Error (MSE) Cost Function
             </h4>
-            <p style={{ margin: 0, fontSize: '0.88rem', color: '#c9d1d9', lineHeight: '1.6' }}>
-              We square all 8 residuals and calculate their average to obtain the current loss value:
-            </p>
+            <MathFormula math="J(w_1, w_0) = \text{MSE} = \frac{1}{N} \sum_{i=1}^N (y_i - \hat{y}_i)^2 = \frac{1}{N} \sum_{i=1}^N e_i^2" block={true} />
             <div style={{
-              background: '#090d13',
+              background: '#ffffff',
               padding: '1rem',
               borderRadius: '10px',
-              fontFamily: 'monospace',
-              fontSize: '0.95rem',
-              color: '#f0f6fc',
               marginTop: '0.75rem',
-              border: '1px solid #21262d'
+              border: '1px solid #cbd5e1'
             }}>
-              Sum of Squared Errors (SSE) = {calculations.totalSSE.toFixed(1)}<br />
-              Mean Squared Error (MSE) = {calculations.totalSSE.toFixed(1)} / 8 = <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>{calculations.mse.toFixed(1)} ($k²)</span>
+              <MathFormula math={`\\text{SSE} = \\sum e_i^2 = ${calculations.totalSSE.toFixed(1)}, \\quad \\text{MSE} = \\frac{${calculations.totalSSE.toFixed(1)}}{8} = ${calculations.mse.toFixed(1)}\\text{ k}^2`} block={true} />
+            </div>
+          </div>
+
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              4. The Ordinary Least Squares (OLS) Closed-Form Solution
+            </h4>
+            <MathFormula math="w_1 = \frac{\sum_{i=1}^N (x_i - \bar{x})(y_i - \bar{y})}{\sum_{i=1}^N (x_i - \bar{x})^2}, \qquad w_0 = \bar{y} - w_1\bar{x}" block={true} />
+            <div style={{
+              background: '#ffffff',
+              padding: '1rem',
+              borderRadius: '10px',
+              marginTop: '0.75rem',
+              border: '1px solid #cbd5e1'
+            }}>
+              <MathFormula math={`w_1^* = ${optimalParams.slope}, \\quad w_0^* = \\$${optimalParams.intercept}\\text{k}`} block={true} />
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── TAB 3: LIVE PRICE PREDICTOR ────────────────────────────── */}
+      {/* ─── TAB 3: LIVE PRICE PREDICTOR (LIGHT MODE) ───────────────── */}
       {activeTab === 'estimator' && (
-        <div style={{ background: '#161b22', padding: '1.5rem', borderRadius: '16px', border: '1px solid #30363d' }}>
-          <h4 style={{ margin: '0 0 0.5rem 0', color: '#ffffff', fontSize: '1.05rem', fontWeight: 800 }}>
+        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+          <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
             Simulate a New House Valuation Inquiry
           </h4>
-          <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: '#8b949e' }}>
+          <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: '#64748b' }}>
             Drag the area slider to test how the fitted linear regression equation calculates predictions for new unseen properties:
           </p>
 
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#f0f6fc' }}>
-                House Area: <code style={{ color: '#38bdf8', fontSize: '1rem' }}>{(predictorSqFt * 1000).toLocaleString()} sq ft</code>
+              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#001f54' }}>
+                House Area: <code style={{ color: '#0284c7', fontSize: '1rem' }}>{(predictorSqFt * 1000).toLocaleString()} sq ft</code>
               </span>
             </div>
             <input
@@ -7158,35 +7224,36 @@ const LinearRegressionInteractiveStudio = () => {
           </div>
 
           <div style={{
-            background: '#090d13',
+            background: '#ffffff',
             padding: '1.5rem',
             borderRadius: '14px',
-            border: '1.5px solid #0284c7',
+            border: '2px solid #0284c7',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '1rem'
+            gap: '1rem',
+            boxShadow: '0 4px 16px rgba(2,132,199,0.08)'
           }}>
             <div>
-              <div style={{ fontSize: '0.75rem', color: '#8b949e', textTransform: 'uppercase', fontWeight: 800 }}>
-                Estimated Market Price
+              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>
+                Estimated Market Valuation
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 900, color: '#38bdf8', marginTop: '4px' }}>
+              <div style={{ fontSize: '2.1rem', fontWeight: 900, color: '#0284c7', marginTop: '4px' }}>
                 ${(predictedValue * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}
               </div>
-              <div style={{ fontSize: '0.8rem', color: '#6e7681', marginTop: '4px' }}>
-                Model Formula: ({slope.toFixed(2)} × {predictorSqFt.toFixed(1)}k sqft) + ${intercept.toFixed(1)}k
+              <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '6px' }}>
+                <MathFormula math={`\\hat{y} = (${slope.toFixed(2)} \\times ${predictorSqFt.toFixed(1)}) + ${intercept.toFixed(1)} = \\$${predictedValue.toFixed(1)}\\text{k}`} />
               </div>
             </div>
 
             <div style={{
-              background: '#161b22',
+              background: '#f8fafc',
               padding: '0.85rem 1.25rem',
               borderRadius: '10px',
-              border: '1px solid #30363d',
+              border: '1px solid #e2e8f0',
               fontSize: '0.85rem',
-              color: '#c9d1d9'
+              color: '#334155'
             }}>
               <div>📊 Base Land Value: <strong>${(intercept * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
               <div>📈 Added Size Value: <strong>${(slope * predictorSqFt * 100 * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
@@ -7195,10 +7262,10 @@ const LinearRegressionInteractiveStudio = () => {
         </div>
       )}
 
-      {/* ─── TAB 4: PYTHON SCIKIT-LEARN CODE ────────────────────────── */}
+      {/* ─── TAB 4: PYTHON SCIKIT-LEARN CODE (LIGHT MODE) ───────────── */}
       {activeTab === 'code' && (
         <div>
-          <div style={{ fontSize: '0.82rem', color: '#8b949e', fontWeight: 700, marginBottom: '0.75rem' }}>
+          <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700, marginBottom: '0.75rem' }}>
             Production Python implementation replicating this interactive studio:
           </div>
           <SyntaxCodeBlock
@@ -7347,9 +7414,9 @@ export default function MLLessonArticlePage() {
                 {sec.heading}
               </h2>
               {sec.paragraphs.map((p, pIdx) => (
-                <p key={pIdx} className={styles.paragraph}>
-                  {p}
-                </p>
+                <div key={pIdx} className={styles.paragraph}>
+                  {renderTextWithMath(p)}
+                </div>
               ))}
               {sec.codeBlock && (
                 <SyntaxCodeBlock

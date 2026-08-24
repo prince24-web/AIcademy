@@ -1272,10 +1272,10 @@ export const mlLessonsData = {
 
     learningObjectives: [
       'Understand the visual and geometric intuition of finding the optimal best-fit line.',
-      'Demystify every mathematical symbol in the regression equation: ŷ = w₁x + w₀ (or ŷ = mx + b).',
-      'Master the concept of Residuals (prediction errors) and why we minimize the sum of squared errors.',
+      'Demystify every mathematical symbol in the regression equation: $\\hat{y} = w_1x + w_0$ (or $\\hat{y} = mx + b$).',
+      'Master the concept of Residuals ($e_i = y_i - \\hat{y}_i$) and why we minimize the sum of squared errors.',
       'Learn how computers find optimal parameters: Ordinary Least Squares (OLS) formula vs Gradient Descent.',
-      'Identify the 4 fundamental assumptions required for linear regression models to be statistically valid.',
+      'Identify the 4 fundamental assumptions (LINE) required for linear regression models to be statistically valid.',
       'Implement Linear Regression using Python Scikit-Learn in just 5 lines of clean code.'
     ],
 
@@ -1284,34 +1284,35 @@ export const mlLessonsData = {
         heading: '1. What is Linear Regression? (The Trendline Intuition)',
         paragraphs: [
           'Linear Regression is the oldest, most foundational, and most widely used algorithm in all of machine learning and statistics. It is used when you want to predict a continuous numerical quantity (such as house prices, stock values, temperatures, or employee salaries) based on one or more input features (such as square footage, company revenue, or years of experience).',
-          'At its heart, Linear Regression models the relationship between an independent input variable (x) and a dependent target variable (y) by fitting a straight line through historical data points.',
-          'If you plot house sizes on the horizontal X-axis and their sale prices on the vertical Y-axis, the dots will naturally slope upwards—larger homes generally sell for more money. Linear Regression mathematically finds the single straight line that passes through the "center of gravity" of all these scattered points with the smallest possible total error.'
+          'At its heart, Linear Regression models the relationship between an independent input feature ($x$) and a continuous target variable ($y$) by fitting a straight line through historical training examples.',
+          'If you plot house sizes on the horizontal $X$-axis and their sale prices on the vertical $Y$-axis, the points will naturally trend upwards—larger homes generally command higher market prices. Linear Regression mathematically discovers the single straight line that passes through the "center of gravity" of all data points with the smallest possible total prediction error.'
         ]
       },
       {
         heading: '2. Breaking Down the Math: The Equation of a Machine Learning Line',
         paragraphs: [
-          'In high school algebra, you likely encountered the equation for a straight line as: y = mx + b. In modern machine learning and data science literature, we write this exact same relationship with slightly updated notation:',
-          'ŷ = w₁x + w₀   (or ŷ = mx + b)',
-          'Let us break down each component in plain English so it is crystal clear:',
-          '• ŷ (pronounced "y-hat"): The Model Prediction. The "hat" symbol is universal mathematical notation indicating an estimated value computed by our algorithm, rather than the true observed real-world value (y).',
-          '• x (Input Feature): The given independent variable we feed into the model (e.g., House Area = 1,800 sq ft, or Years of Experience = 5).',
-          '• w₁ or m (Weight / Slope): The steepness of the line. It tells us the rate of change—for every additional 1 unit increase in x, how much does ŷ increase or decrease? For example, if w₁ = 120, each additional square foot adds $120 to the predicted house price.',
-          '• w₀ or b (Bias / Y-Intercept): The baseline starting value where the line touches the vertical Y-axis when x = 0. In housing, this represents the baseline land value before accounting for any building size.'
+          'In high school algebra, you likely encountered the equation for a straight line as $y = mx + b$. In modern machine learning and statistical literature, we express this exact same relationship using parameter weights and biases:',
+          '$$\\hat{y} = w_1x + w_0 \\qquad \\text{or} \\qquad \\hat{y} = mx + b$$',
+          'Let us break down each mathematical symbol in plain English:',
+          '• $\\hat{y}$ (pronounced "y-hat"): The Model Prediction. The hat accent is universal mathematical notation indicating an estimated value computed by our model, rather than the true observed ground-truth value ($y$).',
+          '• $x$ (Input Feature): The given independent variable we feed into the model (e.g. $\\text{House Area} = 1,800\\text{ sq ft}$, or $\\text{Years of Experience} = 5$).',
+          '• $w_1$ or $m$ (Weight / Slope): The steepness of the line. It quantifies the rate of change—for every additional 1-unit increase in $x$, how much does $\\hat{y}$ increase or decrease? For example, if $w_1 = 120$, each additional square foot adds $\$120$ to the predicted house valuation.',
+          '• $w_0$ or $b$ (Bias / Y-Intercept): The baseline starting value where the line intersects the vertical $Y$-axis when $x = 0$. In real estate valuation, this represents the baseline land value before accounting for any interior square footage.'
         ]
       },
       {
         heading: '3. What is an Error? Residuals & The "Least Squares" Principle',
         paragraphs: [
-          'Real-world data is never a perfectly straight line—some 1,500 sq ft houses sell for $300k, while others in different neighborhoods sell for $350k. Therefore, our straight line will inevitably miss most data points by a slight amount.',
-          'The vertical distance between the actual real-world value (yᵢ) and our line predicted guess (ŷᵢ) is called a Residual (or Error):',
-          'Residual (eᵢ) = yᵢ - ŷᵢ   (Actual Price - Predicted Price)',
-          'If a point is above the line, the residual is positive (our model under-predicted). If a point is below the line, the residual is negative (our model over-predicted).',
-          'Why do we Square the Residuals? If we simply added up the raw positive and negative errors, an error of +$50k and -$50k would cancel out to 0, falsely making a terrible model look perfect! By squaring each error (eᵢ²), three things happen:',
-          '1. All errors become strictly positive numbers.',
-          '2. Large catastrophic mistakes (e.g. missing by $100k) are penalized exponentially more than tiny acceptable mistakes (e.g. missing by $2k).',
-          '3. The resulting error curve is a smooth convex parabola that is easy for optimization algorithms to differentiate and minimize.',
-          'The average of all these squared errors across your entire dataset gives the famous Mean Squared Error (MSE) Cost Function:'
+          'Real-world data rarely falls along a perfectly straight line—some 1,500 sq ft homes sell for $\$300\\text{k}$, while others with luxury finishes in the same neighborhood sell for $\$350\\text{k}$. Therefore, our straight line will inevitably miss individual data points by a slight amount.',
+          'The vertical distance between the actual real-world ground truth ($y_i$) and our line\'s predicted guess ($\\hat{y}_i$) is formally called a Residual (or Error):',
+          '$$e_i = y_i - \\hat{y}_i \\qquad (\\text{Actual Price} - \\text{Predicted Price})$$',
+          'If a point lies above the line, the residual is positive ($e_i > 0$, our model under-predicted). If a point lies below the line, the residual is negative ($e_i < 0$, our model over-predicted).',
+          'Why do we Square the Residuals? If we merely summed raw errors, a mistake of $+\\$50\\text{k}$ and $-\\$50\\text{k}$ would cancel out to $0$, falsely making an inaccurate model appear flawless! By squaring each individual error ($e_i^2$), three critical mathematical properties emerge:',
+          '1. All errors become strictly non-negative numbers ($e_i^2 \\ge 0$).',
+          '2. Large catastrophic outliers (e.g. missing by $\$100\\text{k}$) are penalized quadratically more than small tolerable inaccuracies (e.g. missing by $\$2\\text{k}$).',
+          '3. The aggregate cost curve forms a smooth, bowl-shaped convex parabola that is easy for optimization algorithms to differentiate and minimize.',
+          'The mean of all these squared residuals across your entire dataset ($N$ samples) produces the famous Mean Squared Error (MSE) Cost Function:',
+          '$$J(w_1, w_0) = \\text{MSE} = \\frac{1}{N} \\sum_{i=1}^N (y_i - \\hat{y}_i)^2 = \\frac{1}{N} \\sum_{i=1}^N e_i^2$$'
         ],
         codeBlock: [
           '# Mean Squared Error (MSE) Cost Function Formula',
@@ -1330,22 +1331,21 @@ export const mlLessonsData = {
       {
         heading: '4. How Computers Find the Optimal Line: OLS vs Gradient Descent',
         paragraphs: [
-          'How does the machine know which values of slope (w₁) and intercept (w₀) will produce the smallest possible Mean Squared Error? There are two primary techniques used in computing:',
-          '1. Ordinary Least Squares (OLS) Closed-Form Formula: For small and medium datasets, calculus allows us to calculate the exact optimal slope and intercept in a single mathematical step by setting the partial derivatives of the loss function to zero:',
-          '   Slope (m) = Σ((xᵢ - x̄)(yᵢ - ȳ)) / Σ((xᵢ - x̄)²)',
-          '   Intercept (b) = ȳ - m(x̄)',
-          '   (Where x̄ and ȳ are the average values of all inputs and outputs).',
-          '2. Gradient Descent (Iterative Optimization): When datasets have millions of rows or thousands of features, calculating the OLS matrix inversion becomes computationally expensive. Instead, the algorithm starts with random weights and takes small downhill steps in the direction that reduces error until it converges at the bottom of the error bowl.'
+          'How does an algorithm discover which values of slope ($w_1$) and bias ($w_0$) will produce the smallest possible Mean Squared Error? There are two primary techniques used in modern data science:',
+          '1. Ordinary Least Squares (OLS) Closed-Form Formula: For small and medium datasets, differential calculus enables us to calculate the exact optimal parameters directly in a single mathematical step by setting the partial derivatives of the loss function to zero:',
+          '$$w_1 = \\frac{\\sum_{i=1}^N (x_i - \\bar{x})(y_i - \\bar{y})}{\\sum_{i=1}^N (x_i - \\bar{x})^2}, \\qquad w_0 = \\bar{y} - w_1\\bar{x}$$',
+          '(where $\\bar{x}$ and $\\bar{y}$ represent the sample means of input features and target values).',
+          '2. Gradient Descent (Iterative Optimization): When datasets scale to millions of rows or thousands of features, calculating closed-form matrix inversions becomes computationally expensive ($O(D^3)$). Instead, Gradient Descent initializes random weights and iteratively takes small downhill steps proportional to the negative gradient until it converges at the global minimum of the loss bowl.'
         ]
       },
       {
         heading: '5. The 4 Essential Assumptions of Linear Regression',
         paragraphs: [
-          'Before relying on a Linear Regression model in production, statisticians and machine learning engineers verify four fundamental assumptions (often remembered by the acronym LINE):',
-          '1. Linearity: The relationship between the independent features (x) and dependent target (y) must be reasonably linear. If the true data follows a curved exponential parabola, a straight line will underfit.',
-          '2. Independence of Errors: Observations must be independent of each other (no autocorrelation, common in raw time-series).',
-          '3. Homoscedasticity (Equal Variance): The spread or dispersion of residuals should remain relatively constant across all values of x, rather than fanning out into a widening cone.',
-          '4. Normality of Residuals: The distribution of errors should form a symmetrical bell-shaped normal distribution centered around zero.'
+          'Before deploying a Linear Regression model to production, statisticians and machine learning engineers check four classical assumptions (often remembered by the acronym LINE):',
+          '1. Linearity: The relationship between the independent input ($x$) and target variable ($y$) must be linear. If the true underlying phenomenon follows an exponential or parabolic curve, a straight line will suffer from high bias (underfitting).',
+          '2. Independence of Errors: Observations and residual errors must be statistically independent of each other (no autocorrelation, common in time-series data).',
+          '3. Homoscedasticity (Constant Variance): The spread and dispersion of residuals ($e_i$) should remain relatively constant across all values of $x$, rather than fanning out into a widening cone.',
+          '4. Normality of Residuals: The distribution of prediction errors should follow a symmetrical bell-shaped Gaussian distribution centered around zero.'
         ]
       },
       {
@@ -1393,9 +1393,9 @@ export const mlLessonsData = {
     },
 
     takeaways: [
-      'Linear Regression models numerical relationships using the straight-line equation ŷ = w₁x + w₀ (or ŷ = mx + b).',
-      'ŷ represents the model prediction, w₁ (weight/slope) controls rate of change, and w₀ (bias/intercept) sets the baseline.',
-      'A Residual is the prediction error (y_actual - y_predicted). The best-fit line minimizes the sum of squared residuals (MSE).',
+      'Linear Regression models numerical relationships using the straight-line equation $\\hat{y} = w_1x + w_0$ (or $\\hat{y} = mx + b$).',
+      '$\\hat{y}$ represents the model prediction, $w_1$ (weight/slope) controls rate of change, and $w_0$ (bias/intercept) sets the baseline.',
+      'A Residual is the prediction error ($e_i = y_i - \\hat{y}_i$). The best-fit line minimizes the sum of squared residuals (MSE).',
       'Ordinary Least Squares (OLS) calculates optimal parameters directly, while Gradient Descent finds them through iterative optimization.',
       'Scikit-Learn makes fitting and predicting with Linear Regression seamless using model.fit(X, y) and model.predict(X_new).'
     ],
