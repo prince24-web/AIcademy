@@ -6679,10 +6679,10 @@ const LinearRegressionInteractiveStudio = () => {
           gap: '4px'
         }}>
           {[
-            { id: 'studio', label: '📊 Best-Fit Studio' },
-            { id: 'math', label: '📐 KaTeX Math Breakdown' },
-            { id: 'estimator', label: '🔮 Price Predictor' },
-            { id: 'code', label: '💻 Python Code' }
+            { id: 'studio', label: 'Best-Fit Studio' },
+            { id: 'math', label: 'Math Breakdown' },
+            { id: 'estimator', label: 'Price Predictor' },
+            { id: 'code', label: 'Python Code' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -7063,7 +7063,7 @@ const LinearRegressionInteractiveStudio = () => {
                   cursor: 'pointer'
                 }}
               >
-                {showResiduals ? '✓ Show Error Lines (eᵢ)' : 'Show Error Lines'}
+                {showResiduals ? 'Hide Error Lines (e_i)' : 'Show Error Lines (e_i)'}
               </button>
 
               <button
@@ -7079,7 +7079,7 @@ const LinearRegressionInteractiveStudio = () => {
                   cursor: 'pointer'
                 }}
               >
-                {showSquares ? '✓ Show Error Squares (eᵢ²)' : 'Show Squared Error Area'}
+                {showSquares ? 'Hide Error Squares (e_i^2)' : 'Show Error Squares (e_i^2)'}
               </button>
             </div>
 
@@ -7097,7 +7097,7 @@ const LinearRegressionInteractiveStudio = () => {
                   cursor: 'pointer'
                 }}
               >
-                ↺ Reset Line
+                Reset Line
               </button>
 
               <button
@@ -7117,7 +7117,7 @@ const LinearRegressionInteractiveStudio = () => {
                   gap: '6px'
                 }}
               >
-                ⚡ Auto-Fit Optimal Line (OLS)
+                Auto-Fit Optimal Line (OLS)
               </button>
             </div>
           </div>
@@ -7255,8 +7255,8 @@ const LinearRegressionInteractiveStudio = () => {
               fontSize: '0.85rem',
               color: '#334155'
             }}>
-              <div>📊 Base Land Value: <strong>${(intercept * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
-              <div>📈 Added Size Value: <strong>${(slope * predictorSqFt * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
+              <div>Base Land Value: <strong>${(intercept * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
+              <div>Added Size Value: <strong>${(slope * predictorSqFt * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
             </div>
           </div>
         </div>
