@@ -7399,7 +7399,7 @@ export default function MLLessonArticlePage() {
             </h3>
             <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#334155', fontSize: '0.88rem', lineHeight: '1.7' }}>
               {lesson.learningObjectives.map((obj, idx) => (
-                <li key={idx}>{obj}</li>
+                <li key={idx}>{renderTextWithMath(obj)}</li>
               ))}
             </ul>
           </div>
@@ -7431,7 +7431,7 @@ export default function MLLessonArticlePage() {
         {lesson.analogy && (
           <div className={styles.analogyCard} style={{ background: '#ffffff', border: '1.5px solid #cbd5e1', boxShadow: '0 4px 16px rgba(0,0,0,0.02)' }}>
             <h3 className={styles.analogyTitle} style={{ color: '#0f172a' }}>{lesson.analogy.title}</h3>
-            <p className={styles.analogyText} style={{ color: '#334155' }}>{lesson.analogy.text}</p>
+            <p className={styles.analogyText} style={{ color: '#334155' }}>{renderTextWithMath(lesson.analogy.text)}</p>
           </div>
         )}
 
@@ -7481,7 +7481,7 @@ export default function MLLessonArticlePage() {
               {lesson.takeaways.map((takeaway, idx) => (
                 <li key={idx} className={styles.takeawayItem} style={{ color: '#001f54' }}>
                   <span className={styles.takeawayBullet} style={{ background: '#001f54' }}></span>
-                  <span>{takeaway}</span>
+                  <span>{renderTextWithMath(takeaway)}</span>
                 </li>
               ))}
             </ul>
@@ -7494,7 +7494,7 @@ export default function MLLessonArticlePage() {
             <div className={styles.quizHeader}>
               <IconSparkles size={22} style={{ color: '#001f54' }} /> Interactive Knowledge Check
             </div>
-            <p className={styles.quizQuestion}>{lesson.quiz.question}</p>
+            <p className={styles.quizQuestion}>{renderTextWithMath(lesson.quiz.question)}</p>
 
             <div className={styles.quizOptions}>
               {lesson.quiz.options.map((opt, oIdx) => {
@@ -7513,7 +7513,7 @@ export default function MLLessonArticlePage() {
                     onClick={() => !isAnswered && handleOptionSelect(oIdx)}
                     className={btnClass}
                   >
-                    <span>{opt}</span>
+                    <span>{renderTextWithMath(opt)}</span>
                     {isAnswered && isCorrect && <IconCheckmark size={18} style={{ color: '#001f54' }} />}
                   </button>
                 );
@@ -7523,7 +7523,7 @@ export default function MLLessonArticlePage() {
             {isAnswered && (
               <div className={styles.explanationBox}>
                 <strong>{selectedOption === lesson.quiz.correctIndex ? 'Correct! ' : 'Explanation: '}</strong>
-                {lesson.quiz.explanation}
+                {renderTextWithMath(lesson.quiz.explanation)}
               </div>
             )}
           </div>
