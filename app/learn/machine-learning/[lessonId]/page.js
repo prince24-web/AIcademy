@@ -6544,8 +6544,8 @@ const LinearRegressionInteractiveStudio = () => {
   }, [dataPoints]);
 
   // Interactive slider states
-  const [slope, setSlope] = useState(0.45); // initial sub-optimal slope
-  const [intercept, setIntercept] = useState(60.0); // initial sub-optimal intercept
+  const [slope, setSlope] = useState(45.0); // initial sub-optimal slope ($k per '000 sq ft)
+  const [intercept, setIntercept] = useState(60.0); // initial sub-optimal intercept ($k)
   const [showResiduals, setShowResiduals] = useState(true);
   const [showSquares, setShowSquares] = useState(false);
   const [activeTab, setActiveTab] = useState('studio');
@@ -6569,7 +6569,7 @@ const LinearRegressionInteractiveStudio = () => {
   const calculations = useMemo(() => {
     let totalSSE = 0;
     const pointCalcs = dataPoints.map((p) => {
-      const yHat = slope * p.x * 100 + intercept; // slope is per 1000 sq ft ($k / 1000 sqft)
+      const yHat = slope * p.x + intercept; // slope is in $k per '000 sq ft ($k / unit-x)
       const residual = p.y - yHat;
       const squaredError = Math.pow(residual, 2);
       totalSSE += squaredError;
@@ -6592,8 +6592,8 @@ const LinearRegressionInteractiveStudio = () => {
   }, [dataPoints, slope, intercept]);
 
   // Line endpoints on SVG canvas
-  const lineStart = { x: scaleX(xMin), y: scaleY(slope * xMin * 100 + intercept) };
-  const lineEnd = { x: scaleX(xMax), y: scaleY(slope * xMax * 100 + intercept) };
+  const lineStart = { x: scaleX(xMin), y: scaleY(slope * xMin + intercept) };
+  const lineEnd = { x: scaleX(xMax), y: scaleY(slope * xMax + intercept) };
 
   // Snap to optimal OLS parameters with celebration
   const handleAutoFitOLS = () => {
@@ -6604,17 +6604,17 @@ const LinearRegressionInteractiveStudio = () => {
   };
 
   const handleReset = () => {
-    setSlope(0.45);
+    setSlope(45.0);
     setIntercept(60.0);
     setIsOptimalFit(false);
   };
 
   // Predictor calculation for custom sq ft
-  const predictedValue = (slope * predictorSqFt * 100 + intercept);
+  const predictedValue = (slope * predictorSqFt + intercept);
 
   // Performance status evaluation
   const getQualityBadge = () => {
-    if (Math.abs(slope - optimalParams.slope) < 0.04 && Math.abs(intercept - optimalParams.intercept) < 3) {
+    if (Math.abs(slope - optimalParams.slope) < 4.0 && Math.abs(intercept - optimalParams.intercept) < 4.0) {
       return { text: 'Optimal OLS Fit (Minimum MSE)', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' };
     }
     if (calculations.mse < 300) {
@@ -6721,10 +6721,10 @@ const LinearRegressionInteractiveStudio = () => {
                 Current Model Equation
               </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#001f54', marginTop: '6px' }}>
-                <MathFormula math={`\\hat{y} = ${slope.toFixed(2)}x + ${intercept.toFixed(1)}`} />
+                <MathFormula math={`\\hat{y} = ${slope.toFixed(1)}x + ${intercept.toFixed(1)}`} />
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                Slope: ${ (slope * 100).toFixed(0) }/sq ft · Intercept: ${intercept.toFixed(1)}k
+                Slope: ${slope.toFixed(1)}/sq ft · Intercept: ${intercept.toFixed(1)}k
               </div>
             </div>
 
@@ -6732,7 +6732,7 @@ const LinearRegressionInteractiveStudio = () => {
               <div style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>
                 Cost Function (MSE Loss)
               </div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: calculations.mse < 300 ? '#059669' : '#dc2626', marginTop: '6px' }}>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: calculations.mse < 100 ? '#059669' : '#dc2626', marginTop: '6px' }}>
                 <MathFormula math={`\\text{MSE} = ${calculations.mse.toFixed(1)}`} />
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
@@ -6989,17 +6989,17 @@ const LinearRegressionInteractiveStudio = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
-                  Slope (Weight <MathFormula math="w_1" /> / <MathFormula math="m" />): <code style={{ color: '#0284c7', fontSize: '0.95rem' }}>{slope.toFixed(2)}</code>
+                  Slope (Weight <MathFormula math="w_1" /> / <MathFormula math="m" />): <code style={{ color: '#0284c7', fontSize: '0.95rem' }}>${slope.toFixed(1)}/sq ft</code>
                 </span>
                 <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                  Optimal OLS: {optimalParams.slope}
+                  Optimal OLS: ${optimalParams.slope}/sq ft
                 </span>
               </div>
               <input
                 type="range"
-                min="0.10"
-                max="1.60"
-                step="0.02"
+                min="10"
+                max="160"
+                step="1"
                 value={slope}
                 onChange={(e) => {
                   setSlope(parseFloat(e.target.value));
@@ -7016,10 +7016,10 @@ const LinearRegressionInteractiveStudio = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
-                  Y-Intercept (Bias <MathFormula math="w_0" /> / <MathFormula math="b" />): <code style={{ color: '#0284c7', fontSize: '0.95rem' }}>{intercept.toFixed(1)}k</code>
+                  Y-Intercept (Bias <MathFormula math="w_0" /> / <MathFormula math="b" />): <code style={{ color: '#0284c7', fontSize: '0.95rem' }}>${intercept.toFixed(1)}k</code>
                 </span>
                 <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                  Optimal OLS: {optimalParams.intercept}k
+                  Optimal OLS: ${optimalParams.intercept}k
                 </span>
               </div>
               <input
@@ -7142,7 +7142,7 @@ const LinearRegressionInteractiveStudio = () => {
               marginTop: '0.75rem',
               border: '1px solid #cbd5e1'
             }}>
-              <MathFormula math={`\\hat{y}_4 = (${slope.toFixed(2)} \\times 2.0 \\times 100) + ${intercept.toFixed(1)} = \\$${(slope * 2.0 * 100 + intercept).toFixed(1)}\\text{k}`} block={true} />
+              <MathFormula math={`\\hat{y}_4 = (${slope.toFixed(1)} \\times 2.0) + ${intercept.toFixed(1)} = \\$${(slope * 2.0 + intercept).toFixed(1)}\\text{k}`} block={true} />
             </div>
           </div>
 
@@ -7158,7 +7158,7 @@ const LinearRegressionInteractiveStudio = () => {
               marginTop: '0.75rem',
               border: '1px solid #cbd5e1'
             }}>
-              <MathFormula math={`e_4 = \\$205.0\\text{k} - \\$${(slope * 2.0 * 100 + intercept).toFixed(1)}\\text{k} = ${(205 - (slope * 2.0 * 100 + intercept)) >= 0 ? '+' : ''}${(205 - (slope * 2.0 * 100 + intercept)).toFixed(1)}\\text{k}`} block={true} />
+              <MathFormula math={`e_4 = \\$205.0\\text{k} - \\$${(slope * 2.0 + intercept).toFixed(1)}\\text{k} = ${(205 - (slope * 2.0 + intercept)) >= 0 ? '+' : ''}${(205 - (slope * 2.0 + intercept)).toFixed(1)}\\text{k}`} block={true} />
             </div>
           </div>
 
@@ -7190,7 +7190,7 @@ const LinearRegressionInteractiveStudio = () => {
               marginTop: '0.75rem',
               border: '1px solid #cbd5e1'
             }}>
-              <MathFormula math={`w_1^* = ${optimalParams.slope}, \\quad w_0^* = \\$${optimalParams.intercept}\\text{k}`} block={true} />
+              <MathFormula math={`w_1^* = \\$${optimalParams.slope}\\text{/sq ft}, \\quad w_0^* = \\$${optimalParams.intercept}\\text{k}`} block={true} />
             </div>
           </div>
         </div>
@@ -7243,7 +7243,7 @@ const LinearRegressionInteractiveStudio = () => {
                 ${(predictedValue * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}
               </div>
               <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '6px' }}>
-                <MathFormula math={`\\hat{y} = (${slope.toFixed(2)} \\times ${predictorSqFt.toFixed(1)}) + ${intercept.toFixed(1)} = \\$${predictedValue.toFixed(1)}\\text{k}`} />
+                <MathFormula math={`\\hat{y} = (${slope.toFixed(1)} \\times ${predictorSqFt.toFixed(1)}) + ${intercept.toFixed(1)} = \\$${predictedValue.toFixed(1)}\\text{k}`} />
               </div>
             </div>
 
@@ -7256,7 +7256,7 @@ const LinearRegressionInteractiveStudio = () => {
               color: '#334155'
             }}>
               <div>📊 Base Land Value: <strong>${(intercept * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
-              <div>📈 Added Size Value: <strong>${(slope * predictorSqFt * 100 * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
+              <div>📈 Added Size Value: <strong>${(slope * predictorSqFt * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
             </div>
           </div>
         </div>
