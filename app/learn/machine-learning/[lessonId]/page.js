@@ -8278,6 +8278,55 @@ const MultipleLinearRegression3DStudio = () => {
 const PolynomialRegressionInteractiveStudio = () => {
   // 4 Rich Non-Linear Real-World Datasets
   const DATASET_PRESETS = useMemo(() => ({
+    wave: {
+      name: 'Textbook Polynomial Wave (Degree 3 Benchmark)',
+      xLabel: 'X (Feature Input)',
+      yLabel: 'Y (Continuous Target Output)',
+      xUnit: '',
+      yUnit: '',
+      xDomain: [-4.4, 4.8],
+      yDomain: [-70, 90],
+      optimalDegree: 3,
+      train: [
+        { id: 't1', x: -4.0, y: 80.5 },
+        { id: 't2', x: -3.85, y: 65.0 },
+        { id: 't3', x: -3.65, y: 55.0 },
+        { id: 't4', x: -3.35, y: 45.0 },
+        { id: 't5', x: -3.10, y: 57.5 },
+        { id: 't6', x: -2.85, y: 42.0 },
+        { id: 't7', x: -2.60, y: 34.0 },
+        { id: 't8', x: -2.35, y: 14.0 },
+        { id: 't9', x: -2.05, y: 23.0 },
+        { id: 't10', x: -1.75, y: 10.0 },
+        { id: 't11', x: -1.35, y: 5.0 },
+        { id: 't12', x: -0.85, y: 8.0 },
+        { id: 't13', x: -0.45, y: 10.0 },
+        { id: 't14', x: -0.15, y: 2.0 },
+        { id: 't15', x: 0.15, y: 0.0 },
+        { id: 't16', x: 0.60, y: 8.0 },
+        { id: 't17', x: 0.90, y: 5.0 },
+        { id: 't18', x: 1.25, y: 18.5 },
+        { id: 't19', x: 1.65, y: 14.0 },
+        { id: 't20', x: 2.10, y: 22.5 },
+        { id: 't21', x: 2.50, y: 15.5 },
+        { id: 't22', x: 2.95, y: 9.0 },
+        { id: 't23', x: 3.55, y: 23.5 },
+        { id: 't24', x: 3.95, y: 5.0 },
+        { id: 't25', x: 4.25, y: -11.5 },
+        { id: 't26', x: 4.38, y: -61.0 },
+        { id: 't27', x: 4.50, y: -12.0 },
+        { id: 't28', x: 4.60, y: 7.0 },
+        { id: 't29', x: 4.70, y: 14.5 },
+        { id: 't30', x: 4.80, y: 31.0 }
+      ],
+      test: [
+        { id: 'v1', x: 0.25, y: 10.0 },
+        { id: 'v2', x: 1.45, y: 18.0 },
+        { id: 'v3', x: 2.55, y: 8.0 },
+        { id: 'v4', x: 3.40, y: 1.5 },
+        { id: 'v5', x: 4.25, y: -4.0 }
+      ]
+    },
     salary: {
       name: 'Tech Career Salaries (Quadratic)',
       xLabel: 'Years of Experience (x)',
@@ -8350,7 +8399,7 @@ const PolynomialRegressionInteractiveStudio = () => {
     }
   }), []);
 
-  const [datasetKey, setDatasetKey] = useState('salary');
+  const [datasetKey, setDatasetKey] = useState('wave');
   const activeDataset = DATASET_PRESETS[datasetKey];
 
   // Scatter jitter noise state (allows user to resample scatter points)
@@ -8378,7 +8427,7 @@ const PolynomialRegressionInteractiveStudio = () => {
   }, [activeDataset, noiseSeed]);
 
   // Interactive controls
-  const [degree, setDegree] = useState(2);
+  const [degree, setDegree] = useState(3);
   const [showResiduals, setShowResiduals] = useState(true);
   const [showTestData, setShowTestData] = useState(true);
   const [activeTab, setActiveTab] = useState('studio');
@@ -8680,6 +8729,7 @@ const PolynomialRegressionInteractiveStudio = () => {
                 Dataset Scenario:
               </span>
               {[
+                { key: 'wave', label: 'Polynomial S-Wave (35 pts)' },
                 { key: 'salary', label: 'Tech Salary vs Exp (25 pts)' },
                 { key: 'fuel', label: 'Speed vs Fuel MPG (19 pts)' },
                 { key: 'dosage', label: 'Drug Dosage vs Recovery (15 pts)' }
@@ -8954,7 +9004,7 @@ const PolynomialRegressionInteractiveStudio = () => {
               <path
                 d={curvePath}
                 fill="none"
-                stroke={degree >= 8 ? '#dc2626' : degree >= 5 ? '#ea580c' : degree === 1 ? '#0284c7' : '#001f54'}
+                stroke="#dc2626"
                 strokeWidth="3.5"
                 strokeLinecap="round"
               />
@@ -8968,65 +9018,64 @@ const PolynomialRegressionInteractiveStudio = () => {
                     <circle
                       cx={cx}
                       cy={cy}
-                      r="5.5"
+                      r="6.0"
                       fill="#0284c7"
                       stroke="#ffffff"
-                      strokeWidth="1.8"
+                      strokeWidth="2"
                     />
                   </g>
                 );
               })}
 
-              {/* Test / Validation Data Points (Hollow Green Diamonds) */}
+              {/* Test / Validation Data Points (Solid Orange Circles matching user reference) */}
               {showTestData && testPoints.map((p) => {
                 const cx = scaleX(p.x);
                 const cy = scaleY(p.y);
                 return (
                   <g key={p.id}>
-                    <rect
-                      x={cx - 4.5}
-                      y={cy - 4.5}
-                      width="9"
-                      height="9"
-                      transform={`rotate(45 ${cx} ${cy})`}
-                      fill="#10b981"
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r="6.0"
+                      fill="#f97316"
                       stroke="#ffffff"
-                      strokeWidth="1.8"
+                      strokeWidth="2"
                     />
                   </g>
                 );
               })}
             </svg>
 
-            {/* Legend Overlay */}
+            {/* Legend Overlay matching textbook visual */}
             <div style={{
               position: 'absolute',
               top: '12px',
               right: '16px',
               background: 'rgba(255, 255, 255, 0.94)',
               backdropFilter: 'blur(6px)',
-              padding: '8px 14px',
-              borderRadius: '10px',
-              border: '1px solid #cbd5e1',
+              padding: '10px 16px',
+              borderRadius: '12px',
+              border: '1.5px solid #cbd5e1',
               display: 'flex',
               flexDirection: 'column',
-              gap: '6px',
-              fontSize: '0.75rem',
-              fontWeight: 700
+              gap: '8px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }}></span>
-                <span style={{ color: '#001f54' }}>Training Scatter ({trainPoints.length} pts)</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '11px', height: '11px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }}></span>
+                <span style={{ color: '#001f54' }}>Training Data ({trainPoints.length} pts)</span>
               </div>
               {showTestData && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', transform: 'rotate(45deg)', background: '#10b981', display: 'inline-block' }}></span>
-                  <span style={{ color: '#059669' }}>Unseen Validation ({testPoints.length} pts)</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '11px', height: '11px', borderRadius: '50%', background: '#f97316', display: 'inline-block' }}></span>
+                  <span style={{ color: '#c2410c' }}>Testing Data ({testPoints.length} pts)</span>
                 </div>
               )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '14px', height: '3px', background: degree >= 8 ? '#dc2626' : '#001f54', display: 'inline-block', borderRadius: '2px' }}></span>
-                <span style={{ color: '#334155' }}>Fitted Polynomial Curve (d={degree})</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '18px', height: '3.5px', background: '#dc2626', display: 'inline-block', borderRadius: '2px' }}></span>
+                <span style={{ color: '#991b1b' }}>Polynomial Regression (Degree {degree})</span>
               </div>
             </div>
           </div>
