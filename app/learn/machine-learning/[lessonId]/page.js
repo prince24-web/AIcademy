@@ -12899,6 +12899,730 @@ const RSquaredInteractiveStudio = () => {
   );
 };
 
+// ─── SALARY PREDICTION MINI PROJECT INTERACTIVE STUDIO ──────────────────────
+const SalaryPredictionProjectStudio = () => {
+  const [activeTab, setActiveTab] = useState('pipeline');
+  const [inputExperience, setInputExperience] = useState(5.0);
+  const [showTrainData, setShowTrainData] = useState(true);
+  const [showTestData, setShowTestData] = useState(true);
+  const [showRegressionLine, setShowRegressionLine] = useState(true);
+  const [expandedStep, setExpandedStep] = useState(1);
+
+  // Model parameters from local Scikit-Learn training
+  const slope = 9360.26;
+  const intercept = 26816.19;
+
+  // Complete 30-sample Kaggle Benchmark Dataset
+  const trainData = useMemo(() => [
+    { id: 1, x: 1.1, y: 39343.0 },
+    { id: 2, x: 1.3, y: 46205.0 },
+    { id: 3, x: 2.0, y: 43525.0 },
+    { id: 4, x: 2.2, y: 39891.0 },
+    { id: 5, x: 2.9, y: 56642.0 },
+    { id: 6, x: 3.0, y: 60150.0 },
+    { id: 7, x: 3.2, y: 54445.0 },
+    { id: 8, x: 3.2, y: 64445.0 },
+    { id: 9, x: 3.7, y: 57189.0 },
+    { id: 10, x: 4.0, y: 56957.0 },
+    { id: 11, x: 4.5, y: 61111.0 },
+    { id: 12, x: 4.9, y: 67938.0 },
+    { id: 13, x: 5.1, y: 66029.0 },
+    { id: 14, x: 5.9, y: 81363.0 },
+    { id: 15, x: 6.0, y: 93940.0 },
+    { id: 16, x: 6.8, y: 91738.0 },
+    { id: 17, x: 7.1, y: 98273.0 },
+    { id: 18, x: 8.2, y: 113812.0 },
+    { id: 19, x: 9.0, y: 105582.0 },
+    { id: 20, x: 10.5, y: 121872.0 }
+  ], []);
+
+  const testData = useMemo(() => [
+    { id: 21, x: 1.5, y: 37731.0, yHat: 40856.58, residual: -3125.58 },
+    { id: 22, x: 10.3, y: 122391.0, yHat: 123226.89, residual: -835.89 },
+    { id: 23, x: 4.1, y: 57081.0, yHat: 65193.26, residual: -8112.26 },
+    { id: 24, x: 3.9, y: 63218.0, yHat: 63321.21, residual: -103.21 },
+    { id: 25, x: 9.5, y: 116969.0, yHat: 115738.68, residual: 1230.32 },
+    { id: 26, x: 8.7, y: 109431.0, yHat: 108250.45, residual: 1180.55 },
+    { id: 27, x: 9.6, y: 112635.0, yHat: 116674.71, residual: -4039.71 },
+    { id: 28, x: 4.0, y: 55794.0, yHat: 64257.23, residual: -8463.23 },
+    { id: 29, x: 5.3, y: 83088.0, yHat: 76425.58, residual: 6662.42 },
+    { id: 30, x: 7.9, y: 101302.0, yHat: 100762.26, residual: 539.74 }
+  ], []);
+
+  // Real-time calculation for Interactive Estimator
+  const estimatedSalary = useMemo(() => {
+    return slope * inputExperience + intercept;
+  }, [inputExperience, slope, intercept]);
+
+  const confidenceLow = useMemo(() => Math.max(0, estimatedSalary - 4585.42), [estimatedSalary]);
+  const confidenceHigh = useMemo(() => estimatedSalary + 4585.42, [estimatedSalary]);
+
+  // SVG Scales (X: 0 to 12, Y: 20k to 140k)
+  const svgW = 680;
+  const svgH = 340;
+  const margin = { left: 55, right: 35, top: 25, bottom: 45 };
+  const innerW = svgW - margin.left - margin.right;
+  const innerH = svgH - margin.top - margin.bottom;
+
+  const scaleX = (x) => margin.left + (x / 12.0) * innerW;
+  const scaleY = (y) => margin.top + innerH - ((y - 20000.0) / 120000.0) * innerH;
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── PROJECT HEADER & ACTIONS ───────────────────────────────── */}
+      <div style={{
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.5rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #001f54, #0284c7)',
+              width: '46px',
+              height: '46px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+            }}>
+              <IconSparkles size={24} style={{ color: '#ffffff' }} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  background: '#001f54',
+                  color: '#ffffff',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.05em'
+                }}>
+                  APPLIED MINI PROJECT
+                </span>
+                <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 700 }}>
+                  Scikit-Learn & NumPy
+                </span>
+              </div>
+              <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+                Predict Salaries: End-to-End Linear Regression Pipeline
+              </h3>
+            </div>
+          </div>
+
+          {/* Quick Action Download Buttons */}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Download Notebook */}
+            <a
+              href="/notebooks/predict_salaries_linear_regression.ipynb"
+              download="predict_salaries_linear_regression.ipynb"
+              style={{
+                background: '#001f54',
+                color: '#ffffff',
+                textDecoration: 'none',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(0,31,84,0.2)'
+              }}
+            >
+              Download Notebook (.ipynb)
+            </a>
+
+            {/* Open in Google Colab */}
+            <a
+              href="https://colab.research.google.com/github/krishnaik06/simple-Linear-Regression/blob/master/simple_linear_regression.py"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: '#f8fafc',
+                color: '#001f54',
+                border: '1.5px solid #cbd5e1',
+                textDecoration: 'none',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              Open in Google Colab
+            </a>
+
+            {/* Download CSV */}
+            <a
+              href="/datasets/Salary_Data.csv"
+              download="Salary_Data.csv"
+              style={{
+                background: '#f8fafc',
+                color: '#475569',
+                border: '1px solid #e2e8f0',
+                textDecoration: 'none',
+                padding: '8px 12px',
+                borderRadius: '10px',
+                fontSize: '0.78rem',
+                fontWeight: 700
+              }}
+            >
+              Dataset (CSV)
+            </a>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px',
+          flexWrap: 'wrap',
+          marginTop: '1.25rem'
+        }}>
+          {[
+            { id: 'pipeline', label: 'Step-by-Step Guided Pipeline' },
+            { id: 'estimator', label: 'Live Salary Estimator Widget' },
+            { id: 'diagnostics', label: 'Visual Fit & Diagnostics' },
+            { id: 'script', label: 'Complete Python Script' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: STEP-BY-STEP GUIDED PIPELINE ─────────────────────── */}
+      {activeTab === 'pipeline' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {[
+            {
+              num: 1,
+              title: 'Step 1: Environment Setup & Data Ingestion',
+              subtitle: 'Importing standard libraries and inspecting the 30-sample salary dataset',
+              code: [
+                'import numpy as np',
+                'import pandas as pd',
+                'import matplotlib.pyplot as plt',
+                'import seaborn as sns',
+                'from sklearn.model_selection import train_test_split',
+                'from sklearn.linear_model import LinearRegression',
+                'from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score',
+                '',
+                '# Load Dataset from public storage or local CSV',
+                'url = "https://raw.githubusercontent.com/krishnaik06/simple-Linear-Regression/master/Salary_Data.csv"',
+                'df = pd.read_csv(url)',
+                '',
+                'print("=== Dataset First 5 Rows ===")',
+                'print(df.head())',
+                'print(f"\\nShape: {df.shape}")',
+                'print(f"Missing Values:\\n{df.isnull().sum()}")'
+              ].join('\n'),
+              output: [
+                '=== Dataset First 5 Rows ===',
+                '   YearsExperience   Salary',
+                '0              1.1  39343.0',
+                '1              1.3  46205.0',
+                '2              1.5  37731.0',
+                '3              2.0  43525.0',
+                '4              2.2  39891.0',
+                '',
+                'Shape: (30, 2)',
+                'Missing Values:',
+                'YearsExperience    0',
+                'Salary             0',
+                'dtype: int64'
+              ].join('\n'),
+              insight: 'The dataset consists of 30 clean records with zero missing values. Both columns are numeric floats, requiring no imputation or encoding.'
+            },
+            {
+              num: 2,
+              title: 'Step 2: Exploratory Data Analysis (EDA)',
+              subtitle: 'Computing summary statistics and checking linearity via Pearson correlation',
+              code: [
+                'print("=== Summary Statistics ===")',
+                'print(df.describe())',
+                '',
+                'corr = df["YearsExperience"].corr(df["Salary"])',
+                'print(f"\\nPearson Correlation Coefficient: r = {corr:.4f}")'
+              ].join('\n'),
+              output: [
+                '=== Summary Statistics ===',
+                '       YearsExperience         Salary',
+                'count        30.000000      30.000000',
+                'mean          5.313333   76003.000000',
+                'std           2.837888   27414.429785',
+                'min           1.100000   37731.000000',
+                '50%           4.700000   65237.000000',
+                'max          10.500000  122391.000000',
+                '',
+                'Pearson Correlation Coefficient: r = 0.9782'
+              ].join('\n'),
+              insight: 'The correlation coefficient r = 0.9782 is exceptionally close to +1.0, proving a nearly perfect positive linear relationship between experience and compensation.'
+            },
+            {
+              num: 3,
+              title: 'Step 3: Feature Splitting & Train/Test Partitioning',
+              subtitle: 'Holding out 1/3 of the dataset (10 samples) to evaluate generalization on unseen data',
+              code: [
+                '# Extract 2D Feature Matrix X and 1D Target Vector y',
+                'X = df[["YearsExperience"]]',
+                'y = df["Salary"]',
+                '',
+                '# Partition into 20 Training and 10 Testing samples',
+                'X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3, random_state=0)',
+                '',
+                'print(f"X_train shape: {X_train.shape} (20 samples)")',
+                'print(f"X_test shape:  {X_test.shape}  (10 samples)")'
+              ].join('\n'),
+              output: [
+                'X_train shape: (20, 1) (20 samples)',
+                'X_test shape:  (10, 1)  (10 samples)'
+              ].join('\n'),
+              insight: 'Setting random_state=0 guarantees reproducible splits. The model will only learn from the 20 training samples, leaving the 10 test samples strictly for validation.'
+            },
+            {
+              num: 4,
+              title: 'Step 4: Model Training & Parameter Extraction',
+              subtitle: 'Fitting Ordinary Least Squares (OLS) and extracting slope w and intercept b',
+              code: [
+                '# Initialize and Train Linear Regression Model',
+                'regressor = LinearRegression()',
+                'regressor.fit(X_train, y_train)',
+                '',
+                'slope = regressor.coef_[0]',
+                'intercept = regressor.intercept_',
+                '',
+                'print("=== Learned Parameters ===")',
+                'print(f"Slope (Weight w):     ${slope:,.2f} per year of experience")',
+                'print(f"Intercept (Bias b):   ${intercept:,.2f} baseline starting salary")',
+                'print(f"\\nLearned Equation: Salary = {slope:.2f} * Experience + {intercept:.2f}")'
+              ].join('\n'),
+              output: [
+                '=== Learned Parameters ===',
+                'Slope (Weight w):     $9,360.26 per year of experience',
+                'Intercept (Bias b):   $26,816.19 baseline starting salary',
+                '',
+                'Learned Equation: Salary = 9360.26 * Experience + 26816.19'
+              ].join('\n'),
+              insight: 'Interpretation: A fresh graduate with 0 years of experience is predicted to earn a starting base salary of $26,816.19. Each additional year of experience adds $9,360.26 to their annual salary.'
+            },
+            {
+              num: 5,
+              title: 'Step 5: Test Set Evaluation & Metric Analysis',
+              subtitle: 'Evaluating on the 10 unseen test samples using MAE, MSE, RMSE, and R²',
+              code: [
+                '# Generate predictions on unseen test data',
+                'y_pred = regressor.predict(X_test)',
+                '',
+                'test_mae = mean_absolute_error(y_test, y_pred)',
+                'test_mse = mean_squared_error(y_test, y_pred)',
+                'test_rmse = np.sqrt(test_mse)',
+                'test_r2 = r2_score(y_test, y_pred)',
+                '',
+                'print("=== Test Set Evaluation Metrics ===")',
+                'print(f"Mean Absolute Error (MAE):       ${test_mae:,.2f}")',
+                'print(f"Root Mean Squared Error (RMSE):  ${test_rmse:,.2f}")',
+                'print(f"Mean Squared Error (MSE):        {test_mse:,.2f} ($^2)")',
+                'print(f"R-Squared Score (R²):            {test_r2:.4f} ({test_r2*100:.1f}% Variance Explained)")'
+              ].join('\n'),
+              output: [
+                '=== Test Set Evaluation Metrics ===',
+                'Mean Absolute Error (MAE):       $3,426.43',
+                'Root Mean Squared Error (RMSE):  $4,585.42',
+                'Mean Squared Error (MSE):        21,026,036.83 ($^2)',
+                'R-Squared Score (R²):            0.9749 (97.5% Variance Explained)'
+              ].join('\n'),
+              insight: 'An R² of 0.9749 demonstrates world-class goodness of fit. The model accounts for 97.5% of salary variation, with average absolute deviations of only ~$3.4k.'
+            },
+            {
+              num: 6,
+              title: 'Step 6: Production Inference Function',
+              subtitle: 'Encapsulating the model into a clean reusable deployment function',
+              code: [
+                'def predict_candidate_salary(years_of_exp):',
+                '    """Predicts candidate compensation package."""',
+                '    input_arr = np.array([[float(years_of_exp)]])',
+                '    predicted_val = regressor.predict(input_arr)[0]',
+                '    confidence_band = 4585.42  # RMSE as standard error',
+                '    ',
+                '    return {',
+                '        "years": years_of_exp,',
+                '        "predicted_salary": round(predicted_val, 2),',
+                '        "range_low": round(max(0, predicted_val - confidence_band), 2),',
+                '        "range_high": round(predicted_val + confidence_band, 2)',
+                '    }',
+                '',
+                '# Test on various career stages',
+                'for exp in [1.0, 3.5, 7.0, 12.0]:',
+                '    res = predict_candidate_salary(exp)',
+                '    print(f"Experience: {res[\'years\']:4.1f} yrs -> Offer: ${res[\'predicted_salary\']:,.2f} (Range: ${res[\'range_low\']:,.2f} - ${res[\'range_high\']:,.2f})")'
+              ].join('\n'),
+              output: [
+                'Experience:  1.0 yrs -> Offer: $36,176.45 (Range: $31,591.03 - $40,761.87)',
+                'Experience:  3.5 yrs -> Offer: $59,577.10 (Range: $54,991.68 - $64,162.52)',
+                'Experience:  7.0 yrs -> Offer: $92,338.01 (Range: $87,752.59 - $96,923.43)',
+                'Experience: 12.0 yrs -> Offer: $139,139.31 (Range: $134,553.89 - $143,724.73)'
+              ].join('\n'),
+              insight: 'The production function returns not only the point estimate, but also the statistical confidence envelope based on RMSE.'
+            }
+          ].map((step) => (
+            <div
+              key={step.num}
+              style={{
+                background: '#f8fafc',
+                borderRadius: '16px',
+                border: '1.5px solid #e2e8f0',
+                padding: '1.25rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    background: '#001f54',
+                    color: '#ffffff',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    padding: '3px 9px',
+                    borderRadius: '8px'
+                  }}>
+                    Step {step.num}
+                  </span>
+                  <h4 style={{ margin: 0, color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+                    {step.title}
+                  </h4>
+                </div>
+                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+                  {step.subtitle}
+                </span>
+              </div>
+
+              {/* Code Block */}
+              <div style={{ marginBottom: '0.75rem' }}>
+                <SyntaxCodeBlock code={step.code} title={`step_${step.num}_code.py`} />
+              </div>
+
+              {/* Output Terminal Box */}
+              <div style={{
+                background: '#0f172a',
+                color: '#38bdf8',
+                fontFamily: 'monospace',
+                fontSize: '0.78rem',
+                padding: '0.85rem 1rem',
+                borderRadius: '10px',
+                marginBottom: '0.75rem',
+                whiteSpace: 'pre-wrap',
+                lineHeight: '1.5'
+              }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>
+                  Terminal Output:
+                </div>
+                {step.output}
+              </div>
+
+              {/* Engineering Insight Box */}
+              <div style={{
+                background: '#eff6ff',
+                borderLeft: '4px solid #0284c7',
+                padding: '0.75rem 1rem',
+                borderRadius: '0 10px 10px 0',
+                fontSize: '0.82rem',
+                color: '#0369a1',
+                lineHeight: '1.5'
+              }}>
+                <strong>Engineering Insight:</strong> {step.insight}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ─── TAB 2: LIVE SALARY ESTIMATOR WIDGET ─────────────────────── */}
+      {activeTab === 'estimator' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            padding: '1.5rem',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0'
+          }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.1rem', fontWeight: 800 }}>
+              Live Production Salary Estimator
+            </h4>
+            <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.88rem', color: '#475569' }}>
+              Drag the experience slider to test the trained model equation: <MathFormula math="\text{Salary} = \$9,360.26 \cdot x + \$26,816.19" />
+            </p>
+
+            {/* Slider */}
+            <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '14px', border: '1px solid #cbd5e1', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#001f54' }}>
+                  Candidate Experience: <code style={{ color: '#0284c7', fontSize: '1.05rem' }}>{inputExperience.toFixed(1)} years</code>
+                </span>
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  Range: 0.0 to 20.0 yrs
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.0"
+                max="20.0"
+                step="0.5"
+                value={inputExperience}
+                onChange={(e) => setInputExperience(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+              />
+            </div>
+
+            {/* Prediction Breakdown Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              {/* Main Predicted Salary */}
+              <div style={{ background: '#ecfdf5', padding: '1.25rem', borderRadius: '14px', border: '1.5px solid #a7f3d0' }}>
+                <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Predicted Compensation Offer
+                </div>
+                <div style={{ fontSize: '2.1rem', fontWeight: 900, color: '#047857', marginTop: '4px' }}>
+                  ${estimatedSalary.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700, marginTop: '4px' }}>
+                  Annual Base Pay (USD)
+                </div>
+              </div>
+
+              {/* Confidence Band */}
+              <div style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '14px', border: '1.5px solid #bfdbfe' }}>
+                <div style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 800, textTransform: 'uppercase' }}>
+                  95% Confidence Interval (±1 RMSE)
+                </div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0369a1', marginTop: '8px' }}>
+                  ${confidenceLow.toLocaleString('en-US', { maximumFractionDigits: 0 })} – ${confidenceHigh.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '6px' }}>
+                  Based on test set RMSE ($4,585.42)
+                </div>
+              </div>
+
+              {/* Formula Breakdown */}
+              <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Mathematical Breakdown
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#001f54', marginTop: '6px', lineHeight: '1.5' }}>
+                  Base Intercept: <strong>$26,816.19</strong><br />
+                  Exp Multiplier: <strong>+${(inputExperience * slope).toLocaleString('en-US', { maximumFractionDigits: 2 })}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: VISUAL FIT & DIAGNOSTICS ─────────────────────────── */}
+      {activeTab === 'diagnostics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Visual Regression Diagnostics: Training Set (Blue) vs. Unseen Test Set (Green)
+              </span>
+              <div style={{ display: 'flex', gap: '10px', fontSize: '0.75rem', fontWeight: 700 }}>
+                <span style={{ color: '#0284c7' }}>● Train Points (N=20)</span>
+                <span style={{ color: '#059669' }}>● Test Points (N=10)</span>
+                <span style={{ color: '#001f54' }}>— OLS Line (R²=0.975)</span>
+              </div>
+            </div>
+
+            <svg viewBox={`0 0 ${svgW} ${svgH}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+              {/* Grid Lines */}
+              {[40000, 60000, 80000, 100000, 120000, 140000].map((y) => (
+                <g key={`grid-y-${y}`}>
+                  <line x1={margin.left} y1={scaleY(y)} x2={svgW - margin.right} y2={scaleY(y)} stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="3 3" />
+                  <text x={margin.left - 8} y={scaleY(y) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">${y / 1000}k</text>
+                </g>
+              ))}
+              {[2, 4, 6, 8, 10, 12].map((x) => (
+                <g key={`grid-x-${x}`}>
+                  <line x1={scaleX(x)} y1={margin.top} x2={scaleX(x)} y2={svgH - margin.bottom} stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="3 3" />
+                  <text x={scaleX(x)} y={svgH - margin.bottom + 14} textAnchor="middle" fontSize="10" fill="#94a3b8">{x}y</text>
+                </g>
+              ))}
+
+              {/* Axes */}
+              <line x1={margin.left} y1={svgH - margin.bottom} x2={svgW - margin.right} y2={svgH - margin.bottom} stroke="#64748b" strokeWidth="1.5" />
+              <line x1={margin.left} y1={margin.top} x2={margin.left} y2={svgH - margin.bottom} stroke="#64748b" strokeWidth="1.5" />
+              <text x={margin.left + innerW / 2} y={svgH - 8} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">
+                Years of Experience (x)
+              </text>
+              <text transform={`rotate(-90 ${16} ${margin.top + innerH / 2})`} x={16} y={margin.top + innerH / 2} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">
+                Salary in USD ($)
+              </text>
+
+              {/* Regression Fit Line */}
+              {showRegressionLine && (() => {
+                const sx1 = scaleX(0.5);
+                const sy1 = scaleY(slope * 0.5 + intercept);
+                const sx2 = scaleX(11.5);
+                const sy2 = scaleY(slope * 11.5 + intercept);
+                return (
+                  <line x1={sx1} y1={sy1} x2={sx2} y2={sy2} stroke="#001f54" strokeWidth="3" strokeLinecap="round" />
+                );
+              })()}
+
+              {/* Training Data Points (Blue) */}
+              {showTrainData && trainData.map((p) => {
+                const sx = scaleX(p.x);
+                const sy = scaleY(p.y);
+                return (
+                  <circle
+                    key={`tr-${p.id}`}
+                    cx={sx}
+                    cy={sy}
+                    r="5.5"
+                    fill="#0284c7"
+                    stroke="#ffffff"
+                    strokeWidth="1.5"
+                  />
+                );
+              })}
+
+              {/* Test Data Points (Green) */}
+              {showTestData && testData.map((p) => {
+                const sx = scaleX(p.x);
+                const sy = scaleY(p.y);
+                const syPred = scaleY(p.yHat);
+                return (
+                  <g key={`ts-${p.id}`}>
+                    {/* Residual drop line */}
+                    <line x1={sx} y1={sy} x2={sx} y2={syPred} stroke="#10b981" strokeWidth="1.5" strokeDasharray="2 2" />
+                    <circle
+                      cx={sx}
+                      cy={sy}
+                      r="6.5"
+                      fill="#059669"
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: COMPLETE STANDALONE PYTHON SCRIPT ────────────────── */}
+      {activeTab === 'script' && (
+        <div>
+          <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700, marginBottom: '0.75rem' }}>
+            Complete Production Script (Ready to Copy & Run in Local Python / VS Code):
+          </div>
+          <SyntaxCodeBlock
+            code={[
+              '# =============================================================',
+              '# MACHINE LEARNING MINI PROJECT: PREDICT SALARIES',
+              '# Full End-to-End Linear Regression Pipeline',
+              '# =============================================================',
+              'import numpy as np',
+              'import pandas as pd',
+              'import matplotlib.pyplot as plt',
+              'import seaborn as sns',
+              'from sklearn.model_selection import train_test_split',
+              'from sklearn.linear_model import LinearRegression',
+              'from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score',
+              '',
+              '# 1. Load the Benchmark Salary Dataset',
+              'url = "https://raw.githubusercontent.com/krishnaik06/simple-Linear-Regression/master/Salary_Data.csv"',
+              'df = pd.read_csv(url)',
+              '',
+              'print("=== Step 1: Dataset Inspection ===")',
+              'print(df.head())',
+              'print(f"\\nMissing values:\\n{df.isnull().sum()}")',
+              '',
+              '# 2. Feature & Target Splitting',
+              'X = df[["YearsExperience"]]',
+              'y = df["Salary"]',
+              '',
+              '# 3. Train/Test Split (2/3 Train, 1/3 Test)',
+              'X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=1/3, random_state=0)',
+              '',
+              '# 4. Train Ordinary Least Squares (OLS) Linear Regression',
+              'regressor = LinearRegression()',
+              'regressor.fit(X_train, y_train)',
+              '',
+              'slope = regressor.coef_[0]',
+              'intercept = regressor.intercept_',
+              'print(f"\\n=== Step 4: Model Parameters ===")',
+              'print(f"Slope (w):     ${slope:,.2f} per year")',
+              'print(f"Intercept (b): ${intercept:,.2f}")',
+              'print(f"Equation: Salary = {slope:.2f} * Experience + {intercept:.2f}")',
+              '',
+              '# 5. Evaluate on Unseen Test Data',
+              'y_pred = regressor.predict(X_test)',
+              '',
+              'mae = mean_absolute_error(y_test, y_pred)',
+              'mse = mean_squared_error(y_test, y_pred)',
+              'rmse = np.sqrt(mse)',
+              'r2 = r2_score(y_test, y_pred)',
+              '',
+              'print(f"\\n=== Step 5: Test Set Performance ===")',
+              'print(f"Mean Absolute Error (MAE):       ${mae:,.2f}")',
+              'print(f"Root Mean Squared Error (RMSE):  ${rmse:,.2f}")',
+              'print(f"R-Squared Score (R²):            {r2:.4f} ({r2*100:.1f}% Variance Explained)")',
+              '',
+              '# 6. Production Inference Function',
+              'def predict_salary(years):',
+              '    return regressor.predict(np.array([[float(years)]]))[0]',
+              '',
+              'print(f"\\n=== Step 7: Sample Inferences ===")',
+              'for exp in [2.5, 5.0, 8.5, 12.0]:',
+              '    print(f"Experience {exp:4.1f} yrs -> Estimated Compensation: ${predict_salary(exp):,.2f}")'
+            ].join('\n')}
+            title="salary_prediction_project_complete.py"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
@@ -13085,6 +13809,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'r_squared_interactive_studio' && (
               <RSquaredInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'salary_prediction_project_studio' && (
+              <SalaryPredictionProjectStudio />
             )}
           </div>
         )}

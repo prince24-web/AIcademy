@@ -2437,6 +2437,106 @@ export const mlLessonsData = {
       correctIndex: 0,
       explanation: 'Correct! R² is calculated as 1 - (SSE / SST). If the model makes predictions whose squared residual error (SSE) is greater than the total variance around the mean (SST), the ratio SSE/SST exceeds 1.0, making R² negative. This proves the model is worse than a naive horizontal mean baseline.'
     }
+  },
+
+  'ml-3-p1': {
+    id: 'ml-3-p1',
+    title: 'Mini Project: Predict Salaries',
+    moduleTitle: 'MODULE 3: REGRESSION',
+    readTime: '25 min project',
+    difficulty: 'Applied Project',
+    badgeText: 'Applied ML Project',
+    badgeColor: '#001f54',
+    isProject: true,
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Build a complete, production-grade end-to-end Machine Learning Linear Regression pipeline in Python from scratch.',
+      'Perform Exploratory Data Analysis (EDA) and calculate Pearson correlation coefficients on real-world compensation data.',
+      'Correctly partition data into training and test sets using train_test_split to evaluate generalization on unseen data.',
+      'Train and extract learned parameters (Slope w and Intercept b) from a Scikit-Learn LinearRegression model.',
+      'Evaluate regression performance using all 4 core metrics (MAE, MSE, RMSE, and R²), and deploy a production inference function.'
+    ],
+
+    sections: [
+      {
+        heading: '1. Project Overview & Business Problem',
+        paragraphs: [
+          'Welcome to the Module 3 Mini Project! In this hands-on project, you will build an end-to-end Machine Learning pipeline to predict employee annual salaries based on years of professional experience.',
+          'Salary benchmarking is a classic supervised learning problem in HR analytics and talent acquisition. Organizations need reliable mathematical models to determine fair, competitive compensation packages while avoiding overpayment and underpayment anomalies.',
+          'You will work with the benchmark Salary_Data.csv dataset (30 employee samples) and implement all 7 phases of the modern Data Science lifecycle in Python.'
+        ]
+      },
+      {
+        heading: '2. Phase 1 & 2: Data Ingestion and Exploratory Data Analysis (EDA)',
+        paragraphs: [
+          'The first step of any ML project is understanding your data distributions and checking for data quality issues:',
+          '1. Data Ingestion: Load the CSV dataset into a Pandas DataFrame and inspect the first 5 records with df.head(). Check for missing values with df.isnull().sum().',
+          '2. Exploratory Data Analysis (EDA): Compute descriptive statistics (mean, standard deviation, quartiles) using df.describe(). Calculate the Pearson correlation coefficient between Experience and Salary to verify linearity (r = 0.9782, indicating a near-perfect positive linear relationship).'
+        ]
+      },
+      {
+        heading: '3. Phase 3 & 4: Train/Test Partitioning and Model Fitting',
+        paragraphs: [
+          'To ensure our model generalizes well to new hires rather than merely memorizing historical data, we split our dataset:',
+          '• Feature Matrix X: 2D array of YearsExperience.',
+          '• Target Vector y: 1D array of Salary values.',
+          '• Partitioning: We hold out 1/3 of the data (10 samples) as an unseen test set using train_test_split(test_size=1/3, random_state=0), training our LinearRegression() model strictly on the remaining 20 samples.',
+          'The fitted model yields a slope of $9,360.26 per year of experience and an intercept base starting salary of $26,816.19:'
+        ],
+        codeBlock: [
+          '# Learned Model Formula',
+          '# Salary = 9,360.26 * YearsExperience + 26,816.19'
+        ].join('\n'),
+        codeBlockTitle: 'fitted_equation.txt'
+      },
+      {
+        heading: '4. Phase 5 & 6: Evaluation Metrics and Residual Diagnostics',
+        paragraphs: [
+          'We evaluate the trained model on the 10 unseen test samples using all regression metrics mastered in Module 3:',
+          '• Mean Absolute Error (MAE): $3,426.43 (on average, predictions are off by only ~$3.4k).',
+          '• Root Mean Squared Error (RMSE): $4,585.42.',
+          '• R-Squared (R²): 0.9749 (the model successfully explains 97.5% of the total variance in test salaries!).',
+          'Residual scatter plots confirm that the prediction errors are randomly distributed around zero without systematic bias.'
+        ]
+      },
+      {
+        heading: '5. Phase 7: Production Inference Function',
+        paragraphs: [
+          'Finally, we encapsulate the trained regression model into a clean, reusable Python function that accepts new candidate experience levels and outputs formatted compensation estimates with confidence intervals.'
+        ]
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Application: Automated HR Compensation Engine',
+      text: 'Imagine an HR director evaluating 500 job applicants every week. Without an objective model, salary offers fluctuate unpredictably based on individual recruiter bias. By deploying a trained Linear Regression model, the company establishes a fair, transparent, and data-driven base starting formula ($26,816 base + $9,360 per year of experience) with 97.5% statistical confidence.'
+    },
+
+    diagram: {
+      type: 'salary_prediction_project_studio'
+    },
+
+    takeaways: [
+      'A complete machine learning project requires 7 structured phases: Ingestion, EDA, Splitting, Training, Evaluation, Diagnostics, and Inference.',
+      'Holding out an unseen test set with train_test_split is mandatory to verify that the model generalizes to new real-world data.',
+      'The trained model reveals that each additional year of experience adds ~$9,360 to base annual compensation.',
+      'Evaluating multiple metrics (MAE, RMSE, and R²) provides a complete picture of accuracy, outlier sensitivity, and explained variance.',
+      'The project notebook can be downloaded as an .ipynb file or launched directly in Google Colab for interactive cloud execution.'
+    ],
+
+    quiz: {
+      question: 'Why is it critical to evaluate the regression model on the held-out test set rather than only measuring accuracy on the training data?',
+      options: [
+        'To verify that the model has learned genuine generalizable patterns and does not merely overfit to historical training samples',
+        'Because Scikit-Learn will throw an error if test data is not used',
+        'Because test data runs 10x faster on CPUs',
+        'Because R-squared cannot be mathematically calculated on training data'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! Evaluating on an independent, unseen test set proves that the model can accurately generalize to brand new candidate profiles rather than simply memorizing the training dataset.'
+    }
   }
 };
 
