@@ -2166,6 +2166,136 @@ export const mlLessonsData = {
       correctIndex: 0,
       explanation: 'Correct! MSE squares the residuals, meaning its value is expressed in squared units (e.g. dollars squared). Taking the square root to compute RMSE restores the metric directly into original measurement units (e.g. dollars), which is much easier to communicate.'
     }
+  },
+
+  'ml-3-7': {
+    id: 'ml-3-7',
+    title: 'Mean Absolute Error (MAE)',
+    moduleTitle: 'MODULE 3: REGRESSION',
+    readTime: '15 min read',
+    difficulty: 'Beginner',
+    badgeText: 'Robust Regression',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Master the mathematical definition and formula of Mean Absolute Error: $\\text{MAE} = \\frac{1}{N}\\sum_{i=1}^N |y_i - \\hat{y}_i|$.',
+      'Understand why MAE provides direct linear interpretability in the original target units without requiring a square root operation.',
+      'Explain the Outlier Robustness property: why MAE ignores corrupt anomalies while MSE gets warped by them.',
+      'Understand the mathematical reason why minimizing MAE estimates the conditional Median, while minimizing MSE estimates the Mean.',
+      'Master Huber Loss (Smooth L1): the hybrid formulation that achieves both smooth differentiability and outlier immunity.'
+    ],
+
+    sections: [
+      {
+        heading: '1. What is Mean Absolute Error (MAE)?',
+        paragraphs: [
+          'Mean Absolute Error (MAE) measures the average absolute magnitude of the errors between a model\'s predictions $\\hat{y}$ and true ground truth targets $y$.',
+          'Instead of squaring the residuals, MAE takes the absolute value $|y_i - \\hat{y}_i|$ of each mistake, turning negative deviations into positive values along a straight linear scale:',
+          '$$\\text{MAE} = \\frac{1}{N} \\sum_{i=1}^{N} |y_i - \\hat{y}_i|$$',
+          'If a model predicting tech salaries has an MAE of $\\$5.2\\text{k}$, it means that on average, every single salary prediction is off by exactly $\\$5,200$.'
+        ]
+      },
+      {
+        heading: '2. The Linear Error Metric: Direct Interpretability',
+        paragraphs: [
+          'The greatest advantage of MAE is its direct, unambiguous interpretability:',
+          '• Unlike MSE (which produces squared units like $\\text{dollars}^2$), MAE is already in the original measurement units of the target variable.',
+          '• Unlike RMSE (which squares before square rooting, giving extra weight to large errors), MAE is pure linear average deviation.',
+          'Every error of size $e$ contributes exactly $e$ to the total error sum, regardless of whether it is the only mistake or one of a thousand mistakes.'
+        ]
+      },
+      {
+        heading: '3. MAE vs. MSE: The Battle of Outlier Robustness',
+        paragraphs: [
+          'Why would you choose MAE over MSE? The deciding factor is how your application should treat Outliers and Anomalies:',
+          '1. The Outlier Vulnerability of MSE:',
+          'Suppose 99 data points have an error of $1$, but 1 corrupted sensor reading has an error of $100$. For MSE, that single outlier contributes $100^2 = 10,000$ to the sum, completely dominating the loss and forcing the model to distort its parameters just to satisfy the corrupt point.',
+          '2. The Outlier Immunity of MAE:',
+          'For MAE, that same outlier contributes only $100$. The 99 normal points contribute a combined $99$. The model refuses to bend its line for the rogue point, staying firmly fitted to the genuine data cluster.',
+          'Statistically: minimizing MSE finds the Mean of the distribution, while minimizing MAE finds the robust Median.'
+        ]
+      },
+      {
+        heading: '4. The Calculus Challenge: The Non-Differentiable Corner',
+        paragraphs: [
+          'If MAE is so robust and interpretable, why isn\'t it used as the default loss function for every neural network and regression model?',
+          'The answer lies in calculus and gradient descent:',
+          '• The derivative of the absolute value function $f(e) = |e|$ is discontinuous at $e = 0$:',
+          '$$\\frac{d}{de}|e| = \\begin{cases} +1 & \\text{if } e > 0 \\\\ -1 & \\text{if } e < 0 \\\\ \\text{undefined} & \\text{if } e = 0 \\end{cases}$$',
+          'Because the slope is constantly $\\pm 1$ and never naturally decays to zero near the minimum, standard gradient descent tends to overshoot and bounce back and forth across the valley floor instead of settling down smoothly.'
+        ]
+      },
+      {
+        heading: '5. The Best of Both Worlds: Huber Loss (Smooth L1)',
+        paragraphs: [
+          'To solve the non-differentiable corner of MAE while retaining its outlier immunity, statisticians designed Huber Loss:',
+          'Huber Loss uses a threshold $\\delta$ (delta). For small errors ($|e| \\le \\delta$), it behaves quadratically like MSE (smooth derivatives). For large errors ($|e| > \\delta$), it transitions into a straight linear line like MAE (outlier resistance):',
+          '$$L_\\delta(e) = \\begin{cases} \\frac{1}{2} e^2 & \\text{for } |e| \\le \\delta \\\\ \\delta (|e| - \\frac{1}{2}\\delta) & \\text{for } |e| > \\delta \\end{cases}$$',
+          'Huber Loss is widely used in modern computer vision (e.g. bounding box regression in Fast R-CNN) and robust regression.'
+        ]
+      },
+      {
+        heading: '6. Python Code: Computing MAE and Huber Loss',
+        paragraphs: [
+          'Here is how to calculate MAE and Huber Loss in Python using Scikit-Learn and pure NumPy:'
+        ],
+        codeBlock: [
+          '# Calculating MAE and Huber Loss in Python',
+          'import numpy as np',
+          'from sklearn.metrics import mean_absolute_error, mean_squared_error',
+          '',
+          '# 1. Dataset with 4 Normal Points + 1 Heavy Outlier',
+          'y_true = np.array([45.0, 55.0, 65.0, 80.0, 250.0]) # 250k is an outlier',
+          'y_pred = np.array([40.0, 55.0, 70.0, 85.0, 100.0])',
+          '',
+          '# 2. Compute Absolute Residuals',
+          'residuals = y_true - y_pred',
+          'abs_residuals = np.abs(residuals)',
+          '',
+          '# 3. Compute Metrics',
+          'mae_val = mean_absolute_error(y_true, y_pred)',
+          'mse_val = mean_squared_error(y_true, y_pred)',
+          'rmse_val = np.sqrt(mse_val)',
+          '',
+          'print(f"Absolute Residuals: {abs_residuals}")',
+          'print(f"MAE  (Robust):      ${mae_val:.2f}k (Linear Impact)")',
+          'print(f"RMSE (Sensitve):    ${rmse_val:.2f}k (Distorted by Outlier)")',
+          'print(f"MSE  (Exploded):    {mse_val:.2f} ($k)^2")'
+        ].join('\n'),
+        codeBlockTitle: 'mae_vs_mse_outlier_demo.py'
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Flat-Rate Penalty vs Exponential Penalty',
+      text: 'Imagine two traffic enforcement systems. In System A (MAE), speeding by 10 mph costs $50, and speeding by 50 mph costs $250 (strict linear 5x penalty). In System B (MSE), speeding by 10 mph costs $100 ($10^2$), but speeding by 50 mph costs $2,500 ($50^2$). If a speed sensor has a single electronic glitch reporting 200 mph, System B destroys the driver with an impossible $40,000 fine, whereas System A remains reasonable and robust.'
+    },
+
+    diagram: {
+      type: 'mae_interactive_studio'
+    },
+
+    takeaways: [
+      'Mean Absolute Error (MAE) computes the average absolute distance between predictions and true values: $\\text{MAE} = \\frac{1}{N}\\sum |y_i - \\hat{y}_i|$.',
+      'MAE is directly expressed in the original units of the target variable, making it intuitive to interpret without square roots.',
+      'Unlike MSE, MAE is highly robust against corrupted outliers because it scales linearly rather than quadratically.',
+      'Minimizing MAE models the conditional Median, whereas minimizing MSE models the conditional Mean.',
+      'Huber Loss combines the smooth quadratic calculus of MSE for small errors with the robust linear penalty of MAE for large errors.'
+    ],
+
+    quiz: {
+      question: 'Under what circumstances should a machine learning engineer prefer Mean Absolute Error (MAE) over Mean Squared Error (MSE)?',
+      options: [
+        'When the dataset contains noisy measurements or extreme outliers that should not disproportionately warp the regression line',
+        'When the model must penalize large mistakes with extreme exponential severity',
+        'When working only with categorical text labels in classification',
+        'When training on GPUs with zero floating point operations'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! Because MAE scales errors linearly (|e|) rather than quadratically (e²), a single extreme outlier will not dominate the total loss, allowing the model to remain robust and well-fitted to the majority data cluster.'
+    }
   }
 };
 

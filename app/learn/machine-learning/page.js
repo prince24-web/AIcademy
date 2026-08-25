@@ -189,7 +189,7 @@ const mlModules = [
       { id: 'ml-3-4', name: 'Cost/Loss Functions', nodeType: 'lightbulb', status: 'active' },
       { id: 'ml-3-5', name: 'Gradient Descent', nodeType: 'star', status: 'active' },
       { id: 'ml-3-6', name: 'Mean Squared Error (MSE)', nodeType: 'concept', status: 'active' },
-      { id: 'ml-3-7', name: 'Mean Absolute Error (MAE)', nodeType: 'concept', status: 'locked' },
+      { id: 'ml-3-7', name: 'Mean Absolute Error (MAE)', nodeType: 'concept', status: 'active' },
       { id: 'ml-3-8', name: 'R-Squared (R²)', nodeType: 'concept', status: 'locked' },
       { id: 'ml-3-p1', name: 'Mini Project: Predict Salaries', nodeType: 'project', status: 'locked', isProject: true },
     ]

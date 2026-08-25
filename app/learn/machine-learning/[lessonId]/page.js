@@ -11631,6 +11631,572 @@ const MSEInteractiveStudio = () => {
   );
 };
 
+// ─── MEAN ABSOLUTE ERROR (MAE) INTERACTIVE STUDIO ───────────────────────────
+const MAEInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('battle');
+  const [outlierY, setOutlierY] = useState(190.0); // Outlier salary level in $k
+  const [manualSlope, setManualSlope] = useState(15.0);
+  const [manualIntercept, setManualIntercept] = useState(25.0);
+  const [huberDelta, setHuberDelta] = useState(2.0);
+
+  // Dataset: 5 clean inlier points + 1 draggable outlier
+  const dataPoints = useMemo(() => [
+    { id: 1, x: 1.0, y: 45.0, isOutlier: false },
+    { id: 2, x: 2.0, y: 55.0, isOutlier: false },
+    { id: 3, x: 3.0, y: 65.0, isOutlier: false },
+    { id: 4, x: 4.0, y: 80.0, isOutlier: false },
+    { id: 5, x: 5.0, y: 110.0, isOutlier: false },
+    { id: 6, x: 3.5, y: outlierY, isOutlier: true }
+  ], [outlierY]);
+
+  // Analytical Calculations for MSE-Optimal line vs MAE-Optimal line
+  const linesComparison = useMemo(() => {
+    const N = dataPoints.length;
+
+    // 1. Analytical OLS (MSE-Optimal Line)
+    let sumX = 0, sumY = 0;
+    dataPoints.forEach((p) => { sumX += p.x; sumY += p.y; });
+    const meanX = sumX / N;
+    const meanY = sumY / N;
+
+    let num = 0, den = 0;
+    dataPoints.forEach((p) => {
+      num += (p.x - meanX) * (p.y - meanY);
+      den += Math.pow(p.x - meanX, 2);
+    });
+    const mseSlope = num / den;
+    const mseIntercept = meanY - mseSlope * meanX;
+
+    // 2. MAE-Optimal Line (Robust L1 Median Regression)
+    // Finding minimum MAE over fine search grid
+    let bestMaeW = 15.0, bestMaeB = 25.0, minMae = Infinity;
+    for (let w = 12.0; w <= 18.0; w += 0.2) {
+      for (let b = 20.0; b <= 30.0; b += 0.5) {
+        let totalAbs = 0;
+        dataPoints.forEach((p) => {
+          totalAbs += Math.abs(p.y - (w * p.x + b));
+        });
+        if (totalAbs < minMae) {
+          minMae = totalAbs;
+          bestMaeW = w;
+          bestMaeB = b;
+        }
+      }
+    }
+
+    // Evaluate both lines on all points
+    let mseLineSSE = 0, mseLineSAE = 0;
+    let maeLineSSE = 0, maeLineSAE = 0;
+
+    dataPoints.forEach((p) => {
+      const predMSE = mseSlope * p.x + mseIntercept;
+      const predMAE = bestMaeW * p.x + bestMaeB;
+
+      mseLineSSE += Math.pow(p.y - predMSE, 2);
+      mseLineSAE += Math.abs(p.y - predMSE);
+
+      maeLineSSE += Math.pow(p.y - predMAE, 2);
+      maeLineSAE += Math.abs(p.y - predMAE);
+    });
+
+    return {
+      mseLine: {
+        w: mseSlope,
+        b: mseIntercept,
+        mse: mseLineSSE / N,
+        mae: mseLineSAE / N,
+        rmse: Math.sqrt(mseLineSSE / N)
+      },
+      maeLine: {
+        w: bestMaeW,
+        b: bestMaeB,
+        mse: maeLineSSE / N,
+        mae: maeLineSAE / N,
+        rmse: Math.sqrt(maeLineSSE / N)
+      }
+    };
+  }, [dataPoints]);
+
+  // Linear Distance residuals for Tab 2
+  const linearMetrics = useMemo(() => {
+    let totalAbs = 0;
+    const items = dataPoints.map((p) => {
+      const yHat = manualSlope * p.x + manualIntercept;
+      const residual = p.y - yHat;
+      const absErr = Math.abs(residual);
+      totalAbs += absErr;
+      return { ...p, yHat, residual, absErr };
+    });
+    return { items, mae: totalAbs / dataPoints.length };
+  }, [dataPoints, manualSlope, manualIntercept]);
+
+  // SVG Scales (X: 0 to 6, Y: 0 to 280)
+  const svgW = 680;
+  const svgH = 340;
+  const margin = { left: 55, right: 35, top: 25, bottom: 45 };
+  const innerW = svgW - margin.left - margin.right;
+  const innerH = svgH - margin.top - margin.bottom;
+
+  const scaleX = (x) => margin.left + (x / 6.0) * innerW;
+  const scaleY = (y) => margin.top + innerH - (y / 280.0) * innerH;
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER BAR ─────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #059669)',
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(5,150,105,0.25)'
+          }}>
+            <IconSparkles size={22} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#001f54' }}>
+              Mean Absolute Error (MAE) Interactive Studio
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+              Experience MAE outlier immunity vs. MSE warping in real-time, plus Huber Loss exploration
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { id: 'battle', label: 'MAE vs MSE Outlier Arena' },
+            { id: 'linear', label: 'Linear Error Distances' },
+            { id: 'huber', label: 'Huber Loss (Smooth L1)' },
+            { id: 'code', label: 'Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: MAE VS MSE OUTLIER BATTLE ARENA ──────────────────── */}
+      {activeTab === 'battle' && (
+        <div>
+          {/* Comparison Scoreboard */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1rem',
+            marginBottom: '1.25rem'
+          }}>
+            {/* Green Card: MAE Robust Line */}
+            <div style={{ background: '#ecfdf5', padding: '1.1rem', borderRadius: '14px', border: '1.5px solid #a7f3d0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <span style={{ width: '12px', height: '3.5px', background: '#059669', borderRadius: '2px', display: 'inline-block' }}></span>
+                <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800, textTransform: 'uppercase' }}>
+                  MAE-Optimal Line (Robust)
+                </span>
+              </div>
+              <div style={{ fontSize: '1.55rem', fontWeight: 900, color: '#047857' }}>
+                MAE: ${linesComparison.maeLine.mae.toFixed(2)}k
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '4px' }}>
+                Equation: <MathFormula math={`\\hat{y} = ${linesComparison.maeLine.w.toFixed(1)}x + ${linesComparison.maeLine.b.toFixed(1)}`} />
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
+                Ignores the outlier and stays centered on normal points!
+              </div>
+            </div>
+
+            {/* Blue Card: MSE Vulnerable Line */}
+            <div style={{ background: '#eff6ff', padding: '1.1rem', borderRadius: '14px', border: '1.5px solid #bfdbfe' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <span style={{ width: '12px', height: '3.5px', background: '#0284c7', borderRadius: '2px', display: 'inline-block' }}></span>
+                <span style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 800, textTransform: 'uppercase' }}>
+                  MSE-Optimal Line (Warped)
+                </span>
+              </div>
+              <div style={{ fontSize: '1.55rem', fontWeight: 900, color: '#0369a1' }}>
+                MSE: {linesComparison.mseLine.mse.toFixed(1)} ($k)²
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#0369a1', marginTop: '4px' }}>
+                Equation: <MathFormula math={`\\hat{y} = ${linesComparison.mseLine.w.toFixed(1)}x + ${linesComparison.mseLine.b.toFixed(1)}`} />
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 700, marginTop: '2px' }}>
+                Severely pulled upward to satisfy the outlier!
+              </div>
+            </div>
+
+            {/* Outlier Impact Status */}
+            <div style={{ background: '#f8fafc', padding: '1.1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                Outlier Penalty Multiplier
+              </div>
+              <div style={{ fontSize: '1.55rem', fontWeight: 900, color: '#dc2626', marginTop: '2px' }}>
+                {Math.pow(outlierY - (15 * 3.5 + 25), 2).toFixed(0)} vs {(outlierY - (15 * 3.5 + 25)).toFixed(0)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                MSE penalty is {((Math.pow(outlierY - (15 * 3.5 + 25), 2)) / Math.max(1, (outlierY - (15 * 3.5 + 25)))).toFixed(0)}x larger than MAE!
+              </div>
+            </div>
+          </div>
+
+          {/* SVG Canvas: MAE vs MSE Outlier Battle */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.02)',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Outlier Arena: Drag Slider Below to Move Outlier Point (Red Dot)
+              </span>
+              <div style={{ display: 'flex', gap: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
+                <span style={{ color: '#059669' }}>— Green Line: MAE Robust Fit</span>
+                <span style={{ color: '#0284c7' }}>— Blue Line: MSE Warped Fit</span>
+              </div>
+            </div>
+
+            <svg viewBox={`0 0 ${svgW} ${svgH}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+              {/* Grid Lines */}
+              {[60, 120, 180, 240].map((y) => (
+                <g key={`grid-y-${y}`}>
+                  <line x1={margin.left} y1={scaleY(y)} x2={svgW - margin.right} y2={scaleY(y)} stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="3 3" />
+                  <text x={margin.left - 8} y={scaleY(y) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">${y}k</text>
+                </g>
+              ))}
+              {[1, 2, 3, 4, 5].map((x) => (
+                <g key={`grid-x-${x}`}>
+                  <line x1={scaleX(x)} y1={margin.top} x2={scaleX(x)} y2={svgH - margin.bottom} stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="3 3" />
+                  <text x={scaleX(x)} y={svgH - margin.bottom + 14} textAnchor="middle" fontSize="10" fill="#94a3b8">{x}y</text>
+                </g>
+              ))}
+
+              {/* Axes */}
+              <line x1={margin.left} y1={svgH - margin.bottom} x2={svgW - margin.right} y2={svgH - margin.bottom} stroke="#64748b" strokeWidth="1.5" />
+              <line x1={margin.left} y1={margin.top} x2={margin.left} y2={svgH - margin.bottom} stroke="#64748b" strokeWidth="1.5" />
+
+              {/* MAE Robust Line (Green) */}
+              {(() => {
+                const sx1 = scaleX(0.5);
+                const sy1 = scaleY(linesComparison.maeLine.w * 0.5 + linesComparison.maeLine.b);
+                const sx2 = scaleX(5.5);
+                const sy2 = scaleY(linesComparison.maeLine.w * 5.5 + linesComparison.maeLine.b);
+                return (
+                  <line x1={sx1} y1={sy1} x2={sx2} y2={sy2} stroke="#059669" strokeWidth="3.5" strokeLinecap="round" />
+                );
+              })()}
+
+              {/* MSE Warped Line (Blue) */}
+              {(() => {
+                const sx1 = scaleX(0.5);
+                const sy1 = scaleY(linesComparison.mseLine.w * 0.5 + linesComparison.mseLine.b);
+                const sx2 = scaleX(5.5);
+                const sy2 = scaleY(linesComparison.mseLine.w * 5.5 + linesComparison.mseLine.b);
+                return (
+                  <line x1={sx1} y1={sy1} x2={sx2} y2={sy2} stroke="#0284c7" strokeWidth="3.5" strokeLinecap="round" strokeDasharray="4 4" />
+                );
+              })()}
+
+              {/* Data Points */}
+              {dataPoints.map((p) => {
+                const sx = scaleX(p.x);
+                const sy = scaleY(p.y);
+
+                return (
+                  <g key={`p-${p.id}`}>
+                    {/* Circle */}
+                    <circle
+                      cx={sx}
+                      cy={sy}
+                      r={p.isOutlier ? 8.0 : 6.0}
+                      fill={p.isOutlier ? '#dc2626' : '#001f54'}
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+
+                    {/* Outlier Label */}
+                    {p.isOutlier && (
+                      <g>
+                        <rect x={sx + 10} y={sy - 12} width="110" height="22" rx="6" fill="#fef2f2" stroke="#fecaca" strokeWidth="1.5" />
+                        <text x={sx + 65} y={sy + 3} textAnchor="middle" fontSize="9.5" fill="#dc2626" fontWeight="800">
+                          Outlier: ${p.y}k
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Interactive Outlier Drag Slider */}
+          <div style={{
+            background: '#f8fafc',
+            padding: '1.25rem',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Adjust Outlier Value (Red Dot): <code style={{ color: '#dc2626' }}>${outlierY.toFixed(0)}k</code>
+              </span>
+              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                Drag slider to watch the blue line distort while the green line holds firm!
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="80.0"
+              max="260.0"
+              step="5.0"
+              value={outlierY}
+              onChange={(e) => setOutlierY(parseFloat(e.target.value))}
+              style={{ width: '100%', accentColor: '#dc2626', cursor: 'pointer' }}
+            />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setOutlierY(80.0)}
+                style={{
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Normal Range ($80k)
+              </button>
+              <button
+                onClick={() => setOutlierY(170.0)}
+                style={{
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Moderate Outlier ($170k)
+              </button>
+              <button
+                onClick={() => setOutlierY(260.0)}
+                style={{
+                  background: '#fef2f2',
+                  color: '#dc2626',
+                  border: '1px solid #fecaca',
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                Extreme Outlier ($260k)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: LINEAR ERROR DISTANCES STUDIO ────────────────────── */}
+      {activeTab === 'linear' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              Pure Linear Vertical Distances: Direct Average Error
+            </h4>
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.88rem', color: '#334155', lineHeight: '1.6' }}>
+              Unlike MSE where errors are squared into physical boxes, MAE is the straight average length of the vertical drop bars:
+            </p>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#001f54', color: '#ffffff', textAlign: 'left' }}>
+                    <th style={{ padding: '8px 12px', borderRadius: '8px 0 0 0' }}>Data Sample</th>
+                    <th style={{ padding: '8px 12px' }}>Experience (x)</th>
+                    <th style={{ padding: '8px 12px' }}>Actual Salary (y)</th>
+                    <th style={{ padding: '8px 12px' }}>Predicted (ŷ)</th>
+                    <th style={{ padding: '8px 12px' }}>Residual (y - ŷ)</th>
+                    <th style={{ padding: '8px 12px', borderRadius: '0 8px 0 0' }}>Absolute Error |y - ŷ|</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {linearMetrics.items.map((p, idx) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                      <td style={{ padding: '8px 12px', fontWeight: 700, color: p.isOutlier ? '#dc2626' : '#001f54' }}>
+                        {p.isOutlier ? 'Outlier Point' : `Sample ${p.id}`}
+                      </td>
+                      <td style={{ padding: '8px 12px' }}>{p.x} yrs</td>
+                      <td style={{ padding: '8px 12px' }}>${p.y}k</td>
+                      <td style={{ padding: '8px 12px' }}>${p.yHat.toFixed(1)}k</td>
+                      <td style={{ padding: '8px 12px', color: p.residual >= 0 ? '#059669' : '#dc2626', fontWeight: 700 }}>
+                        {p.residual >= 0 ? `+${p.residual.toFixed(1)}` : p.residual.toFixed(1)}
+                      </td>
+                      <td style={{ padding: '8px 12px', fontWeight: 800, color: '#059669' }}>
+                        ${p.absErr.toFixed(1)}k
+                      </td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: '#ecfdf5', fontWeight: 800 }}>
+                    <td colSpan={5} style={{ padding: '10px 12px', color: '#047857' }}>
+                      Mean Absolute Error (MAE = (1/N) ∑ |y - ŷ|):
+                    </td>
+                    <td style={{ padding: '10px 12px', color: '#047857', fontSize: '1.05rem' }}>
+                      ${linearMetrics.mae.toFixed(2)}k
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: HUBER LOSS EXPLORER ──────────────────────────────── */}
+      {activeTab === 'huber' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              Huber Loss: Smooth Quadratic at Small Errors + Linear at Large Errors
+            </h4>
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.88rem', color: '#334155', lineHeight: '1.6' }}>
+              Huber Loss uses a transition threshold <MathFormula math="\delta" />. Below <MathFormula math="\delta" />, it is smooth like MSE (easy calculus). Above <MathFormula math="\delta" />, it scales linearly like MAE (outlier resistant).
+            </p>
+
+            <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                  Huber Threshold (δ): {huberDelta.toFixed(1)}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  Drag to adjust transition point
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="5.0"
+                step="0.5"
+                value={huberDelta}
+                onChange={(e) => setHuberDelta(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+              />
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1.5px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>Error Region |e| ≤ {huberDelta.toFixed(1)}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>Quadratic (MSE mode)</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Smooth gradient descent convergence</div>
+                </div>
+                <div style={{ background: '#ecfdf5', padding: '0.75rem', borderRadius: '8px', border: '1.5px solid #a7f3d0' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 800 }}>Error Region |e| &gt; {huberDelta.toFixed(1)}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#059669', marginTop: '2px' }}>Linear (MAE mode)</div>
+                  <div style={{ fontSize: '0.72rem', color: '#047857' }}>Immunity against extreme outlier damage</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: PYTHON IMPLEMENTATION ───────────────────────────── */}
+      {activeTab === 'code' && (
+        <div>
+          <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700, marginBottom: '0.75rem' }}>
+            Computing MAE & Huber Loss with Scikit-Learn:
+          </div>
+          <SyntaxCodeBlock
+            code={[
+              '# Calculating MAE and Robust Huber Regression in Python',
+              '# ─────────────────────────────────────────────────────────────',
+              'import numpy as np',
+              'from sklearn.metrics import mean_absolute_error, mean_squared_error',
+              'from sklearn.linear_model import HuberRegressor, LinearRegression',
+              '',
+              '# 1. Dataset with a Heavy Outlier',
+              'X = np.array([[1.0], [2.0], [3.0], [4.0], [5.0], [3.5]])',
+              'y = np.array([45.0, 55.0, 65.0, 80.0, 110.0, 220.0]) # 220 is an outlier',
+              '',
+              '# 2. Fit Standard OLS (MSE) vs Robust Huber Regressor',
+              'ols_model = LinearRegression().fit(X, y)',
+              'huber_model = HuberRegressor().fit(X, y)',
+              '',
+              '# 3. Predict on clean inliers',
+              'clean_X = np.array([[3.0]])',
+              'print(f"True inlier value for x=3.0: 65.0")',
+              'print(f"Standard OLS prediction:      {ols_model.predict(clean_X)[0]:.2f} (Distorted!)")',
+              'print(f"Huber Robust prediction:      {huber_model.predict(clean_X)[0]:.2f} (Clean!)")',
+              '',
+              '# 4. Compute MAE',
+              'mae_ols = mean_absolute_error(y, ols_model.predict(X))',
+              'mae_huber = mean_absolute_error(y, huber_model.predict(X))',
+              'print(f"\\nMAE for OLS:   ${mae_ols:.2f}k")',
+              'print(f"MAE for Huber: ${mae_huber:.2f}k")'
+            ].join('\n')}
+            title="mae_huber_regression.py"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
@@ -11811,6 +12377,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'mse_interactive_studio' && (
               <MSEInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'mae_interactive_studio' && (
+              <MAEInteractiveStudio />
             )}
           </div>
         )}
