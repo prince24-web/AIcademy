@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import katex from 'katex';
@@ -8274,6 +8274,879 @@ const MultipleLinearRegression3DStudio = () => {
   );
 };
 
+// ─── POLYNOMIAL REGRESSION INTERACTIVE STUDIO ───────────────────────────────
+const PolynomialRegressionInteractiveStudio = () => {
+  // 10 Real-World Training Points: Years of Experience vs Tech Salary ($k)
+  const trainPoints = useMemo(() => [
+    { id: 't1', x: 1.0, y: 45, label: '1.0 yr ($45k)' },
+    { id: 't2', x: 2.0, y: 50, label: '2.0 yrs ($50k)' },
+    { id: 't3', x: 3.0, y: 60, label: '3.0 yrs ($60k)' },
+    { id: 't4', x: 4.0, y: 80, label: '4.0 yrs ($80k)' },
+    { id: 't5', x: 5.0, y: 110, label: '5.0 yrs ($110k)' },
+    { id: 't6', x: 6.0, y: 150, label: '6.0 yrs ($150k)' },
+    { id: 't7', x: 7.0, y: 200, label: '7.0 yrs ($200k)' },
+    { id: 't8', x: 8.0, y: 260, label: '8.0 yrs ($260k)' },
+    { id: 't9', x: 9.0, y: 330, label: '9.0 yrs ($330k)' },
+    { id: 't10', x: 10.0, y: 410, label: '10.0 yrs ($410k)' }
+  ], []);
+
+  // 4 Unseen Validation/Test Points to evaluate generalization & detect overfitting
+  const testPoints = useMemo(() => [
+    { id: 'v1', x: 1.5, y: 47, label: 'Test: 1.5 yrs ($47k)' },
+    { id: 'v2', x: 4.5, y: 94, label: 'Test: 4.5 yrs ($94k)' },
+    { id: 'v3', x: 6.5, y: 172, label: 'Test: 6.5 yrs ($172k)' },
+    { id: 'v4', x: 8.5, y: 290, label: 'Test: 8.5 yrs ($290k)' }
+  ], []);
+
+  // Interactive controls
+  const [degree, setDegree] = useState(2); // Default to optimal degree 2
+  const [showResiduals, setShowResiduals] = useState(true);
+  const [showTestData, setShowTestData] = useState(true);
+  const [activeTab, setActiveTab] = useState('studio');
+  const [predExp, setPredExp] = useState(5.5);
+
+  // Gaussian elimination solver for OLS Normal Equation (X^T X) W = X^T Y
+  const solvedWeights = useMemo(() => {
+    const n = trainPoints.length;
+    const k = degree + 1;
+
+    // Normal Equation System: A * W = B
+    const A = Array.from({ length: k }, () => Array(k).fill(0));
+    const B = Array(k).fill(0);
+
+    for (let row = 0; row < k; row++) {
+      for (let col = 0; col < k; col++) {
+        let sumX = 0;
+        for (let p = 0; p < n; p++) {
+          sumX += Math.pow(trainPoints[p].x, row + col);
+        }
+        A[row][col] = sumX;
+      }
+      let sumY = 0;
+      for (let p = 0; p < n; p++) {
+        sumY += trainPoints[p].y * Math.pow(trainPoints[p].x, row);
+      }
+      B[row] = sumY;
+    }
+
+    // Gaussian Elimination with Partial Pivoting
+    for (let i = 0; i < k; i++) {
+      let maxRow = i;
+      for (let r = i + 1; r < k; r++) {
+        if (Math.abs(A[r][i]) > Math.abs(A[maxRow][i])) maxRow = r;
+      }
+      [A[i], A[maxRow]] = [A[maxRow], A[i]];
+      [B[i], B[maxRow]] = [B[maxRow], B[i]];
+
+      // Avoid division by near zero
+      if (Math.abs(A[i][i]) < 1e-12) continue;
+
+      for (let r = i + 1; r < k; r++) {
+        const factor = A[r][i] / A[i][i];
+        for (let c = i; c < k; c++) {
+          A[r][c] -= factor * A[i][c];
+        }
+        B[r] -= factor * B[i];
+      }
+    }
+
+    // Back-Substitution
+    const W = Array(k).fill(0);
+    for (let i = k - 1; i >= 0; i--) {
+      let sum = B[i];
+      for (let c = i + 1; c < k; c++) {
+        sum -= A[i][c] * W[c];
+      }
+      W[i] = A[i][i] !== 0 ? sum / A[i][i] : 0;
+    }
+
+    return W; // [w0, w1, w2, ..., wd]
+  }, [trainPoints, degree]);
+
+  // Evaluate polynomial function at any x: f(x) = sum(w_d * x^d)
+  const evaluatePoly = useCallback((xVal) => {
+    let yHat = 0;
+    for (let d = 0; d < solvedWeights.length; d++) {
+      yHat += solvedWeights[d] * Math.pow(xVal, d);
+    }
+    return yHat;
+  }, [solvedWeights]);
+
+  // Compute Loss Metrics (Training MSE, Test MSE, R^2)
+  const metrics = useMemo(() => {
+    // 1. Training Error
+    let trainSSE = 0;
+    let sumY = 0;
+    const trainCalculations = trainPoints.map((p) => {
+      const yHat = evaluatePoly(p.x);
+      const residual = p.y - yHat;
+      const squaredError = Math.pow(residual, 2);
+      trainSSE += squaredError;
+      sumY += p.y;
+      return { ...p, yHat, residual, squaredError };
+    });
+    const trainMSE = trainSSE / trainPoints.length;
+
+    // Standard R^2
+    const meanY = sumY / trainPoints.length;
+    let totalTSS = 0;
+    trainPoints.forEach((p) => {
+      totalTSS += Math.pow(p.y - meanY, 2);
+    });
+    const r2 = Math.max(0, 1 - (trainSSE / totalTSS));
+
+    // 2. Test/Validation Error
+    let testSSE = 0;
+    const testCalculations = testPoints.map((p) => {
+      const yHat = evaluatePoly(p.x);
+      const residual = p.y - yHat;
+      const squaredError = Math.pow(residual, 2);
+      testSSE += squaredError;
+      return { ...p, yHat, residual, squaredError };
+    });
+    const testMSE = testSSE / testPoints.length;
+
+    return {
+      trainCalculations,
+      trainMSE,
+      trainRMSE: Math.sqrt(trainMSE),
+      testCalculations,
+      testMSE,
+      testRMSE: Math.sqrt(testMSE),
+      r2
+    };
+  }, [trainPoints, testPoints, evaluatePoly]);
+
+  // Formatting polynomial KaTeX equation string
+  const katexFormula = useMemo(() => {
+    if (!solvedWeights || solvedWeights.length === 0) return '\\hat{y} = 0';
+    const parts = [];
+    for (let d = solvedWeights.length - 1; d >= 0; d--) {
+      const coef = solvedWeights[d];
+      if (Math.abs(coef) < 0.0001 && d !== 0) continue;
+      const formatted = Math.abs(coef) >= 100 ? coef.toFixed(1) : Math.abs(coef) >= 1 ? coef.toFixed(2) : coef.toExponential(2);
+      if (d === 0) {
+        parts.push(`${coef >= 0 ? '+' : '-'} ${Math.abs(Number(formatted))}`);
+      } else if (d === 1) {
+        parts.push(`${coef >= 0 && parts.length > 0 ? '+' : ''}${formatted}x`);
+      } else {
+        parts.push(`${coef >= 0 && parts.length > 0 ? '+' : ''}${formatted}x^{${d}}`);
+      }
+    }
+    return `\\hat{y} = ${parts.join(' ')}`;
+  }, [solvedWeights]);
+
+  // SVG Plot coordinate scaling
+  // ViewBox: 0 0 740 400
+  // Margins: left: 60, right: 30, top: 30, bottom: 50
+  // Domain X: [0.5, 10.5] (Years of Experience)
+  // Domain Y: [0, 480] ($k Tech Salary)
+  const plotWidth = 740;
+  const plotHeight = 400;
+  const margin = { left: 65, right: 30, top: 30, bottom: 50 };
+  const innerWidth = plotWidth - margin.left - margin.right;
+  const innerHeight = plotHeight - margin.top - margin.bottom;
+
+  const scaleX = (xVal) => margin.left + ((xVal - 0.5) / 10.0) * innerWidth;
+  const scaleY = (yVal) => margin.top + innerHeight - Math.max(0, Math.min(innerHeight * 1.4, (yVal / 480) * innerHeight));
+
+  // Generate smooth polynomial curve SVG path
+  const curvePath = useMemo(() => {
+    const step = 0.05;
+    const points = [];
+    for (let x = 0.5; x <= 10.5; x += step) {
+      const y = evaluatePoly(x);
+      const px = scaleX(x);
+      const py = scaleY(y);
+      points.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+    }
+    return `M ${points.join(' L ')}`;
+  }, [evaluatePoly]);
+
+  // Generalization Diagnosis Badge
+  const getDiagnosisBadge = () => {
+    if (degree === 1) {
+      return {
+        label: 'Underfitting (High Bias)',
+        desc: 'Straight 1st-degree line is too rigid to capture the natural career salary acceleration curve.',
+        color: '#d97706',
+        bg: '#fffbeb',
+        border: '#fde68a'
+      };
+    }
+    if (degree === 2 || degree === 3) {
+      return {
+        label: 'Optimal Fit (Sweet Spot)',
+        desc: 'Captures true non-linear curvature cleanly with low training and low validation error.',
+        color: '#059669',
+        bg: '#ecfdf5',
+        border: '#a7f3d0'
+      };
+    }
+    if (degree === 4 || degree === 5) {
+      return {
+        label: 'Moderate Overfitting',
+        desc: 'Beginning to overfit training noise; validation test error starts increasing.',
+        color: '#ea580c',
+        bg: '#fff7ed',
+        border: '#fed7aa'
+      };
+    }
+    return {
+      label: 'Severe Overfitting (Runge Phenomenon)',
+      desc: 'Wild oscillations at curve boundaries! Training error is zero, but test error explodes.',
+      color: '#dc2626',
+      bg: '#fef2f2',
+      border: '#fecaca'
+    };
+  };
+  const badge = getDiagnosisBadge();
+
+  // Salary Prediction calculation for Tab 3
+  const predictedSalary = useMemo(() => {
+    return evaluatePoly(predExp);
+  }, [evaluatePoly, predExp]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER BAR ─────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={22} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#001f54' }}>
+              Interactive Polynomial Regression & Overfitting Studio
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+              Adjust polynomial degrees to visualize underfitting, optimal bias-variance balance, and Runge oscillations
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px'
+        }}>
+          {[
+            { id: 'studio', label: 'Polynomial Curve Studio' },
+            { id: 'math', label: 'Vandermonde Matrix Math' },
+            { id: 'predictor', label: 'Salary Curve Predictor' },
+            { id: 'code', label: 'Python Scikit-Learn' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: POLYNOMIAL CURVE STUDIO ──────────────────────────── */}
+      {activeTab === 'studio' && (
+        <div>
+          {/* Top Scoreboard Metrics */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+            gap: '1rem',
+            marginBottom: '1.25rem'
+          }}>
+            {/* Active Degree */}
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                Polynomial Degree
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#001f54', marginTop: '2px' }}>
+                d = {degree} {degree === 1 ? '(Linear)' : degree === 2 ? '(Quadratic)' : degree === 3 ? '(Cubic)' : `(Degree ${degree})`}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                Features: <MathFormula math={`[1, x, \\dots, x^{${degree}}]`} />
+              </div>
+            </div>
+
+            {/* Training MSE */}
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                Training Loss (MSE)
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0284c7', marginTop: '2px' }}>
+                {metrics.trainMSE < 0.01 ? metrics.trainMSE.toExponential(2) : metrics.trainMSE.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                RMSE: ±${metrics.trainRMSE.toFixed(1)}k on 10 training pts
+              </div>
+            </div>
+
+            {/* Test / Validation MSE */}
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                Validation Loss (Test MSE)
+              </div>
+              <div style={{
+                fontSize: '1.75rem',
+                fontWeight: 900,
+                color: metrics.testMSE > 200 ? '#dc2626' : metrics.testMSE < 10 ? '#059669' : '#d97706',
+                marginTop: '2px'
+              }}>
+                {metrics.testMSE > 10000 ? metrics.testMSE.toExponential(2) : metrics.testMSE.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                {degree >= 8 ? 'Exploding on unseen test points!' : `RMSE: ±$${metrics.testRMSE.toFixed(1)}k on test data`}
+              </div>
+            </div>
+
+            {/* Model Fit Badge */}
+            <div style={{ background: badge.bg, padding: '1rem', borderRadius: '14px', border: `1.5px solid ${badge.border}` }}>
+              <div style={{ fontSize: '0.72rem', color: badge.color, fontWeight: 800, textTransform: 'uppercase' }}>
+                Generalization Status
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: badge.color, marginTop: '4px' }}>
+                {badge.label}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: badge.color, marginTop: '4px', lineHeight: '1.3' }}>
+                {badge.desc}
+              </div>
+            </div>
+          </div>
+
+          {/* Current Fitted Polynomial KaTeX Equation Banner */}
+          <div style={{
+            background: '#ffffff',
+            border: '1.5px solid #cbd5e1',
+            borderRadius: '12px',
+            padding: '0.85rem 1.25rem',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase' }}>
+                Learned Polynomial:
+              </span>
+              <div style={{ fontSize: '0.92rem', color: '#0f172a', overflowX: 'auto', maxWidth: '520px' }}>
+                <MathFormula math={katexFormula} />
+              </div>
+            </div>
+            <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700 }}>
+              <MathFormula math={`R^2 = ${(metrics.r2 * 100).toFixed(1)}\\%`} />
+            </div>
+          </div>
+
+          {/* ─── INTERACTIVE SVG CURVE CHART ───────────────────────────── */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            position: 'relative',
+            overflow: 'hidden',
+            marginBottom: '1.25rem',
+            boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.02)'
+          }}>
+            <svg
+              viewBox={`0 0 ${plotWidth} ${plotHeight}`}
+              style={{ width: '100%', height: 'auto', display: 'block' }}
+            >
+              {/* Grid Lines */}
+              {[100, 200, 300, 400].map((yVal) => (
+                <g key={`grid-y-${yVal}`}>
+                  <line
+                    x1={margin.left}
+                    y1={scaleY(yVal)}
+                    x2={plotWidth - margin.right}
+                    y2={scaleY(yVal)}
+                    stroke="#f1f5f9"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                  />
+                  <text
+                    x={margin.left - 10}
+                    y={scaleY(yVal) + 4}
+                    textAnchor="end"
+                    fontSize="11"
+                    fill="#94a3b8"
+                    fontWeight="600"
+                  >
+                    ${yVal}k
+                  </text>
+                </g>
+              ))}
+
+              {[2, 4, 6, 8, 10].map((xVal) => (
+                <g key={`grid-x-${xVal}`}>
+                  <line
+                    x1={scaleX(xVal)}
+                    y1={margin.top}
+                    x2={scaleX(xVal)}
+                    y2={plotHeight - margin.bottom}
+                    stroke="#f1f5f9"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                  />
+                  <text
+                    x={scaleX(xVal)}
+                    y={plotHeight - margin.bottom + 18}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fill="#94a3b8"
+                    fontWeight="600"
+                  >
+                    {xVal} yrs
+                  </text>
+                </g>
+              ))}
+
+              {/* Coordinate Axes */}
+              <line
+                x1={margin.left}
+                y1={plotHeight - margin.bottom}
+                x2={plotWidth - margin.right}
+                y2={plotHeight - margin.bottom}
+                stroke="#64748b"
+                strokeWidth="2"
+              />
+              <line
+                x1={margin.left}
+                y1={margin.top}
+                x2={margin.left}
+                y2={plotHeight - margin.bottom}
+                stroke="#64748b"
+                strokeWidth="2"
+              />
+
+              {/* Axis Labels */}
+              <text
+                x={margin.left + innerWidth / 2}
+                y={plotHeight - 12}
+                textAnchor="middle"
+                fontSize="12"
+                fontWeight="800"
+                fill="#001f54"
+              >
+                Years of Professional Experience (x)
+              </text>
+              <text
+                transform={`rotate(-90 ${18} ${margin.top + innerHeight / 2})`}
+                x={18}
+                y={margin.top + innerHeight / 2}
+                textAnchor="middle"
+                fontSize="12"
+                fontWeight="800"
+                fill="#001f54"
+              >
+                Annual Tech Salary ($k)
+              </text>
+
+              {/* Residual Vertical Error Lines (Training Points) */}
+              {showResiduals && metrics.trainCalculations.map((p) => {
+                const sx = scaleX(p.x);
+                const syActual = scaleY(p.y);
+                const syPred = scaleY(p.yHat);
+                const isHighError = Math.abs(p.residual) > 20;
+
+                return (
+                  <g key={`res-${p.id}`}>
+                    <line
+                      x1={sx}
+                      y1={syActual}
+                      x2={sx}
+                      y2={syPred}
+                      stroke={isHighError ? '#ef4444' : '#059669'}
+                      strokeWidth="2"
+                      strokeDasharray="3 3"
+                    />
+                  </g>
+                );
+              })}
+
+              {/* Continuous Polynomial Fitted Curve Path */}
+              <path
+                d={curvePath}
+                fill="none"
+                stroke={degree >= 8 ? '#dc2626' : degree >= 4 ? '#ea580c' : degree === 1 ? '#0284c7' : '#001f54'}
+                strokeWidth="3.5"
+                strokeLinecap="round"
+              />
+
+              {/* Training Data Points (Solid Blue Circles) */}
+              {trainPoints.map((p) => {
+                const cx = scaleX(p.x);
+                const cy = scaleY(p.y);
+                return (
+                  <g key={p.id}>
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r="6.5"
+                      fill="#0284c7"
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                  </g>
+                );
+              })}
+
+              {/* Test / Validation Data Points (Hollow Green Diamonds) */}
+              {showTestData && testPoints.map((p) => {
+                const cx = scaleX(p.x);
+                const cy = scaleY(p.y);
+                return (
+                  <g key={p.id}>
+                    <rect
+                      x={cx - 5.5}
+                      y={cy - 5.5}
+                      width="11"
+                      height="11"
+                      transform={`rotate(45 ${cx} ${cy})`}
+                      fill="#10b981"
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Legend Overlay */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              right: '16px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(6px)',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              border: '1px solid #cbd5e1',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              fontSize: '0.75rem',
+              fontWeight: 700
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }}></span>
+                <span style={{ color: '#001f54' }}>Training Points (10 pts)</span>
+              </div>
+              {showTestData && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '9px', height: '9px', transform: 'rotate(45deg)', background: '#10b981', display: 'inline-block' }}></span>
+                  <span style={{ color: '#059669' }}>Unseen Test Validation (4 pts)</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '14px', height: '3px', background: degree >= 8 ? '#dc2626' : '#001f54', display: 'inline-block', borderRadius: '2px' }}></span>
+                <span style={{ color: '#334155' }}>Fitted Polynomial Curve (d={degree})</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── CONTROLS & DEGREE SELECTOR ────────────────────────────── */}
+          <div style={{
+            background: '#f8fafc',
+            padding: '1.25rem',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0'
+          }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                  Select Polynomial Degree:
+                </span>
+                <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                  {degree === 1 ? 'Underfitting' : degree === 2 || degree === 3 ? 'Optimal Balance' : 'Overfitting'}
+                </span>
+              </div>
+
+              {/* Quick Preset Degree Buttons */}
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                {[
+                  { d: 1, name: 'd=1 (Linear)' },
+                  { d: 2, name: 'd=2 (Quadratic - Optimal)' },
+                  { d: 3, name: 'd=3 (Cubic)' },
+                  { d: 4, name: 'd=4 (Quartic)' },
+                  { d: 5, name: 'd=5' },
+                  { d: 8, name: 'd=8 (Overfit)' },
+                  { d: 10, name: 'd=10 (Extreme Runge)' }
+                ].map((item) => (
+                  <button
+                    key={item.d}
+                    onClick={() => setDegree(item.d)}
+                    style={{
+                      background: degree === item.d ? '#001f54' : '#ffffff',
+                      color: degree === item.d ? '#ffffff' : '#334155',
+                      border: degree === item.d ? '1.5px solid #001f54' : '1.5px solid #cbd5e1',
+                      padding: '7px 14px',
+                      borderRadius: '10px',
+                      fontSize: '0.8rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: degree === item.d ? '0 2px 8px rgba(0,31,84,0.2)' : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    {item.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Continuous Degree Slider */}
+              <input
+                type="range"
+                min="1"
+                max="10"
+                step="1"
+                value={degree}
+                onChange={(e) => setDegree(parseInt(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+              />
+            </div>
+
+            {/* Toggle Switches & Actions */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem',
+              borderTop: '1px solid #e2e8f0',
+              paddingTop: '0.85rem'
+            }}>
+              <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', fontWeight: 700, color: '#334155', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={showResiduals}
+                    onChange={(e) => setShowResiduals(e.target.checked)}
+                    style={{ accentColor: '#001f54' }}
+                  />
+                  Show Residual Error Lines
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', fontWeight: 700, color: '#334155', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={showTestData}
+                    onChange={(e) => setShowTestData(e.target.checked)}
+                    style={{ accentColor: '#10b981' }}
+                  />
+                  Show Unseen Test Points
+                </label>
+              </div>
+
+              <button
+                onClick={() => setDegree(2)}
+                style={{
+                  background: '#ffffff',
+                  color: '#001f54',
+                  border: '1.5px solid #cbd5e1',
+                  padding: '7px 16px',
+                  borderRadius: '10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                Reset to Optimal Degree (d=2)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: VANDERMONDE MATRIX & MATH ─────────────────────────── */}
+      {activeTab === 'math' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              1. The Polynomial Hypothesis
+            </h4>
+            <MathFormula math="\hat{y} = w_d x^d + w_{d-1} x^{d-1} + \dots + w_2 x^2 + w_1 x + w_0" block={true} />
+            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.88rem', color: '#334155', lineHeight: '1.6' }}>
+              Even though the geometric curve is non-linear with respect to <MathFormula math="x" />, the model is strictly <strong>linear with respect to the weights</strong> <MathFormula math="W = [w_0, w_1, \dots, w_d]" />.
+            </p>
+          </div>
+
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              2. Feature Transformation & The Vandermonde Matrix
+            </h4>
+            <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.88rem', color: '#334155', lineHeight: '1.6' }}>
+              We map our 1-dimensional feature <MathFormula math="x" /> into a polynomial basis <MathFormula math="\Phi(x) = [1, x, x^2, \dots, x^d]" />:
+            </p>
+            <MathFormula math="X_{\text{poly}} = \begin{bmatrix} 1 & x_1 & x_1^2 & \dots & x_1^d \\ 1 & x_2 & x_2^2 & \dots & x_2^d \\ \vdots & \vdots & \vdots & \ddots & \vdots \\ 1 & x_N & x_N^2 & \dots & x_N^d \end{bmatrix}" block={true} />
+          </div>
+
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              3. Analytical OLS Solution
+            </h4>
+            <MathFormula math="W = (X_{\text{poly}}^T X_{\text{poly}})^{-1} X_{\text{poly}}^T Y" block={true} />
+            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.88rem', color: '#334155', lineHeight: '1.6' }}>
+              For the current degree <MathFormula math={`d = ${degree}`} />, the optimal parameter vector is:
+            </p>
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', marginTop: '0.75rem', border: '1px solid #cbd5e1' }}>
+              <MathFormula math={katexFormula} block={true} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: SALARY CURVE PREDICTOR ───────────────────────────── */}
+      {activeTab === 'predictor' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#001f54' }}>
+                Years of Experience: <code style={{ color: '#0284c7' }}>{predExp.toFixed(1)} Years</code>
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0.5"
+              max="12.0"
+              step="0.1"
+              value={predExp}
+              onChange={(e) => setPredExp(parseFloat(e.target.value))}
+              style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}
+            />
+          </div>
+
+          <div style={{
+            background: '#ffffff',
+            padding: '1.5rem',
+            borderRadius: '16px',
+            border: '2px solid #0284c7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 4px 16px rgba(2,132,199,0.08)'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>
+                Model Estimated Salary (Degree d={degree})
+              </div>
+              <div style={{ fontSize: '2.1rem', fontWeight: 900, color: '#0284c7', marginTop: '4px' }}>
+                ${(Math.max(0, predictedSalary) * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '6px' }}>
+                <MathFormula math={`\\hat{y}(${predExp.toFixed(1)}) = \\$${predictedSalary.toFixed(1)}\\text{k}`} />
+              </div>
+            </div>
+
+            <div style={{
+              background: '#f8fafc',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              fontSize: '0.85rem',
+              color: '#334155'
+            }}>
+              <div>Active Polynomial Degree: <strong>d = {degree}</strong></div>
+              <div>Model Generalization: <strong style={{ color: badge.color }}>{badge.label}</strong></div>
+              <div>Training RMSE: <strong>±${metrics.trainRMSE.toFixed(1)}k</strong></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: PYTHON SCIKIT-LEARN CODE ────────────────────────── */}
+      {activeTab === 'code' && (
+        <div>
+          <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700, marginBottom: '0.75rem' }}>
+            Production Polynomial Pipeline with Scikit-Learn:
+          </div>
+          <SyntaxCodeBlock
+            code={[
+              '# Complete Polynomial Regression Pipeline in Scikit-Learn',
+              '# ─────────────────────────────────────────────────────────────',
+              'import numpy as np',
+              'from sklearn.pipeline import make_pipeline',
+              'from sklearn.preprocessing import PolynomialFeatures',
+              'from sklearn.linear_model import LinearRegression',
+              'from sklearn.metrics import mean_squared_error, r2_score',
+              '',
+              '# 1. Experience vs Tech Salary Dataset',
+              'X_train = np.array([[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]])',
+              'y_train = np.array([45, 50, 60, 80, 110, 150, 200, 260, 330, 410])',
+              '',
+              '# 2. Build Pipeline: PolynomialFeatures -> LinearRegression',
+              'degree = 2 # Change to 1 for linear, 2 for quadratic, 10 for overfit',
+              'model = make_pipeline(',
+              '    PolynomialFeatures(degree=degree, include_bias=False),',
+              '    LinearRegression()',
+              ')',
+              '',
+              '# 3. Fit Pipeline',
+              'model.fit(X_train, y_train)',
+              '',
+              '# 4. Predict & Evaluate',
+              'y_pred_train = model.predict(X_train)',
+              'print(f"Training MSE: {mean_squared_error(y_train, y_pred_train):.2f}")',
+              'print(f"R² Score: {r2_score(y_train, y_pred_train):.4f}")',
+              '',
+              '# 5. Predict for 5.5 Years of Experience',
+              'val_5_5 = model.predict([[5.5]])[0]',
+              'print(f"Estimated Salary for 5.5 Yrs: ${val_5_5 * 1000:,.0f}")'
+            ].join('\n')}
+            title="polynomial_regression_pipeline.py"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
@@ -8442,6 +9315,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'multiple_linear_regression_3d_studio' && (
               <MultipleLinearRegression3DStudio />
+            )}
+            {lesson.diagram.type === 'polynomial_regression_interactive_studio' && (
+              <PolynomialRegressionInteractiveStudio />
             )}
           </div>
         )}

@@ -1584,6 +1584,177 @@ export const mlLessonsData = {
       correctIndex: 0,
       explanation: 'Correct! In Multiple Linear Regression, each coefficient represents the partial rate of change: holding all other variables (SqFt and Age) fixed and constant, adding 1 additional bedroom increases the expected price by $20k.'
     }
+  },
+
+  'ml-3-3': {
+    id: 'ml-3-3',
+    title: 'Polynomial Regression',
+    moduleTitle: 'MODULE 3: REGRESSION',
+    readTime: '18 min read',
+    difficulty: 'Intermediate',
+    badgeText: 'Non-Linear Models',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Understand why standard linear lines fail when modeling non-linear, curved real-world relationships.',
+      'Master the mathematical polynomial equation: $\\hat{y} = w_d x^d + w_{d-1} x^{d-1} + \\dots + w_1 x + w_0$.',
+      'Explain why Polynomial Regression is classified as a Linear Model despite generating non-linear geometric curves.',
+      'Construct the polynomial feature mapping $\\Phi(x) = [1, x, x^2, \\dots, x^d]$ and the Vandermonde Matrix.',
+      'Analyze the Bias-Variance Tradeoff across polynomial degrees ($d=1$ underfitting vs $d=2,3$ sweet spot vs $d=10+$ overfitting & Runge\'s phenomenon).',
+      'Build end-to-end polynomial regression pipelines in Python using Scikit-Learn\'s PolynomialFeatures and Pipeline.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Non-Linear Reality: When Straight Lines Fail',
+        paragraphs: [
+          'In simple and multiple linear regression, we assumed that the target variable scales proportionally along straight lines or flat hyperplanes.',
+          'However, the natural and physical world is overwhelmingly non-linear:',
+          '• Career Earnings vs Experience: Junior engineers gain rapid salary bumps early in their careers, which level off at senior levels and plateau near retirement.',
+          '• Vehicle Speed vs Fuel Economy: Aerodynamic drag increases quadratically with speed ($F_{\\text{drag}} \\propto v^2$), causing gas mileage to plummet non-linearly at highway speeds.',
+          '• Disease Spread & Epidemics: Viral transmission accelerates exponentially before saturating.',
+          'Fitting a 1st-degree straight line to curved data causes severe Underfitting (High Bias). The model is fundamentally too rigid to capture the underlying pattern.'
+        ]
+      },
+      {
+        heading: '2. The Polynomial Formulation: Linearity in Parameters',
+        paragraphs: [
+          'Polynomial Regression models non-linear relationships by expressing the predicted target $\\hat{y}$ as an $n^{\\text{th}}$-degree polynomial of the input feature $x$:',
+          '$$\\hat{y} = w_d x^d + w_{d-1} x^{d-1} + \\dots + w_2 x^2 + w_1 x + w_0$$',
+          'A Crucial Machine Learning Distinction: Why is this still called "Linear" Regression?',
+          'In machine learning theory, linearity refers strictly to the parameters ($w_0, w_1, \\dots, w_d$), NOT the input features ($x$)! Because no weight is multiplied by another weight ($w_1 \\cdot w_2$) or wrapped inside a non-linear activation function ($\sin(w)$), the loss function remains a smooth, convex quadratic bowl with an exact analytical solution.'
+        ],
+        codeBlock: [
+          '# Fitting Non-Linear Curves using Polynomial Feature Transformation',
+          'import numpy as np',
+          'from sklearn.preprocessing import PolynomialFeatures',
+          'from sklearn.linear_model import LinearRegression',
+          '',
+          '# Years of Experience (1 to 10 years)',
+          'X = np.array([[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]])',
+          '# Tech Salary ($k)',
+          'y = np.array([45, 50, 60, 80, 110, 150, 200, 260, 330, 410])',
+          '',
+          '# Step 1: Generate Polynomial Feature Powers [x, x^2]',
+          'poly = PolynomialFeatures(degree=2, include_bias=False)',
+          'X_poly = poly.fit_transform(X) # Transformed to columns: [x, x^2]',
+          '',
+          '# Step 2: Fit Standard Linear Model on Expanded Features',
+          'model = LinearRegression()',
+          'model.fit(X_poly, y)',
+          '',
+          'print(f"Optimal Curve: Salary = {model.coef_[1]:.2f}*(Exp^2) + {model.coef_[0]:.2f}*(Exp) + {model.intercept_:.2f}")',
+          '# Output: Salary = 4.89*(Exp^2) - 13.48*(Exp) + 55.50'
+        ].join('\n'),
+        codeBlockTitle: 'polynomial_feature_expansion.py'
+      },
+      {
+        heading: '3. Feature Space Transformation & The Vandermonde Matrix',
+        paragraphs: [
+          'Under the hood, Polynomial Regression performs a non-linear mapping from a 1-dimensional input space $\\mathbb{R}^1$ into a $(d+1)$-dimensional feature space $\\mathbb{R}^{d+1}$:',
+          '$$\\Phi(x) = \\begin{bmatrix} 1 & x & x^2 & x^3 & \\dots & x^d \\end{bmatrix}$$',
+          'For a dataset of $N$ observations, this transformation produces the classical Vandermonde Design Matrix $X_{\\text{poly}}$:',
+          '$$X_{\\text{poly}} = \\begin{bmatrix} 1 & x_1 & x_1^2 & \\dots & x_1^d \\\\ 1 & x_2 & x_2^2 & \\dots & x_2^d \\\\ \\vdots & \\vdots & \\vdots & \\ddots & \\vdots \\\\ 1 & x_N & x_N^2 & \\dots & x_N^d \\end{bmatrix}$$',
+          'We can now solve for the optimal weight vector $W$ using the exact same OLS Normal Equation:',
+          '$$W = (X_{\\text{poly}}^T X_{\\text{poly}})^{-1} X_{\\text{poly}}^T Y$$'
+        ]
+      },
+      {
+        heading: '4. The Bias-Variance Tradeoff & Runge\'s Phenomenon',
+        paragraphs: [
+          'Selecting the degree ($d$) of your polynomial is a classic illustration of the Bias-Variance Dilemma:',
+          '• Degree $d = 1$ (Underfitting / High Bias): A simple straight line fails to capture the true parabolic arc. Training error is high, and test error is high.',
+          '• Degree $d = 2 \\text{ or } 3$ (The Sweet Spot): The curve follows the natural trajectory of the data without memorizing noise. Both training and validation errors are minimal.',
+          '• Degree $d \\ge 8$ (Overfitting / High Variance): The polynomial gains so many degrees of freedom that it wiggles violently to pass through every single training point. While training error drops to zero, the curve oscillates wildly at the boundary edges (known in numerical mathematics as Runge\'s Phenomenon), causing catastrophic prediction errors on new test data!'
+        ]
+      },
+      {
+        heading: '5. How to Choose the Optimal Degree: Validation Curves',
+        paragraphs: [
+          'To prevent overfitting, never choose your polynomial degree based on training error alone.',
+          'Instead, machine learning engineers use K-Fold Cross-Validation or train/test splits to plot a Validation Curve comparing Training MSE vs Validation MSE across degrees $d \\in [1, 10]$:',
+          '1. As degree increases, Training MSE decreases monotonically toward zero.',
+          '2. Validation MSE initially drops, reaches a distinct minimum at the optimal degree (the sweet spot), and then shoots upward exponentially as overfitting begins.',
+          '3. The optimal degree is selected at the point where Validation Error is minimized.'
+        ]
+      },
+      {
+        heading: '6. Production Scikit-Learn Pipeline Implementation',
+        paragraphs: [
+          'In production systems, feature transformation and linear fitting should be bundled into a unified Scikit-Learn Pipeline to prevent data leakage and streamline deployment:'
+        ],
+        codeBlock: [
+          '# Production Scikit-Learn Pipeline for Polynomial Regression',
+          'import numpy as np',
+          'from sklearn.pipeline import make_pipeline',
+          'from sklearn.preprocessing import PolynomialFeatures',
+          'from sklearn.linear_model import LinearRegression',
+          'from sklearn.metrics import mean_squared_error, r2_score',
+          '',
+          '# Training Data (Speed in mph vs Braking Distance in feet)',
+          'X_train = np.array([[10], [20], [30], [40], [50], [60], [70], [80]])',
+          'y_train = np.array([5, 18, 42, 75, 120, 175, 240, 318])',
+          '',
+          '# Test Data (Unseen speeds)',
+          'X_test = np.array([[25], [45], [65], [75]])',
+          'y_test = np.array([28, 95, 205, 276])',
+          '',
+          '# Create an elegant, reproducible 2-step Pipeline',
+          'degree = 2',
+          'model_pipeline = make_pipeline(',
+          '    PolynomialFeatures(degree=degree, include_bias=False),',
+          '    LinearRegression()',
+          ')',
+          '',
+          '# Fit pipeline on training data',
+          'model_pipeline.fit(X_train, y_train)',
+          '',
+          '# Evaluate on test set',
+          'y_pred_test = model_pipeline.predict(X_test)',
+          'test_mse = mean_squared_error(y_test, y_pred_test)',
+          'test_r2 = r2_score(y_test, y_pred_test)',
+          '',
+          'print(f"Test Set MSE: {test_mse:.2f}")',
+          'print(f"Test Set R²: {test_r2:.4f}")',
+          '',
+          '# Predict braking distance at 55 mph highway speed',
+          'pred_55 = model_pipeline.predict([[55]])[0]',
+          'print(f"Predicted Stopping Distance at 55 mph: {pred_55:.1f} feet")'
+        ].join('\n'),
+        codeBlockTitle: 'polynomial_regression_pipeline.py'
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Tailored Suit vs The Ballooned Costume',
+      text: 'Imagine tailoring a suit. A 1st-degree linear model is a rigid cardboard box—it cannot bend around the body\'s natural contours (Underfitting). A 2nd-degree model is a well-tailored suit that follows the natural curves of the shoulders and waist (Optimal Fit). A 15th-degree model is a flexible rubber suit with thousands of tiny suction cups glued to every individual wrinkle and mole—it fits that one person absurdly tight, but is completely unwearable by anyone else (Overfitting)!'
+    },
+
+    diagram: {
+      type: 'polynomial_regression_interactive_studio'
+    },
+
+    takeaways: [
+      'Polynomial Regression fits non-linear curves using the equation $\\hat{y} = w_d x^d + \\dots + w_1 x + w_0$.',
+      'It is still a Linear Model because the hypothesis is strictly linear with respect to the parameter weights $W$.',
+      'Non-linearity is achieved through feature expansion $\\Phi(x) = [1, x, x^2, \\dots, x^d]$ via the Vandermonde matrix.',
+      'Low degrees ($d=1$) suffer from High Bias (Underfitting); excessive degrees ($d \\ge 8$) suffer from High Variance and Runge\'s oscillation (Overfitting).',
+      'Always determine the optimal degree using validation curves and cross-validation, never training error alone.'
+    ],
+
+    quiz: {
+      question: 'Why is Polynomial Regression (e.g. ŷ = w₂x² + w₁x + w₀) classified as a "Linear" Regression model in machine learning theory?',
+      options: [
+        'Because the resulting geometric plot on a 2D graph is a straight line',
+        'Because the equation is linear with respect to the unknown parameter weights (w₀, w₁, w₂)',
+        'Because it only works on datasets that have a linear correlation coefficient of 1.0',
+        'Because higher degree exponents are rounded down to 1 during optimization'
+      ],
+      correctIndex: 1,
+      explanation: 'Correct! In machine learning theory, linearity refers strictly to the parameter weights W, not the feature x. Because the prediction ŷ is a linear combination of the weights (no weight is raised to a power or multiplied by another weight), the optimization problem remains linear and convex.'
+    }
   }
 };
 
