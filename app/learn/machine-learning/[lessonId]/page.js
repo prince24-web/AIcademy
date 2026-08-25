@@ -8276,41 +8276,127 @@ const MultipleLinearRegression3DStudio = () => {
 
 // ─── POLYNOMIAL REGRESSION INTERACTIVE STUDIO ───────────────────────────────
 const PolynomialRegressionInteractiveStudio = () => {
-  // 10 Real-World Training Points: Years of Experience vs Tech Salary ($k)
-  const trainPoints = useMemo(() => [
-    { id: 't1', x: 1.0, y: 45, label: '1.0 yr ($45k)' },
-    { id: 't2', x: 2.0, y: 50, label: '2.0 yrs ($50k)' },
-    { id: 't3', x: 3.0, y: 60, label: '3.0 yrs ($60k)' },
-    { id: 't4', x: 4.0, y: 80, label: '4.0 yrs ($80k)' },
-    { id: 't5', x: 5.0, y: 110, label: '5.0 yrs ($110k)' },
-    { id: 't6', x: 6.0, y: 150, label: '6.0 yrs ($150k)' },
-    { id: 't7', x: 7.0, y: 200, label: '7.0 yrs ($200k)' },
-    { id: 't8', x: 8.0, y: 260, label: '8.0 yrs ($260k)' },
-    { id: 't9', x: 9.0, y: 330, label: '9.0 yrs ($330k)' },
-    { id: 't10', x: 10.0, y: 410, label: '10.0 yrs ($410k)' }
-  ], []);
+  // 4 Rich Non-Linear Real-World Datasets
+  const DATASET_PRESETS = useMemo(() => ({
+    salary: {
+      name: 'Tech Career Salaries (Quadratic)',
+      xLabel: 'Years of Experience (x)',
+      yLabel: 'Annual Tech Salary ($k)',
+      xUnit: 'yrs',
+      yUnit: '$k',
+      xDomain: [0.5, 10.5],
+      yDomain: [0, 480],
+      optimalDegree: 2,
+      train: [
+        { id: 't1', x: 0.8, y: 42 }, { id: 't2', x: 1.2, y: 48 }, { id: 't3', x: 1.5, y: 46 },
+        { id: 't4', x: 1.9, y: 55 }, { id: 't5', x: 2.3, y: 52 }, { id: 't6', x: 2.7, y: 68 },
+        { id: 't7', x: 3.1, y: 62 }, { id: 't8', x: 3.5, y: 78 }, { id: 't9', x: 3.9, y: 72 },
+        { id: 't10', x: 4.2, y: 92 }, { id: 't11', x: 4.6, y: 88 }, { id: 't12', x: 5.0, y: 115 },
+        { id: 't13', x: 5.3, y: 108 }, { id: 't14', x: 5.7, y: 138 }, { id: 't15', x: 6.1, y: 145 },
+        { id: 't16', x: 6.4, y: 165 }, { id: 't17', x: 6.8, y: 185 }, { id: 't18', x: 7.2, y: 195 },
+        { id: 't19', x: 7.6, y: 235 }, { id: 't20', x: 8.0, y: 255 }, { id: 't21', x: 8.4, y: 285 },
+        { id: 't22', x: 8.8, y: 310 }, { id: 't23', x: 9.3, y: 355 }, { id: 't24', x: 9.7, y: 380 },
+        { id: 't25', x: 10.0, y: 415 }
+      ],
+      test: [
+        { id: 'v1', x: 1.0, y: 45 }, { id: 'v2', x: 2.5, y: 58 }, { id: 'v3', x: 3.8, y: 82 },
+        { id: 'v4', x: 4.8, y: 102 }, { id: 'v5', x: 5.9, y: 140 }, { id: 'v6', x: 7.0, y: 190 },
+        { id: 'v7', x: 8.2, y: 270 }, { id: 'v8', x: 9.5, y: 360 }
+      ]
+    },
+    fuel: {
+      name: 'Speed vs Fuel Economy (Inverted Parabola)',
+      xLabel: 'Vehicle Speed in mph (x)',
+      yLabel: 'Fuel Economy in MPG (y)',
+      xUnit: 'mph',
+      yUnit: 'MPG',
+      xDomain: [15, 85],
+      yDomain: [10, 50],
+      optimalDegree: 2,
+      train: [
+        { id: 't1', x: 18, y: 22 }, { id: 't2', x: 22, y: 26 }, { id: 't3', x: 25, y: 28 },
+        { id: 't4', x: 28, y: 32 }, { id: 't5', x: 32, y: 35 }, { id: 't6', x: 36, y: 38 },
+        { id: 't7', x: 40, y: 40 }, { id: 't8', x: 44, y: 42 }, { id: 't9', x: 48, y: 43 },
+        { id: 't10', x: 52, y: 44 }, { id: 't11', x: 55, y: 43.5 }, { id: 't12', x: 58, y: 42 },
+        { id: 't13', x: 62, y: 39 }, { id: 't14', x: 65, y: 37 }, { id: 't15', x: 68, y: 34 },
+        { id: 't16', x: 72, y: 30 }, { id: 't17', x: 75, y: 26 }, { id: 't18', x: 78, y: 22 },
+        { id: 't19', x: 82, y: 18 }
+      ],
+      test: [
+        { id: 'v1', x: 20, y: 24 }, { id: 'v2', x: 35, y: 37 }, { id: 'v3', x: 50, y: 43.5 },
+        { id: 'v4', x: 60, y: 40.5 }, { id: 'v5', x: 70, y: 32 }, { id: 'v6', x: 80, y: 20 }
+      ]
+    },
+    dosage: {
+      name: 'Drug Dosage vs Patient Recovery Rate (Saturation)',
+      xLabel: 'Drug Dosage in mg (x)',
+      yLabel: 'Patient Recovery Rate % (y)',
+      xUnit: 'mg',
+      yUnit: '%',
+      xDomain: [5, 100],
+      yDomain: [0, 110],
+      optimalDegree: 3,
+      train: [
+        { id: 't1', x: 8, y: 22 }, { id: 't2', x: 12, y: 34 }, { id: 't3', x: 16, y: 45 },
+        { id: 't4', x: 22, y: 56 }, { id: 't5', x: 28, y: 68 }, { id: 't6', x: 34, y: 76 },
+        { id: 't7', x: 40, y: 82 }, { id: 't8', x: 46, y: 86 }, { id: 't9', x: 52, y: 89 },
+        { id: 't10', x: 58, y: 92 }, { id: 't11', x: 65, y: 94 }, { id: 't12', x: 72, y: 95 },
+        { id: 't13', x: 80, y: 96 }, { id: 't14', x: 88, y: 96.5 }, { id: 't15', x: 96, y: 97 }
+      ],
+      test: [
+        { id: 'v1', x: 10, y: 28 }, { id: 'v2', x: 25, y: 62 }, { id: 'v3', x: 42, y: 84 },
+        { id: 'v4', x: 60, y: 93 }, { id: 'v5', x: 78, y: 95.5 }, { id: 'v6', x: 92, y: 96.8 }
+      ]
+    }
+  }), []);
 
-  // 4 Unseen Validation/Test Points to evaluate generalization & detect overfitting
-  const testPoints = useMemo(() => [
-    { id: 'v1', x: 1.5, y: 47, label: 'Test: 1.5 yrs ($47k)' },
-    { id: 'v2', x: 4.5, y: 94, label: 'Test: 4.5 yrs ($94k)' },
-    { id: 'v3', x: 6.5, y: 172, label: 'Test: 6.5 yrs ($172k)' },
-    { id: 'v4', x: 8.5, y: 290, label: 'Test: 8.5 yrs ($290k)' }
-  ], []);
+  const [datasetKey, setDatasetKey] = useState('salary');
+  const activeDataset = DATASET_PRESETS[datasetKey];
+
+  // Scatter jitter noise state (allows user to resample scatter points)
+  const [noiseSeed, setNoiseSeed] = useState(0);
+
+  const trainPoints = useMemo(() => {
+    return activeDataset.train.map((p, idx) => {
+      // Deterministic small noise variation when noiseSeed changes
+      const jitter = noiseSeed === 0 ? 0 : Math.sin(idx * 7.9 + noiseSeed) * (activeDataset.yDomain[1] * 0.035);
+      return {
+        ...p,
+        y: Math.max(activeDataset.yDomain[0], Math.min(activeDataset.yDomain[1], p.y + jitter))
+      };
+    });
+  }, [activeDataset, noiseSeed]);
+
+  const testPoints = useMemo(() => {
+    return activeDataset.test.map((p, idx) => {
+      const jitter = noiseSeed === 0 ? 0 : Math.cos(idx * 5.3 + noiseSeed) * (activeDataset.yDomain[1] * 0.03);
+      return {
+        ...p,
+        y: Math.max(activeDataset.yDomain[0], Math.min(activeDataset.yDomain[1], p.y + jitter))
+      };
+    });
+  }, [activeDataset, noiseSeed]);
 
   // Interactive controls
-  const [degree, setDegree] = useState(2); // Default to optimal degree 2
+  const [degree, setDegree] = useState(2);
   const [showResiduals, setShowResiduals] = useState(true);
   const [showTestData, setShowTestData] = useState(true);
   const [activeTab, setActiveTab] = useState('studio');
   const [predExp, setPredExp] = useState(5.5);
 
-  // Gaussian elimination solver for OLS Normal Equation (X^T X) W = X^T Y
-  const solvedWeights = useMemo(() => {
+  // Normalize / scale X to [0, 1] internally for stable Gaussian elimination with high degrees
+  const xMin = activeDataset.xDomain[0];
+  const xMax = activeDataset.xDomain[1];
+  const yMin = activeDataset.yDomain[0];
+  const yMax = activeDataset.yDomain[1];
+
+  const normX = (x) => (x - xMin) / (xMax - xMin);
+
+  // Gaussian elimination solver on normalized features for extreme numerical stability
+  const solvedWeightsNorm = useMemo(() => {
     const n = trainPoints.length;
     const k = degree + 1;
 
-    // Normal Equation System: A * W = B
     const A = Array.from({ length: k }, () => Array(k).fill(0));
     const B = Array(k).fill(0);
 
@@ -8318,13 +8404,13 @@ const PolynomialRegressionInteractiveStudio = () => {
       for (let col = 0; col < k; col++) {
         let sumX = 0;
         for (let p = 0; p < n; p++) {
-          sumX += Math.pow(trainPoints[p].x, row + col);
+          sumX += Math.pow(normX(trainPoints[p].x), row + col);
         }
         A[row][col] = sumX;
       }
       let sumY = 0;
       for (let p = 0; p < n; p++) {
-        sumY += trainPoints[p].y * Math.pow(trainPoints[p].x, row);
+        sumY += trainPoints[p].y * Math.pow(normX(trainPoints[p].x), row);
       }
       B[row] = sumY;
     }
@@ -8338,8 +8424,7 @@ const PolynomialRegressionInteractiveStudio = () => {
       [A[i], A[maxRow]] = [A[maxRow], A[i]];
       [B[i], B[maxRow]] = [B[maxRow], B[i]];
 
-      // Avoid division by near zero
-      if (Math.abs(A[i][i]) < 1e-12) continue;
+      if (Math.abs(A[i][i]) < 1e-14) continue;
 
       for (let r = i + 1; r < k; r++) {
         const factor = A[r][i] / A[i][i];
@@ -8360,17 +8445,18 @@ const PolynomialRegressionInteractiveStudio = () => {
       W[i] = A[i][i] !== 0 ? sum / A[i][i] : 0;
     }
 
-    return W; // [w0, w1, w2, ..., wd]
-  }, [trainPoints, degree]);
+    return W;
+  }, [trainPoints, degree, xMin, xMax]);
 
-  // Evaluate polynomial function at any x: f(x) = sum(w_d * x^d)
+  // Evaluate polynomial function at any real xVal
   const evaluatePoly = useCallback((xVal) => {
+    const u = normX(xVal);
     let yHat = 0;
-    for (let d = 0; d < solvedWeights.length; d++) {
-      yHat += solvedWeights[d] * Math.pow(xVal, d);
+    for (let d = 0; d < solvedWeightsNorm.length; d++) {
+      yHat += solvedWeightsNorm[d] * Math.pow(u, d);
     }
     return yHat;
-  }, [solvedWeights]);
+  }, [solvedWeightsNorm, xMin, xMax]);
 
   // Compute Loss Metrics (Training MSE, Test MSE, R^2)
   const metrics = useMemo(() => {
@@ -8393,7 +8479,7 @@ const PolynomialRegressionInteractiveStudio = () => {
     trainPoints.forEach((p) => {
       totalTSS += Math.pow(p.y - meanY, 2);
     });
-    const r2 = Math.max(0, 1 - (trainSSE / totalTSS));
+    const r2 = Math.max(0, 1 - (trainSSE / (totalTSS || 1)));
 
     // 2. Test/Validation Error
     let testSSE = 0;
@@ -8419,74 +8505,59 @@ const PolynomialRegressionInteractiveStudio = () => {
 
   // Formatting polynomial KaTeX equation string
   const katexFormula = useMemo(() => {
-    if (!solvedWeights || solvedWeights.length === 0) return '\\hat{y} = 0';
-    const parts = [];
-    for (let d = solvedWeights.length - 1; d >= 0; d--) {
-      const coef = solvedWeights[d];
-      if (Math.abs(coef) < 0.0001 && d !== 0) continue;
-      const formatted = Math.abs(coef) >= 100 ? coef.toFixed(1) : Math.abs(coef) >= 1 ? coef.toFixed(2) : coef.toExponential(2);
-      if (d === 0) {
-        parts.push(`${coef >= 0 ? '+' : '-'} ${Math.abs(Number(formatted))}`);
-      } else if (d === 1) {
-        parts.push(`${coef >= 0 && parts.length > 0 ? '+' : ''}${formatted}x`);
-      } else {
-        parts.push(`${coef >= 0 && parts.length > 0 ? '+' : ''}${formatted}x^{${d}}`);
-      }
-    }
-    return `\\hat{y} = ${parts.join(' ')}`;
-  }, [solvedWeights]);
+    if (!solvedWeightsNorm || solvedWeightsNorm.length === 0) return '\\hat{y} = 0';
+    return `\\hat{y} = \\sum_{d=0}^{${degree}} w_d \\cdot x^d \\quad \\text{(OLS Fitted Polynomial of Degree } d = ${degree}\\text{)}`;
+  }, [solvedWeightsNorm, degree]);
 
   // SVG Plot coordinate scaling
-  // ViewBox: 0 0 740 400
-  // Margins: left: 60, right: 30, top: 30, bottom: 50
-  // Domain X: [0.5, 10.5] (Years of Experience)
-  // Domain Y: [0, 480] ($k Tech Salary)
   const plotWidth = 740;
   const plotHeight = 400;
   const margin = { left: 65, right: 30, top: 30, bottom: 50 };
   const innerWidth = plotWidth - margin.left - margin.right;
   const innerHeight = plotHeight - margin.top - margin.bottom;
 
-  const scaleX = (xVal) => margin.left + ((xVal - 0.5) / 10.0) * innerWidth;
-  const scaleY = (yVal) => margin.top + innerHeight - Math.max(0, Math.min(innerHeight * 1.4, (yVal / 480) * innerHeight));
+  const scaleX = (xVal) => margin.left + ((xVal - xMin) / (xMax - xMin)) * innerWidth;
+  const scaleY = (yVal) => margin.top + innerHeight - Math.max(-innerHeight * 0.5, Math.min(innerHeight * 1.5, ((yVal - yMin) / (yMax - yMin)) * innerHeight));
 
   // Generate smooth polynomial curve SVG path
   const curvePath = useMemo(() => {
-    const step = 0.05;
+    const steps = 140;
+    const dx = (xMax - xMin) / steps;
     const points = [];
-    for (let x = 0.5; x <= 10.5; x += step) {
+    for (let i = 0; i <= steps; i++) {
+      const x = xMin + i * dx;
       const y = evaluatePoly(x);
       const px = scaleX(x);
       const py = scaleY(y);
       points.push(`${px.toFixed(1)},${py.toFixed(1)}`);
     }
     return `M ${points.join(' L ')}`;
-  }, [evaluatePoly]);
+  }, [evaluatePoly, xMin, xMax, yMin, yMax]);
 
   // Generalization Diagnosis Badge
   const getDiagnosisBadge = () => {
     if (degree === 1) {
       return {
         label: 'Underfitting (High Bias)',
-        desc: 'Straight 1st-degree line is too rigid to capture the natural career salary acceleration curve.',
+        desc: 'A straight 1st-degree line fails to capture the natural curved scatter cloud.',
         color: '#d97706',
         bg: '#fffbeb',
         border: '#fde68a'
       };
     }
-    if (degree === 2 || degree === 3) {
+    if (degree === activeDataset.optimalDegree || degree === activeDataset.optimalDegree + 1) {
       return {
         label: 'Optimal Fit (Sweet Spot)',
-        desc: 'Captures true non-linear curvature cleanly with low training and low validation error.',
+        desc: 'Follows the non-linear scatter distribution cleanly with minimal validation error.',
         color: '#059669',
         bg: '#ecfdf5',
         border: '#a7f3d0'
       };
     }
-    if (degree === 4 || degree === 5) {
+    if (degree < 6) {
       return {
         label: 'Moderate Overfitting',
-        desc: 'Beginning to overfit training noise; validation test error starts increasing.',
+        desc: 'Beginning to memorize scatter noise; validation test error starts rising.',
         color: '#ea580c',
         bg: '#fff7ed',
         border: '#fed7aa'
@@ -8494,7 +8565,7 @@ const PolynomialRegressionInteractiveStudio = () => {
     }
     return {
       label: 'Severe Overfitting (Runge Phenomenon)',
-      desc: 'Wild oscillations at curve boundaries! Training error is zero, but test error explodes.',
+      desc: 'Wild boundary oscillations! Curves bend violently to chase scatter outliers.',
       color: '#dc2626',
       bg: '#fef2f2',
       border: '#fecaca'
@@ -8591,6 +8662,71 @@ const PolynomialRegressionInteractiveStudio = () => {
       {/* ─── TAB 1: POLYNOMIAL CURVE STUDIO ──────────────────────────── */}
       {activeTab === 'studio' && (
         <div>
+          {/* Dataset Scenario Selector Pill Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            background: '#f8fafc',
+            padding: '0.75rem 1rem',
+            borderRadius: '14px',
+            border: '1.5px solid #e2e8f0',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase' }}>
+                Dataset Scenario:
+              </span>
+              {[
+                { key: 'salary', label: 'Tech Salary vs Exp (25 pts)' },
+                { key: 'fuel', label: 'Speed vs Fuel MPG (19 pts)' },
+                { key: 'dosage', label: 'Drug Dosage vs Recovery (15 pts)' }
+              ].map((preset) => (
+                <button
+                  key={preset.key}
+                  onClick={() => {
+                    setDatasetKey(preset.key);
+                    setDegree(DATASET_PRESETS[preset.key].optimalDegree);
+                  }}
+                  style={{
+                    background: datasetKey === preset.key ? '#001f54' : '#ffffff',
+                    color: datasetKey === preset.key ? '#ffffff' : '#334155',
+                    border: datasetKey === preset.key ? '1px solid #001f54' : '1px solid #cbd5e1',
+                    padding: '5px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setNoiseSeed((prev) => prev + 1)}
+              style={{
+                background: '#ffffff',
+                color: '#0284c7',
+                border: '1.5px solid #bae6fd',
+                padding: '5px 12px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              Add Random Scatter Noise
+            </button>
+          </div>
+
           {/* Top Scoreboard Metrics */}
           <div style={{
             display: 'grid',
@@ -8620,7 +8756,7 @@ const PolynomialRegressionInteractiveStudio = () => {
                 {metrics.trainMSE < 0.01 ? metrics.trainMSE.toExponential(2) : metrics.trainMSE.toFixed(2)}
               </div>
               <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
-                RMSE: ±${metrics.trainRMSE.toFixed(1)}k on 10 training pts
+                RMSE: ±{metrics.trainRMSE.toFixed(1)} {activeDataset.yUnit} on {trainPoints.length} training pts
               </div>
             </div>
 
@@ -8632,13 +8768,13 @@ const PolynomialRegressionInteractiveStudio = () => {
               <div style={{
                 fontSize: '1.75rem',
                 fontWeight: 900,
-                color: metrics.testMSE > 200 ? '#dc2626' : metrics.testMSE < 10 ? '#059669' : '#d97706',
+                color: metrics.testMSE > 500 ? '#dc2626' : metrics.testMSE < 50 ? '#059669' : '#d97706',
                 marginTop: '2px'
               }}>
                 {metrics.testMSE > 10000 ? metrics.testMSE.toExponential(2) : metrics.testMSE.toFixed(2)}
               </div>
               <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
-                {degree >= 8 ? 'Exploding on unseen test points!' : `RMSE: ±$${metrics.testRMSE.toFixed(1)}k on test data`}
+                {degree >= 8 ? 'Exploding on unseen test points!' : `RMSE: ±${metrics.testRMSE.toFixed(1)} ${activeDataset.yUnit} on ${testPoints.length} test pts`}
               </div>
             </div>
 
@@ -8671,7 +8807,7 @@ const PolynomialRegressionInteractiveStudio = () => {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase' }}>
-                Learned Polynomial:
+                Fitted Polynomial:
               </span>
               <div style={{ fontSize: '0.92rem', color: '#0f172a', overflowX: 'auto', maxWidth: '520px' }}>
                 <MathFormula math={katexFormula} />
@@ -8697,53 +8833,59 @@ const PolynomialRegressionInteractiveStudio = () => {
               style={{ width: '100%', height: 'auto', display: 'block' }}
             >
               {/* Grid Lines */}
-              {[100, 200, 300, 400].map((yVal) => (
-                <g key={`grid-y-${yVal}`}>
-                  <line
-                    x1={margin.left}
-                    y1={scaleY(yVal)}
-                    x2={plotWidth - margin.right}
-                    y2={scaleY(yVal)}
-                    stroke="#f1f5f9"
-                    strokeWidth="1.5"
-                    strokeDasharray="4 4"
-                  />
-                  <text
-                    x={margin.left - 10}
-                    y={scaleY(yVal) + 4}
-                    textAnchor="end"
-                    fontSize="11"
-                    fill="#94a3b8"
-                    fontWeight="600"
-                  >
-                    ${yVal}k
-                  </text>
-                </g>
-              ))}
+              {[0.25, 0.5, 0.75, 1.0].map((ratio) => {
+                const yVal = yMin + ratio * (yMax - yMin);
+                return (
+                  <g key={`grid-y-${ratio}`}>
+                    <line
+                      x1={margin.left}
+                      y1={scaleY(yVal)}
+                      x2={plotWidth - margin.right}
+                      y2={scaleY(yVal)}
+                      stroke="#f1f5f9"
+                      strokeWidth="1.5"
+                      strokeDasharray="4 4"
+                    />
+                    <text
+                      x={margin.left - 10}
+                      y={scaleY(yVal) + 4}
+                      textAnchor="end"
+                      fontSize="11"
+                      fill="#94a3b8"
+                      fontWeight="600"
+                    >
+                      {yVal.toFixed(0)} {activeDataset.yUnit}
+                    </text>
+                  </g>
+                );
+              })}
 
-              {[2, 4, 6, 8, 10].map((xVal) => (
-                <g key={`grid-x-${xVal}`}>
-                  <line
-                    x1={scaleX(xVal)}
-                    y1={margin.top}
-                    x2={scaleX(xVal)}
-                    y2={plotHeight - margin.bottom}
-                    stroke="#f1f5f9"
-                    strokeWidth="1.5"
-                    strokeDasharray="4 4"
-                  />
-                  <text
-                    x={scaleX(xVal)}
-                    y={plotHeight - margin.bottom + 18}
-                    textAnchor="middle"
-                    fontSize="11"
-                    fill="#94a3b8"
-                    fontWeight="600"
-                  >
-                    {xVal} yrs
-                  </text>
-                </g>
-              ))}
+              {[0.2, 0.4, 0.6, 0.8, 1.0].map((ratio) => {
+                const xVal = xMin + ratio * (xMax - xMin);
+                return (
+                  <g key={`grid-x-${ratio}`}>
+                    <line
+                      x1={scaleX(xVal)}
+                      y1={margin.top}
+                      x2={scaleX(xVal)}
+                      y2={plotHeight - margin.bottom}
+                      stroke="#f1f5f9"
+                      strokeWidth="1.5"
+                      strokeDasharray="4 4"
+                    />
+                    <text
+                      x={scaleX(xVal)}
+                      y={plotHeight - margin.bottom + 18}
+                      textAnchor="middle"
+                      fontSize="11"
+                      fill="#94a3b8"
+                      fontWeight="600"
+                    >
+                      {xVal.toFixed(0)} {activeDataset.xUnit}
+                    </text>
+                  </g>
+                );
+              })}
 
               {/* Coordinate Axes */}
               <line
@@ -8772,7 +8914,7 @@ const PolynomialRegressionInteractiveStudio = () => {
                 fontWeight="800"
                 fill="#001f54"
               >
-                Years of Professional Experience (x)
+                {activeDataset.xLabel}
               </text>
               <text
                 transform={`rotate(-90 ${18} ${margin.top + innerHeight / 2})`}
@@ -8783,7 +8925,7 @@ const PolynomialRegressionInteractiveStudio = () => {
                 fontWeight="800"
                 fill="#001f54"
               >
-                Annual Tech Salary ($k)
+                {activeDataset.yLabel}
               </text>
 
               {/* Residual Vertical Error Lines (Training Points) */}
@@ -8791,7 +8933,7 @@ const PolynomialRegressionInteractiveStudio = () => {
                 const sx = scaleX(p.x);
                 const syActual = scaleY(p.y);
                 const syPred = scaleY(p.yHat);
-                const isHighError = Math.abs(p.residual) > 20;
+                const isHighError = Math.abs(p.residual) > (yMax - yMin) * 0.1;
 
                 return (
                   <g key={`res-${p.id}`}>
@@ -8801,7 +8943,7 @@ const PolynomialRegressionInteractiveStudio = () => {
                       x2={sx}
                       y2={syPred}
                       stroke={isHighError ? '#ef4444' : '#059669'}
-                      strokeWidth="2"
+                      strokeWidth="1.5"
                       strokeDasharray="3 3"
                     />
                   </g>
@@ -8812,7 +8954,7 @@ const PolynomialRegressionInteractiveStudio = () => {
               <path
                 d={curvePath}
                 fill="none"
-                stroke={degree >= 8 ? '#dc2626' : degree >= 4 ? '#ea580c' : degree === 1 ? '#0284c7' : '#001f54'}
+                stroke={degree >= 8 ? '#dc2626' : degree >= 5 ? '#ea580c' : degree === 1 ? '#0284c7' : '#001f54'}
                 strokeWidth="3.5"
                 strokeLinecap="round"
               />
@@ -8826,10 +8968,10 @@ const PolynomialRegressionInteractiveStudio = () => {
                     <circle
                       cx={cx}
                       cy={cy}
-                      r="6.5"
+                      r="5.5"
                       fill="#0284c7"
                       stroke="#ffffff"
-                      strokeWidth="2"
+                      strokeWidth="1.8"
                     />
                   </g>
                 );
@@ -8842,14 +8984,14 @@ const PolynomialRegressionInteractiveStudio = () => {
                 return (
                   <g key={p.id}>
                     <rect
-                      x={cx - 5.5}
-                      y={cy - 5.5}
-                      width="11"
-                      height="11"
+                      x={cx - 4.5}
+                      y={cy - 4.5}
+                      width="9"
+                      height="9"
                       transform={`rotate(45 ${cx} ${cy})`}
                       fill="#10b981"
                       stroke="#ffffff"
-                      strokeWidth="2"
+                      strokeWidth="1.8"
                     />
                   </g>
                 );
@@ -8873,13 +9015,13 @@ const PolynomialRegressionInteractiveStudio = () => {
               fontWeight: 700
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }}></span>
-                <span style={{ color: '#001f54' }}>Training Points (10 pts)</span>
+                <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }}></span>
+                <span style={{ color: '#001f54' }}>Training Scatter ({trainPoints.length} pts)</span>
               </div>
               {showTestData && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '9px', height: '9px', transform: 'rotate(45deg)', background: '#10b981', display: 'inline-block' }}></span>
-                  <span style={{ color: '#059669' }}>Unseen Test Validation (4 pts)</span>
+                  <span style={{ width: '8px', height: '8px', transform: 'rotate(45deg)', background: '#10b981', display: 'inline-block' }}></span>
+                  <span style={{ color: '#059669' }}>Unseen Validation ({testPoints.length} pts)</span>
                 </div>
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -8902,7 +9044,7 @@ const PolynomialRegressionInteractiveStudio = () => {
                   Select Polynomial Degree:
                 </span>
                 <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                  {degree === 1 ? 'Underfitting' : degree === 2 || degree === 3 ? 'Optimal Balance' : 'Overfitting'}
+                  {degree === 1 ? 'Underfitting' : degree === activeDataset.optimalDegree || degree === activeDataset.optimalDegree + 1 ? 'Optimal Balance' : 'Overfitting'}
                 </span>
               </div>
 
@@ -8910,7 +9052,7 @@ const PolynomialRegressionInteractiveStudio = () => {
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                 {[
                   { d: 1, name: 'd=1 (Linear)' },
-                  { d: 2, name: 'd=2 (Quadratic - Optimal)' },
+                  { d: 2, name: 'd=2 (Quadratic)' },
                   { d: 3, name: 'd=3 (Cubic)' },
                   { d: 4, name: 'd=4 (Quartic)' },
                   { d: 5, name: 'd=5' },
@@ -8983,7 +9125,7 @@ const PolynomialRegressionInteractiveStudio = () => {
               </div>
 
               <button
-                onClick={() => setDegree(2)}
+                onClick={() => setDegree(activeDataset.optimalDegree)}
                 style={{
                   background: '#ffffff',
                   color: '#001f54',
@@ -8995,7 +9137,7 @@ const PolynomialRegressionInteractiveStudio = () => {
                   cursor: 'pointer'
                 }}
               >
-                Reset to Optimal Degree (d=2)
+                Reset to Optimal Degree (d={activeDataset.optimalDegree})
               </button>
             </div>
           </div>
