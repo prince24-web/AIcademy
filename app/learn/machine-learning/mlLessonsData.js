@@ -1889,6 +1889,151 @@ export const mlLessonsData = {
       correctIndex: 0,
       explanation: 'Correct! In standard machine learning notation, Loss L(y, ŷ) is computed on an individual sample, while Cost J(W) represents the aggregated average or sum of all individual losses over the entire dataset.'
     }
+  },
+
+  'ml-3-5': {
+    id: 'ml-3-5',
+    title: 'Gradient Descent',
+    moduleTitle: 'MODULE 3: REGRESSION',
+    readTime: '16 min read',
+    difficulty: 'Intermediate',
+    badgeText: 'Optimization Engine',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Understand the fundamental mechanics of Gradient Descent: iteratively stepping downhill in the direction of steepest descent.',
+      'Master the mathematical weight update equation: $w := w - \\alpha \\frac{\\partial J}{\\partial w}$.',
+      'Analyze the critical impact of the Learning Rate $\\alpha$: slow convergence vs. optimal descent vs. catastrophic divergence.',
+      'Explain why gradient descent step sizes naturally shrink as the model approaches the global minimum, eliminating the need to manually reduce $\\alpha$.',
+      'Compare Batch Gradient Descent, Stochastic Gradient Descent (SGD), and Mini-Batch Gradient Descent in terms of speed, memory, and path stability.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Core Intuition: Walking Downhill in the Dark',
+        paragraphs: [
+          'In the previous lesson, we saw that the Cost Function $J(W)$ forms a multi-dimensional error landscape, and our goal is to reach the lowest valley floor (the Global Minimum $J_{\\text{min}}$).',
+          'For simple models, solving the Normal Equation directly is possible. But for datasets with millions of samples or thousands of features, analytical matrix inversion becomes computationally impossible ($O(d^3)$).',
+          'This is where Gradient Descent steps in. Instead of calculating the perfect answer in a single massive computation, Gradient Descent starts with random weights and takes small, intelligent steps downhill until it reaches the lowest possible cost.'
+        ]
+      },
+      {
+        heading: '2. The Mathematical Update Rule: Following the Slope',
+        paragraphs: [
+          'At any given point on the cost surface, the derivative (or gradient $\\nabla J$) tells us the slope of the curve:',
+          '• If the slope is positive (going uphill to the right), we must move to the left (decrease $w$).',
+          '• If the slope is negative (sloping downhill to the right), we must move to the right (increase $w$).',
+          'Mathematically, we always move in the opposite direction of the gradient. The parameter update rule for every weight $w_j$ is:',
+          '$$w_j := w_j - \\alpha \\frac{\\partial J(W)}{\\partial w_j}$$',
+          'Here, $\\alpha$ (alpha) is the Learning Rate: a hyperparameter that controls how large of a step we take on each iteration.'
+        ]
+      },
+      {
+        heading: '3. The Learning Rate (α): The Speed vs. Stability Dilemma',
+        paragraphs: [
+          'Selecting the right learning rate is one of the most critical decisions when training machine learning models:',
+          '1. Learning Rate Too Small (e.g. $\\alpha = 0.0001$):',
+          'The model takes minuscule baby steps. It will eventually reach the minimum, but it requires thousands of iterations and immense computing time (crawling).',
+          '2. Learning Rate Too Large (e.g. $\\alpha = 1.2$):',
+          'The step overshoots the valley floor and lands even higher up on the opposite wall of the bowl. Subsequent steps bounce violently back and forth, causing the cost to explode toward infinity (divergence).',
+          '3. Optimal Learning Rate (e.g. $\\alpha = 0.05$):',
+          'The model smoothly and rapidly descends directly into the valley floor in a modest number of steps.'
+        ]
+      },
+      {
+        heading: '4. Automatic Step Decay: Why Steps Naturally Shrink Near the Minimum',
+        paragraphs: [
+          'A common misconception is that you must constantly decrease $\\alpha$ as you get closer to the minimum to prevent overshooting.',
+          'In reality, the step size taken on each iteration is the product of two terms:',
+          '$$\\text{Step Size} = \\alpha \\cdot \\left|\\frac{\\partial J}{\\partial w}\\right|$$',
+          'As the model approaches the bottom of the bowl, the slope $\\frac{\\partial J}{\\partial w}$ naturally flattens out toward zero. As a result, the effective step size automatically decreases, allowing the model to gently settle into the exact global minimum without overshooting!'
+        ]
+      },
+      {
+        heading: '5. The Three Flavors of Gradient Descent',
+        paragraphs: [
+          'How many training examples should we inspect before taking each gradient step? This gives rise to three distinct variants:',
+          '1. Batch Gradient Descent:',
+          'Calculates the gradient over the ENTIRE dataset of $N$ samples before making a single update step. It produces a perfectly smooth, direct path to the minimum, but can be extremely slow if the dataset contains millions of rows.',
+          '2. Stochastic Gradient Descent (SGD):',
+          'Updates the weights after inspecting just ONE single randomly picked training sample. It is blazing fast and uses minimal memory, but its path to the minimum is noisy and zig-zags erratically.',
+          '3. Mini-Batch Gradient Descent (The Gold Standard):',
+          'Computes the gradient over a small subset of samples (typically $32, 64, 128, \\text{ or } 256$). It provides the best of both worlds: robust GPU vectorization speed with smooth, stable convergence.'
+        ]
+      },
+      {
+        heading: '6. Python Code: Implementing Gradient Descent from Scratch',
+        paragraphs: [
+          'Here is a complete, minimal implementation of Gradient Descent for Linear Regression using NumPy:'
+        ],
+        codeBlock: [
+          '# Gradient Descent from Scratch in Pure NumPy',
+          'import numpy as np',
+          '',
+          '# 1. Generate Synthetic Linear Data: y = 2.5 * X + 10 + noise',
+          'np.random.seed(42)',
+          'X = 2 * np.random.rand(100, 1)',
+          'y = 2.5 * X + 10 + np.random.randn(100, 1) * 0.5',
+          '',
+          '# 2. Add bias feature x0 = 1 for matrix math: X_b shape (100, 2)',
+          'X_b = np.c_[np.ones((100, 1)), X]',
+          '',
+          '# 3. Hyperparameters',
+          'learning_rate = 0.1',
+          'n_iterations = 1000',
+          'm = len(X_b) # 100 samples',
+          '',
+          '# 4. Initialize random weights [b, w]',
+          'weights = np.random.randn(2, 1)',
+          '',
+          '# 5. Gradient Descent Training Loop',
+          'for iteration in range(n_iterations):',
+          '    # Compute predictions: y_hat = X_b * W',
+          '    predictions = X_b.dot(weights)',
+          '    # Compute error residuals',
+          '    errors = predictions - y',
+          '    # Compute gradient vector: (2/m) * X_b.T * errors',
+          '    gradients = (2 / m) * X_b.T.dot(errors)',
+          '    # Update weights in opposite direction of gradient',
+          '    weights -= learning_rate * gradients',
+          '',
+          'print(f"Learned Intercept b: {weights[0][0]:.4f} (True: 10.0)")',
+          'print(f"Learned Slope w:     {weights[1][0]:.4f} (True: 2.5)")'
+        ].join('\n'),
+        codeBlockTitle: 'gradient_descent_numpy.py'
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Blindfolded Skier on a Foggy Slope',
+      text: 'Imagine a blindfolded skier standing high on a foggy mountain who needs to find the lodge at the bottom of the valley. With every stride, the skier taps their ski poles to feel the slope under their feet. The steepest downward direction is the negative gradient ($-\\nabla J$). The length of their stride is the learning rate ($\\alpha$). By consistently stepping downhill, long strides at the top naturally become shorter as the ground levels out, safely delivering the skier to the lodge floor!'
+    },
+
+    diagram: {
+      type: 'gradient_descent_interactive_studio'
+    },
+
+    takeaways: [
+      'Gradient Descent is an iterative optimization algorithm that minimizes the cost function by stepping in the direction of steepest descent ($-\\nabla J$).',
+      'The parameter update rule is $w := w - \\alpha \\frac{\\partial J}{\\partial w}$, where $\\alpha$ controls step length.',
+      'If the learning rate $\\alpha$ is too small, training is painfully slow; if $\\alpha$ is too large, the cost overshoots and diverges to infinity.',
+      'Step sizes naturally shrink as the model nears the minimum because the slope $\\frac{\\partial J}{\\partial w}$ approaches zero.',
+      'Mini-Batch Gradient Descent is the industry standard balance between computational speed (SGD) and path stability (Batch GD).'
+    ],
+
+    quiz: {
+      question: 'During Gradient Descent, why does the effective step size taken by the algorithm naturally get smaller as it approaches the minimum, even if the learning rate α is kept constant?',
+      options: [
+        'Because the slope (gradient) of the cost function naturally approaches zero near the valley floor',
+        'Because the learning rate is automatically divided by 10 after each iteration',
+        'Because the dataset shrinks in size as training progresses',
+        'Because the computer reduces CPU clock speed when error decreases'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! The step taken on each iteration is equal to alpha * |gradient|. As the model approaches the global minimum, the slope (gradient) flattens out toward zero, causing the product to naturally decrease without needing manual adjustments to alpha.'
+    }
   }
 };
 

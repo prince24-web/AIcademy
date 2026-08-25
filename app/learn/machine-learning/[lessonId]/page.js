@@ -9941,6 +9941,1109 @@ const CostLossFunctionsStudio = () => {
   );
 };
 
+// ─── GRADIENT DESCENT INTERACTIVE STUDIO (2D & 3D THREE.JS FABRIC) ───────────
+const GradientDescentInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('2d-studio');
+
+  // ─── 2D LINE GRADIENT DESCENT STATE ───────────────────────────────────────
+  const [learningRate, setLearningRate] = useState(0.12);
+  const [initialW, setInitialW] = useState(2.0);
+  const [history, setHistory] = useState([{ w: 2.0, j: 189.0, slope: -26.0, step: 0 }]);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+
+  // Parabolic Cost Function: J(w) = (w - 15)^2 + 20
+  // Derivative / Slope: dJ/dw = 2 * (w - 15)
+  const calc2DCost = (wVal) => Math.pow(wVal - 15.0, 2) + 20.0;
+  const calc2DSlope = (wVal) => 2.0 * (wVal - 15.0);
+
+  const currentStep = history[history.length - 1];
+  const isConverged = Math.abs(currentStep.w - 15.0) < 0.05;
+  const isDiverging = Math.abs(currentStep.w) > 60 || currentStep.j > 2000;
+
+  // Single step update rule: w_next = w - lr * slope
+  const handleStepForward = useCallback(() => {
+    setHistory((prev) => {
+      const last = prev[prev.length - 1];
+      if (Math.abs(last.w - 15.0) < 0.02 || Math.abs(last.w) > 70) return prev;
+
+      const slope = calc2DSlope(last.w);
+      const nextW = last.w - learningRate * slope;
+      const nextJ = calc2DCost(nextW);
+      const nextSlope = calc2DSlope(nextW);
+
+      if (Math.abs(nextW - 15.0) < 0.08) {
+        triggerConfetti(0.5, 0.6);
+      }
+
+      return [
+        ...prev,
+        {
+          w: nextW,
+          j: nextJ,
+          slope: nextSlope,
+          step: prev.length
+        }
+      ];
+    });
+  }, [learningRate]);
+
+  // Auto-play timer loop
+  useEffect(() => {
+    let timer = null;
+    if (isAutoPlaying) {
+      if (isConverged || isDiverging || history.length >= 35) {
+        setIsAutoPlaying(false);
+      } else {
+        timer = setTimeout(() => {
+          handleStepForward();
+        }, 320);
+      }
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isAutoPlaying, isConverged, isDiverging, history, handleStepForward]);
+
+  const handleReset2D = (startVal = 2.0) => {
+    setIsAutoPlaying(false);
+    setInitialW(startVal);
+    setHistory([{ w: startVal, j: calc2DCost(startVal), slope: calc2DSlope(startVal), step: 0 }]);
+  };
+
+  // 2D SVG Plot Scales (W: -2 to 32, Cost J: 0 to 240)
+  const svg2DW = 340;
+  const svg2DH = 250;
+  const margin2D = { left: 45, right: 20, top: 20, bottom: 35 };
+  const inner2DW = svg2DW - margin2D.left - margin2D.right;
+  const inner2DH = svg2DH - margin2D.top - margin2D.bottom;
+
+  const scale2DW = (wVal) => margin2D.left + ((wVal - (-2)) / (32 - (-2))) * inner2DW;
+  const scale2DJ = (jVal) => margin2D.top + inner2DH - Math.max(0, Math.min(inner2DH, ((jVal - 0) / (240 - 0)) * inner2DH));
+
+  // Generate 2D Parabolic Curve Path
+  const curve2DPath = useMemo(() => {
+    const pts = [];
+    for (let wVal = -1.5; wVal <= 31.5; wVal += 0.5) {
+      const jVal = calc2DCost(wVal);
+      pts.push(`${scale2DW(wVal).toFixed(1)},${scale2DJ(jVal).toFixed(1)}`);
+    }
+    return `M ${pts.join(' L ')}`;
+  }, []);
+
+  // ─── 3D FABRIC THREE.JS STUDIO STATE & ENGINE ─────────────────────────────
+  const fabricMountRef = useRef(null);
+  const fabricSceneRef = useRef(null);
+  const fabricCameraRef = useRef(null);
+  const fabricRendererRef = useRef(null);
+  const fabricBallMeshRef = useRef(null);
+  const fabricPathLineRef = useRef(null);
+  const fabricMeshRef = useRef(null);
+
+  const [lr3D, setLr3D] = useState(0.08);
+  const [pos3D, setPos3D] = useState({ x: -3.2, y: 3.0 });
+  const [path3D, setPath3D] = useState([{ x: -3.2, y: 3.0 }]);
+  const [is3DPlaying, setIs3DPlaying] = useState(false);
+  const [autoRotate3D, setAutoRotate3D] = useState(true);
+
+  // 3D Fabric Surface Function: A draped undulating cloth sheet with a central basin
+  // Z(x, y) = 0.12*(x^2 + y^2) + 0.45*cos(0.9*x)*sin(0.9*y) + 0.2*sin(1.3*x)
+  const calcFabricZ = useCallback((x, y) => {
+    return 0.14 * (x * x + y * y) + 0.38 * Math.cos(0.9 * x) * Math.sin(0.9 * y) + 0.18 * Math.sin(1.2 * x);
+  }, []);
+
+  // 3D Gradient partial derivatives dZ/dx and dZ/dy
+  const calcFabricGrad = useCallback((x, y) => {
+    const dx = 0.28 * x - 0.38 * 0.9 * Math.sin(0.9 * x) * Math.sin(0.9 * y) + 0.18 * 1.2 * Math.cos(1.2 * x);
+    const dy = 0.28 * y + 0.38 * 0.9 * Math.cos(0.9 * x) * Math.cos(0.9 * y);
+    return { dx, dy };
+  }, []);
+
+  const handleStep3D = useCallback(() => {
+    setPath3D((prev) => {
+      const curr = prev[prev.length - 1];
+      const { dx, dy } = calcFabricGrad(curr.x, curr.y);
+      const nextX = curr.x - lr3D * dx;
+      const nextY = curr.y - lr3D * dy;
+
+      if (Math.hypot(dx, dy) < 0.05) {
+        triggerConfetti(0.5, 0.6);
+      }
+
+      setPos3D({ x: nextX, y: nextY });
+      return [...prev, { x: nextX, y: nextY }];
+    });
+  }, [lr3D, calcFabricGrad]);
+
+  useEffect(() => {
+    let timer = null;
+    if (is3DPlaying) {
+      if (path3D.length >= 60 || Math.hypot(pos3D.x, pos3D.y) < 0.1) {
+        setIs3DPlaying(false);
+      } else {
+        timer = setTimeout(() => {
+          handleStep3D();
+        }, 220);
+      }
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [is3DPlaying, path3D, pos3D, handleStep3D]);
+
+  const handleReset3D = (startX = -3.2, startY = 3.0) => {
+    setIs3DPlaying(false);
+    setPos3D({ x: startX, y: startY });
+    setPath3D([{ x: startX, y: startY }]);
+  };
+
+  // Initialize Three.js Fabric Scene
+  useEffect(() => {
+    const container = fabricMountRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth || 680;
+    const height = 400;
+
+    // Scene
+    const scene = new THREE.Scene();
+    fabricSceneRef.current = scene;
+    scene.background = new THREE.Color('#f8fafc');
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(9, 11, 13);
+    camera.lookAt(0, 1.5, 0);
+    fabricCameraRef.current = camera;
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    rendererRef.current = renderer;
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight('#ffffff', 0.85);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight('#ffffff', 1.1);
+    dirLight1.position.set(12, 20, 14);
+    dirLight1.castShadow = true;
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight('#0284c7', 0.4);
+    dirLight2.position.set(-10, -5, -10);
+    scene.add(dirLight2);
+
+    // Subtle Ground Shadow Grid
+    const gridHelper = new THREE.GridHelper(16, 16, '#cbd5e1', '#f1f5f9');
+    gridHelper.position.y = -0.5;
+    scene.add(gridHelper);
+
+    // Build the Parametric 3D Fabric Surface Mesh
+    const gridSegments = 64;
+    const fabricGeo = new THREE.PlaneGeometry(10, 10, gridSegments, gridSegments);
+    fabricGeo.rotateX(-Math.PI / 2); // Orient horizontally
+
+    const posAttr = fabricGeo.attributes.position;
+    const colors = [];
+    const colorLow = new THREE.Color('#0284c7');
+    const colorMid = new THREE.Color('#38bdf8');
+    const colorHigh = new THREE.Color('#ffffff');
+
+    for (let i = 0; i < posAttr.count; i++) {
+      const x = posAttr.getX(i);
+      const z = posAttr.getZ(i);
+      const y = calcFabricZ(x, z);
+      posAttr.setY(i, y);
+
+      // Color mapping according to elevation (like a contour fabric sheet)
+      const normY = Math.max(0, Math.min(1, y / 3.5));
+      const col = normY < 0.5 ? colorLow.clone().lerp(colorMid, normY * 2) : colorMid.clone().lerp(colorHigh, (normY - 0.5) * 2);
+      colors.push(col.r, col.g, col.b);
+    }
+    fabricGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    fabricGeo.computeVertexNormals();
+
+    // Silky Fabric Material with DoubleSide & Vertex Colors
+    const fabricMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.35,
+      metalness: 0.15,
+      side: THREE.DoubleSide,
+      shadowSide: THREE.DoubleSide
+    });
+
+    const fabricMesh = new THREE.Mesh(fabricGeo, fabricMat);
+    fabricMesh.receiveShadow = true;
+    fabricMesh.castShadow = true;
+    scene.add(fabricMesh);
+    fabricMeshRef.current = fabricMesh;
+
+    // Subtle Fabric Wireframe overlay (gives the woven cloth texture)
+    const wireMat = new THREE.MeshBasicMaterial({
+      color: '#001f54',
+      wireframe: true,
+      transparent: true,
+      opacity: 0.07
+    });
+    const wireMesh = new THREE.Mesh(fabricGeo, wireMat);
+    scene.add(wireMesh);
+
+    // Global Minimum Marker at center valley floor
+    const minMarkerGeo = new THREE.RingGeometry(0.2, 0.4, 32);
+    minMarkerGeo.rotateX(-Math.PI / 2);
+    const minMarkerMat = new THREE.MeshBasicMaterial({ color: '#059669', side: THREE.DoubleSide });
+    const minMarker = new THREE.Mesh(minMarkerGeo, minMarkerMat);
+    minMarker.position.set(0, calcFabricZ(0, 0) + 0.05, 0);
+    scene.add(minMarker);
+
+    // Glowing Descent Sphere (The Particle)
+    const ballGeo = new THREE.SphereGeometry(0.3, 32, 32);
+    const ballMat = new THREE.MeshStandardMaterial({
+      color: '#dc2626',
+      emissive: '#ef4444',
+      emissiveIntensity: 0.5,
+      roughness: 0.2
+    });
+    const ballMesh = new THREE.Mesh(ballGeo, ballMat);
+    ballMesh.castShadow = true;
+    scene.add(ballMesh);
+    fabricBallMeshRef.current = ballMesh;
+
+    // Trajectory Line for the path taken
+    const pathGeo = new THREE.BufferGeometry();
+    const pathMat = new THREE.LineBasicMaterial({
+      color: '#dc2626',
+      linewidth: 3
+    });
+    const pathLine = new THREE.Line(pathGeo, pathMat);
+    scene.add(pathLine);
+    fabricPathLineRef.current = pathLine;
+
+    // Orbit Drag Navigation state
+    let isDragging = false;
+    let prevMouseX = 0;
+    let prevMouseY = 0;
+    let theta = Math.PI * 0.25;
+    let phi = Math.PI * 0.28;
+    let radius = 17;
+
+    const updateCameraPos = () => {
+      camera.position.x = radius * Math.sin(phi) * Math.cos(theta);
+      camera.position.y = radius * Math.cos(phi);
+      camera.position.z = radius * Math.sin(phi) * Math.sin(theta);
+      camera.lookAt(0, 1.2, 0);
+    };
+    updateCameraPos();
+
+    const dom = renderer.domElement;
+    const onMouseDown = (e) => {
+      isDragging = true;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    };
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - prevMouseX;
+      const deltaY = e.clientY - prevMouseY;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+
+      theta -= deltaX * 0.008;
+      phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, phi - deltaY * 0.008));
+      updateCameraPos();
+    };
+    const onMouseUp = () => { isDragging = false; };
+    const onWheel = (e) => {
+      e.preventDefault();
+      radius = Math.max(8, Math.min(26, radius + e.deltaY * 0.02));
+      updateCameraPos();
+    };
+
+    dom.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    dom.addEventListener('wheel', onWheel, { passive: false });
+
+    // Animation Loop
+    let animId = null;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      // Auto-rotation when not dragging
+      if (autoRotate3D && !isDragging) {
+        theta += 0.003;
+        updateCameraPos();
+      }
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    const handleResize = () => {
+      if (!container) return;
+      const w = container.clientWidth || 680;
+      camera.aspect = w / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, height);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', handleResize);
+      dom.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      dom.removeEventListener('wheel', onWheel);
+      renderer.dispose();
+    };
+  }, [calcFabricZ, autoRotate3D]);
+
+  // Update Descent Ball and Trajectory Line in 3D scene when path updates
+  useEffect(() => {
+    if (!fabricBallMeshRef.current || !fabricPathLineRef.current) return;
+
+    const curr = path3D[path3D.length - 1];
+    const currZ = calcFabricZ(curr.x, curr.y);
+    fabricBallMeshRef.current.position.set(curr.x, currZ + 0.3, curr.y);
+
+    // Update path line vertices
+    const points = path3D.map((p) => new THREE.Vector3(p.x, calcFabricZ(p.x, p.y) + 0.08, p.y));
+    fabricPathLineRef.current.geometry.setFromPoints(points);
+  }, [path3D, calcFabricZ]);
+
+  // Trigger resize when switching to 3D fabric tab
+  useEffect(() => {
+    if (activeTab === '3d-fabric' && fabricRendererRef.current && fabricMountRef.current && fabricCameraRef.current) {
+      const w = fabricMountRef.current.clientWidth || 680;
+      fabricCameraRef.current.aspect = w / 400;
+      fabricCameraRef.current.updateProjectionMatrix();
+      fabricRendererRef.current.setSize(w, 400);
+    }
+  }, [activeTab]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER BAR ─────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={22} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#001f54' }}>
+              Gradient Descent Interactive Studio
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+              Explore step-by-step 2D curve descent and interactive 3D fabric surface optimization
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { id: '2d-studio', label: '2D Line Curve Studio' },
+            { id: '3d-fabric', label: '3D Fabric Surface Studio' },
+            { id: 'variants', label: 'Batch vs SGD vs Mini-Batch' },
+            { id: 'code', label: 'Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 2D LINE CURVE GRADIENT DESCENT STUDIO ─────────────── */}
+      <div style={{ display: activeTab === '2d-studio' ? 'block' : 'none' }}>
+        {/* Metric Cards */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '1rem',
+          marginBottom: '1.25rem'
+        }}>
+          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+              Current Weight (w)
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#001f54', marginTop: '2px' }}>
+              {currentStep.w.toFixed(2)}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+              Target: <MathFormula math="w^* = 15.00" />
+            </div>
+          </div>
+
+          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+              Cost J(w)
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 900, color: isConverged ? '#059669' : '#0284c7', marginTop: '2px' }}>
+              {currentStep.j.toFixed(2)}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+              Global Min: 20.00
+            </div>
+          </div>
+
+          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+              Slope dJ/dw & Step Size
+            </div>
+            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#334155', marginTop: '4px' }}>
+              Slope: {currentStep.slope.toFixed(2)}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700, marginTop: '4px' }}>
+              Step = α·|slope| = {(learningRate * Math.abs(currentStep.slope)).toFixed(2)}
+            </div>
+          </div>
+
+          <div style={{
+            background: isConverged ? '#ecfdf5' : isDiverging ? '#fef2f2' : '#fffbeb',
+            padding: '1rem',
+            borderRadius: '14px',
+            border: `1.5px solid ${isConverged ? '#a7f3d0' : isDiverging ? '#fecaca' : '#fde68a'}`
+          }}>
+            <div style={{ fontSize: '0.72rem', color: isConverged ? '#059669' : isDiverging ? '#dc2626' : '#d97706', fontWeight: 800, textTransform: 'uppercase' }}>
+              Iteration Status
+            </div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: isConverged ? '#059669' : isDiverging ? '#dc2626' : '#d97706', marginTop: '4px' }}>
+              {isConverged ? 'Converged to Minimum!' : isDiverging ? 'Exploded (Diverged)' : `Iteration ${history.length - 1}`}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: isConverged ? '#059669' : isDiverging ? '#b91c1c' : '#b45309', marginTop: '4px' }}>
+              {isConverged ? 'Optimal slope achieved!' : isDiverging ? 'Learning rate is too high!' : 'Stepping downhill...'}
+            </div>
+          </div>
+        </div>
+
+        {/* 2D Dual Panel Visualizer */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '1.25rem',
+          marginBottom: '1.25rem'
+        }}>
+          {/* LEFT: 2D COST CURVE & DESCENT PATH */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                Cost Parabola J(w) & Step Trajectory
+              </span>
+              <span style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700 }}>
+                w := w - α(dJ/dw)
+              </span>
+            </div>
+
+            <svg viewBox={`0 0 ${svg2DW} ${svg2DH}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+              {/* Axes */}
+              <line x1={margin2D.left} y1={svg2DH - margin2D.bottom} x2={svg2DW - margin2D.right} y2={svg2DH - margin2D.bottom} stroke="#64748b" strokeWidth="1.5" />
+              <line x1={margin2D.left} y1={margin2D.top} x2={margin2D.left} y2={svg2DH - margin2D.bottom} stroke="#64748b" strokeWidth="1.5" />
+              <text x={margin2D.left + inner2DW / 2} y={svg2DH - 8} textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="700">
+                Parameter Weight w
+              </text>
+              <text transform={`rotate(-90 ${14} ${margin2D.top + inner2DH / 2})`} x={14} y={margin2D.top + inner2DH / 2} textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="700">
+                Cost J(w)
+              </text>
+
+              {/* Ticks */}
+              {[0, 10, 15, 20, 30].map((w) => (
+                <text key={`tick-${w}`} x={scale2DW(w)} y={svg2DH - margin2D.bottom + 14} textAnchor="middle" fontSize="10" fill="#94a3b8">
+                  {w}
+                </text>
+              ))}
+
+              {/* Parabolic Curve */}
+              <path d={curve2DPath} fill="none" stroke="#001f54" strokeWidth="2.5" strokeLinecap="round" />
+
+              {/* Global Minimum Star */}
+              <circle cx={scale2DW(15.0)} cy={scale2DJ(20.0)} r="4.5" fill="#059669" />
+              <text x={scale2DW(15.0)} y={scale2DJ(20.0) + 14} textAnchor="middle" fontSize="9" fill="#059669" fontWeight="800">
+                Min (w*=15)
+              </text>
+
+              {/* Step Connecting Lines / Arrows */}
+              {history.map((pt, idx) => {
+                if (idx === 0) return null;
+                const prev = history[idx - 1];
+                return (
+                  <line
+                    key={`line-${idx}`}
+                    x1={scale2DW(prev.w)}
+                    y1={scale2DJ(prev.j)}
+                    x2={scale2DW(pt.w)}
+                    y2={scale2DJ(pt.j)}
+                    stroke="#dc2626"
+                    strokeWidth="1.8"
+                    strokeDasharray={idx === history.length - 1 ? 'none' : '3 3'}
+                  />
+                );
+              })}
+
+              {/* Step Points History */}
+              {history.map((pt, idx) => (
+                <circle
+                  key={`pt-${idx}`}
+                  cx={scale2DW(pt.w)}
+                  cy={scale2DJ(pt.j)}
+                  r={idx === history.length - 1 ? 6.5 : 4.0}
+                  fill={idx === history.length - 1 ? '#dc2626' : '#f87171'}
+                  stroke="#ffffff"
+                  strokeWidth="1.5"
+                />
+              ))}
+
+              {/* Tangent Slope Line at Current Point */}
+              {(() => {
+                const sx = scale2DW(currentStep.w);
+                const sy = scale2DJ(currentStep.j);
+                const dx = 25;
+                const dy = -currentStep.slope * 0.8;
+                return (
+                  <line
+                    x1={sx - dx}
+                    y1={sy - dy}
+                    x2={sx + dx}
+                    y2={sy + dy}
+                    stroke="#0284c7"
+                    strokeWidth="2"
+                    strokeDasharray="2 2"
+                  />
+                );
+              })()}
+            </svg>
+          </div>
+
+          {/* RIGHT: MODEL FIT LIVE CONVERGENCE */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                Live Model Fit: <MathFormula math={`\\hat{y} = ${currentStep.w.toFixed(1)}x + 25`} />
+              </span>
+              <span style={{ fontSize: '0.75rem', color: isConverged ? '#059669' : '#dc2626', fontWeight: 800 }}>
+                {isConverged ? 'Optimal Line Fit' : 'Iterating...'}
+              </span>
+            </div>
+
+            <svg viewBox={`0 0 ${svg2DW} ${svg2DH}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+              {/* Axes */}
+              <line x1={margin2D.left} y1={svg2DH - margin2D.bottom} x2={svg2DW - margin2D.right} y2={svg2DH - margin2D.bottom} stroke="#64748b" strokeWidth="1.5" />
+              <line x1={margin2D.left} y1={margin2D.top} x2={margin2D.left} y2={svg2DH - margin2D.bottom} stroke="#64748b" strokeWidth="1.5" />
+
+              {/* Data points */}
+              {[
+                { x: 1, y: 45 }, { x: 2, y: 55 }, { x: 3, y: 65 }, { x: 4, y: 80 }, { x: 5, y: 110 }
+              ].map((p, idx) => {
+                const sx = margin2D.left + (p.x / 6.0) * inner2DW;
+                const sy = margin2D.top + inner2DH - (p.y / 130.0) * inner2DH;
+                const predY = currentStep.w * p.x + 25;
+                const spredY = margin2D.top + inner2DH - Math.max(0, Math.min(inner2DH, (predY / 130.0) * inner2DH));
+
+                return (
+                  <g key={`data-${idx}`}>
+                    <line x1={sx} y1={sy} x2={sx} y2={spredY} stroke="#ef4444" strokeWidth="1.5" strokeDasharray="2 2" />
+                    <circle cx={sx} cy={sy} r="5.5" fill="#001f54" stroke="#ffffff" strokeWidth="1.5" />
+                  </g>
+                );
+              })}
+
+              {/* Candidate Regression Line */}
+              {(() => {
+                const x1 = 0.5, y1 = currentStep.w * 0.5 + 25;
+                const x2 = 5.5, y2 = currentStep.w * 5.5 + 25;
+                const sx1 = margin2D.left + (x1 / 6.0) * inner2DW;
+                const sy1 = margin2D.top + inner2DH - Math.max(0, Math.min(inner2DH, (y1 / 130.0) * inner2DH));
+                const sx2 = margin2D.left + (x2 / 6.0) * inner2DW;
+                const sy2 = margin2D.top + inner2DH - Math.max(0, Math.min(inner2DH, (y2 / 130.0) * inner2DH));
+                return (
+                  <line x1={sx1} y1={sy1} x2={sx2} y2={sy2} stroke="#0284c7" strokeWidth="3" strokeLinecap="round" />
+                );
+              })()}
+            </svg>
+          </div>
+        </div>
+
+        {/* 2D Controls Bar */}
+        <div style={{
+          background: '#f8fafc',
+          padding: '1.25rem',
+          borderRadius: '16px',
+          border: '1.5px solid #e2e8f0'
+        }}>
+          {/* Learning Rate Preset Buttons */}
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54', marginBottom: '0.5rem' }}>
+              Select Learning Rate (α):
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {[
+                { val: 0.02, label: 'Tiny (α = 0.02) — Slow Crawl' },
+                { val: 0.12, label: 'Optimal (α = 0.12) — Smooth Descent' },
+                { val: 0.85, label: 'Large (α = 0.85) — Overshooting' },
+                { val: 1.05, label: 'Extreme (α = 1.05) — Divergence!' }
+              ].map((preset) => (
+                <button
+                  key={preset.val}
+                  onClick={() => {
+                    setLearningRate(preset.val);
+                    handleReset2D(initialW);
+                  }}
+                  style={{
+                    background: learningRate === preset.val ? '#001f54' : '#ffffff',
+                    color: learningRate === preset.val ? '#ffffff' : '#334155',
+                    border: learningRate === preset.val ? '1px solid #001f54' : '1px solid #cbd5e1',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            borderTop: '1px solid #e2e8f0',
+            paddingTop: '0.85rem'
+          }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={handleStepForward}
+                disabled={isConverged || isDiverging}
+                style={{
+                  background: '#0284c7',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: isConverged || isDiverging ? 'not-allowed' : 'pointer',
+                  opacity: isConverged || isDiverging ? 0.5 : 1
+                }}
+              >
+                Step Forward (+1 Iteration)
+              </button>
+
+              <button
+                onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+                disabled={isConverged || isDiverging}
+                style={{
+                  background: isAutoPlaying ? '#dc2626' : '#059669',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: isConverged || isDiverging ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isAutoPlaying ? 'Pause Descent' : 'Auto-Play Descent'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => handleReset2D(2.0)}
+                style={{
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Reset Left (w₀ = 2.0)
+              </button>
+              <button
+                onClick={() => handleReset2D(28.0)}
+                style={{
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1px solid #cbd5e1',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Reset Right (w₀ = 28.0)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── TAB 2: 3D FABRIC THREE.JS STUDIO ────────────────────────── */}
+      <div style={{ display: activeTab === '3d-fabric' ? 'block' : 'none' }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          background: '#f8fafc',
+          padding: '0.75rem 1rem',
+          borderRadius: '14px',
+          border: '1.5px solid #e2e8f0',
+          marginBottom: '1rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#001f54' }}>
+              Start Position:
+            </span>
+            {[
+              { label: 'Upper Ripple Peak', x: -3.2, y: 3.0 },
+              { label: 'Side Fold Ridge', x: 3.5, y: -2.8 },
+              { label: 'Saddle Slope Edge', x: -3.0, y: -3.2 }
+            ].map((p, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleReset3D(p.x, p.y)}
+                style={{
+                  background: pos3D.x === p.x && pos3D.y === p.y ? '#001f54' : '#ffffff',
+                  color: pos3D.x === p.x && pos3D.y === p.y ? '#ffffff' : '#334155',
+                  border: '1px solid #cbd5e1',
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              onClick={() => setAutoRotate3D(!autoRotate3D)}
+              style={{
+                background: autoRotate3D ? '#0284c7' : '#ffffff',
+                color: autoRotate3D ? '#ffffff' : '#334155',
+                border: '1px solid #cbd5e1',
+                padding: '5px 12px',
+                borderRadius: '8px',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              {autoRotate3D ? 'Auto-Rotate Active' : 'Auto-Rotate Off'}
+            </button>
+          </div>
+        </div>
+
+        {/* 3D WebGL Canvas Viewport */}
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          height: '400px',
+          background: '#f8fafc',
+          borderRadius: '16px',
+          border: '1.5px solid #e2e8f0',
+          overflow: 'hidden',
+          marginBottom: '1rem'
+        }}>
+          <div ref={fabricMountRef} style={{ width: '100%', height: '100%' }} />
+
+          {/* Interactive 3D Legend & Coordinates */}
+          <div style={{
+            position: 'absolute',
+            top: '12px',
+            left: '16px',
+            background: 'rgba(255, 255, 255, 0.94)',
+            backdropFilter: 'blur(6px)',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            border: '1px solid #cbd5e1',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            color: '#001f54',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}>
+            <div>Parametric 3D Fabric Landscape</div>
+            <div style={{ color: '#0284c7', fontSize: '0.72rem' }}>
+              Ball Position: ({pos3D.x.toFixed(2)}, {pos3D.y.toFixed(2)})
+            </div>
+            <div style={{ color: '#059669', fontSize: '0.72rem' }}>
+              Target Valley Floor: (0.00, 0.00)
+            </div>
+          </div>
+
+          <div style={{
+            position: 'absolute',
+            bottom: '12px',
+            right: '16px',
+            background: 'rgba(255, 255, 255, 0.94)',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            border: '1px solid #cbd5e1',
+            fontSize: '0.72rem',
+            color: '#64748b',
+            fontWeight: 700
+          }}>
+            Click and drag to rotate • Scroll to zoom
+          </div>
+        </div>
+
+        {/* 3D Controls */}
+        <div style={{
+          background: '#f8fafc',
+          padding: '1.25rem',
+          borderRadius: '16px',
+          border: '1.5px solid #e2e8f0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#001f54' }}>
+              Learning Rate (α): {lr3D.toFixed(2)}
+            </span>
+            <input
+              type="range"
+              min="0.02"
+              max="0.25"
+              step="0.01"
+              value={lr3D}
+              onChange={(e) => setLr3D(parseFloat(e.target.value))}
+              style={{ width: '130px', accentColor: '#001f54', cursor: 'pointer' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={handleStep3D}
+              style={{
+                background: '#0284c7',
+                color: '#ffffff',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              Step Downhill (+1 Step)
+            </button>
+
+            <button
+              onClick={() => setIs3DPlaying(!is3DPlaying)}
+              style={{
+                background: is3DPlaying ? '#dc2626' : '#059669',
+                color: '#ffffff',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              {is3DPlaying ? 'Pause Animation' : 'Auto-Roll Ball Down Fabric'}
+            </button>
+
+            <button
+              onClick={() => handleReset3D(-3.2, 3.0)}
+              style={{
+                background: '#ffffff',
+                color: '#334155',
+                border: '1px solid #cbd5e1',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Reset Ball
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── TAB 3: BATCH VS SGD VS MINI-BATCH ───────────────────────── */}
+      <div style={{ display: activeTab === 'variants' ? 'block' : 'none' }}>
+        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+          <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+            Comparing the Three Flavors of Gradient Descent
+          </h4>
+          <p style={{ margin: '0 0 1rem 0', fontSize: '0.88rem', color: '#334155', lineHeight: '1.6' }}>
+            The key architectural difference is how much data the model looks at before taking each single parameter step:
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+            {/* Batch GD */}
+            <div style={{ background: '#ffffff', padding: '1.1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontWeight: 800, color: '#001f54', fontSize: '0.95rem', marginBottom: '6px' }}>
+                1. Batch Gradient Descent
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: '1.5' }}>
+                • <strong>Batch size:</strong> Full dataset (N rows).<br />
+                • <strong>Trajectory:</strong> Perfectly smooth, direct path to minimum.<br />
+                • <strong>Trade-off:</strong> High memory overhead; slow on massive datasets.
+              </div>
+            </div>
+
+            {/* Stochastic GD */}
+            <div style={{ background: '#ffffff', padding: '1.1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontWeight: 800, color: '#0284c7', fontSize: '0.95rem', marginBottom: '6px' }}>
+                2. Stochastic GD (SGD)
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: '1.5' }}>
+                • <strong>Batch size:</strong> 1 single random sample.<br />
+                • <strong>Trajectory:</strong> Noisy, rapid, zig-zagging path.<br />
+                • <strong>Trade-off:</strong> Blazing fast iterations; can jump out of shallow local dips.
+              </div>
+            </div>
+
+            {/* Mini-Batch GD */}
+            <div style={{ background: '#ffffff', padding: '1.1rem', borderRadius: '12px', border: '1.5px solid #a7f3d0' }}>
+              <div style={{ fontWeight: 800, color: '#059669', fontSize: '0.95rem', marginBottom: '6px' }}>
+                3. Mini-Batch GD (Standard)
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: '1.5' }}>
+                • <strong>Batch size:</strong> 32, 64, 128, or 256 samples.<br />
+                • <strong>Trajectory:</strong> Highly stable with slight natural regularization.<br />
+                • <strong>Trade-off:</strong> Leverages GPU matrix parallelism; the global industry standard.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── TAB 4: PYTHON IMPLEMENTATION ───────────────────────────── */}
+      <div style={{ display: activeTab === 'code' ? 'block' : 'none' }}>
+        <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700, marginBottom: '0.75rem' }}>
+          Gradient Descent Optimization in Pure NumPy:
+        </div>
+        <SyntaxCodeBlock
+          code={[
+            '# Complete Gradient Descent for Linear Regression in NumPy',
+            '# ─────────────────────────────────────────────────────────────',
+            'import numpy as np',
+            '',
+            '# 1. Dataset: Years of Experience vs Salary ($k)',
+            'X = np.array([[1.0], [2.0], [3.0], [4.0], [5.0]])',
+            'y = np.array([[45.0], [55.0], [65.0], [80.0], [110.0]])',
+            '',
+            '# 2. Add bias column x0 = 1',
+            'N = len(X)',
+            'X_b = np.c_[np.ones((N, 1)), X]  # Shape: (5, 2)',
+            '',
+            '# 3. Initialize parameters W = [b, w] randomly',
+            'W = np.array([[20.0], [2.0]])  # Sub-optimal starting weights',
+            'learning_rate = 0.05',
+            'iterations = 100',
+            '',
+            '# 4. Gradient Descent Loop',
+            'for step in range(iterations):',
+            '    y_pred = X_b.dot(W)               # Model prediction',
+            '    errors = y_pred - y               # Residuals (y_hat - y)',
+            '    gradients = (2 / N) * X_b.T.dot(errors) # Derivative dJ/dW',
+            '    W = W - learning_rate * gradients # Update rule: W := W - alpha * grad',
+            '',
+            '    if step % 20 == 0:',
+            '        cost = np.mean(errors ** 2)',
+            '        print(f"Step {step:2d} -> Cost: {cost:.2f}, b: {W[0][0]:.2f}, w: {W[1][0]:.2f}")',
+            '',
+            'print(f"\\nFinal Learned Model: y_hat = {W[1][0]:.2f}x + {W[0][0]:.2f}")'
+          ].join('\n')}
+          title="gradient_descent_implementation.py"
+        />
+      </div>
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
@@ -10115,6 +11218,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'cost_loss_functions_interactive_studio' && (
               <CostLossFunctionsStudio />
+            )}
+            {lesson.diagram.type === 'gradient_descent_interactive_studio' && (
+              <GradientDescentInteractiveStudio />
             )}
           </div>
         )}
