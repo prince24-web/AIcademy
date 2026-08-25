@@ -7397,6 +7397,21 @@ const MultipleLinearRegression3DStudio = () => {
     orbitStateRef.current.autoRotate = autoRotate;
   }, [autoRotate]);
 
+  // When switching back to 'studio' tab, ensure renderer updates layout and re-renders
+  useEffect(() => {
+    if (activeTab === 'studio' && rendererRef.current && cameraRef.current && mountRef.current) {
+      const container = mountRef.current;
+      const width = container.clientWidth || 680;
+      const height = 440;
+      cameraRef.current.aspect = width / height;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(width, height);
+      if (sceneRef.current) {
+        rendererRef.current.render(sceneRef.current, cameraRef.current);
+      }
+    }
+  }, [activeTab]);
+
   // Initialize Three.js 3D Scene
   useEffect(() => {
     const container = mountRef.current;
@@ -7788,7 +7803,7 @@ const MultipleLinearRegression3DStudio = () => {
       </div>
 
       {/* ─── TAB 1: 3D THREE.JS HYPERPLANE STUDIO ────────────────────── */}
-      {activeTab === 'studio' && (
+      <div style={{ display: activeTab === 'studio' ? 'block' : 'none' }}>
         <div>
           {/* Top Scoreboard Metrics with KaTeX */}
           <div style={{
@@ -8086,7 +8101,7 @@ const MultipleLinearRegression3DStudio = () => {
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* ─── TAB 2: KATEX MATRIX MATH BREAKDOWN ─────────────────────── */}
       {activeTab === 'math' && (
