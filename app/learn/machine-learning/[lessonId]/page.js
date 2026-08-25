@@ -7336,7 +7336,7 @@ const MultipleLinearRegression3DStudio = () => {
   const [w0, setW0] = useState(50.0); // initial sub-optimal intercept
   const [showResiduals, setShowResiduals] = useState(true);
   const [showFootprints, setShowFootprints] = useState(true);
-  const [autoRotate, setAutoRotate] = useState(false);
+  const [autoRotate, setAutoRotate] = useState(true);
   const [activeTab, setActiveTab] = useState('studio');
 
   // Predictor inquiry state
@@ -7389,7 +7389,7 @@ const MultipleLinearRegression3DStudio = () => {
     theta: Math.PI * 0.3,
     phi: Math.PI * 0.28,
     radius: 24,
-    autoRotate: false
+    autoRotate: true
   });
 
   // Keep orbit autoRotate synced
