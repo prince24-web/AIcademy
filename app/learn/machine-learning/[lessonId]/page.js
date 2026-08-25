@@ -9338,6 +9338,609 @@ const PolynomialRegressionInteractiveStudio = () => {
   );
 };
 
+// ─── COST AND LOSS FUNCTIONS INTERACTIVE STUDIO ─────────────────────────────
+const CostLossFunctionsStudio = () => {
+  // 5 Clean Exemplar Training Points: Experience vs Salary ($k)
+  const samplePoints = useMemo(() => [
+    { id: 1, x: 1.0, y: 45.0, label: 'Person 1 (1 yr, $45k)' },
+    { id: 2, x: 2.0, y: 55.0, label: 'Person 2 (2 yrs, $55k)' },
+    { id: 3, x: 3.0, y: 65.0, label: 'Person 3 (3 yrs, $65k)' },
+    { id: 4, x: 4.0, y: 80.0, label: 'Person 4 (4 yrs, $80k)' },
+    { id: 5, x: 5.0, y: 110.0, label: 'Person 5 (5 yrs, $110k)' }
+  ], []);
+
+  const fixedIntercept = 25.0; // Fixed b for clean 2D convex loss surface exploration
+  const optimalSlope = 15.0; // The true analytical minimum where J(w) is lowest
+
+  // Interactive state
+  const [slopeW, setSlopeW] = useState(8.0); // Initial sub-optimal slope
+  const [lossType, setLossType] = useState('squared'); // 'squared' (L = (y - ŷ)^2) or 'absolute' (L = |y - ŷ|)
+  const [activeTab, setActiveTab] = useState('studio');
+
+  // Compute individual sample losses and full dataset cost
+  const evaluation = useMemo(() => {
+    let sumLoss = 0;
+    const pointDetails = samplePoints.map((p) => {
+      const yHat = slopeW * p.x + fixedIntercept;
+      const residual = p.y - yHat;
+      const loss = lossType === 'squared' ? Math.pow(residual, 2) : Math.abs(residual);
+      sumLoss += loss;
+
+      return {
+        ...p,
+        yHat,
+        residual,
+        loss
+      };
+    });
+
+    const costJ = sumLoss / samplePoints.length;
+
+    // Minimum possible cost at optimal slope
+    let minSumLoss = 0;
+    samplePoints.forEach((p) => {
+      const yHatOpt = optimalSlope * p.x + fixedIntercept;
+      const residualOpt = p.y - yHatOpt;
+      minSumLoss += lossType === 'squared' ? Math.pow(residualOpt, 2) : Math.abs(residualOpt);
+    });
+    const minCostJ = minSumLoss / samplePoints.length;
+
+    return {
+      pointDetails,
+      costJ,
+      minCostJ,
+      isNearOptimal: Math.abs(slopeW - optimalSlope) < 0.5
+    };
+  }, [samplePoints, slopeW, lossType]);
+
+  // Pre-calculate Cost Curve J(w) across w in [0, 30] for SVG bowl plotting
+  const costCurvePoints = useMemo(() => {
+    const points = [];
+    for (let wVal = 0; wVal <= 30; wVal += 0.4) {
+      let total = 0;
+      samplePoints.forEach((p) => {
+        const yHat = wVal * p.x + fixedIntercept;
+        const res = p.y - yHat;
+        total += lossType === 'squared' ? Math.pow(res, 2) : Math.abs(res);
+      });
+      points.push({ w: wVal, j: total / samplePoints.length });
+    }
+    return points;
+  }, [samplePoints, lossType]);
+
+  // Left Plot Scales: Model Space (X: 0 to 6, Y: 0 to 140)
+  const leftW = 340;
+  const leftH = 260;
+  const leftMargin = { left: 45, right: 20, top: 20, bottom: 35 };
+  const leftInnerW = leftW - leftMargin.left - leftMargin.right;
+  const leftInnerH = leftH - leftMargin.top - leftMargin.bottom;
+
+  const scaleLeftX = (x) => leftMargin.left + (x / 6.0) * leftInnerW;
+  const scaleLeftY = (y) => leftMargin.top + leftInnerH - (y / 140.0) * leftInnerH;
+
+  // Right Plot Scales: Cost Bowl Space (W: 0 to 30, Cost J: 0 to 800)
+  const rightW = 340;
+  const rightH = 260;
+  const rightMargin = { left: 45, right: 20, top: 20, bottom: 35 };
+  const rightInnerW = rightW - rightMargin.left - rightMargin.right;
+  const rightInnerH = rightH - rightMargin.top - rightMargin.bottom;
+  const maxJ = lossType === 'squared' ? 850 : 45;
+
+  const scaleRightW = (wVal) => rightMargin.left + (wVal / 30.0) * rightInnerW;
+  const scaleRightJ = (jVal) => rightMargin.top + rightInnerH - Math.max(0, Math.min(rightInnerH, (jVal / maxJ) * rightInnerH));
+
+  // Generate SVG path for the Cost Bowl J(w)
+  const costBowlSvgPath = useMemo(() => {
+    const pts = costCurvePoints.map((p) => `${scaleRightW(p.w).toFixed(1)},${scaleRightJ(p.j).toFixed(1)}`);
+    return `M ${pts.join(' L ')}`;
+  }, [costCurvePoints, lossType]);
+
+  const handleSnapOptimal = () => {
+    setSlopeW(15.0);
+    triggerConfetti(0.5, 0.6);
+  };
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER BAR ─────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={22} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#001f54' }}>
+              Interactive Cost vs Loss Function Studio
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+              Observe how individual sample losses accumulate into the total dataset cost bowl J(w)
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px'
+        }}>
+          {[
+            { id: 'studio', label: 'Loss Bowl Studio' },
+            { id: 'breakdown', label: 'Loss vs Cost Breakdown' },
+            { id: 'convexity', label: 'Convexity & Minima' },
+            { id: 'code', label: 'Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: LOSS SURFACE & DUAL PANEL STUDIO ────────────────── */}
+      {activeTab === 'studio' && (
+        <div>
+          {/* Top Scoreboard Metrics */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+            gap: '1rem',
+            marginBottom: '1.25rem'
+          }}>
+            {/* Candidate Parameter w */}
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                Candidate Parameter (w)
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#001f54', marginTop: '2px' }}>
+                w = {slopeW.toFixed(1)}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                Model: <MathFormula math={`\\hat{y} = ${slopeW.toFixed(1)}x + ${fixedIntercept}`} />
+              </div>
+            </div>
+
+            {/* Total Aggregate Cost J(w) */}
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                Total Dataset Cost J(w)
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: evaluation.isNearOptimal ? '#059669' : '#0284c7', marginTop: '2px' }}>
+                {evaluation.costJ.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                {lossType === 'squared' ? 'Mean Squared Error' : 'Mean Absolute Error'}
+              </div>
+            </div>
+
+            {/* Global Minimum Reference */}
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                Global Minimum J*
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#059669', marginTop: '2px' }}>
+                {evaluation.minCostJ.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 700, marginTop: '4px' }}>
+                Occurs at optimal w* = 15.0
+              </div>
+            </div>
+
+            {/* Position on Bowl Status */}
+            <div style={{
+              background: evaluation.isNearOptimal ? '#ecfdf5' : '#fffbeb',
+              padding: '1rem',
+              borderRadius: '14px',
+              border: `1.5px solid ${evaluation.isNearOptimal ? '#a7f3d0' : '#fde68a'}`
+            }}>
+              <div style={{ fontSize: '0.72rem', color: evaluation.isNearOptimal ? '#059669' : '#d97706', fontWeight: 800, textTransform: 'uppercase' }}>
+                Bowl Status
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: evaluation.isNearOptimal ? '#059669' : '#d97706', marginTop: '4px' }}>
+                {evaluation.isNearOptimal ? 'At Global Minimum' : slopeW < optimalSlope ? 'Rolling Down Left Slope' : 'Rolling Down Right Slope'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: evaluation.isNearOptimal ? '#059669' : '#b45309', marginTop: '4px' }}>
+                {evaluation.isNearOptimal ? 'Optimal weights achieved!' : slopeW < optimalSlope ? 'Error is high. Increase w to minimize cost.' : 'Error is high. Decrease w to minimize cost.'}
+              </div>
+            </div>
+          </div>
+
+          {/* ─── DUAL SYNCHRONIZED VISUALIZER PANELS ─────────────────── */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '1.25rem',
+            marginBottom: '1.25rem'
+          }}>
+            {/* PANEL A: MODEL PREDICTION SPACE & SAMPLE LOSSES */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '1.5px solid #e2e8f0',
+              padding: '1.25rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.02)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                  Panel A: Prediction Space & Sample Losses L_i
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>
+                  <MathFormula math={`\\hat{y} = ${slopeW.toFixed(1)}x + 25`} />
+                </span>
+              </div>
+
+              <svg viewBox={`0 0 ${leftW} ${leftH}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+                {/* Grid */}
+                {[40, 80, 120].map((y) => (
+                  <g key={`lgrid-y-${y}`}>
+                    <line x1={leftMargin.left} y1={scaleLeftY(y)} x2={leftW - leftMargin.right} y2={scaleLeftY(y)} stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="3 3" />
+                    <text x={leftMargin.left - 8} y={scaleLeftY(y) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">${y}k</text>
+                  </g>
+                ))}
+                {[1, 2, 3, 4, 5].map((x) => (
+                  <g key={`lgrid-x-${x}`}>
+                    <line x1={scaleLeftX(x)} y1={leftMargin.top} x2={scaleLeftX(x)} y2={leftH - leftMargin.bottom} stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="3 3" />
+                    <text x={scaleLeftX(x)} y={leftH - leftMargin.bottom + 14} textAnchor="middle" fontSize="10" fill="#94a3b8">{x}y</text>
+                  </g>
+                ))}
+
+                {/* Axes */}
+                <line x1={leftMargin.left} y1={leftH - leftMargin.bottom} x2={leftW - leftMargin.right} y2={leftH - leftMargin.bottom} stroke="#64748b" strokeWidth="1.5" />
+                <line x1={leftMargin.left} y1={leftMargin.top} x2={leftMargin.left} y2={leftH - leftMargin.bottom} stroke="#64748b" strokeWidth="1.5" />
+
+                {/* Candidate Prediction Line */}
+                <line
+                  x1={scaleLeftX(0.5)}
+                  y1={scaleLeftY(slopeW * 0.5 + fixedIntercept)}
+                  x2={scaleLeftX(5.5)}
+                  y2={scaleLeftY(slopeW * 5.5 + fixedIntercept)}
+                  stroke="#0284c7"
+                  strokeWidth="2.5"
+                />
+
+                {/* Residual Error Drop Bars (Sample Losses L_i) */}
+                {evaluation.pointDetails.map((p) => {
+                  const sx = scaleLeftX(p.x);
+                  const syActual = scaleLeftY(p.y);
+                  const syPred = scaleLeftY(p.yHat);
+                  const isHigh = p.loss > 100;
+
+                  return (
+                    <g key={`p-${p.id}`}>
+                      <line
+                        x1={sx}
+                        y1={syActual}
+                        x2={sx}
+                        y2={syPred}
+                        stroke={isHigh ? '#ef4444' : '#059669'}
+                        strokeWidth="2"
+                        strokeDasharray="2 2"
+                      />
+                      {/* Data Point */}
+                      <circle cx={sx} cy={syActual} r="5.5" fill="#001f54" stroke="#ffffff" strokeWidth="1.5" />
+                      {/* Loss Tag */}
+                      <rect x={sx + 6} y={Math.min(syActual, syPred) + 4} width="46" height="15" rx="4" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
+                      <text x={sx + 29} y={Math.min(syActual, syPred) + 15} textAnchor="middle" fontSize="8.5" fill="#334155" fontWeight="700">
+                        L={p.loss.toFixed(0)}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+
+            {/* PANEL B: THE CONVEX COST SURFACE J(w) */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '1.5px solid #e2e8f0',
+              padding: '1.25rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.02)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                  Panel B: Convex Cost Surface J(w)
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800 }}>
+                  J(w) = (1/N) ∑ L_i
+                </span>
+              </div>
+
+              <svg viewBox={`0 0 ${rightW} ${rightH}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+                {/* Cost Axes */}
+                <line x1={rightMargin.left} y1={rightH - rightMargin.bottom} x2={rightW - rightMargin.right} y2={rightH - rightMargin.bottom} stroke="#64748b" strokeWidth="1.5" />
+                <line x1={rightMargin.left} y1={rightMargin.top} x2={rightMargin.left} y2={rightH - rightMargin.bottom} stroke="#64748b" strokeWidth="1.5" />
+                <text x={rightMargin.left + rightInnerW / 2} y={rightH - 8} textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="700">
+                  Weight Parameter w
+                </text>
+                <text transform={`rotate(-90 ${14} ${rightMargin.top + rightInnerH / 2})`} x={14} y={rightMargin.top + rightInnerH / 2} textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="700">
+                  Cost J(w)
+                </text>
+
+                {/* Ticks */}
+                {[0, 10, 20, 30].map((w) => (
+                  <text key={`rtick-w-${w}`} x={scaleRightW(w)} y={rightH - rightMargin.bottom + 14} textAnchor="middle" fontSize="10" fill="#94a3b8">
+                    {w}
+                  </text>
+                ))}
+
+                {/* Parabolic Cost Curve Path */}
+                <path d={costBowlSvgPath} fill="none" stroke="#0284c7" strokeWidth="3" strokeLinecap="round" />
+
+                {/* Global Minimum Marker (Valley Bottom) */}
+                <circle cx={scaleRightW(optimalSlope)} cy={scaleRightJ(evaluation.minCostJ)} r="4.5" fill="#059669" />
+                <text x={scaleRightW(optimalSlope)} y={scaleRightJ(evaluation.minCostJ) + 14} textAnchor="middle" fontSize="9" fill="#059669" fontWeight="800">
+                  Global Min (w*=15)
+                </text>
+
+                {/* Current Active Ball / Marker Rolling on Cost Curve */}
+                <circle
+                  cx={scaleRightW(slopeW)}
+                  cy={scaleRightJ(evaluation.costJ)}
+                  r="7.5"
+                  fill="#dc2626"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* ─── INTERACTIVE CONTROLS ─────────────────────────────────── */}
+          <div style={{
+            background: '#f8fafc',
+            padding: '1.25rem',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0'
+          }}>
+            {/* Weight Parameter Slider */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                  Adjust Parameter Weight (w): <code style={{ color: '#0284c7' }}>{slopeW.toFixed(1)}</code>
+                </span>
+                <span style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                  {evaluation.isNearOptimal ? 'Optimal weight reached!' : 'Drag slider to roll down the loss bowl'}
+                </span>
+              </div>
+
+              <input
+                type="range"
+                min="0.0"
+                max="30.0"
+                step="0.2"
+                value={slopeW}
+                onChange={(e) => setSlopeW(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+              />
+            </div>
+
+            {/* Actions & Loss Shape Toggle */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem',
+              borderTop: '1px solid #e2e8f0',
+              paddingTop: '0.85rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+                  Loss Shape:
+                </span>
+                {[
+                  { id: 'squared', label: 'Squared Loss (Parabolic Bowl)' },
+                  { id: 'absolute', label: 'Absolute Loss (V-Shape)' }
+                ].map((shape) => (
+                  <button
+                    key={shape.id}
+                    onClick={() => setLossType(shape.id)}
+                    style={{
+                      background: lossType === shape.id ? '#001f54' : '#ffffff',
+                      color: lossType === shape.id ? '#ffffff' : '#334155',
+                      border: lossType === shape.id ? '1px solid #001f54' : '1px solid #cbd5e1',
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {shape.label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={handleSnapOptimal}
+                style={{
+                  background: 'linear-gradient(135deg, #059669, #047857)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '8px 18px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(5,150,105,0.25)'
+                }}
+              >
+                Snap to Global Minimum (w*=15.0)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: LOSS VS COST BREAKDOWN TABLE ─────────────────────── */}
+      {activeTab === 'breakdown' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              Individual Losses L_i vs. Aggregate Dataset Cost J(w)
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#334155', lineHeight: '1.6' }}>
+              At current candidate weight <MathFormula math={`w = ${slopeW.toFixed(1)}`} />, each sample contributes an individual loss <MathFormula math="L_i" />:
+            </p>
+
+            <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ background: '#001f54', color: '#ffffff', textAlign: 'left' }}>
+                    <th style={{ padding: '8px 12px', borderRadius: '8px 0 0 0' }}>Sample</th>
+                    <th style={{ padding: '8px 12px' }}>Experience (x)</th>
+                    <th style={{ padding: '8px 12px' }}>Actual Salary (y)</th>
+                    <th style={{ padding: '8px 12px' }}>Predicted (ŷ)</th>
+                    <th style={{ padding: '8px 12px' }}>Residual (y - ŷ)</th>
+                    <th style={{ padding: '8px 12px', borderRadius: '0 8px 0 0' }}>Sample Loss L_i</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {evaluation.pointDetails.map((p, idx) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                      <td style={{ padding: '8px 12px', fontWeight: 700, color: '#001f54' }}>Person {p.id}</td>
+                      <td style={{ padding: '8px 12px' }}>{p.x} yrs</td>
+                      <td style={{ padding: '8px 12px' }}>${p.y}k</td>
+                      <td style={{ padding: '8px 12px' }}>${p.yHat.toFixed(1)}k</td>
+                      <td style={{ padding: '8px 12px', color: p.residual >= 0 ? '#059669' : '#dc2626', fontWeight: 700 }}>
+                        {p.residual >= 0 ? `+${p.residual.toFixed(1)}` : p.residual.toFixed(1)}k
+                      </td>
+                      <td style={{ padding: '8px 12px', fontWeight: 800, color: '#0284c7' }}>
+                        {p.loss.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: '#e0f2fe', fontWeight: 800 }}>
+                    <td colSpan={5} style={{ padding: '10px 12px', color: '#001f54' }}>
+                      Total Aggregate Dataset Cost J(w) = Mean(L_1 ... L_5):
+                    </td>
+                    <td style={{ padding: '10px 12px', color: '#0284c7', fontSize: '1.05rem' }}>
+                      {evaluation.costJ.toFixed(2)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: CONVEXITY & MINIMA EXPLORER ───────────────────────── */}
+      {activeTab === 'convexity' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              The Power of Convex Error Bowls
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.88rem', color: '#334155', lineHeight: '1.6' }}>
+              A function is convex if a straight line segment between any two points on the graph never falls below the curve.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1.5px solid #a7f3d0' }}>
+                <div style={{ fontWeight: 800, color: '#059669', marginBottom: '4px' }}>Convex Surface (Linear Models)</div>
+                <div style={{ fontSize: '0.82rem', color: '#334155', lineHeight: '1.5' }}>
+                  • Single global minimum at the bottom of the bowl.<br />
+                  • Zero false valleys or local traps.<br />
+                  • Stepping downward is mathematically guaranteed to find the absolute best parameter weights.
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1.5px solid #fecaca' }}>
+                <div style={{ fontWeight: 800, color: '#dc2626', marginBottom: '4px' }}>Non-Convex Surface (Deep Neural Nets)</div>
+                <div style={{ fontSize: '0.82rem', color: '#334155', lineHeight: '1.5' }}>
+                  • Multiple local minima and saddle points.<br />
+                  • Algorithms can get trapped in suboptimal valleys.<br />
+                  • Requires advanced optimizers (Momentum, Adam) to escape local traps.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: PYTHON IMPLEMENTATION ───────────────────────────── */}
+      {activeTab === 'code' && (
+        <div>
+          <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700, marginBottom: '0.75rem' }}>
+            Computing Loss vs. Cost in Python:
+          </div>
+          <SyntaxCodeBlock
+            code={[
+              '# Loss Function vs. Cost Function in Python',
+              '# ─────────────────────────────────────────────────────────────',
+              'import numpy as np',
+              '',
+              '# 1. Training Dataset (5 samples)',
+              'X = np.array([1.0, 2.0, 3.0, 4.0, 5.0])',
+              'y = np.array([45.0, 55.0, 65.0, 80.0, 110.0])',
+              '',
+              '# 2. Hypothesis: y_hat = w * x + b',
+              'w = 15.0  # Optimal slope',
+              'b = 25.0  # Fixed intercept',
+              'y_hat = w * X + b',
+              '',
+              '# 3. Individual Sample Losses (Squared Loss)',
+              'sample_losses = (y - y_hat) ** 2',
+              'for i, loss in enumerate(sample_losses):',
+              '    print(f"Sample {i+1} Loss L_{i+1}: {loss:.2f}")',
+              '',
+              '# 4. Total Aggregate Dataset Cost J(w)',
+              'cost_J = np.mean(sample_losses)',
+              'print(f"\\nTotal Dataset Cost J(w={w}): {cost_J:.2f}")'
+            ].join('\n')}
+            title="loss_vs_cost_demo.py"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
@@ -9509,6 +10112,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'polynomial_regression_interactive_studio' && (
               <PolynomialRegressionInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'cost_loss_functions_interactive_studio' && (
+              <CostLossFunctionsStudio />
             )}
           </div>
         )}

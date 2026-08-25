@@ -1755,6 +1755,140 @@ export const mlLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! In machine learning theory, linearity refers strictly to the parameter weights W, not the feature x. Because the prediction ŷ is a linear combination of the weights (no weight is raised to a power or multiplied by another weight), the optimization problem remains linear and convex.'
     }
+  },
+
+  'ml-3-4': {
+    id: 'ml-3-4',
+    title: 'Cost and Loss Functions',
+    moduleTitle: 'MODULE 3: REGRESSION',
+    readTime: '14 min read',
+    difficulty: 'Beginner',
+    badgeText: 'Optimization Core',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Master the critical distinction between a Loss Function (single data point) and a Cost Function (full dataset average).',
+      'Understand why Machine Learning algorithms require a quantitative objective function to measure error and guide learning.',
+      'Visualize the geometric Error Landscape / Loss Surface $J(W)$ as a multidimensional terrain.',
+      'Explain the mathematical concept of Convexity and why convex loss bowls guarantee a single global minimum.',
+      'Understand how the shape of a cost function dictates the penalty applied to minor errors versus extreme outliers.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The ML Scorecard: How Models Know They Are Wrong',
+        paragraphs: [
+          'Before a machine learning model can improve, it must first be able to measure how wrong it is.',
+          'When an untrained linear regression model makes predictions, its initial weight parameters ($w, b$) are essentially random guesses. Some predictions will overshoot the true values, while others will undershoot.',
+          'To steer the model toward accuracy, we need a mathematical scoreboard: an objective function that takes the difference between the true targets $y$ and the predictions $\\hat{y}$ and converts them into a single, scalar penalty score.',
+          'The goal of training is simple: adjust the weights $W$ until this error score is as close to zero as possible.'
+        ]
+      },
+      {
+        heading: '2. Loss Function vs. Cost Function: The Essential Distinction',
+        paragraphs: [
+          'Although these two terms are often used interchangeably in casual discussion, they have precise definitions in machine learning theory:',
+          '1. Loss Function $L(y^{(i)}, \\hat{y}^{(i)})$:',
+          'Measures the error on a single individual training example $(x^{(i)}, y^{(i)})$. For example, if one house costs $\\$300\\text{k}$ and the model predicts $\\$350\\text{k}$, the loss function quantifies the penalty for that specific house:',
+          '$$L(y^{(i)}, \\hat{y}^{(i)}) = (y^{(i)} - \\hat{y}^{(i)})^2$$',
+          '2. Cost Function $J(W)$:',
+          'Measures the aggregate average loss across all $N$ training examples in the dataset. It reflects the overall performance of the model across the entire dataset:',
+          '$$J(W) = \\frac{1}{N} \\sum_{i=1}^{N} L(y^{(i)}, \\hat{y}^{(i)}) = \\frac{1}{N} \\sum_{i=1}^{N} (y^{(i)} - \\hat{y}^{(i)})^2$$',
+          'Loss applies to a single point; Cost applies to the entire dataset.'
+        ]
+      },
+      {
+        heading: '3. Visualizing the Error Landscape: The Loss Surface',
+        paragraphs: [
+          'Imagine plotting the model\'s parameters ($w_1, w_0$) on the horizontal ground plane and the total cost $J(w_1, w_0)$ on the vertical axis.',
+          'For linear regression with squared loss, this graph forms a smooth 3D bowl called the Loss Surface:',
+          '• High Error Rim: When the weights are poorly tuned, the cost $J$ is high, placing the model on the steep upper rim of the bowl.',
+          '• The Valley Floor (Global Minimum): The lowest point at the bottom of the bowl represents the optimal parameter combination $W^*$ where total dataset error is minimized.',
+          'Training an algorithm is mathematically equivalent to rolling a marble from the high rim down to the lowest point on this loss surface.'
+        ]
+      },
+      {
+        heading: '4. The Golden Property: Convex vs. Non-Convex Surfaces',
+        paragraphs: [
+          'Why is Linear Regression so mathematically well-behaved? Because its cost surface is strictly Convex.',
+          'A convex function has a bowl shape with a crucial mathematical guarantee:',
+          '• It possesses exactly ONE minimum: the Global Minimum.',
+          '• There are NO local traps, saddle points, or false valleys where an optimization algorithm could get stuck.',
+          'In contrast, complex deep neural networks have non-convex landscapes with thousands of bumpy hills, valleys, and local minima. Understanding convex loss surfaces provides the foundation for all modern optimization.'
+        ]
+      },
+      {
+        heading: '5. How Loss Shapes Shape Model Behavior',
+        paragraphs: [
+          'The mathematical shape of your chosen loss function directly controls how the model treats errors:',
+          '• Squared Loss $(y - \\hat{y})^2$: Squaring small errors (e.g. $0.5^2 = 0.25$) makes them tiny, while squaring large errors (e.g. $10^2 = 100$) creates massive penalties. This forces the model to prioritize eliminating large mistakes.',
+          '• Absolute Loss $|y - \\hat{y}|$: Treats all errors proportionally along a straight V-shape. An error of $10$ is penalized exactly 10 times more than an error of $1$, providing robust resistance against corrupt outliers.',
+          'Subsequent lessons will dive deep into MSE, MAE, and Gradient Descent optimization. For now, remember: the loss function is the compass that defines what "good" looks like.'
+        ]
+      },
+      {
+        heading: '6. Python Code: Computing Loss vs. Cost from Scratch',
+        paragraphs: [
+          'Here is a clean, minimal Python implementation demonstrating how sample loss accumulates into overall dataset cost:'
+        ],
+        codeBlock: [
+          '# Loss vs Cost Function Demo in Pure Python & NumPy',
+          'import numpy as np',
+          '',
+          '# 1. Dataset: Years of Experience vs Salary ($k)',
+          'X = np.array([1.0, 2.0, 3.0, 4.0, 5.0])',
+          'y_true = np.array([45.0, 55.0, 65.0, 80.0, 110.0])',
+          '',
+          '# 2. Linear Model Parameters: y_hat = w * x + b',
+          'w = 15.0  # Slope candidate',
+          'b = 25.0  # Intercept candidate',
+          '',
+          '# 3. Compute Predictions',
+          'y_hat = w * X + b',
+          '',
+          '# 4. Compute Individual Sample Losses: L_i = (y_i - y_hat_i)^2',
+          'sample_losses = (y_true - y_hat) ** 2',
+          'for i, (actual, pred, loss) in enumerate(zip(y_true, y_hat, sample_losses)):',
+          '    print(f"Sample {i+1}: Actual=${actual}k, Pred=${pred}k -> Loss: {loss:.2f}")',
+          '',
+          '# 5. Compute Aggregate Dataset Cost: J(w, b) = mean(losses)',
+          'cost_J = np.mean(sample_losses)',
+          'print(f"\\nTotal Dataset Cost J(w={w}, b={b}): {cost_J:.2f}")'
+        ].join('\n'),
+        codeBlockTitle: 'loss_vs_cost_calculation.py'
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Foggy Mountain Descent',
+      text: 'Imagine standing on a foggy mountain at dusk. You cannot see the landscape, but you want to reach the village located at the lowest point of the valley floor ($J_{\\text{min}}$). The height of the mountain at your current position is the Cost Function $J(w)$. The slope under your feet tells you which direction leads downward. By continuously stepping downhill, you will eventually reach the lowest altitude where cost is minimized!'
+    },
+
+    diagram: {
+      type: 'cost_loss_functions_interactive_studio'
+    },
+
+    takeaways: [
+      'A Loss Function $L(y^{(i)}, \\hat{y}^{(i)})$ measures error on a single training example.',
+      'A Cost Function $J(W) = \\frac{1}{N}\\sum L_i$ measures the average error across the entire dataset.',
+      'The Loss Surface is a multi-dimensional error landscape where the lowest valley represents optimal parameters.',
+      'Linear regression cost functions are strictly Convex, guaranteeing a single Global Minimum with no local traps.',
+      'The choice of loss function determines whether a model aggressively punishes large outliers or treats all errors linearly.'
+    ],
+
+    quiz: {
+      question: 'What is the precise distinction between a Loss Function and a Cost Function in machine learning?',
+      options: [
+        'A Loss Function measures error for a single training sample, whereas a Cost Function computes the average loss across the entire dataset',
+        'A Loss Function is used for regression problems, while a Cost Function is used only for classification',
+        'A Loss Function measures training time, while a Cost Function measures memory consumption',
+        'There is no difference; they are exact mathematical synonyms with identical equations'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! In standard machine learning notation, Loss L(y, ŷ) is computed on an individual sample, while Cost J(W) represents the aggregated average or sum of all individual losses over the entire dataset.'
+    }
   }
 };
 
