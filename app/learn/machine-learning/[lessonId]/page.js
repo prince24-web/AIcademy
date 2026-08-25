@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import katex from 'katex';
+import * as THREE from 'three';
 import styles from './page.module.css';
 import { mlLessonsData } from '../mlLessonsData';
 
@@ -7302,6 +7303,962 @@ const LinearRegressionInteractiveStudio = () => {
   );
 };
 
+// ─── MULTIPLE LINEAR REGRESSION 3D INTERACTIVE STUDIO (THREE.JS) ─────────────
+const MultipleLinearRegression3DStudio = () => {
+  const mountRef = useRef(null);
+
+  // 10 3D House data points: x1 = Area ('000 sq ft), x2 = Bedrooms, y = Price ($k)
+  const dataPoints = useMemo(() => [
+    { id: 1, x1: 1.0, x2: 1, y: 120, label: '1,000 sq ft, 1 bd ($120k)' },
+    { id: 2, x1: 1.2, x2: 2, y: 155, label: '1,200 sq ft, 2 bd ($155k)' },
+    { id: 3, x1: 1.8, x2: 2, y: 190, label: '1,800 sq ft, 2 bd ($190k)' },
+    { id: 4, x1: 1.6, x2: 3, y: 200, label: '1,600 sq ft, 3 bd ($200k)' },
+    { id: 5, x1: 2.2, x2: 3, y: 245, label: '2,200 sq ft, 3 bd ($245k)' },
+    { id: 6, x1: 2.0, x2: 4, y: 255, label: '2,000 sq ft, 4 bd ($255k)' },
+    { id: 7, x1: 2.8, x2: 4, y: 315, label: '2,800 sq ft, 4 bd ($315k)' },
+    { id: 8, x1: 2.5, x2: 5, y: 320, label: '2,500 sq ft, 5 bd ($320k)' },
+    { id: 9, x1: 3.3, x2: 4, y: 350, label: '3,300 sq ft, 4 bd ($350k)' },
+    { id: 10, x1: 3.5, x2: 5, y: 390, label: '3,500 sq ft, 5 bd ($390k)' }
+  ], []);
+
+  // Optimal OLS parameters derived from the Normal Equation W = (X^T X)^-1 X^T Y
+  const optimalParams = useMemo(() => {
+    return {
+      w0: 19.02, // Intercept ($k)
+      w1: 71.21, // Area Weight ($k per 1,000 sq ft or $/sq ft)
+      w2: 23.95  // Bedroom Weight ($k per bedroom)
+    };
+  }, []);
+
+  // Interactive slider parameters
+  const [w1, setW1] = useState(40.0); // initial sub-optimal area weight
+  const [w2, setW2] = useState(12.0); // initial sub-optimal bedroom weight
+  const [w0, setW0] = useState(50.0); // initial sub-optimal intercept
+  const [showResiduals, setShowResiduals] = useState(true);
+  const [showFootprints, setShowFootprints] = useState(true);
+  const [autoRotate, setAutoRotate] = useState(false);
+  const [activeTab, setActiveTab] = useState('studio');
+
+  // Predictor inquiry state
+  const [predSqFt, setPredSqFt] = useState(2.2);
+  const [predBedrooms, setPredBedrooms] = useState(3);
+
+  // Live statistical calculations
+  const calculations = useMemo(() => {
+    let totalSSE = 0;
+    const pointCalcs = dataPoints.map((p) => {
+      const yHat = w1 * p.x1 + w2 * p.x2 + w0;
+      const residual = p.y - yHat;
+      const squaredError = Math.pow(residual, 2);
+      totalSSE += squaredError;
+
+      return {
+        ...p,
+        yHat,
+        residual,
+        squaredError
+      };
+    });
+
+    const mse = totalSSE / dataPoints.length;
+    const rmse = Math.sqrt(mse);
+
+    return { pointCalcs, totalSSE, mse, rmse };
+  }, [dataPoints, w1, w2, w0]);
+
+  // Coordinate conversion helpers: Real Data -> Three.js 3D units
+  // X: Area (1.0 to 3.6 k sqft) -> center at 2.3 -> range [-6, 6]
+  const mapX = (x1) => (x1 - 2.3) * 4.5;
+  // Z: Bedrooms (1 to 5) -> center at 3.0 -> range [-4.5, 4.5]
+  const mapZ = (x2) => (x2 - 3.0) * 2.2;
+  // Y: Price (0 to 420 $k) -> range [0, 8.4]
+  const mapY = (y) => y * 0.02;
+
+  // Refs for Three.js objects so we can update them in the animation loop without rebuilding scene
+  const sceneRef = useRef(null);
+  const cameraRef = useRef(null);
+  const rendererRef = useRef(null);
+  const planeMeshRef = useRef(null);
+  const planeGridRef = useRef(null);
+  const residualLinesRef = useRef([]);
+  const shadowDisksRef = useRef([]);
+  const orbitStateRef = useRef({
+    isDragging: false,
+    prevX: 0,
+    prevY: 0,
+    theta: Math.PI * 0.3,
+    phi: Math.PI * 0.28,
+    radius: 24,
+    autoRotate: false
+  });
+
+  // Keep orbit autoRotate synced
+  useEffect(() => {
+    orbitStateRef.current.autoRotate = autoRotate;
+  }, [autoRotate]);
+
+  // Initialize Three.js 3D Scene
+  useEffect(() => {
+    const container = mountRef.current;
+    if (!container) return;
+
+    // Dimensions
+    const width = container.clientWidth || 680;
+    const height = 440;
+
+    // Scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf8fafc);
+    sceneRef.current = scene;
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
+    cameraRef.current = camera;
+
+    // Update camera position from orbit coordinates
+    const updateCameraPos = () => {
+      const { theta, phi, radius } = orbitStateRef.current;
+      camera.position.x = radius * Math.sin(phi) * Math.sin(theta);
+      camera.position.y = radius * Math.cos(phi);
+      camera.position.z = radius * Math.sin(phi) * Math.cos(theta);
+      camera.lookAt(0, 3.2, 0);
+    };
+    updateCameraPos();
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
+
+    // Ambient and Directional Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+    dirLight.position.set(15, 25, 20);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    const backLight = new THREE.DirectionalLight(0xbae6fd, 0.35);
+    backLight.position.set(-15, 10, -15);
+    scene.add(backLight);
+
+    // Floor Base Grid Helper (X1 x X2 Feature Ground)
+    const gridHelper = new THREE.GridHelper(16, 16, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = 0;
+    scene.add(gridHelper);
+
+    // 3D Axis Lines
+    const makeAxisLine = (start, end, color) => {
+      const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
+      const mat = new THREE.LineBasicMaterial({ color, linewidth: 2 });
+      const line = new THREE.Line(geom, mat);
+      scene.add(line);
+    };
+    // X1 Axis (House Area)
+    makeAxisLine(new THREE.Vector3(-7, 0, 0), new THREE.Vector3(7, 0, 0), 0x001f54);
+    // X2 Axis (Bedrooms)
+    makeAxisLine(new THREE.Vector3(0, 0, -5), new THREE.Vector3(0, 0, 5), 0x059669);
+    // Y Axis (Price Target)
+    makeAxisLine(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 8.5, 0), 0x0284c7);
+
+    // 3D Data Spheres
+    const sphereGeo = new THREE.SphereGeometry(0.35, 24, 24);
+    const sphereMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7,
+      roughness: 0.2,
+      metalness: 0.2
+    });
+
+    const shadowDisks = [];
+    dataPoints.forEach((p) => {
+      // Data Point Sphere
+      const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+      sphere.position.set(mapX(p.x1), mapY(p.y), mapZ(p.x2));
+      scene.add(sphere);
+
+      // Ground Footprint Shadow (Projected on Floor)
+      const diskGeo = new THREE.CircleGeometry(0.25, 16);
+      const diskMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8, side: THREE.DoubleSide, opacity: 0.6, transparent: true });
+      const disk = new THREE.Mesh(diskGeo, diskMat);
+      disk.rotation.x = -Math.PI / 2;
+      disk.position.set(mapX(p.x1), 0.02, mapZ(p.x2));
+      scene.add(disk);
+      shadowDisks.push(disk);
+
+      // Ground drop line (floor to point)
+      const floorDropGeom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(mapX(p.x1), 0, mapZ(p.x2)),
+        new THREE.Vector3(mapX(p.x1), mapY(p.y), mapZ(p.x2))
+      ]);
+      const floorDropMat = new THREE.LineDashedMaterial({ color: 0xcbd5e1, dashSize: 0.3, gapSize: 0.2 });
+      const floorDropLine = new THREE.Line(floorDropGeom, floorDropMat);
+      floorDropLine.computeLineDistances();
+      scene.add(floorDropLine);
+    });
+    shadowDisksRef.current = shadowDisks;
+
+    // 3D Regression Hyperplane Mesh
+    const planeResX = 14;
+    const planeResZ = 14;
+    const planeGeo = new THREE.PlaneGeometry(13, 9.5, planeResX, planeResZ);
+    planeGeo.rotateX(-Math.PI / 2);
+
+    const planeMat = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      roughness: 0.2,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide
+    });
+    const planeMesh = new THREE.Mesh(planeGeo, planeMat);
+    scene.add(planeMesh);
+    planeMeshRef.current = planeMesh;
+
+    // Wireframe Grid overlay on the Plane
+    const wireMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, wireframe: true, transparent: true, opacity: 0.4 });
+    const planeGrid = new THREE.Mesh(planeGeo, wireMat);
+    scene.add(planeGrid);
+    planeGridRef.current = planeGrid;
+
+    // Residual Vertical Error Lines
+    const residualLines = [];
+    dataPoints.forEach(() => {
+      const lineGeom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, 1, 0)
+      ]);
+      const lineMat = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 3 });
+      const line = new THREE.Line(lineGeom, lineMat);
+      scene.add(line);
+      residualLines.push(line);
+    });
+    residualLinesRef.current = residualLines;
+
+    // Animation Render Loop
+    let animationFrameId;
+    const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
+
+      if (orbitStateRef.current.autoRotate && !orbitStateRef.current.isDragging) {
+        orbitStateRef.current.theta += 0.005;
+        updateCameraPos();
+      }
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Mouse / Touch Drag Orbit Interaction Handlers
+    const handlePointerDown = (e) => {
+      orbitStateRef.current.isDragging = true;
+      orbitStateRef.current.prevX = e.clientX;
+      orbitStateRef.current.prevY = e.clientY;
+    };
+
+    const handlePointerMove = (e) => {
+      if (!orbitStateRef.current.isDragging) return;
+      const deltaX = e.clientX - orbitStateRef.current.prevX;
+      const deltaY = e.clientY - orbitStateRef.current.prevY;
+      orbitStateRef.current.prevX = e.clientX;
+      orbitStateRef.current.prevY = e.clientY;
+
+      orbitStateRef.current.theta += deltaX * 0.008;
+      orbitStateRef.current.phi = Math.max(0.12, Math.min(Math.PI * 0.45, orbitStateRef.current.phi - deltaY * 0.008));
+      updateCameraPos();
+    };
+
+    const handlePointerUp = () => {
+      orbitStateRef.current.isDragging = false;
+    };
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      orbitStateRef.current.radius = Math.max(12, Math.min(42, orbitStateRef.current.radius + e.deltaY * 0.02));
+      updateCameraPos();
+    };
+
+    const domElement = renderer.domElement;
+    domElement.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    domElement.addEventListener('wheel', handleWheel, { passive: false });
+
+    // Window / container resize observer
+    const handleResize = () => {
+      if (!container) return;
+      const newWidth = container.clientWidth;
+      camera.aspect = newWidth / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(newWidth, height);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      domElement.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      domElement.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('resize', handleResize);
+      renderer.dispose();
+    };
+  }, [dataPoints]);
+
+  // Update Plane Geometry Vertices & Residual Error Lines on slider change
+  useEffect(() => {
+    if (!planeMeshRef.current || !residualLinesRef.current) return;
+
+    // 1. Update Hyperplane mesh vertex heights: y(x1, x2) = w1*x1 + w2*x2 + w0
+    const geom = planeMeshRef.current.geometry;
+    const pos = geom.attributes.position;
+
+    for (let i = 0; i < pos.count; i++) {
+      const px = pos.getX(i);
+      const pz = pos.getZ(i);
+
+      // Reconstruct real-world (x1, x2)
+      const x1Val = (px / 4.5) + 2.3;
+      const x2Val = (pz / 2.2) + 3.0;
+
+      // Model predicted price in $k
+      const predY = w1 * x1Val + w2 * x2Val + w0;
+      const y3D = mapY(predY);
+
+      pos.setY(i, y3D);
+    }
+    pos.needsUpdate = true;
+    geom.computeVertexNormals();
+
+    // 2. Update 3D Residual Lines
+    calculations.pointCalcs.forEach((p, idx) => {
+      const line = residualLinesRef.current[idx];
+      if (!line) return;
+
+      const sx = mapX(p.x1);
+      const syActual = mapY(p.y);
+      const syPred = mapY(p.yHat);
+      const sz = mapZ(p.x2);
+
+      const positions = line.geometry.attributes.position;
+      positions.setXYZ(0, sx, syActual, sz);
+      positions.setXYZ(1, sx, syPred, sz);
+      positions.needsUpdate = true;
+
+      // Color coding: Green if close fit (< $10k), Red if large residual
+      const isLowError = Math.abs(p.residual) < 6;
+      line.material.color.setHex(isLowError ? 0x059669 : 0xef4444);
+      line.visible = showResiduals;
+    });
+
+    // 3. Update ground shadow visibility
+    shadowDisksRef.current.forEach((d) => {
+      d.visible = showFootprints;
+    });
+  }, [w1, w2, w0, calculations, showResiduals, showFootprints]);
+
+  // Snap to optimal OLS parameters with celebration
+  const handleAutoFitOLS = () => {
+    setW1(optimalParams.w1);
+    setW2(optimalParams.w2);
+    setW0(optimalParams.w0);
+    triggerConfetti(0.5, 0.6);
+  };
+
+  const handleResetPlane = () => {
+    setW1(40.0);
+    setW2(12.0);
+    setW0(50.0);
+  };
+
+  const handleResetCamera = () => {
+    orbitStateRef.current.theta = Math.PI * 0.3;
+    orbitStateRef.current.phi = Math.PI * 0.28;
+    orbitStateRef.current.radius = 24;
+    const camera = cameraRef.current;
+    if (camera) {
+      const { theta, phi, radius } = orbitStateRef.current;
+      camera.position.x = radius * Math.sin(phi) * Math.sin(theta);
+      camera.position.y = radius * Math.cos(phi);
+      camera.position.z = radius * Math.sin(phi) * Math.cos(theta);
+      camera.lookAt(0, 3.2, 0);
+    }
+  };
+
+  // Predictor calculation
+  const predictedInquiry = (w1 * predSqFt + w2 * predBedrooms + w0);
+
+  // Quality badge evaluation
+  const getQualityBadge = () => {
+    const isOptimal = Math.abs(w1 - optimalParams.w1) < 4.0 && Math.abs(w2 - optimalParams.w2) < 3.0 && Math.abs(w0 - optimalParams.w0) < 4.0;
+    if (isOptimal) {
+      return { text: 'Optimal OLS Hyperplane (Minimum MSE)', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' };
+    }
+    if (calculations.mse < 80) {
+      return { text: 'Good Multi-Variable Fit', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' };
+    }
+    return { text: 'Suboptimal Plane (High Error)', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' };
+  };
+  const quality = getQualityBadge();
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER BAR ─────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={22} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#001f54' }}>
+              Interactive 3D Multiple Linear Regression Studio
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+              Rotate 3D coordinate space and adjust feature weights to tilt the regression hyperplane into optimal alignment
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px'
+        }}>
+          {[
+            { id: 'studio', label: '3D Hyperplane Studio' },
+            { id: 'math', label: 'Matrix Normal Equation' },
+            { id: 'estimator', label: 'Multi-Feature Predictor' },
+            { id: 'code', label: 'Python Scikit-Learn' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D THREE.JS HYPERPLANE STUDIO ────────────────────── */}
+      {activeTab === 'studio' && (
+        <div>
+          {/* Top Scoreboard Metrics with KaTeX */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1rem',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>
+                Current 3D Plane Equation
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#001f54', marginTop: '6px' }}>
+                <MathFormula math={`\\hat{y} = ${w1.toFixed(1)}x_1 + ${w2.toFixed(1)}x_2 + ${w0.toFixed(1)}`} />
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                Area: ${w1.toFixed(1)}/sq ft · Bed: ${w2.toFixed(1)}k · Base: ${w0.toFixed(1)}k
+              </div>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>
+                Cost Function (MSE Loss)
+              </div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: calculations.mse < 30 ? '#059669' : '#dc2626', marginTop: '6px' }}>
+                <MathFormula math={`\\text{MSE} = ${calculations.mse.toFixed(1)}`} />
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                Avg Error (RMSE): ±${calculations.rmse.toFixed(1)}k
+              </div>
+            </div>
+
+            <div style={{
+              background: quality.bg,
+              padding: '1rem',
+              borderRadius: '14px',
+              border: `1.5px solid ${quality.border}`,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
+            }}>
+              <div style={{ fontSize: '0.72rem', color: quality.color, textTransform: 'uppercase', fontWeight: 800 }}>
+                3D Fit Status
+              </div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: quality.color, marginTop: '4px' }}>
+                {quality.text}
+              </div>
+            </div>
+          </div>
+
+          {/* 3D Three.js Canvas Container */}
+          <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1.5px solid #cbd5e1', background: '#f8fafc' }}>
+            <div ref={mountRef} style={{ width: '100%', height: '440px', cursor: 'grab' }} />
+
+            {/* 3D Axis Legend HUD Overlay */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '12px',
+              background: 'rgba(255, 255, 255, 0.92)',
+              backdropFilter: 'blur(8px)',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              fontSize: '0.75rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#001f54' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#001f54' }}></span>
+                X-Axis: House Area (x₁)
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#059669' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#059669' }}></span>
+                Z-Axis: Bedrooms (x₂)
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#0284c7' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0284c7' }}></span>
+                Y-Axis: Target Sale Price (ŷ)
+              </div>
+            </div>
+
+            {/* Orbit Instructions Banner */}
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '12px',
+              background: 'rgba(255, 255, 255, 0.9)',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              fontSize: '0.72rem',
+              color: '#64748b',
+              pointerEvents: 'none'
+            }}>
+              Drag to orbit 3D space · Scroll to zoom
+            </div>
+          </div>
+
+          {/* Interactive Multi-Variable Weight Sliders */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1.25rem',
+            marginTop: '1.25rem',
+            background: '#f8fafc',
+            padding: '1.25rem',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0'
+          }}>
+            {/* Weight w1 Slider (Area) */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>
+                  Area Weight (<MathFormula math="w_1" />): <code style={{ color: '#0284c7' }}>${w1.toFixed(1)}/sq ft</code>
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  OLS: ${optimalParams.w1}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="10"
+                max="140"
+                step="1"
+                value={w1}
+                onChange={(e) => setW1(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}
+              />
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+                Tilts 3D plane along the House Area axis
+              </div>
+            </div>
+
+            {/* Weight w2 Slider (Bedrooms) */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>
+                  Bedroom Weight (<MathFormula math="w_2" />): <code style={{ color: '#059669' }}>${w2.toFixed(1)}k/bdrm</code>
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  OLS: ${optimalParams.w2}k
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="60"
+                step="1"
+                value={w2}
+                onChange={(e) => setW2(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#059669', cursor: 'pointer' }}
+              />
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+                Tilts 3D plane along the Bedroom count axis
+              </div>
+            </div>
+
+            {/* Bias w0 Slider (Intercept) */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>
+                  Intercept Bias (<MathFormula math="w_0" />): <code style={{ color: '#d97706' }}>${w0.toFixed(1)}k</code>
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  OLS: ${optimalParams.w0}k
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="80"
+                step="1"
+                value={w0}
+                onChange={(e) => setW0(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#d97706', cursor: 'pointer' }}
+              />
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+                Elevates entire 3D plane up or down vertically
+              </div>
+            </div>
+          </div>
+
+          {/* Action Control Buttons */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            marginTop: '1rem'
+          }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setShowResiduals(!showResiduals)}
+                style={{
+                  background: showResiduals ? '#e0f2fe' : '#ffffff',
+                  color: showResiduals ? '#0284c7' : '#64748b',
+                  border: `1.5px solid ${showResiduals ? '#0284c7' : '#cbd5e1'}`,
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {showResiduals ? 'Hide Residual Lines (e_i)' : 'Show Residual Lines (e_i)'}
+              </button>
+
+              <button
+                onClick={() => setShowFootprints(!showFootprints)}
+                style={{
+                  background: showFootprints ? '#ecfdf5' : '#ffffff',
+                  color: showFootprints ? '#059669' : '#64748b',
+                  border: `1.5px solid ${showFootprints ? '#059669' : '#cbd5e1'}`,
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {showFootprints ? 'Hide Ground Shadows' : 'Show Ground Shadows'}
+              </button>
+
+              <button
+                onClick={() => setAutoRotate(!autoRotate)}
+                style={{
+                  background: autoRotate ? '#fef3c7' : '#ffffff',
+                  color: autoRotate ? '#d97706' : '#64748b',
+                  border: `1.5px solid ${autoRotate ? '#d97706' : '#cbd5e1'}`,
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {autoRotate ? 'Pause 3D Rotation' : 'Auto-Rotate 3D'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={handleResetCamera}
+                style={{
+                  background: '#ffffff',
+                  color: '#475569',
+                  border: '1.5px solid #cbd5e1',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Reset Camera
+              </button>
+
+              <button
+                onClick={handleResetPlane}
+                style={{
+                  background: '#ffffff',
+                  color: '#475569',
+                  border: '1.5px solid #cbd5e1',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Reset Sliders
+              </button>
+
+              <button
+                onClick={handleAutoFitOLS}
+                style={{
+                  background: 'linear-gradient(135deg, #059669, #047857)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '8px 20px',
+                  borderRadius: '10px',
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(5,150,105,0.3)'
+                }}
+              >
+                Auto-Fit Optimal Plane (OLS)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: KATEX MATRIX MATH BREAKDOWN ─────────────────────── */}
+      {activeTab === 'math' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              1. The Multi-Variable Hyperplane Equation
+            </h4>
+            <MathFormula math="\hat{y} = w_1 x_1 + w_2 x_2 + \dots + w_D x_D + w_0 \quad \iff \quad \hat{Y} = XW" block={true} />
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#334155', lineHeight: '1.6' }}>
+              Sample Calculation for House 5 (<MathFormula math="x_1 = 2.2" />k sq ft, <MathFormula math="x_2 = 3" /> bedrooms, Actual Price <MathFormula math="y_5 = \$245\text{k}" />):
+            </p>
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', marginTop: '0.75rem', border: '1px solid #cbd5e1' }}>
+              <MathFormula math={`\\hat{y}_5 = (${w1.toFixed(1)} \\times 2.2) + (${w2.toFixed(1)} \\times 3) + ${w0.toFixed(1)} = \\$${(w1 * 2.2 + w2 * 3 + w0).toFixed(1)}\\text{k}`} block={true} />
+            </div>
+          </div>
+
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              2. The OLS Normal Equation Matrix Solution
+            </h4>
+            <MathFormula math="W = (X^T X)^{-1} X^T Y" block={true} />
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#334155', lineHeight: '1.6' }}>
+              The exact closed-form solution minimizing Mean Squared Error across all dimensions simultaneously:
+            </p>
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', marginTop: '0.75rem', border: '1px solid #cbd5e1' }}>
+              <MathFormula math={`W^* = \\begin{bmatrix} w_0^* \\\\ w_1^* \\\\ w_2^* \\end{bmatrix} = \\begin{bmatrix} \\$${optimalParams.w0}\\text{k} \\\\ \\$${optimalParams.w1}\\text{/sq ft} \\\\ \\$${optimalParams.w2}\\text{k/bdrm} \\end{bmatrix}`} block={true} />
+            </div>
+          </div>
+
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              3. Adjusted R² (Penalizing Feature Bloat)
+            </h4>
+            <MathFormula math="R_{\text{adj}}^2 = 1 - \left[ \frac{(1 - R^2)(N - 1)}{N - D - 1} \right]" block={true} />
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#334155', lineHeight: '1.6' }}>
+              Where <MathFormula math="N = 10" /> samples and <MathFormula math="D = 2" /> explanatory features. Adjusted <MathFormula math="R^2" /> prevents overfitting by penalizing useless variables that fail to reduce residual variance.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: MULTI-FEATURE PRICE PREDICTOR ───────────────────── */}
+      {activeTab === 'estimator' && (
+        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+          <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+            Simulate a Multi-Variable House Valuation Inquiry
+          </h4>
+          <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.85rem', color: '#64748b' }}>
+            Adjust both living area and bedroom count to evaluate how the fitted 3D regression hyperplane prices new unseen real estate:
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                  House Area: <code style={{ color: '#0284c7' }}>{(predSqFt * 1000).toLocaleString()} sq ft</code>
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.8"
+                max="3.8"
+                step="0.1"
+                value={predSqFt}
+                onChange={(e) => setPredSqFt(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#0284c7', cursor: 'pointer' }}
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                  Bedrooms: <code style={{ color: '#059669' }}>{predBedrooms} Bedrooms</code>
+                </span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="6"
+                step="1"
+                value={predBedrooms}
+                onChange={(e) => setPredBedrooms(parseInt(e.target.value))}
+                style={{ width: '100%', accentColor: '#059669', cursor: 'pointer' }}
+              />
+            </div>
+          </div>
+
+          <div style={{
+            background: '#ffffff',
+            padding: '1.5rem',
+            borderRadius: '14px',
+            border: '2px solid #0284c7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 4px 16px rgba(2,132,199,0.08)'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 800 }}>
+                Estimated Multi-Variable Valuation
+              </div>
+              <div style={{ fontSize: '2.1rem', fontWeight: 900, color: '#0284c7', marginTop: '4px' }}>
+                ${(predictedInquiry * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '6px' }}>
+                <MathFormula math={`\\hat{y} = (${w1.toFixed(1)} \\times ${predSqFt.toFixed(1)}) + (${w2.toFixed(1)} \\times ${predBedrooms}) + ${w0.toFixed(1)} = \\$${predictedInquiry.toFixed(1)}\\text{k}`} />
+              </div>
+            </div>
+
+            <div style={{
+              background: '#f8fafc',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              fontSize: '0.85rem',
+              color: '#334155'
+            }}>
+              <div>Base Land Value: <strong>${(w0 * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
+              <div>Area Premium ({predSqFt * 1000} sqft): <strong>${(w1 * predSqFt * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
+              <div>Bedroom Premium ({predBedrooms} beds): <strong>${(w2 * predBedrooms * 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}</strong></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: PYTHON SCIKIT-LEARN CODE ────────────────────────── */}
+      {activeTab === 'code' && (
+        <div>
+          <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700, marginBottom: '0.75rem' }}>
+            Production Multi-Feature Regression with Scikit-Learn:
+          </div>
+          <SyntaxCodeBlock
+            code={[
+              '# Multiple Linear Regression with Multiple Features',
+              '# ─────────────────────────────────────────────────────────────',
+              'import numpy as np',
+              'import pandas as pd',
+              'from sklearn.linear_model import LinearRegression',
+              '',
+              '# 1. Feature Matrix X: [SqFt in k, Bedrooms]',
+              'X = np.array([',
+              '    [1.0, 1], [1.2, 2], [1.8, 2], [1.6, 3], [2.2, 3],',
+              '    [2.0, 4], [2.8, 4], [2.5, 5], [3.3, 4], [3.5, 5]',
+              '])',
+              '# Target Vector y: Price in $k',
+              'y = np.array([120, 155, 190, 200, 245, 255, 315, 320, 350, 390])',
+              '',
+              '# 2. Fit Multi-Variable Model',
+              'model = LinearRegression()',
+              'model.fit(X, y)',
+              '',
+              '# 3. Coefficients & Intercept',
+              'print(f"Optimal Intercept (w0): ${model.intercept_:.2f}k")',
+              'print(f"Area Slope (w1): ${model.coef_[0]:.2f}/sq ft")',
+              'print(f"Bedroom Slope (w2): ${model.coef_[1]:.2f}k/bedroom")',
+              '',
+              '# 4. Predict on a 2,200 sq ft, 3-Bedroom Home',
+              'inquiry = np.array([[2.2, 3]])',
+              'predicted_price = model.predict(inquiry)[0]',
+              'print(f"Estimated Market Value: ${predicted_price * 1000:,.0f}")'
+            ].join('\n')}
+            title="multiple_linear_regression_demo.py"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
@@ -7467,6 +8424,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'linear_regression_interactive_studio' && (
               <LinearRegressionInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'multiple_linear_regression_3d_studio' && (
+              <MultipleLinearRegression3DStudio />
             )}
           </div>
         )}

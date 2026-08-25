@@ -1411,6 +1411,179 @@ export const mlLessonsData = {
       correctIndex: 1,
       explanation: 'Correct! The slope coefficient (weight w₁ = 45 or 45k) represents the rate of change—how much the target variable (salary) is predicted to increase for every 1-unit increase in the input feature (year of experience). The intercept ($30,000) represents the baseline starting salary when experience is 0.'
     }
+  },
+
+  'ml-3-2': {
+    id: 'ml-3-2',
+    title: 'Multiple Linear Regression',
+    moduleTitle: 'MODULE 3: REGRESSION',
+    readTime: '20 min read',
+    difficulty: 'Intermediate',
+    badgeText: 'Regression',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Understand how Multiple Linear Regression extends simple univariate regression to multidimensional feature spaces.',
+      'Master both the scalar equation $\\hat{y} = w_1x_1 + w_2x_2 + \\dots + w_Dx_D + w_0$ and the compact matrix dot-product formulation $\\hat{Y} = XW$.',
+      'Visualize the geometric intuition: 1 feature is a 2D line, 2 features form a 3D hyperplane, and $D$ features form a $(D+1)$-dimensional hypersurface.',
+      'Derive the Ordinary Least Squares (OLS) Normal Equation $W = (X^TX)^{-1}X^TY$ and evaluate its computational complexity $O(D^3)$.',
+      'Diagnose and resolve Multicollinearity using Correlation Matrices and Variance Inflation Factors (VIF).',
+      'Differentiate between Standard $R^2$ and Adjusted $R^2$ to guard against misleading model complexity.'
+    ],
+
+    sections: [
+      {
+        heading: '1. Beyond Single Variables: The Multi-Feature Reality',
+        paragraphs: [
+          'In Simple Linear Regression, we estimated a home\'s selling price ($y$) using a single feature: living area ($x_1$). While square footage is informative, real-world valuation is rarely driven by a single factor.',
+          'Two houses with the exact same 2,000 sq ft footprint can sell for vastly different prices if one has 4 bedrooms and a renovated master suite while the other is an open-concept 1-bedroom loft.',
+          'Multiple Linear Regression (MLR) extends the linear framework by simultaneously learning weights across two or more explanatory input features ($x_1, x_2, \\dots, x_D$) to predict a single continuous target ($y$).'
+        ]
+      },
+      {
+        heading: '2. The Mathematical Equation: Scalar vs Matrix Formulation',
+        paragraphs: [
+          'In scalar algebraic notation, the Multiple Linear Regression prediction equation for an observation with $D$ features is expressed as:',
+          '$$\\hat{y} = w_1 x_1 + w_2 x_2 + w_3 x_3 + \\dots + w_D x_D + w_0$$',
+          'Where:',
+          '• $\\hat{y}$ (Y-hat): The predicted continuous output target.',
+          '• $x_1, x_2, \\dots, x_D$: The input features (e.g. $x_1 = \\text{Area in sq ft}$, $x_2 = \\text{Bedrooms}$, $x_3 = \\text{Bathrooms}$, $x_4 = \\text{Property Age}$).',
+          '• $w_1, w_2, \\dots, w_D$: The partial regression coefficients (weights). Each weight $w_j$ represents the expected change in $y$ for a one-unit change in $x_j$, holding all other features strictly constant.',
+          '• $w_0$ (Bias / Intercept): The predicted baseline value of $y$ when all input features equal zero ($x_1 = x_2 = \\dots = x_D = 0$).',
+          'In Linear Algebra and modern machine learning frameworks, we express this efficiently using matrix multiplication. By appending a dummy column of ones ($x_0 = 1$) to our feature design matrix $X$, the entire dataset prediction becomes a single dot product:',
+          '$$\\hat{Y} = XW \\quad \\text{where} \\quad X \\in \\mathbb{R}^{N \\times (D+1)}, \\quad W \\in \\mathbb{R}^{(D+1) \\times 1}$$'
+        ],
+        codeBlock: [
+          '# Matrix Dot Product Representation of Multiple Linear Regression',
+          'import numpy as np',
+          '',
+          '# Feature Matrix X: [Bias Column (x0=1), Area in k sqft (x1), Bedrooms (x2)]',
+          'X = np.array([',
+          '    [1.0, 1.2, 2],  # House 1: 1,200 sqft, 2 bed',
+          '    [1.0, 1.8, 3],  # House 2: 1,800 sqft, 3 bed',
+          '    [1.0, 2.4, 4],  # House 3: 2,400 sqft, 4 bed',
+          '    [1.0, 3.2, 4]   # House 4: 3,200 sqft, 4 bed',
+          '])',
+          '',
+          '# Weight Vector W: [w0 (Intercept=$20k), w1 (Area=$70k/k sqft), w2 (Bedrooms=$25k/bdrm)]',
+          'W = np.array([20.0, 70.0, 25.0])',
+          '',
+          '# Batch Prediction via Matrix Multiplication: Y_hat = X @ W',
+          'y_pred = X @ W',
+          'print("Predicted Prices ($k):", y_pred)  # Output: [154.0, 221.0, 288.0, 344.0]'
+        ].join('\n'),
+        codeBlockTitle: 'matrix_regression_dot_product.py'
+      },
+      {
+        heading: '3. Geometric Intuition: Lines, Planes, and Hyperplanes',
+        paragraphs: [
+          'Understanding regression across higher dimensions is easiest through spatial geometry:',
+          '• 1 Input Feature (2D Space): The model forms a 1-dimensional straight line slicing through a 2D $(x_1, y)$ coordinate plane.',
+          '• 2 Input Features (3D Space): The model forms a flat 2-dimensional sheet (a Best-Fit Hyperplane) floating in 3D $(x_1, x_2, y)$ space. The points hover above or below the plane, and the residuals are vertical strings pulling the plane into equilibrium.',
+          '• $D > 2$ Input Features ($(D+1)$ Space): The model forms a flat $D$-dimensional hyperplane that passes through $(D+1)$-dimensional space, minimizing the sum of squared orthogonal Euclidean offsets.'
+        ]
+      },
+      {
+        heading: '4. The Normal Equation: Exact Multi-Variable Closed-Form Solution',
+        paragraphs: [
+          'Just as in simple regression, the cost function to minimize is the Mean Squared Error over $N$ training samples:',
+          '$$J(W) = \\frac{1}{N} \\sum_{i=1}^N (y_i - \\hat{y}_i)^2 = \\frac{1}{N} (Y - XW)^T (Y - XW)$$',
+          'To find the global minimum, we take the vector derivative with respect to $W$ and set it to zero ($\\nabla_W J = 0$):',
+          '$$\\nabla_W J = -2 X^T (Y - XW) = 0 \\implies X^T X W = X^T Y$$',
+          'Multiplying both sides by the inverse matrix $(X^T X)^{-1}$ yields the famous OLS Normal Equation:',
+          '$$W = (X^T X)^{-1} X^T Y$$',
+          'When to use the Normal Equation vs Gradient Descent? The Normal Equation computes the exact global minimum in a single analytical step without hyperparameter tuning or learning rates. However, matrix inversion takes $O(D^3)$ time complexity. When the number of features exceeds $D > 10,000$, Gradient Descent becomes vastly faster and more memory-efficient.'
+        ]
+      },
+      {
+        heading: '5. Critical Diagnostic: Multicollinearity and the Dummy Variable Trap',
+        paragraphs: [
+          'Working with multiple variables introduces new statistical hazards that do not exist in simple 1D regression:',
+          '1. Multicollinearity: Occurs when two or more input features are strongly correlated with each other (e.g. including both "House Area in sq ft" and "House Area in sq meters", or "Engine Displacement" and "Cylinders"). Multicollinearity makes $(X^TX)$ nearly singular (uninvertible), causing weight coefficients to swing wildly with erratic standard errors.',
+          '• Variance Inflation Factor (VIF): Data scientists compute $\\text{VIF} = \\frac{1}{1 - R_j^2}$ for each feature. A $\\text{VIF} > 5$ indicates moderate collinearity, and $\\text{VIF} > 10$ mandates removing or combining the redundant feature.',
+          '2. Dummy Variable Trap: When one-hot encoding categorical variables (e.g. Neighborhood: North, South, East, West), you must drop one category ($K-1$ columns). If all $K$ columns are retained, their sum equals $1.0$, creating perfect collinearity with the intercept bias column $x_0 = 1$ and breaking matrix inversion!'
+        ]
+      },
+      {
+        heading: '6. Why Standard R² Lies: The Need for Adjusted R²',
+        paragraphs: [
+          'The standard Coefficient of Determination ($R^2$) measures the percentage of target variance explained by the model:',
+          '$$R^2 = 1 - \\frac{\\text{SS}_{\\text{res}}}{\\text{SS}_{\\text{tot}}} = 1 - \\frac{\\sum (y_i - \\hat{y}_i)^2}{\\sum (y_i - \\bar{y})^2}$$',
+          'The Fatal Flaw of Standard $R^2$: Standard $R^2$ is mathematically guaranteed to NEVER decrease when you add new features, even if you throw in completely useless random noise (e.g. the homeowner\'s shoe size)! This causes naive engineers to overfit by piling on hundreds of irrelevant variables.',
+          'The Solution: Adjusted $R^2$ applies a rigorous statistical penalty for every additional parameter added:',
+          '$$R_{\\text{adj}}^2 = 1 - \\left[ \\frac{(1 - R^2)(N - 1)}{N - D - 1} \\right]$$',
+          'If a new feature improves predictions by more than random chance, $R_{\\text{adj}}^2$ increases. If the feature adds little value, $R_{\\text{adj}}^2$ decreases, alerting you to discard the noisy variable!'
+        ],
+        codeBlock: [
+          '# Multiple Linear Regression with Scikit-Learn, VIF, and Adjusted R²',
+          'import numpy as np',
+          'import pandas as pd',
+          'from sklearn.linear_model import LinearRegression',
+          'from sklearn.metrics import r2_score',
+          '',
+          '# 1. Tabular Dataset with Multiple Features',
+          'data = {',
+          '    "sqft": [1000, 1200, 1800, 1600, 2200, 2000, 2800, 2500, 3300, 3500],',
+          '    "bedrooms": [1, 2, 2, 3, 3, 4, 4, 5, 4, 5],',
+          '    "bathrooms": [1.0, 1.5, 2.0, 2.0, 2.5, 2.5, 3.0, 3.0, 3.5, 4.0],',
+          '    "price_k": [120, 155, 190, 200, 245, 255, 315, 320, 350, 390]',
+          '}',
+          'df = pd.DataFrame(data)',
+          'X = df[["sqft", "bedrooms", "bathrooms"]]',
+          'y = df["price_k"]',
+          '',
+          '# 2. Fit Multi-Variable Linear Model',
+          'model = LinearRegression()',
+          'model.fit(X, y)',
+          '',
+          '# 3. Inspect Learned Coefficients',
+          'print("Intercept (w0):", round(model.intercept_, 2))',
+          'for feat, coef in zip(X.columns, model.coef_):',
+          '    print(f"Weight ({feat}): {coef:.4f}")',
+          '',
+          '# 4. Compute Standard R² and Adjusted R²',
+          'y_pred = model.predict(X)',
+          'r2 = r2_score(y, y_pred)',
+          'n, d = X.shape',
+          'adj_r2 = 1 - (1 - r2) * (n - 1) / (n - d - 1)',
+          '',
+          'print(f"Standard R²: {r2:.4f}")',
+          'print(f"Adjusted R²: {adj_r2:.4f}")'
+        ].join('\n'),
+        codeBlockTitle: 'multiple_linear_regression_pipeline.py'
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Multi-Ingredient Master Recipe',
+      text: 'Imagine baking a signature sourdough loaf. You cannot predict the loaf weight ($y$) using flour alone ($x_1$). You must account for water volume ($x_2$), yeast quantity ($x_3$), and proofing temperature ($x_4$). Each ingredient has its own calibrated multiplier weight ($w_i$). Multiple Linear Regression is the culinary formula that balances all ingredients simultaneously to predict the exact outcome!'
+    },
+
+    diagram: {
+      type: 'multiple_linear_regression_3d_studio'
+    },
+
+    takeaways: [
+      'Multiple Linear Regression predicts continuous outputs from $D$ features using $\\hat{y} = w_1x_1 + w_2x_2 + \\dots + w_Dx_D + w_0$.',
+      'In 3D space (2 features), the regression model forms a flat 2D hyperplane slicing through the cloud of 3D data points.',
+      'The OLS Normal Equation $W = (X^TX)^{-1}X^TY$ calculates optimal parameters analytically in $O(D^3)$ time.',
+      'Multicollinearity occurs when features are redundant ($VIF > 5$), which destabilizes weight estimates.',
+      'Adjusted $R^2$ penalizes irrelevant variables, ensuring you only keep features that genuinely enhance predictive power.'
+    ],
+
+    quiz: {
+      question: 'In a Multiple Linear Regression model predicting house prices: Price = 65*(SqFt) + 20*(Bedrooms) - 1.5*(Age) + 30, what is the specific interpretation of the coefficient +20 for Bedrooms?',
+      options: [
+        'Each additional bedroom adds $20,000 to the price, holding square footage and age completely constant',
+        'Bedrooms account for exactly 20% of the total variance in home prices',
+        'A house with 0 square feet and 0 age will cost exactly $20,000',
+        'The correlation between bedrooms and square footage is 0.20'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! In Multiple Linear Regression, each coefficient represents the partial rate of change: holding all other variables (SqFt and Age) fixed and constant, adding 1 additional bedroom increases the expected price by $20k.'
+    }
   }
 };
 

@@ -184,7 +184,7 @@ const mlModules = [
     subtitle: 'Goal: Predict continuous values with regression models.',
     lessons: [
       { id: 'ml-3-1', name: 'Linear Regression', nodeType: 'concept', status: 'active' },
-      { id: 'ml-3-2', name: 'Multiple Linear Regression', nodeType: 'star', status: 'locked' },
+      { id: 'ml-3-2', name: 'Multiple Linear Regression', nodeType: 'star', status: 'active' },
       { id: 'ml-3-3', name: 'Polynomial Regression', nodeType: 'concept', status: 'locked' },
       { id: 'ml-3-4', name: 'Cost/Loss Functions', nodeType: 'lightbulb', status: 'locked' },
       { id: 'ml-3-5', name: 'Gradient Descent', nodeType: 'star', status: 'locked' },
