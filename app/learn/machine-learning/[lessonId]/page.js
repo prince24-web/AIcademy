@@ -10120,7 +10120,7 @@ const GradientDescentInteractiveStudio = () => {
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
-    rendererRef.current = renderer;
+    fabricRendererRef.current = renderer;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
