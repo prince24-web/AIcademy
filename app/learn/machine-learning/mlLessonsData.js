@@ -2034,6 +2034,138 @@ export const mlLessonsData = {
       correctIndex: 0,
       explanation: 'Correct! The step taken on each iteration is equal to alpha * |gradient|. As the model approaches the global minimum, the slope (gradient) flattens out toward zero, causing the product to naturally decrease without needing manual adjustments to alpha.'
     }
+  },
+
+  'ml-3-6': {
+    id: 'ml-3-6',
+    title: 'Mean Squared Error (MSE)',
+    moduleTitle: 'MODULE 3: REGRESSION',
+    readTime: '15 min read',
+    difficulty: 'Beginner',
+    badgeText: 'Metric Deep Dive',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Master the mathematical definition and formula of Mean Squared Error: $\\text{MSE} = \\frac{1}{N}\\sum_{i=1}^N (y_i - \\hat{y}_i)^2$.',
+      'Understand the three core mathematical reasons why errors are squared instead of simply summed.',
+      'Analyze the Quadratic Penalty property: why a single large error of 10 is penalized 100 times more than an error of 1.',
+      'Explain the unit disparity problem of MSE and why Root Mean Squared Error (RMSE) is used to restore original measurement units.',
+      'Learn how to compute MSE and RMSE in production Python using Scikit-Learn and NumPy.'
+    ],
+
+    sections: [
+      {
+        heading: '1. What is Mean Squared Error (MSE)?',
+        paragraphs: [
+          'Mean Squared Error (MSE) is the default loss function and evaluation metric for regression problems across all of modern data science.',
+          'Whenever a regression model makes a prediction $\\hat{y}_i$, the difference between the true value $y_i$ and the prediction is called the residual or error $e_i = y_i - \\hat{y}_i$.',
+          'MSE takes each residual, squares it, sums all the squared errors together, and divides by the total number of samples $N$ to find the average squared mistake:',
+          '$$\\text{MSE} = \\frac{1}{N} \\sum_{i=1}^{N} (y_i - \\hat{y}_i)^2$$',
+          'A lower MSE indicates a model whose predictions hug the true data points closely.'
+        ]
+      },
+      {
+        heading: '2. Why Do We Square the Errors? The 3 Mathematical Reasons',
+        paragraphs: [
+          'Why don\'t we simply add up the raw errors $\\sum (y_i - \\hat{y}_i)$? Machine learning practitioners square residuals for three fundamental reasons:',
+          '1. Preventing Positive and Negative Cancellation:',
+          'If a model predicts $\\$10\\text{k}$ too high on one house and $\\$10\\text{k}$ too low on another, raw summing produces $+10 + (-10) = 0$. The model would falsely appear to have "zero error" despite missing both predictions! Squaring turns all negative numbers into positive values ($(-10)^2 = 100$).',
+          '2. Heavy Outlier Punishment (Quadratic Penalty):',
+          'Squaring creates a non-linear penalty curve. An error of $1$ contributes $1$ to the sum, but an error of $10$ contributes $100$! This strictly forces the model to eliminate catastrophic mistakes.',
+          '3. Smooth and Differentiable Calculus:',
+          'The function $f(e) = e^2$ has a smooth, continuous derivative $\\frac{d}{de}(e^2) = 2e$. Unlike the absolute value function $|e|$ (which has a sharp non-differentiable corner at zero), squared error allows gradient descent to calculate exact slopes cleanly at every single point.'
+        ]
+      },
+      {
+        heading: '3. Geometric Intuition: The Error Squares',
+        paragraphs: [
+          'Geometrically, MSE represents the average surface area of physical square boxes drawn between the data points and the regression line.',
+          'For each sample $(x_i, y_i)$, imagine drawing a physical square where the length of each side is equal to the vertical distance $|y_i - \\hat{y}_i|$.',
+          'The area of that box is $(y_i - \\hat{y}_i)^2$. Minimizing MSE is mathematically identical to finding the best line orientation that minimizes the total surface area of all boxes combined!'
+        ]
+      },
+      {
+        heading: '4. The Unit Disparity Problem & Root Mean Squared Error (RMSE)',
+        paragraphs: [
+          'While MSE is mathematically ideal for training models with calculus, it has one major drawback when communicating results to stakeholders: its units are squared.',
+          'If you are predicting house prices in Dollars ($\\$$), your MSE is expressed in squared dollars ($\\$^2$). If you are predicting patient temperature in Celsius ($^\\circ\\text{C}$), MSE is in $(^\\circ\\text{C})^2$. An error of "25,000,000 squared dollars" is difficult to interpret.',
+          'To solve this, we take the square root of MSE, resulting in Root Mean Squared Error (RMSE):',
+          '$$\\text{RMSE} = \\sqrt{\\text{MSE}} = \\sqrt{\\frac{1}{N} \\sum_{i=1}^{N} (y_i - \\hat{y}_i)^2}$$',
+          'RMSE returns the error metric directly into the original units (e.g. an RMSE of $\\$5,000$ means the model is off by approximately $\\$5,000$ on average).'
+        ]
+      },
+      {
+        heading: '5. When Should You Use MSE?',
+        paragraphs: [
+          'MSE is the ideal metric when:',
+          '• Large errors are especially costly or dangerous (e.g. medical dosage predictions, airplane structural stress, stock market risk calculations).',
+          '• Your dataset has clean, reliable data without corrupted anomalies.',
+          'However, if your dataset contains heavy noise or corrupted sensor glitches, MSE will aggressively bend the model to chase those outliers. In such cases, Mean Absolute Error (MAE) or Huber Loss (covered in the next lesson) is preferred.'
+        ]
+      },
+      {
+        heading: '6. Python Code: Computing MSE and RMSE',
+        paragraphs: [
+          'Here is how to calculate MSE and RMSE in Python using Scikit-Learn and pure NumPy:'
+        ],
+        codeBlock: [
+          '# Calculating MSE and RMSE in Python',
+          'import numpy as np',
+          'from sklearn.metrics import mean_squared_error',
+          '',
+          '# 1. True target values vs. Model Predictions (in $k)',
+          'y_true = np.array([45.0, 55.0, 65.0, 80.0, 110.0])',
+          'y_pred = np.array([40.0, 58.0, 62.0, 85.0, 102.0])',
+          '',
+          '# 2. Calculation using Pure NumPy',
+          'residuals = y_true - y_pred',
+          'squared_residuals = residuals ** 2',
+          'numpy_mse = np.mean(squared_residuals)',
+          'numpy_rmse = np.sqrt(numpy_mse)',
+          '',
+          '# 3. Calculation using Scikit-Learn',
+          'sklearn_mse = mean_squared_error(y_true, y_pred)',
+          'sklearn_rmse = mean_squared_error(y_true, y_pred, squared=False) # or np.sqrt()',
+          '',
+          'print(f"Residuals (y - ŷ):        {residuals}")',
+          'print(f"Squared Residuals:       {squared_residuals}")',
+          'print(f"Mean Squared Error (MSE): {sklearn_mse:.2f} ($k)^2")',
+          'print(f"Root MSE (RMSE):          ${sklearn_rmse:.2f}k (Original Units)")'
+        ].join('\n'),
+        codeBlockTitle: 'mse_calculation_demo.py'
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Glass Bridge Weight Limit Penalty',
+      text: 'Imagine constructing a glass suspension bridge. If a construction engineer underestimates the weight load by 100 kg, the bridge might experience slight wear (penalty = 100). But if they underestimate by 1,000 kg, the entire bridge collapses (penalty = 1,000,000). MSE behaves like a structural stress test: small deviations are tolerated with minor penalties, but dangerous extreme mistakes are punished quadratically!'
+    },
+
+    diagram: {
+      type: 'mse_interactive_studio'
+    },
+
+    takeaways: [
+      'MSE computes the average squared difference between true values and model predictions: $\\text{MSE} = \\frac{1}{N}\\sum (y_i - \\hat{y}_i)^2$.',
+      'Squaring prevents positive and negative residuals from cancelling each other out to a deceptive zero.',
+      'The quadratic penalty ($e^2$) forces algorithms to aggressively prioritize fixing large mistakes over minor deviations.',
+      'MSE expresses error in squared units ($y^2$); taking its square root yields RMSE, which restores the original measurement units.',
+      'Because MSE squares residuals, it is highly sensitive to extreme outliers compared to linear metrics like MAE.'
+    ],
+
+    quiz: {
+      question: 'Why is Root Mean Squared Error (RMSE) frequently preferred over Mean Squared Error (MSE) when presenting regression model performance to business stakeholders?',
+      options: [
+        'Because RMSE converts the error back into the original units of the target variable, making it intuitive to interpret',
+        'Because RMSE is always zero for linear models',
+        'Because RMSE works only for classification tasks, not regression',
+        'Because RMSE runs 100x faster than MSE on GPUs'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! MSE squares the residuals, meaning its value is expressed in squared units (e.g. dollars squared). Taking the square root to compute RMSE restores the metric directly into original measurement units (e.g. dollars), which is much easier to communicate.'
+    }
   }
 };
 

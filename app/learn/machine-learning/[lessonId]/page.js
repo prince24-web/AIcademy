@@ -11044,6 +11044,593 @@ const GradientDescentInteractiveStudio = () => {
   );
 };
 
+// ─── MEAN SQUARED ERROR (MSE) INTERACTIVE STUDIO ────────────────────────────
+const MSEInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('geometric');
+  const [slopeW, setSlopeW] = useState(15.0);
+  const [interceptB, setInterceptB] = useState(25.0);
+  const [includeOutlier, setIncludeOutlier] = useState(false);
+  const [penaltyError, setPenaltyError] = useState(6.0);
+
+  // Standard Dataset
+  const basePoints = useMemo(() => [
+    { id: 1, x: 1.0, y: 45.0, isOutlier: false },
+    { id: 2, x: 2.0, y: 55.0, isOutlier: false },
+    { id: 3, x: 3.0, y: 65.0, isOutlier: false },
+    { id: 4, x: 4.0, y: 80.0, isOutlier: false },
+    { id: 5, x: 5.0, y: 110.0, isOutlier: false }
+  ], []);
+
+  const points = useMemo(() => {
+    if (!includeOutlier) return basePoints;
+    return [
+      ...basePoints,
+      { id: 6, x: 3.5, y: 145.0, isOutlier: true, label: 'Outlier (3.5y, $145k)' }
+    ];
+  }, [basePoints, includeOutlier]);
+
+  // Statistical calculations
+  const metrics = useMemo(() => {
+    let sse = 0;
+    let sae = 0;
+
+    const details = points.map((p) => {
+      const yHat = slopeW * p.x + interceptB;
+      const residual = p.y - yHat;
+      const absErr = Math.abs(residual);
+      const sqErr = Math.pow(residual, 2);
+
+      sse += sqErr;
+      sae += absErr;
+
+      return {
+        ...p,
+        yHat,
+        residual,
+        absErr,
+        sqErr
+      };
+    });
+
+    const N = points.length;
+    const mse = sse / N;
+    const rmse = Math.sqrt(mse);
+    const mae = sae / N;
+
+    return { details, sse, mse, rmse, mae, N };
+  }, [points, slopeW, interceptB]);
+
+  // SVG Scales (X: 0 to 6, Y: 0 to 160)
+  const svgW = 680;
+  const svgH = 340;
+  const margin = { left: 55, right: 35, top: 25, bottom: 45 };
+  const innerW = svgW - margin.left - margin.right;
+  const innerH = svgH - margin.top - margin.bottom;
+
+  const scaleX = (x) => margin.left + (x / 6.0) * innerW;
+  const scaleY = (y) => margin.top + innerH - (y / 160.0) * innerH;
+
+  const handleOptimal = () => {
+    setSlopeW(15.0);
+    setInterceptB(25.0);
+    triggerConfetti(0.5, 0.6);
+  };
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER BAR ─────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={22} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#001f54' }}>
+              Mean Squared Error (MSE) Interactive Studio
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+              Visualize the physical geometric squares of error and explore quadratic outlier penalties
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { id: 'geometric', label: 'Geometric Error Squares' },
+            { id: 'penalty', label: 'Quadratic Penalty & Outliers' },
+            { id: 'table', label: 'Step-by-Step Table' },
+            { id: 'code', label: 'Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: GEOMETRIC ERROR SQUARES STUDIO ───────────────────── */}
+      {activeTab === 'geometric' && (
+        <div>
+          {/* Metrics Scoreboard */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '1rem',
+            marginBottom: '1.25rem'
+          }}>
+            {/* Total SSE */}
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                Sum of Squared Errors (SSE)
+              </div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#001f54', marginTop: '2px' }}>
+                {metrics.sse.toFixed(1)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                Total Area: <MathFormula math="\sum (y_i - \hat{y}_i)^2" />
+              </div>
+            </div>
+
+            {/* Mean Squared Error */}
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                Mean Squared Error (MSE)
+              </div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0284c7', marginTop: '2px' }}>
+                {metrics.mse.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700, marginTop: '4px' }}>
+                Average Box Area (units²)
+              </div>
+            </div>
+
+            {/* Root Mean Squared Error */}
+            <div style={{ background: '#ecfdf5', padding: '1rem', borderRadius: '14px', border: '1.5px solid #a7f3d0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 800, textTransform: 'uppercase' }}>
+                Root MSE (RMSE)
+              </div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#059669', marginTop: '2px' }}>
+                ${metrics.rmse.toFixed(2)}k
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700, marginTop: '4px' }}>
+                In original units ($k)
+              </div>
+            </div>
+
+            {/* Mean Absolute Error */}
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                Mean Absolute Error (MAE)
+              </div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#334155', marginTop: '2px' }}>
+                ${metrics.mae.toFixed(2)}k
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                Linear average deviation
+              </div>
+            </div>
+          </div>
+
+          {/* SVG Canvas: Geometric Error Squares */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.02)',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Physical Geometric Error Squares: <MathFormula math={`\\hat{y} = ${slopeW.toFixed(1)}x + ${interceptB.toFixed(1)}`} />
+              </span>
+              <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>
+                Square Area = (Actual - Predicted)²
+              </span>
+            </div>
+
+            <svg viewBox={`0 0 ${svgW} ${svgH}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+              {/* Grid Lines */}
+              {[40, 80, 120, 160].map((y) => (
+                <g key={`grid-y-${y}`}>
+                  <line x1={margin.left} y1={scaleY(y)} x2={svgW - margin.right} y2={scaleY(y)} stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="3 3" />
+                  <text x={margin.left - 8} y={scaleY(y) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">${y}k</text>
+                </g>
+              ))}
+              {[1, 2, 3, 4, 5].map((x) => (
+                <g key={`grid-x-${x}`}>
+                  <line x1={scaleX(x)} y1={margin.top} x2={scaleX(x)} y2={svgH - margin.bottom} stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="3 3" />
+                  <text x={scaleX(x)} y={svgH - margin.bottom + 14} textAnchor="middle" fontSize="10" fill="#94a3b8">{x}y</text>
+                </g>
+              ))}
+
+              {/* Axes */}
+              <line x1={margin.left} y1={svgH - margin.bottom} x2={svgW - margin.right} y2={svgH - margin.bottom} stroke="#64748b" strokeWidth="1.5" />
+              <line x1={margin.left} y1={margin.top} x2={margin.left} y2={svgH - margin.bottom} stroke="#64748b" strokeWidth="1.5" />
+              <text x={margin.left + innerW / 2} y={svgH - 8} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">
+                Years of Experience (x)
+              </text>
+              <text transform={`rotate(-90 ${16} ${margin.top + innerH / 2})`} x={16} y={margin.top + innerH / 2} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">
+                Salary in $k (y)
+              </text>
+
+              {/* Physical Error Squares Drawn on Canvas */}
+              {metrics.details.map((p) => {
+                const sx = scaleX(p.x);
+                const syActual = scaleY(p.y);
+                const syPred = scaleY(p.yHat);
+                const sideLenPixels = Math.abs(syActual - syPred);
+                const topY = Math.min(syActual, syPred);
+
+                // Draw square box to the right or left of point
+                const boxX = sx;
+                const fillColor = p.isOutlier ? 'rgba(239, 68, 68, 0.22)' : p.sqErr > 60 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(2, 132, 199, 0.18)';
+                const strokeColor = p.isOutlier ? '#ef4444' : p.sqErr > 60 ? '#f59e0b' : '#0284c7';
+
+                return (
+                  <g key={`sq-${p.id}`}>
+                    {/* The Physical Square Box */}
+                    {sideLenPixels > 1 && (
+                      <rect
+                        x={boxX}
+                        y={topY}
+                        width={sideLenPixels}
+                        height={sideLenPixels}
+                        fill={fillColor}
+                        stroke={strokeColor}
+                        strokeWidth="1.5"
+                        strokeDasharray="3 3"
+                        rx="3"
+                      />
+                    )}
+
+                    {/* Area Badge Label inside or next to box */}
+                    {sideLenPixels > 8 && (
+                      <text
+                        x={boxX + sideLenPixels / 2}
+                        y={topY + sideLenPixels / 2 + 3}
+                        textAnchor="middle"
+                        fontSize="9"
+                        fill={strokeColor}
+                        fontWeight="800"
+                      >
+                        {p.sqErr.toFixed(0)}
+                      </text>
+                    )}
+
+                    {/* Vertical Residual Line */}
+                    <line x1={sx} y1={syActual} x2={sx} y2={syPred} stroke={strokeColor} strokeWidth="2" />
+
+                    {/* Data Point Dot */}
+                    <circle
+                      cx={sx}
+                      cy={syActual}
+                      r={p.isOutlier ? 7.0 : 5.5}
+                      fill={p.isOutlier ? '#dc2626' : '#001f54'}
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                  </g>
+                );
+              })}
+
+              {/* Candidate Regression Line */}
+              {(() => {
+                const x1 = 0.5, y1 = slopeW * 0.5 + interceptB;
+                const x2 = 5.5, y2 = slopeW * 5.5 + interceptB;
+                const sx1 = scaleX(x1);
+                const sy1 = scaleY(y1);
+                const sx2 = scaleX(x2);
+                const sy2 = scaleY(y2);
+                return (
+                  <line x1={sx1} y1={sy1} x2={sx2} y2={sy2} stroke="#001f54" strokeWidth="3" strokeLinecap="round" />
+                );
+              })()}
+            </svg>
+          </div>
+
+          {/* Interactive Sliders & Actions */}
+          <div style={{
+            background: '#f8fafc',
+            padding: '1.25rem',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0'
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+              {/* Slope Slider */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 800, color: '#001f54', marginBottom: '0.4rem' }}>
+                  <span>Slope (w): {slopeW.toFixed(1)}</span>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Optimal: 15.0</span>
+                </div>
+                <input
+                  type="range"
+                  min="5.0"
+                  max="25.0"
+                  step="0.5"
+                  value={slopeW}
+                  onChange={(e) => setSlopeW(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Intercept Slider */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 800, color: '#001f54', marginBottom: '0.4rem' }}>
+                  <span>Intercept (b): ${interceptB.toFixed(1)}k</span>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Optimal: $25.0k</span>
+                </div>
+                <input
+                  type="range"
+                  min="10.0"
+                  max="40.0"
+                  step="1.0"
+                  value={interceptB}
+                  onChange={(e) => setInterceptB(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+                />
+              </div>
+            </div>
+
+            {/* Button Actions */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+              borderTop: '1px solid #e2e8f0',
+              paddingTop: '0.85rem'
+            }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setIncludeOutlier(!includeOutlier)}
+                  style={{
+                    background: includeOutlier ? '#fef2f2' : '#ffffff',
+                    color: includeOutlier ? '#dc2626' : '#334155',
+                    border: `1.5px solid ${includeOutlier ? '#fecaca' : '#cbd5e1'}`,
+                    padding: '7px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {includeOutlier ? 'Remove Outlier (x=3.5, y=145k)' : '+ Add Outlier (x=3.5, y=145k)'}
+                </button>
+              </div>
+
+              <button
+                onClick={handleOptimal}
+                style={{
+                  background: 'linear-gradient(135deg, #059669, #047857)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '8px 18px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(5,150,105,0.25)'
+                }}
+              >
+                Snap to Minimum MSE (w=15, b=25)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: QUADRATIC PENALTY & OUTLIER IMPACT ───────────────── */}
+      {activeTab === 'penalty' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              The Quadratic Penalty Curve: Squared ($e^2$) vs. Absolute ($|e|$)
+            </h4>
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.88rem', color: '#334155', lineHeight: '1.6' }}>
+              Observe how squaring residuals creates an explosive penalty curve as the error grows:
+            </p>
+
+            {/* Penalty Comparison Interactive Slider */}
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                  Residual Error Magnitude (e): {penaltyError.toFixed(1)}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  Drag to test penalty growth
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="15.0"
+                step="0.5"
+                value={penaltyError}
+                onChange={(e) => setPenaltyError(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+              />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.75rem' }}>
+                <div style={{ background: '#f0fdf4', padding: '0.75rem', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 800 }}>Absolute Penalty |e| (MAE)</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#059669' }}>{penaltyError.toFixed(1)}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Linear 1:1 growth</div>
+                </div>
+                <div style={{ background: '#eff6ff', padding: '0.75rem', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 800 }}>Squared Penalty e² (MSE)</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0284c7' }}>{Math.pow(penaltyError, 2).toFixed(1)}</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{(Math.pow(penaltyError, 2) / penaltyError).toFixed(1)}x larger penalty!</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: STEP-BY-STEP TABLE ───────────────────────────────── */}
+      {activeTab === 'table' && (
+        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+          <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+            Step-by-Step Residual & Squared Error Table
+          </h4>
+          <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: '#64748b' }}>
+            Model: <MathFormula math={`\\hat{y} = ${slopeW.toFixed(1)}x + ${interceptB.toFixed(1)}`} />
+          </p>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ background: '#001f54', color: '#ffffff', textAlign: 'left' }}>
+                  <th style={{ padding: '8px 12px', borderRadius: '8px 0 0 0' }}>Sample (i)</th>
+                  <th style={{ padding: '8px 12px' }}>Experience (x_i)</th>
+                  <th style={{ padding: '8px 12px' }}>Actual Salary (y_i)</th>
+                  <th style={{ padding: '8px 12px' }}>Predicted (ŷ_i)</th>
+                  <th style={{ padding: '8px 12px' }}>Residual (y - ŷ)</th>
+                  <th style={{ padding: '8px 12px' }}>Absolute |y - ŷ|</th>
+                  <th style={{ padding: '8px 12px', borderRadius: '0 8px 0 0' }}>Squared (y - ŷ)²</th>
+                </tr>
+              </thead>
+              <tbody>
+                {metrics.details.map((p, idx) => (
+                  <tr key={p.id} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                    <td style={{ padding: '8px 12px', fontWeight: 700, color: p.isOutlier ? '#dc2626' : '#001f54' }}>
+                      {p.isOutlier ? 'Outlier' : `Sample ${p.id}`}
+                    </td>
+                    <td style={{ padding: '8px 12px' }}>{p.x} yrs</td>
+                    <td style={{ padding: '8px 12px' }}>${p.y}k</td>
+                    <td style={{ padding: '8px 12px' }}>${p.yHat.toFixed(1)}k</td>
+                    <td style={{ padding: '8px 12px', color: p.residual >= 0 ? '#059669' : '#dc2626', fontWeight: 700 }}>
+                      {p.residual >= 0 ? `+${p.residual.toFixed(1)}` : p.residual.toFixed(1)}
+                    </td>
+                    <td style={{ padding: '8px 12px', fontWeight: 700, color: '#334155' }}>
+                      {p.absErr.toFixed(1)}
+                    </td>
+                    <td style={{ padding: '8px 12px', fontWeight: 800, color: '#0284c7' }}>
+                      {p.sqErr.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+                <tr style={{ background: '#e0f2fe', fontWeight: 800 }}>
+                  <td colSpan={6} style={{ padding: '10px 12px', color: '#001f54' }}>
+                    Sum of Squared Errors (SSE = ∑ (y - ŷ)²):
+                  </td>
+                  <td style={{ padding: '10px 12px', color: '#0284c7', fontSize: '1rem' }}>
+                    {metrics.sse.toFixed(2)}
+                  </td>
+                </tr>
+                <tr style={{ background: '#f0fdf4', fontWeight: 800 }}>
+                  <td colSpan={6} style={{ padding: '10px 12px', color: '#059669' }}>
+                    Mean Squared Error (MSE = SSE / {metrics.N}):
+                  </td>
+                  <td style={{ padding: '10px 12px', color: '#059669', fontSize: '1rem' }}>
+                    {metrics.mse.toFixed(2)} ($k)²
+                  </td>
+                </tr>
+                <tr style={{ background: '#ecfdf5', fontWeight: 800 }}>
+                  <td colSpan={6} style={{ padding: '10px 12px', color: '#047857' }}>
+                    Root Mean Squared Error (RMSE = √MSE):
+                  </td>
+                  <td style={{ padding: '10px 12px', color: '#047857', fontSize: '1.05rem' }}>
+                    ${metrics.rmse.toFixed(2)}k
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: PYTHON IMPLEMENTATION ───────────────────────────── */}
+      {activeTab === 'code' && (
+        <div>
+          <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700, marginBottom: '0.75rem' }}>
+            Computing MSE & RMSE with Scikit-Learn & NumPy:
+          </div>
+          <SyntaxCodeBlock
+            code={[
+              '# Calculating MSE and RMSE in Python',
+              '# ─────────────────────────────────────────────────────────────',
+              'import numpy as np',
+              'from sklearn.metrics import mean_squared_error',
+              '',
+              '# 1. Ground Truth Targets vs. Predictions',
+              'y_true = np.array([45.0, 55.0, 65.0, 80.0, 110.0])',
+              'y_pred = np.array([40.0, 55.0, 70.0, 85.0, 100.0])',
+              '',
+              '# 2. Pure NumPy Implementation',
+              'residuals = y_true - y_pred',
+              'mse_numpy = np.mean(residuals ** 2)',
+              'rmse_numpy = np.sqrt(mse_numpy)',
+              '',
+              '# 3. Scikit-Learn Implementation',
+              'mse_sklearn = mean_squared_error(y_true, y_pred)',
+              'rmse_sklearn = mean_squared_error(y_true, y_pred, squared=False)',
+              '',
+              'print(f"Residuals: {residuals}")',
+              'print(f"MSE:       {mse_sklearn:.2f} (squared units)")',
+              'print(f"RMSE:      ${rmse_sklearn:.2f}k (original units)")'
+            ].join('\n')}
+            title="mse_rmse_scikit_learn.py"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
@@ -11221,6 +11808,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'gradient_descent_interactive_studio' && (
               <GradientDescentInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'mse_interactive_studio' && (
+              <MSEInteractiveStudio />
             )}
           </div>
         )}
