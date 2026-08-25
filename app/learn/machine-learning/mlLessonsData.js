@@ -2296,6 +2296,147 @@ export const mlLessonsData = {
       correctIndex: 0,
       explanation: 'Correct! Because MAE scales errors linearly (|e|) rather than quadratically (e²), a single extreme outlier will not dominate the total loss, allowing the model to remain robust and well-fitted to the majority data cluster.'
     }
+  },
+
+  'ml-3-8': {
+    id: 'ml-3-8',
+    title: 'R-Squared (R²)',
+    moduleTitle: 'MODULE 3: REGRESSION',
+    readTime: '16 min read',
+    difficulty: 'Intermediate',
+    badgeText: 'Goodness of Fit',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: null,
+
+    learningObjectives: [
+      'Master the mathematical definition and formula of $R^2$ (Coefficient of Determination): $R^2 = 1 - \\frac{\\text{SSE}}{\\text{SST}}$.',
+      'Understand the variance decomposition triad: Total Sum of Squares ($\\text{SST}$), Residual Sum of Squares ($\\text{SSE}$), and Regression Sum of Squares ($\\text{SSR}$).',
+      'Learn how to interpret $R^2$ values across the spectrum: from $1.0$ (perfect fit) to $0.0$ (baseline mean), and why $R^2$ can be negative.',
+      'Explain the Multiple Regression Trap: why standard $R^2$ mechanically increases whenever new features are added, regardless of their relevance.',
+      'Master Adjusted $R^2$ ($R^2_{\\text{adj}}$) and explain how its degrees-of-freedom penalty prevents overfitting.'
+    ],
+
+    sections: [
+      {
+        heading: '1. What is R-Squared (R²)?',
+        paragraphs: [
+          'While metrics like MSE and MAE tell you the absolute scale of your prediction errors, they are dependent on your dataset\'s units. If someone tells you their house price model has an MSE of $25,000,000$, is that model good or terrible? You cannot tell without knowing the scale of house prices in that city.',
+          'R-Squared ($R^2$), also known as the Coefficient of Determination, provides a unitless, normalized percentage score between $0\\%$ and $100\\%$ that answers the core question:',
+          '"What percentage of the total variance in target $y$ is successfully explained by our regression model?"',
+          'An $R^2$ of $0.85$ means your model explains $85\\%$ of the variation in target values, while the remaining $15\\%$ is unexplained noise.'
+        ]
+      },
+      {
+        heading: '2. The Variance Triad: SST, SSE, and SSR',
+        paragraphs: [
+          'To calculate $R^2$, machine learning compares your model against the dumbest possible baseline: predicting the dataset mean $\\bar{y}$ for every sample.',
+          '1. Total Sum of Squares (SST):',
+          'The total variance in the data relative to the horizontal mean line $\\bar{y}$:',
+          '$$\\text{SST} = \\sum_{i=1}^{N} (y_i - \\bar{y})^2$$',
+          '2. Residual Sum of Squares (SSE):',
+          'The unexplained squared error left behind after fitting your model line $\\hat{y}$:',
+          '$$\\text{SSE} = \\sum_{i=1}^{N} (y_i - \\hat{y}_i)^2$$',
+          '3. Regression Sum of Squares (SSR):',
+          'The amount of variance captured and explained by your model: $\\text{SSR} = \\text{SST} - \\text{SSE}$.',
+          'The $R^2$ formula is therefore the ratio of explained variance over total variance:',
+          '$$R^2 = 1 - \\frac{\\text{SSE}}{\\text{SST}} = \\frac{\\text{SSR}}{\\text{SST}}$$'
+        ]
+      },
+      {
+        heading: '3. Interpreting R²: Can R² Be Negative?',
+        paragraphs: [
+          'The values of $R^2$ span three major regimes:',
+          '• $R^2 = 1.0$ (100%): Perfect Fit. The regression line passes through every single data point with zero residual error ($\\text{SSE} = 0$).',
+          '• $R^2 = 0.0$ (0%): Baseline Equivalence. The model performs no better than drawing a flat horizontal line at the average $\\bar{y}$.',
+          '• $R^2 < 0.0$ (Negative): Worse than Baseline! If a model makes predictions so wildly inaccurate that its residual error $\\text{SSE}$ exceeds the total baseline variance $\\text{SST}$, $\\frac{\\text{SSE}}{\\text{SST}} > 1$, resulting in a negative $R^2$. This frequently happens when evaluating an overfitted model on unseen test data.'
+        ]
+      },
+      {
+        heading: '4. The Multiple Regression Trap: Why Standard R² Lies',
+        paragraphs: [
+          'Standard $R^2$ suffers from a major mathematical vulnerability: it can never decrease when you add new features to a model.',
+          'Even if you add completely useless, random noise features (e.g. "astronaut favorite color" or "lottery ticket numbers"), standard $R^2$ will always stay the same or artificially increase because the least-squares optimization can always fit tiny accidental correlations in the training sample.',
+          'Relying solely on standard $R^2$ leads to severe overfitting and bloated models.'
+        ]
+      },
+      {
+        heading: '5. The Solution: Adjusted R-Squared (R²_adj)',
+        paragraphs: [
+          'Adjusted $R^2$ incorporates a degrees-of-freedom penalty that charges a price for every extra feature added to the model:',
+          '$$R^2_{\\text{adj}} = 1 - \\left[ \\frac{(1 - R^2)(N - 1)}{N - k - 1} \\right]$$',
+          'where $N$ is the number of data samples and $k$ is the number of predictor features.',
+          '• If a new feature improves the model significantly, $R^2_{\\text{adj}}$ increases.',
+          '• If a new feature provides only marginal or useless improvement, the penalty $(N - k - 1)$ dominates and $R^2_{\\text{adj}}$ decreases! This makes Adjusted $R^2$ the gold standard metric for feature selection in regression.'
+        ]
+      },
+      {
+        heading: '6. Python Code: Computing R² and Adjusted R²',
+        paragraphs: [
+          'Here is how to calculate $R^2$ and Adjusted $R^2$ in Python using Scikit-Learn and pure NumPy:'
+        ],
+        codeBlock: [
+          '# Calculating R-Squared and Adjusted R-Squared in Python',
+          'import numpy as np',
+          'from sklearn.metrics import r2_score',
+          'from sklearn.linear_model import LinearRegression',
+          '',
+          '# 1. Dataset: Features (Experience, Degree Level) vs Salary ($k)',
+          'X = np.array([[1.0, 1.0], [2.0, 1.0], [3.0, 2.0], [4.0, 2.0], [5.0, 3.0]])',
+          'y = np.array([45.0, 55.0, 65.0, 80.0, 110.0])',
+          'N, k = X.shape # N = 5 samples, k = 2 features',
+          '',
+          '# 2. Fit Linear Regression Model',
+          'model = LinearRegression().fit(X, y)',
+          'y_pred = model.predict(X)',
+          '',
+          '# 3. Calculate Variance Triad',
+          'y_mean = np.mean(y)',
+          'sst = np.sum((y - y_mean) ** 2) # Total Variance',
+          'sse = np.sum((y - y_pred) ** 2) # Residual Unexplained Error',
+          'ssr = np.sum((y_pred - y_mean) ** 2) # Explained Variance',
+          '',
+          '# 4. Standard R-Squared and Adjusted R-Squared',
+          'r2 = 1.0 - (sse / sst)',
+          'r2_adj = 1.0 - ((1.0 - r2) * (N - 1) / (N - k - 1))',
+          '',
+          'print(f"Total Sum of Squares (SST): {sst:.2f}")',
+          'print(f"Residual Error (SSE):        {sse:.2f}")',
+          'print(f"Standard R² (r2_score):     {r2:.4f} ({r2*100:.1f}% Variance Explained)")',
+          'print(f"Adjusted R²:                {r2_adj:.4f}")'
+        ].join('\n'),
+        codeBlockTitle: 'r_squared_calculation.py'
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Dartboard Average vs Laser Sight',
+      text: 'Imagine throwing darts at a board. If a player is blindfolded and simply aims at the center bullseye average, their scatter radius represents Total Variance (SST). Now they put on laser targeting goggles (your regression model). If their new scatter radius shrinks by 90%, their model has an R² of 0.90! If their goggles are completely blurry and perform no better than guessing, R² is 0.0. And if the goggles distort their vision so badly they throw darts backwards into the wall, R² is negative!'
+    },
+
+    diagram: {
+      type: 'r_squared_interactive_studio'
+    },
+
+    takeaways: [
+      'R-Squared ($R^2$) measures the percentage of total variance in the target variable explained by the regression model: $R^2 = 1 - \\frac{\\text{SSE}}{\\text{SST}}$.',
+      'Total Sum of Squares ($\\text{SST}$) measures baseline variance relative to the mean line $\\bar{y}$.',
+      'An $R^2$ of $1.0$ is a perfect fit, $0.0$ means the model is equivalent to the horizontal mean, and negative $R^2$ means the model is worse than the naive mean.',
+      'Standard $R^2$ mechanically increases whenever new features are added, regardless of whether they are genuine predictors or random noise.',
+      'Adjusted $R^2$ ($R^2_{\\text{adj}}$) penalizes feature quantity ($k$), providing a reliable metric to prevent model bloat and overfitting.'
+    ],
+
+    quiz: {
+      question: 'What does an R-Squared (R²) value of -0.25 on a test dataset indicate about a regression model?',
+      options: [
+        'The model predictions on the test set are performing worse than simply predicting the training dataset average (y-bar) for every sample',
+        'The model has achieved a perfect fit with negative correlation',
+        'The dataset has zero variance in the target variable',
+        'The learning rate was negative during gradient descent'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! R² is calculated as 1 - (SSE / SST). If the model makes predictions whose squared residual error (SSE) is greater than the total variance around the mean (SST), the ratio SSE/SST exceeds 1.0, making R² negative. This proves the model is worse than a naive horizontal mean baseline.'
+    }
   }
 };
 

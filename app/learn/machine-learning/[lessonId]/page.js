@@ -12197,6 +12197,708 @@ const MAEInteractiveStudio = () => {
   );
 };
 
+// ─── R-SQUARED (R²) INTERACTIVE STUDIO ──────────────────────────────────────
+const RSquaredInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('variance');
+  const [slopeW, setSlopeW] = useState(15.0);
+  const [interceptB, setInterceptB] = useState(25.0);
+  const [showBaseline, setShowBaseline] = useState(true);
+  const [showModelResiduals, setShowModelResiduals] = useState(true);
+
+  // Tab 2: Feature bloat simulation
+  const [noiseFeatures, setNoiseFeatures] = useState(0);
+
+  // 5 Data points for visualization
+  const points = useMemo(() => [
+    { id: 1, x: 1.0, y: 45.0 },
+    { id: 2, x: 2.0, y: 55.0 },
+    { id: 3, x: 3.0, y: 65.0 },
+    { id: 4, x: 4.0, y: 80.0 },
+    { id: 5, x: 5.0, y: 110.0 }
+  ], []);
+
+  // Baseline mean
+  const meanY = useMemo(() => {
+    const sum = points.reduce((acc, p) => acc + p.y, 0);
+    return sum / points.length; // 71.0
+  }, [points]);
+
+  // SST, SSE, SSR and R2 calculations
+  const stats = useMemo(() => {
+    let sst = 0;
+    let sse = 0;
+    let ssr = 0;
+
+    const details = points.map((p) => {
+      const yHat = slopeW * p.x + interceptB;
+      const baseDiff = p.y - meanY;
+      const baseSq = Math.pow(baseDiff, 2);
+
+      const resDiff = p.y - yHat;
+      const resSq = Math.pow(resDiff, 2);
+
+      const regDiff = yHat - meanY;
+      const regSq = Math.pow(regDiff, 2);
+
+      sst += baseSq;
+      sse += resSq;
+      ssr += regSq;
+
+      return {
+        ...p,
+        yHat,
+        baseDiff,
+        baseSq,
+        resDiff,
+        resSq,
+        regDiff,
+        regSq
+      };
+    });
+
+    const r2 = 1.0 - (sse / sst);
+    const varianceExplainedPct = Math.max(-100, Math.min(100, r2 * 100));
+
+    return { details, sst, sse, ssr, r2, varianceExplainedPct };
+  }, [points, meanY, slopeW, interceptB]);
+
+  // Feature bloat simulation stats (N=30 samples, 2 real features + noiseFeatures)
+  const bloatStats = useMemo(() => {
+    const N = 30;
+    const baseK = 2;
+    const totalK = baseK + noiseFeatures;
+
+    // Adding useless noise features slightly inflates R2 due to accidental sample fits
+    const simulatedR2 = Math.min(0.95, 0.820 + noiseFeatures * 0.005);
+    const simulatedR2Adj = 1.0 - ((1.0 - simulatedR2) * (N - 1)) / (N - totalK - 1);
+
+    return {
+      N,
+      totalK,
+      simulatedR2,
+      simulatedR2Adj
+    };
+  }, [noiseFeatures]);
+
+  // SVG Scales (X: 0 to 6, Y: 20 to 140)
+  const svgW = 680;
+  const svgH = 340;
+  const margin = { left: 55, right: 35, top: 25, bottom: 45 };
+  const innerW = svgW - margin.left - margin.right;
+  const innerH = svgH - margin.top - margin.bottom;
+
+  const scaleX = (x) => margin.left + (x / 6.0) * innerW;
+  const scaleY = (y) => margin.top + innerH - ((y - 20.0) / 120.0) * innerH;
+
+  const handleOptimal = () => {
+    setSlopeW(15.0);
+    setInterceptB(25.0);
+    triggerConfetti(0.5, 0.6);
+  };
+
+  const handleBaseline = () => {
+    setSlopeW(0.0);
+    setInterceptB(meanY);
+  };
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER BAR ─────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #7c3aed)',
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(124,58,237,0.25)'
+          }}>
+            <IconSparkles size={22} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '1.18rem', fontWeight: 800, color: '#001f54' }}>
+              R-Squared (R²) & Goodness of Fit Studio
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+              Visualize the variance ratio (SST vs. SSE), degrees of freedom, and Adjusted R²
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { id: 'variance', label: 'Visual Variance & R² Gauge' },
+            { id: 'adjusted', label: 'Adjusted R² & Feature Bloat' },
+            { id: 'table', label: 'Step-by-Step Variance Table' },
+            { id: 'code', label: 'Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: VISUAL VARIANCE & R2 GAUGE ───────────────────────── */}
+      {activeTab === 'variance' && (
+        <div>
+          {/* Main R2 Big Gauge Banner */}
+          <div style={{
+            background: stats.r2 >= 0.8 ? '#f0fdf4' : stats.r2 >= 0.5 ? '#eff6ff' : stats.r2 >= 0 ? '#fffbeb' : '#fef2f2',
+            border: `1.5px solid ${stats.r2 >= 0.8 ? '#bbf7d0' : stats.r2 >= 0.5 ? '#bfdbfe' : stats.r2 >= 0 ? '#fde68a' : '#fecaca'}`,
+            borderRadius: '16px',
+            padding: '1.25rem',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                Coefficient of Determination (R²)
+              </div>
+              <div style={{ fontSize: '2.3rem', fontWeight: 900, color: stats.r2 >= 0.8 ? '#059669' : stats.r2 >= 0.5 ? '#0284c7' : stats.r2 >= 0 ? '#d97706' : '#dc2626', marginTop: '2px' }}>
+                {stats.r2.toFixed(3)}{' '}
+                <span style={{ fontSize: '1.2rem', fontWeight: 700 }}>
+                  ({(stats.r2 * 100).toFixed(1)}% Variance Explained)
+                </span>
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '4px' }}>
+                {stats.r2 >= 0.9 ? 'Exceptional Fit: Model captures virtually all dataset variance.' :
+                 stats.r2 >= 0.7 ? 'Strong Fit: Model explains the majority of variation.' :
+                 stats.r2 >= 0.0 ? 'Weak Fit: Model struggles to outperform the baseline average.' :
+                 'Negative R²: Model performs worse than the simple baseline average (y-bar)!'}
+              </div>
+            </div>
+
+            {/* Visual Formula Pill */}
+            <div style={{ background: '#ffffff', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid #cbd5e1', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>R² Formula Ratio</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#001f54', marginTop: '2px' }}>
+                <MathFormula math={`R^2 = 1 - \\frac{\\text{SSE}}{\\text{SST}} = 1 - \\frac{${stats.sse.toFixed(1)}}{${stats.sst.toFixed(1)}}`} />
+              </div>
+            </div>
+          </div>
+
+          {/* Variance Triad Metric Cards */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '1rem',
+            marginBottom: '1.25rem'
+          }}>
+            {/* Total Sum of Squares (SST) */}
+            <div style={{ background: '#faf5ff', padding: '1rem', borderRadius: '14px', border: '1.5px solid #e9d5ff' }}>
+              <div style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 800, textTransform: 'uppercase' }}>
+                Total Variance (SST)
+              </div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#6b21a8', marginTop: '2px' }}>
+                {stats.sst.toFixed(1)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#6b21a8', marginTop: '4px' }}>
+                Baseline variance around <MathFormula math="\bar{y} = 71.0" />
+              </div>
+            </div>
+
+            {/* Residual Unexplained Error (SSE) */}
+            <div style={{ background: '#fef2f2', padding: '1rem', borderRadius: '14px', border: '1.5px solid #fecaca' }}>
+              <div style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 800, textTransform: 'uppercase' }}>
+                Unexplained Error (SSE)
+              </div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#b91c1c', marginTop: '2px' }}>
+                {stats.sse.toFixed(1)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '4px' }}>
+                Residual mistakes of model <MathFormula math="\hat{y}" />
+              </div>
+            </div>
+
+            {/* Regression Explained Variance (SSR) */}
+            <div style={{ background: '#ecfdf5', padding: '1rem', borderRadius: '14px', border: '1.5px solid #a7f3d0' }}>
+              <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 800, textTransform: 'uppercase' }}>
+                Explained Variance (SSR)
+              </div>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#047857', marginTop: '2px' }}>
+                {stats.ssr.toFixed(1)}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '4px' }}>
+                Variance captured by line
+              </div>
+            </div>
+          </div>
+
+          {/* SVG Canvas: Dual Variance Decomposition */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.02)',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Visual Variance Decomposition: Baseline (<MathFormula math="\bar{y} = 71.0" />) vs. Model (<MathFormula math={`\\hat{y} = ${slopeW.toFixed(1)}x + ${interceptB.toFixed(1)}`} />)
+              </span>
+              <div style={{ display: 'flex', gap: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
+                <span style={{ color: '#7c3aed' }}>— Purple Dashed: Baseline Mean (y-bar)</span>
+                <span style={{ color: '#001f54' }}>— Dark Blue: Regression Line</span>
+              </div>
+            </div>
+
+            <svg viewBox={`0 0 ${svgW} ${svgH}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+              {/* Grid Lines */}
+              {[40, 60, 80, 100, 120].map((y) => (
+                <g key={`grid-y-${y}`}>
+                  <line x1={margin.left} y1={scaleY(y)} x2={svgW - margin.right} y2={scaleY(y)} stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="3 3" />
+                  <text x={margin.left - 8} y={scaleY(y) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">${y}k</text>
+                </g>
+              ))}
+              {[1, 2, 3, 4, 5].map((x) => (
+                <g key={`grid-x-${x}`}>
+                  <line x1={scaleX(x)} y1={margin.top} x2={scaleX(x)} y2={svgH - margin.bottom} stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray="3 3" />
+                  <text x={scaleX(x)} y={svgH - margin.bottom + 14} textAnchor="middle" fontSize="10" fill="#94a3b8">{x}y</text>
+                </g>
+              ))}
+
+              {/* Axes */}
+              <line x1={margin.left} y1={svgH - margin.bottom} x2={svgW - margin.right} y2={svgH - margin.bottom} stroke="#64748b" strokeWidth="1.5" />
+              <line x1={margin.left} y1={margin.top} x2={margin.left} y2={svgH - margin.bottom} stroke="#64748b" strokeWidth="1.5" />
+
+              {/* Baseline Mean Horizontal Line (Purple) */}
+              <line
+                x1={margin.left}
+                y1={scaleY(meanY)}
+                x2={svgW - margin.right}
+                y2={scaleY(meanY)}
+                stroke="#7c3aed"
+                strokeWidth="2.5"
+                strokeDasharray="6 4"
+              />
+              <text x={svgW - margin.right - 6} y={scaleY(meanY) - 6} textAnchor="end" fontSize="10" fill="#7c3aed" fontWeight="800">
+                Baseline Mean: ȳ = $71.0k (SST = 2,570)
+              </text>
+
+              {/* Candidate Model Line (Dark Blue) */}
+              {(() => {
+                const sx1 = scaleX(0.5);
+                const sy1 = scaleY(slopeW * 0.5 + interceptB);
+                const sx2 = scaleX(5.5);
+                const sy2 = scaleY(slopeW * 5.5 + interceptB);
+                return (
+                  <line x1={sx1} y1={sy1} x2={sx2} y2={sy2} stroke="#001f54" strokeWidth="3" strokeLinecap="round" />
+                );
+              })()}
+
+              {/* Vertical Error & Baseline Bars */}
+              {stats.details.map((p) => {
+                const sx = scaleX(p.x);
+                const syActual = scaleY(p.y);
+                const syMean = scaleY(meanY);
+                const syPred = scaleY(p.yHat);
+
+                return (
+                  <g key={`point-${p.id}`}>
+                    {/* Baseline Deviation Bar (Purple) */}
+                    {showBaseline && (
+                      <line
+                        x1={sx - 3}
+                        y1={syActual}
+                        x2={sx - 3}
+                        y2={syMean}
+                        stroke="#a855f7"
+                        strokeWidth="2.5"
+                        strokeDasharray="2 2"
+                      />
+                    )}
+
+                    {/* Model Residual Error Bar (Red) */}
+                    {showModelResiduals && (
+                      <line
+                        x1={sx + 3}
+                        y1={syActual}
+                        x2={sx + 3}
+                        y2={syPred}
+                        stroke="#ef4444"
+                        strokeWidth="2.5"
+                      />
+                    )}
+
+                    {/* Data Point Dot */}
+                    <circle
+                      cx={sx}
+                      cy={syActual}
+                      r="6.5"
+                      fill="#001f54"
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Interactive Sliders & Actions */}
+          <div style={{
+            background: '#f8fafc',
+            padding: '1.25rem',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0'
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+              {/* Slope Slider */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 800, color: '#001f54', marginBottom: '0.4rem' }}>
+                  <span>Model Slope (w): {slopeW.toFixed(1)}</span>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Optimal: 15.0</span>
+                </div>
+                <input
+                  type="range"
+                  min="-5.0"
+                  max="25.0"
+                  step="0.5"
+                  value={slopeW}
+                  onChange={(e) => setSlopeW(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Intercept Slider */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 800, color: '#001f54', marginBottom: '0.4rem' }}>
+                  <span>Model Intercept (b): ${interceptB.toFixed(1)}k</span>
+                  <span style={{ color: '#64748b', fontWeight: 600 }}>Optimal: $25.0k</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.0"
+                  max="50.0"
+                  step="1.0"
+                  value={interceptB}
+                  onChange={(e) => setInterceptB(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+                />
+              </div>
+            </div>
+
+            {/* Quick Action Presets */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+              borderTop: '1px solid #e2e8f0',
+              paddingTop: '0.85rem'
+            }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setShowBaseline(!showBaseline)}
+                  style={{
+                    background: showBaseline ? '#faf5ff' : '#ffffff',
+                    color: showBaseline ? '#7c3aed' : '#64748b',
+                    border: `1.5px solid ${showBaseline ? '#d8b4fe' : '#cbd5e1'}`,
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {showBaseline ? 'Hide Baseline Bars' : 'Show Baseline Bars'}
+                </button>
+                <button
+                  onClick={() => setShowModelResiduals(!showModelResiduals)}
+                  style={{
+                    background: showModelResiduals ? '#fef2f2' : '#ffffff',
+                    color: showModelResiduals ? '#dc2626' : '#64748b',
+                    border: `1.5px solid ${showModelResiduals ? '#fecaca' : '#cbd5e1'}`,
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {showModelResiduals ? 'Hide Residual Bars' : 'Show Residual Bars'}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={handleBaseline}
+                  style={{
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    padding: '7px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Set to Baseline Mean (R² = 0.0)
+                </button>
+                <button
+                  onClick={handleOptimal}
+                  style={{
+                    background: 'linear-gradient(135deg, #059669, #047857)',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 18px',
+                    borderRadius: '10px',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(5,150,105,0.25)'
+                  }}
+                >
+                  Snap to Optimal Fit (R² = 0.988)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: ADJUSTED R2 & FEATURE BLOAT ──────────────────────── */}
+      {activeTab === 'adjusted' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              The Multiple Regression Trap: Why Standard R² Lies & Adjusted R² Protects You
+            </h4>
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.88rem', color: '#334155', lineHeight: '1.6' }}>
+              Standard <MathFormula math="R^2" /> will artificially increase every time you add a useless, random noise feature (e.g. "Astronaut favorite color"). Adjusted <MathFormula math="R^2" /> imposes a mathematical penalty on feature bloat:
+            </p>
+
+            {/* Interactive Feature Adder */}
+            <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '14px', border: '1px solid #cbd5e1', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                  Features in Model: 2 Real Predictive Features + <span style={{ color: '#dc2626' }}>{noiseFeatures} Random Noise Features</span>
+                </span>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => setNoiseFeatures((prev) => Math.min(10, prev + 1))}
+                    style={{
+                      background: '#001f54',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    + Add Useless Noise Feature
+                  </button>
+                  <button
+                    onClick={() => setNoiseFeatures(0)}
+                    style={{
+                      background: '#f1f5f9',
+                      color: '#475569',
+                      border: '1px solid #cbd5e1',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+
+              {/* Side-by-side Score Comparison */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                {/* Standard R2 Card */}
+                <div style={{ background: '#eff6ff', padding: '1rem', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 800, textTransform: 'uppercase' }}>
+                    Standard R² (Artificially Inflated)
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0369a1', marginTop: '4px' }}>
+                    {bloatStats.simulatedR2.toFixed(4)}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 700, marginTop: '4px' }}>
+                    Increases by +{(noiseFeatures * 0.005).toFixed(3)} despite zero predictive value!
+                  </div>
+                </div>
+
+                {/* Adjusted R2 Card */}
+                <div style={{ background: '#ecfdf5', padding: '1rem', borderRadius: '12px', border: '1.5px solid #a7f3d0' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800, textTransform: 'uppercase' }}>
+                    Adjusted R² (Degrees-of-Freedom Penalty)
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#047857', marginTop: '4px' }}>
+                    {bloatStats.simulatedR2Adj.toFixed(4)}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 700, marginTop: '4px' }}>
+                    Penalizes the bloated {bloatStats.totalK} features and drops correctly!
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: STEP-BY-STEP VARIANCE TABLE ──────────────────────── */}
+      {activeTab === 'table' && (
+        <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1.5px solid #e2e8f0' }}>
+          <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+            Variance Decomposition Table (SST = SSR + SSE)
+          </h4>
+          <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: '#64748b' }}>
+            Baseline Mean <MathFormula math="\bar{y} = 71.0" /> | Model <MathFormula math={`\\hat{y} = ${slopeW.toFixed(1)}x + ${interceptB.toFixed(1)}`} />
+          </p>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ background: '#001f54', color: '#ffffff', textAlign: 'left' }}>
+                  <th style={{ padding: '8px 12px', borderRadius: '8px 0 0 0' }}>Sample (i)</th>
+                  <th style={{ padding: '8px 12px' }}>Exp (x)</th>
+                  <th style={{ padding: '8px 12px' }}>Actual (y)</th>
+                  <th style={{ padding: '8px 12px' }}>Total Dev (y - ȳ)²</th>
+                  <th style={{ padding: '8px 12px' }}>Predicted (ŷ)</th>
+                  <th style={{ padding: '8px 12px' }}>Residual (y - ŷ)²</th>
+                  <th style={{ padding: '8px 12px', borderRadius: '0 8px 0 0' }}>Explained (ŷ - ȳ)²</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.details.map((p, idx) => (
+                  <tr key={p.id} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                    <td style={{ padding: '8px 12px', fontWeight: 700, color: '#001f54' }}>Sample {p.id}</td>
+                    <td style={{ padding: '8px 12px' }}>{p.x} yrs</td>
+                    <td style={{ padding: '8px 12px' }}>${p.y}k</td>
+                    <td style={{ padding: '8px 12px', fontWeight: 700, color: '#7c3aed' }}>{p.baseSq.toFixed(1)}</td>
+                    <td style={{ padding: '8px 12px' }}>${p.yHat.toFixed(1)}k</td>
+                    <td style={{ padding: '8px 12px', fontWeight: 700, color: '#dc2626' }}>{p.resSq.toFixed(1)}</td>
+                    <td style={{ padding: '8px 12px', fontWeight: 700, color: '#059669' }}>{p.regSq.toFixed(1)}</td>
+                  </tr>
+                ))}
+                <tr style={{ background: '#faf5ff', fontWeight: 800 }}>
+                  <td colSpan={3} style={{ padding: '10px 12px', color: '#6b21a8' }}>
+                    Total Sum of Squares (SST):
+                  </td>
+                  <td style={{ padding: '10px 12px', color: '#6b21a8', fontSize: '1rem' }}>
+                    {stats.sst.toFixed(1)}
+                  </td>
+                  <td style={{ padding: '10px 12px', color: '#dc2626' }}>
+                    Residual SSE:
+                  </td>
+                  <td style={{ padding: '10px 12px', color: '#dc2626', fontSize: '1rem' }}>
+                    {stats.sse.toFixed(1)}
+                  </td>
+                  <td style={{ padding: '10px 12px', color: '#059669', fontSize: '1rem' }}>
+                    {stats.ssr.toFixed(1)} (SSR)
+                  </td>
+                </tr>
+                <tr style={{ background: '#ecfdf5', fontWeight: 800 }}>
+                  <td colSpan={6} style={{ padding: '10px 12px', color: '#047857' }}>
+                    Final R-Squared (R² = 1 - SSE/SST):
+                  </td>
+                  <td style={{ padding: '10px 12px', color: '#047857', fontSize: '1.15rem' }}>
+                    {stats.r2.toFixed(4)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: PYTHON IMPLEMENTATION ───────────────────────────── */}
+      {activeTab === 'code' && (
+        <div>
+          <div style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700, marginBottom: '0.75rem' }}>
+            Calculating R² and Adjusted R² in Python:
+          </div>
+          <SyntaxCodeBlock
+            code={[
+              '# Calculating R² and Adjusted R² in Python',
+              '# ─────────────────────────────────────────────────────────────',
+              'import numpy as np',
+              'from sklearn.metrics import r2_score',
+              'from sklearn.linear_model import LinearRegression',
+              '',
+              '# 1. Dataset with Features X and Target y',
+              'X = np.array([[1.0, 1.0], [2.0, 1.0], [3.0, 2.0], [4.0, 2.0], [5.0, 3.0]])',
+              'y = np.array([45.0, 55.0, 65.0, 80.0, 110.0])',
+              'N, k = X.shape',
+              '',
+              '# 2. Fit Model and Predict',
+              'model = LinearRegression().fit(X, y)',
+              'y_pred = model.predict(X)',
+              '',
+              '# 3. Standard R-Squared',
+              'r2 = r2_score(y, y_pred)',
+              '',
+              '# 4. Adjusted R-Squared with Penalty Formula',
+              'r2_adj = 1.0 - ((1.0 - r2) * (N - 1) / (N - k - 1))',
+              '',
+              'print(f"Standard R²:  {r2:.4f} ({r2*100:.1f}% Variance Explained)")',
+              'print(f"Adjusted R²:  {r2_adj:.4f}")'
+            ].join('\n')}
+            title="r_squared_adjusted.py"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
@@ -12380,6 +13082,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'mae_interactive_studio' && (
               <MAEInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'r_squared_interactive_studio' && (
+              <RSquaredInteractiveStudio />
             )}
           </div>
         )}
