@@ -2537,6 +2537,242 @@ export const mlLessonsData = {
       correctIndex: 0,
       explanation: 'Correct! Evaluating on an independent, unseen test set proves that the model can accurately generalize to brand new candidate profiles rather than simply memorizing the training dataset.'
     }
+  },
+
+  'ml-4-1': {
+    id: 'ml-4-1',
+    title: 'Logistic Regression',
+    moduleTitle: 'MODULE 4: CLASSIFICATION',
+    readTime: '28 min read',
+    difficulty: 'Intermediate',
+    badgeText: 'Classification Core',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: 'https://www.geeksforgeeks.org/understanding-logistic-regression/',
+
+    learningObjectives: [
+      'Understand why Linear Regression fails when applied to binary classification problems.',
+      'Master the mathematics of the Sigmoid (Logistic) function and its derivative.',
+      'Explain the relationship between Probability, Odds, and the Log-Odds (Logit) function.',
+      'Analyze 1D, 2D linear, and non-linear Decision Boundaries and threshold adjustments.',
+      'Derive why Mean Squared Error creates a non-convex landscape for classification and how Binary Cross-Entropy (Log Loss) guarantees global convexity.',
+      'Implement gradient descent updates and explore One-vs-Rest and Softmax multi-class extensions.',
+      'Train, evaluate, and tune regularized Logistic Regression models using Scikit-Learn and pure NumPy.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Classification Paradox: Why Linear Regression Fails',
+        paragraphs: [
+          'In Module 3, we used Linear Regression to predict continuous numbers: salaries, housing values, and temperatures. But in classification, our target variable is categorical: Is this transaction fraudulent ($1$) or legitimate ($0$)? Does the patient have the disease ($1$) or not ($0$)? Will a customer churn ($1$) or remain subscribed ($0$)?',
+          'A natural first thought is: Can we simply fit a linear line $\\hat{y} = w x + b$ to binary $0$ and $1$ labels, and say that if $\\hat{y} \\ge 0.5$, we predict Class $1$, otherwise Class $0$?',
+          'Mathematically and practically, Linear Regression fails dramatically for classification due to three critical flaws:',
+          '1. Unbounded Prediction Range: A straight line extends infinitely in both directions ($-\\infty$ to $+\\infty$). If a customer has exceptional credit, the model might predict $\\hat{y} = 2.4$. If another customer has very low income, it might output $\\hat{y} = -0.6$. But probabilities must strictly obey Kolmogorov axioms: $0 \\le P(Y=1|X) \\le 1$. Outputting $-0.6$ or $2.4$ as a probability is mathematically meaningless.',
+          '2. Outlier Distortion & Boundary Shifts: Suppose we add a perfectly clear positive sample with an extremely high feature value (for instance, a patient with blood sugar of $400$). A linear regression line tilts upward to minimize squared errors on this distant point. This tilt rotates the entire line and shifts the $0.5$ decision threshold to the right, causing previously well-classified positive samples in the middle to suddenly be misclassified as negative!',
+          '3. Heteroscedasticity: The variance of residuals is non-constant across input values because the true labels are restricted to exactly $0$ and $1$, violating the Gauss-Markov assumptions required for Ordinary Least Squares (OLS).'
+        ]
+      },
+      {
+        heading: '2. The Sigmoid (Logistic) Function: Squeezing the Real Line into (0, 1)',
+        paragraphs: [
+          'To fix the unbounded nature of linear regression, we need a mathematical function that takes any real-valued number from $-\\infty$ to $+\\infty$ and smoothly compresses it into the valid probability range of $(0, 1)$. That function is the Sigmoid (or Logistic) function, denoted by $\\sigma(z)$:',
+          '$$\\sigma(z) = \\frac{1}{1 + e^{-z}}$$',
+          'Here, $z$ is the standard linear regression score (also known as the logit or linear combination):',
+          '$$z = w^T x + b = w_1 x_1 + w_2 x_2 + \\dots + w_n x_n + b$$',
+          'Let us observe the behavior of $\\sigma(z)$ at critical limits:',
+          '• As $z \\to +\\infty$: $e^{-z} \\to 0$, which yields $\\sigma(z) \\to \\frac{1}{1 + 0} = 1.0$. Strong positive evidence produces a predicted probability near $100\\%$.',
+          '• As $z \\to -\\infty$: $e^{-z} \\to +\\infty$, which yields $\\sigma(z) \\to \\frac{1}{1 + \\infty} = 0.0$. Strong negative evidence produces a predicted probability near $0\\%$.',
+          '• At the balance point $z = 0$: $e^0 = 1$, which yields $\\sigma(0) = \\frac{1}{1 + 1} = 0.5$. When evidence is entirely neutral, the model assigns equal probability ($50\\%$) to both outcomes.',
+          'Crucially, the derivative of the sigmoid function has an exceptionally clean, elegant form that simplifies calculus during gradient descent:',
+          '$$\\frac{d\\sigma}{dz} = \\sigma(z) \\cdot (1 - \\sigma(z))$$',
+          'Because the derivative depends only on the output value itself, neural networks and machine learning libraries can compute gradients with extraordinary computational speed.'
+        ],
+        codeBlock: [
+          'import numpy as np',
+          '',
+          'def sigmoid(z):',
+          '    """Computes numerically stable Sigmoid activation."""',
+          '    # np.clip prevents numerical overflow for extreme inputs',
+          '    z = np.clip(z, -500, 500)',
+          '    return 1.0 / (1.0 + np.exp(-z))',
+          '',
+          '# Verification at key milestones',
+          'for val in [-10.0, -2.0, 0.0, 2.0, 10.0]:',
+          '    print(f"z = {val:5.1f} -> sigma(z) = {sigmoid(val):.5f}")'
+        ].join('\n'),
+        codeBlockTitle: 'sigmoid_function.py'
+      },
+      {
+        heading: '3. Probability, Odds, and the Log-Odds (Logit) Function',
+        paragraphs: [
+          'To understand what the weights $w$ in Logistic Regression actually mean, we must explore the concept of Odds.',
+          'In everyday statistics and betting, the Odds of an event occurring is the ratio of the probability of success ($p$) to the probability of failure ($1 - p$):',
+          '$$\\text{Odds} = \\frac{p}{1 - p}$$',
+          'For example, if a patient has an $80\\%$ probability of recovery ($p = 0.8$), the odds of recovery are $\\frac{0.8}{0.2} = 4$, or 4 to 1. If an event has a $50\\%$ chance ($p = 0.5$), the odds are $\\frac{0.5}{0.5} = 1$ (even odds). While probability is bounded between $0$ and $1$, Odds range from $0$ to $+\\infty$.',
+          'Next, if we take the natural logarithm of the Odds, we obtain the Log-Odds (or Logit) function:',
+          '$$\\text{Logit}(p) = \\ln(\\text{Odds}) = \\ln\\left(\\frac{p}{1 - p}\\right)$$',
+          'Now examine the magic connection: If we set $p = \\sigma(z) = \\frac{1}{1 + e^{-z}}$ and substitute it into the logit equation:',
+          '$$\\ln\\left(\\frac{\\frac{1}{1 + e^{-z}}}{1 - \\frac{1}{1 + e^{-z}}}\\right) = \\ln\\left(\\frac{\\frac{1}{1 + e^{-z}}}{\\frac{e^{-z}}{1 + e^{-z}}}\\right) = \\ln\\left(\\frac{1}{e^{-z}}\\right) = \\ln(e^z) = z$$',
+          'Therefore:',
+          '$$\\ln\\left(\\frac{P(Y=1|X)}{1 - P(Y=1|X)}\\right) = w_1 x_1 + w_2 x_2 + \\dots + b$$',
+          'This reveals the core nature of Logistic Regression: It is a generalized linear model where the log-odds of the outcome is modeled as a strictly linear combination of the input features!',
+          'Weight Interpretation (Odds Ratio): If feature $x_1$ increases by 1 unit while other features remain constant, the log-odds increase by $w_1$. Taking exponents, the odds are multiplied by $e^{w_1}$. If $e^{w_1} = 1.35$, each additional unit of $x_1$ increases the odds of the positive class by $35\\%$.'
+        ]
+      },
+      {
+        heading: '4. Decision Boundaries: 1D, 2D Hyperplanes, and Non-Linear Boundaries',
+        paragraphs: [
+          'Once our model computes the predicted probability $\\hat{y} = P(Y=1|X) = \\sigma(z)$, how do we convert it into a discrete decision (Class 0 vs Class 1)? We establish a Decision Threshold $\\tau$ (by default, $\\tau = 0.5$):',
+          '$$\\hat{Y} = \\begin{cases} 1 & \\text{if } \\sigma(z) \\ge 0.5 \\\\ 0 & \\text{if } \\sigma(z) < 0.5 \\end{cases}$$',
+          'Because $\\sigma(z) = 0.5$ precisely when $z = 0$, the decision boundary is the exact geometric hypersurface where the linear score is zero:',
+          '$$z = w_1 x_1 + w_2 x_2 + \\dots + w_n x_n + b = 0$$',
+          'Let us examine this geometry across dimensions:',
+          '• 1D Input ($x$): The decision boundary is a single critical point: $w x + b = 0 \\implies x^* = -\\frac{b}{w}$. All values on one side are classified as Class 1, and all values on the other side as Class 0.',
+          '• 2D Input ($x_1, x_2$): The decision boundary is a 2D line dividing the plane: $w_1 x_1 + w_2 x_2 + b = 0 \\implies x_2 = -\\frac{w_1}{w_2} x_1 - \\frac{b}{w_2}$. Points on one side of this line have $z > 0 \\implies P > 0.5$, while points on the other side have $z < 0 \\implies P < 0.5$.',
+          '• High-Dimensional Input: The boundary is an $(n-1)$-dimensional hyperplane partitioning $\\mathbb{R}^n$.',
+          'Non-Linear Decision Boundaries: What if the classes cannot be separated by a straight line (for instance, concentric circles or nested spirals)? Just like polynomial regression, we can engineer polynomial features: $z = w_1 x_1 + w_2 x_2 + w_3 x_1^2 + w_4 x_2^2 + b$. When $z = 0$, this forms an ellipse or circle ($x_1^2 + x_2^2 = r^2$), allowing Logistic Regression to produce flexible, non-linear classification boundaries while remaining linear with respect to its weights!'
+        ]
+      },
+      {
+        heading: '5. Why Mean Squared Error (MSE) Fails: The Non-Convex Trap',
+        paragraphs: [
+          'In Linear Regression, we minimized Mean Squared Error (MSE): $J = \\frac{1}{N}\\sum (y_i - \\hat{y}_i)^2$. What happens if we plug the sigmoid prediction $\\hat{y}_i = \\sigma(w x_i + b)$ directly into MSE?',
+          '$$J_{\\text{MSE}}(w, b) = \\frac{1}{N}\\sum_{i=1}^N \\left( y_i - \\frac{1}{1 + e^{-(w x_i + b)}} \\right)^2$$',
+          'The result is a mathematical catastrophe: The resulting cost surface is non-convex. It is filled with dozens of local minima, flat ridges, and saddle points.',
+          'Why does this happen? The sigmoid function flattens out to zero gradient at its tails ($z \\to \\pm\\infty$). If a sample is misclassified with high confidence (e.g. true label $y = 1$, but $z = -10$ so $\\hat{y} \\approx 0$), the squared error derivative contains the term $\\sigma\'(z) = \\sigma(z)(1 - \\sigma(z)) \\approx 0$. The gradient vanishes, leaving the optimizer stranded on a flat plateau where gradient descent cannot make progress.',
+          'To guarantee convergence to the true global optimum, we must use a cost function that is guaranteed to be convex.'
+        ]
+      },
+      {
+        heading: '6. Binary Cross-Entropy (Log Loss) and Maximum Likelihood Estimation',
+        paragraphs: [
+          'To build a convex loss function, we look to the principle of Maximum Likelihood Estimation (MLE). For a single training sample $(x, y)$, where $y \\in \\{0, 1\\}$, the probability distribution can be written compactly as a Bernoulli trial:',
+          '$$P(Y = y \\mid x) = \\hat{y}^y \\cdot (1 - \\hat{y})^{1 - y}$$',
+          'Notice how this works:',
+          '• If true $y = 1$: $P(Y = 1 \\mid x) = \\hat{y}^1 (1 - \\hat{y})^0 = \\hat{y}$.',
+          '• If true $y = 0$: $P(Y = 0 \\mid x) = \\hat{y}^0 (1 - \\hat{y})^1 = 1 - \\hat{y}$.',
+          'Assuming all $N$ training examples are independent and identically distributed (i.i.d.), the total likelihood of our dataset is the product of individual probabilities: $L(w, b) = \\prod_{i=1}^N P(y_i \\mid x_i)$.',
+          'Multiplying thousands of probabilities causes severe floating-point underflow. Therefore, we take the natural logarithm of the likelihood (Log-Likelihood):',
+          '$$\\ln L(w, b) = \\sum_{i=1}^N \\left[ y_i \\ln(\\hat{y}_i) + (1 - y_i) \\ln(1 - \\hat{y}_i) \\right]$$',
+          'Because optimizers minimize loss rather than maximize likelihood, we negate this quantity and divide by $N$. This produces the Binary Cross-Entropy (Log Loss) cost function:',
+          '$$J(w, b) = -\\frac{1}{N} \\sum_{i=1}^N \\left[ y_i \\ln(\\hat{y}_i) + (1 - y_i) \\ln(1 - \\hat{y}_i) \\right]$$',
+          'Let us inspect the penalty mechanics of Log Loss:',
+          '• When true $y = 1$: $\\text{Loss} = -\\ln(\\hat{y})$. If the model predicts $\\hat{y} = 0.99$, $-\\ln(0.99) = 0.01$ (nearly zero penalty). But if the model predicts $\\hat{y} = 0.01$, $-\\ln(0.01) = 4.60$, and as $\\hat{y} \\to 0$, $-\\ln(\\hat{y}) \\to +\\infty$! The loss inflicts an infinite penalty on confident wrong predictions.',
+          '• When true $y = 0$: $\\text{Loss} = -\\ln(1 - \\hat{y})$. As $\\hat{y} \\to 0$, Loss $\\to 0$. As $\\hat{y} \\to 1$, Loss $\\to +\\infty$.',
+          'Mathematical Guarantee: Binary Cross-Entropy is strictly convex with respect to the weights $w$. There are zero local minima—any local minimum is guaranteed to be the unique global minimum!'
+        ]
+      },
+      {
+        heading: '7. Gradient Descent Optimization: Calculus Derivation',
+        paragraphs: [
+          'Now let us find the gradient of Binary Cross-Entropy with respect to each weight $w_j$ using the chain rule of calculus:',
+          '$$\\frac{\\partial J}{\\partial w_j} = \\frac{\\partial J}{\\partial \\hat{y}} \\cdot \\frac{\\partial \\hat{y}}{\\partial z} \\cdot \\frac{\\partial z}{\\partial w_j}$$',
+          'Let us compute each component individually for sample $i$:',
+          '1. $\\frac{\\partial J_i}{\\partial \\hat{y}_i} = -\\left[ \\frac{y_i}{\\hat{y}_i} - \\frac{1 - y_i}{1 - \\hat{y}_i} \\right] = \\frac{\\hat{y}_i - y_i}{\\hat{y}_i(1 - \\hat{y}_i)}$',
+          '2. $\\frac{\\partial \\hat{y}_i}{\\partial z_i} = \\sigma\'(z_i) = \\hat{y}_i(1 - \\hat{y}_i)$',
+          '3. $\\frac{\\partial z_i}{\\partial w_j} = x_{ij}$',
+          'Multiplying them together, the denominator $\\hat{y}_i(1 - \\hat{y}_i)$ cancels out completely:',
+          '$$\\frac{\\partial J_i}{\\partial w_j} = \\left( \\frac{\\hat{y}_i - y_i}{\\hat{y}_i(1 - \\hat{y}_i)} \\right) \\cdot \\hat{y}_i(1 - \\hat{y}_i) \\cdot x_{ij} = (\\hat{y}_i - y_i) x_{ij}$$',
+          'Averaging over all $N$ training samples yields the final gradient:',
+          '$$\\frac{\\partial J}{\\partial w_j} = \\frac{1}{N}\\sum_{i=1}^N (\\hat{y}_i - y_i) x_{ij}$$',
+          '$$\\frac{\\partial J}{\\partial b} = \\frac{1}{N}\\sum_{i=1}^N (\\hat{y}_i - y_i)$$',
+          'Notice the astonishing result: The gradient equation for Logistic Regression is identical in mathematical form to Linear Regression! The error term $(\\hat{y}_i - y_i)$ dictates the magnitude and direction of the update, while $x_{ij}$ scales the update based on feature magnitude.',
+          'In vectorized notation, the update rules with learning rate $\\alpha$ are:',
+          '$$w := w - \\frac{\\alpha}{N} X^T (\\hat{y} - y)$$',
+          '$$b := b - \\frac{\\alpha}{N} \\sum_{i=1}^N (\\hat{y}_i - y_i)$$'
+        ]
+      },
+      {
+        heading: '8. Multi-Class Classification: One-vs-Rest and Softmax',
+        paragraphs: [
+          'What if we have more than two classes (for instance, classifying iris flowers into 3 species: Setosa, Versicolor, or Virginica)? There are two primary strategies:',
+          '1. One-vs-Rest (OvR / One-vs-All): For $K$ classes, we train $K$ separate binary logistic regression models. Model 1 predicts Class 1 vs (Classes 2 & 3). Model 2 predicts Class 2 vs (Classes 1 & 3). Model 3 predicts Class 3 vs (Classes 1 & 2). At inference time, we evaluate all $K$ models on the new sample and assign the sample to the class whose model produced the highest probability.',
+          '2. Multinomial Logistic Regression (Softmax Regression): Instead of training separate models, we generalize the sigmoid function to the Softmax function for $K$ classes:',
+          '$$P(Y = k \\mid X) = \\frac{e^{w_k^T X + b_k}}{\\sum_{j=1}^K e^{w_j^T X + b_j}}$$',
+          'The Softmax function guarantees that all $K$ probabilities are strictly positive and sum up to exactly $1.0$. The model is trained end-to-end using Categorical Cross-Entropy loss.'
+        ]
+      },
+      {
+        heading: '9. Regularization (L1 Lasso, L2 Ridge) & Hyperparameter C',
+        paragraphs: [
+          'When features are collinear or the number of features exceeds the number of samples, logistic regression can severely overfit, driving weights to extreme values ($w \\to \\pm\\infty$) to force probabilities to absolute $0$ and $1$.',
+          'To prevent overfitting, we add a regularization penalty to the Binary Cross-Entropy loss function:',
+          '• L2 Regularization (Ridge): $J_{\\text{reg}} = J(w,b) + \\frac{\\lambda}{2} \\|w\\|^2 = J(w,b) + \\frac{\\lambda}{2} \\sum_{j=1}^n w_j^2$. Ridge penalizes large weights, shrinking them smoothly toward zero without eliminating them.',
+          '• L1 Regularization (Lasso): $J_{\\text{reg}} = J(w,b) + \\lambda \\|w\\|_1 = J(w,b) + \\lambda \\sum_{j=1}^n |w_j|$. Lasso drives non-essential feature weights to exact zero, performing automatic feature selection.',
+          'Understanding Scikit-Learn\'s C Parameter: In Scikit-Learn\'s `LogisticRegression(C=1.0)`, the hyperparameter `C` is the inverse of the regularization strength ($C = \\frac{1}{\\lambda}$):',
+          '• Small C (e.g., C=0.01): Strong regularization. Penalizes weights heavily, preventing overfitting at the cost of potential underfitting.',
+          '• Large C (e.g., C=100.0): Weak regularization. The model focuses almost entirely on minimizing training log loss, risking overfitting.'
+        ]
+      },
+      {
+        heading: '10. Production Implementation with Scikit-Learn & NumPy',
+        paragraphs: [
+          'In production environments, Scikit-Learn provides an optimized C-based implementation (`liblinear` or `lbfgs` solvers). Here is how to train, inspect probabilities, and customize the classification threshold:'
+        ],
+        codeBlock: [
+          'import numpy as np',
+          'from sklearn.linear_model import LogisticRegression',
+          'from sklearn.metrics import classification_report, confusion_matrix',
+          '',
+          '# 1. Prepare sample training data (Exam Hours & Prep vs Exam Pass 0/1)',
+          'X_train = np.array([',
+          '    [1.0, 10], [2.0, 15], [2.5, 20], [3.0, 25],',
+          '    [4.0, 30], [5.0, 45], [6.0, 50], [7.0, 60]',
+          '])',
+          'y_train = np.array([0, 0, 0, 0, 1, 1, 1, 1])',
+          '',
+          '# 2. Train Logistic Regression Model (L2 regularization with C=1.0)',
+          'model = LogisticRegression(solver="lbfgs", C=1.0, random_state=42)',
+          'model.fit(X_train, y_train)',
+          '',
+          'print("Learned Weights (w):", model.coef_[0])',
+          'print("Learned Bias (b):   ", model.intercept_[0])',
+          '',
+          '# 3. Predict Probabilities for New Students',
+          'X_new = np.array([[2.2, 18], [4.5, 38], [6.5, 55]])',
+          'probabilities = model.predict_proba(X_new)',
+          '',
+          'for i, (p0, p1) in enumerate(probabilities):',
+          '    print(f"Student {i+1}: P(Fail) = {p0:.3f}, P(Pass) = {p1:.3f}")',
+          '',
+          '# 4. Custom Decision Threshold (e.g. cautious threshold tau = 0.35)',
+          'custom_preds = (probabilities[:, 1] >= 0.35).astype(int)',
+          'print("Predictions with threshold 0.35:", custom_preds)'
+        ].join('\n'),
+        codeBlockTitle: 'logistic_regression_sklearn.py'
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The University Admissions Gatekeeper',
+      text: 'Think of Logistic Regression as a college admissions dean evaluating an applicant. The applicant has GPA and test scores. The dean computes a total qualification score z = w1*GPA + w2*SAT + b. But a qualification score is not an admission decision. The dean passes z through a sigmoid curve to determine the applicant\'s exact probability of success: e.g. 78%. If the university sets the admission bar at 50%, the student is admitted. If the university is highly selective (e.g., Ivy League), they might raise the admission threshold to 85%, requiring overwhelming evidence before granting an offer.'
+    },
+
+    diagram: {
+      type: 'logistic_regression_interactive_studio'
+    },
+
+    takeaways: [
+      'Linear Regression fails on classification because its outputs are unbounded (-inf to +inf) and its threshold is easily distorted by outliers.',
+      'The Sigmoid function maps any real number into the valid probability range (0, 1), with sigma(0) = 0.5 defining the natural decision boundary.',
+      'Logistic Regression models the log-odds (logit) of the positive class as a linear combination of input features: ln(p / (1-p)) = w^T x + b.',
+      'Mean Squared Error creates a non-convex cost landscape with multiple local minima when paired with the sigmoid function.',
+      'Binary Cross-Entropy (Log Loss) is derived from Maximum Likelihood Estimation and is mathematically guaranteed to be strictly convex.',
+      'The gradient of Binary Cross-Entropy has the exact same clean mathematical form as Linear Regression: (1/N) * sum((y_hat - y) * x).',
+      'The hyperparameter C in Scikit-Learn is the inverse of regularization strength: smaller C values enforce stronger regularization.'
+    ],
+
+    quiz: {
+      question: 'Why does optimizing Logistic Regression with Mean Squared Error (MSE) lead to poor convergence during gradient descent?',
+      options: [
+        'The sigmoid function derivative approaches zero for large magnitude inputs, creating flat plateaus and multiple local minima (non-convexity)',
+        'Because the square root of negative numbers cannot be calculated in binary classification',
+        'Because gradient descent cannot compute second-order derivatives on sigmoid curves',
+        'Because MSE is mathematically identical to binary cross-entropy and causes infinite division loops'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! When the sigmoid function is plugged into Mean Squared Error, the resulting cost landscape becomes non-convex. When the model is confidently wrong (e.g. true label y=1 but predicted z is large negative), the sigmoid derivative sigma\'(z) vanishes to zero, causing the gradient to vanish and leaving the optimizer trapped on flat local plateaus.'
+    }
   }
 };
 

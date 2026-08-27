@@ -13623,10 +13623,1338 @@ const SalaryPredictionProjectStudio = () => {
   );
 };
 
+// ─── LOGISTIC REGRESSION INTERACTIVE STUDIO ────────────────────────────────
+const LogisticRegressionInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('boundary');
+
+  // 2D Decision Boundary Parameters
+  const [w1, setW1] = useState(1.2);
+  const [w2, setW2] = useState(1.0);
+  const [bias, setBias] = useState(-8.5);
+  const [threshold, setThreshold] = useState(0.5);
+
+  // 1D Linear Failure vs Sigmoid Parameters
+  const [outlierActive, setOutlierActive] = useState(false);
+  const [outlierX, setOutlierX] = useState(16.0);
+
+  // Log Loss vs MSE Parameters
+  const [predProb, setPredProb] = useState(0.15);
+  const [trueLabel, setTrueLabel] = useState(1);
+
+  // 3D Studio Three.js Refs & State
+  const mount3DRef = useRef(null);
+  const scene3DRef = useRef(null);
+  const camera3DRef = useRef(null);
+  const renderer3DRef = useRef(null);
+  const surfaceMeshRef = useRef(null);
+  const wireMeshRef = useRef(null);
+  const pointsGroupRef = useRef(null);
+  const [autoRotate3D, setAutoRotate3D] = useState(true);
+  const [w1_3d, setW1_3d] = useState(1.2);
+  const [w2_3d, setW2_3d] = useState(1.0);
+  const [bias_3d, setBias_3d] = useState(-8.5);
+
+  // 2D Benchmark Classification Dataset (20 samples)
+  const dataset2D = useMemo(() => [
+    // Class 0: Negative (e.g. Non-buyers / Legitimate / Healthy)
+    { id: 1, x1: 1.5, x2: 2.0, y: 0 },
+    { id: 2, x1: 2.0, x2: 3.0, y: 0 },
+    { id: 3, x1: 2.5, x2: 1.5, y: 0 },
+    { id: 4, x1: 3.0, x2: 3.5, y: 0 },
+    { id: 5, x1: 1.8, x2: 4.5, y: 0 },
+    { id: 6, x1: 3.5, x2: 2.2, y: 0 },
+    { id: 7, x1: 2.8, x2: 4.0, y: 0 },
+    { id: 8, x1: 4.0, x2: 2.8, y: 0 },
+    { id: 9, x1: 3.2, x2: 5.0, y: 0 },
+    { id: 10, x1: 4.2, x2: 3.8, y: 0 },
+
+    // Class 1: Positive (e.g. Buyers / Fraud / Diseased)
+    { id: 11, x1: 4.8, x2: 6.2, y: 1 },
+    { id: 12, x1: 5.5, x2: 5.0, y: 1 },
+    { id: 13, x1: 6.0, x2: 6.8, y: 1 },
+    { id: 14, x1: 6.5, x2: 5.5, y: 1 },
+    { id: 15, x1: 5.2, x2: 7.5, y: 1 },
+    { id: 16, x1: 7.0, x2: 6.0, y: 1 },
+    { id: 17, x1: 7.2, x2: 7.2, y: 1 },
+    { id: 18, x1: 8.0, x2: 5.8, y: 1 },
+    { id: 19, x1: 6.8, x2: 8.2, y: 1 },
+    { id: 20, x1: 8.5, x2: 7.5, y: 1 }
+  ], []);
+
+  // Compute 2D Predictions, Confusion Matrix, and Metrics
+  const boundaryEvaluation = useMemo(() => {
+    let tp = 0;
+    let fp = 0;
+    let tn = 0;
+    let fn = 0;
+    let totalLogLoss = 0;
+
+    const evaluatedPoints = dataset2D.map((pt) => {
+      const z = w1 * pt.x1 + w2 * pt.x2 + bias;
+      const prob = 1.0 / (1.0 + Math.exp(-Math.max(-50, Math.min(50, z))));
+      const pred = prob >= threshold ? 1 : 0;
+      const isCorrect = pred === pt.y;
+
+      if (pt.y === 1 && pred === 1) tp++;
+      else if (pt.y === 0 && pred === 1) fp++;
+      else if (pt.y === 0 && pred === 0) tn++;
+      else if (pt.y === 1 && pred === 0) fn++;
+
+      // Log loss term
+      const safeProb = Math.max(1e-7, Math.min(1 - 1e-7, prob));
+      const sampleLoss = -(pt.y * Math.log(safeProb) + (1 - pt.y) * Math.log(1 - safeProb));
+      totalLogLoss += sampleLoss;
+
+      return {
+        ...pt,
+        z,
+        prob,
+        pred,
+        isCorrect
+      };
+    });
+
+    const total = dataset2D.length;
+    const accuracy = (tp + tn) / total;
+    const precision = tp + fp > 0 ? tp / (tp + fp) : 1.0;
+    const recall = tp + fn > 0 ? tp / (tp + fn) : 1.0;
+    const f1 = precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
+    const meanLogLoss = totalLogLoss / total;
+
+    return {
+      evaluatedPoints,
+      tp,
+      fp,
+      tn,
+      fn,
+      accuracy,
+      precision,
+      recall,
+      f1,
+      meanLogLoss
+    };
+  }, [dataset2D, w1, w2, bias, threshold]);
+
+  // 1D Linear Failure vs Sigmoid Data
+  const base1DPoints = useMemo(() => [
+    { x: 1.0, y: 0 },
+    { x: 2.0, y: 0 },
+    { x: 2.5, y: 0 },
+    { x: 3.5, y: 0 },
+    { x: 4.5, y: 1 },
+    { x: 5.5, y: 1 },
+    { x: 6.5, y: 1 },
+    { x: 7.5, y: 1 }
+  ], []);
+
+  const active1DPoints = useMemo(() => {
+    if (!outlierActive) return base1DPoints;
+    return [...base1DPoints, { x: outlierX, y: 1, isOutlier: true }];
+  }, [base1DPoints, outlierActive, outlierX]);
+
+  // Fitted 1D Linear Regression vs Logistic Sigmoid
+  const fit1D = useMemo(() => {
+    const pts = active1DPoints;
+    const n = pts.length;
+    const meanX = pts.reduce((acc, p) => acc + p.x, 0) / n;
+    const meanY = pts.reduce((acc, p) => acc + p.y, 0) / n;
+
+    // Linear regression fit
+    let num = 0;
+    let den = 0;
+    pts.forEach((p) => {
+      num += (p.x - meanX) * (p.y - meanY);
+      den += (p.x - meanX) ** 2;
+    });
+    const linSlope = den !== 0 ? num / den : 0;
+    const linIntercept = meanY - linSlope * meanX;
+
+    // Decision threshold for linear (where linSlope * x + linIntercept = 0.5)
+    const linThresholdX = linSlope !== 0 ? (0.5 - linIntercept) / linSlope : 4.0;
+
+    // Logistic regression fit approximation (or realistic logistic curve)
+    // When outlier is added, logistic curve shifts negligibly because logit saturates
+    const logSlope = outlierActive ? 1.45 : 1.6;
+    const logIntercept = outlierActive ? -5.8 : -6.4;
+    const logThresholdX = -logIntercept / logSlope;
+
+    return {
+      linSlope,
+      linIntercept,
+      linThresholdX,
+      logSlope,
+      logIntercept,
+      logThresholdX
+    };
+  }, [active1DPoints, outlierActive]);
+
+  // Log Loss vs MSE calculations
+  const lossAnalysis = useMemo(() => {
+    const p = predProb;
+    const y = trueLabel;
+    const safeP = Math.max(1e-7, Math.min(1 - 1e-7, p));
+
+    // Binary Cross-Entropy (Log Loss)
+    const logLossVal = -(y * Math.log(safeP) + (1 - y) * Math.log(1 - safeP));
+
+    // Mean Squared Error (MSE)
+    const mseVal = (y - p) ** 2;
+
+    // Gradient magnitude with respect to z
+    // For Log Loss: dJ/dz = (p - y)
+    const logLossGrad = Math.abs(p - y);
+
+    // For MSE: dJ/dz = 2 * (p - y) * p * (1 - p) -> vanishes when p -> 0 or 1
+    const mseGrad = 2 * Math.abs(p - y) * p * (1 - p);
+
+    return {
+      p,
+      y,
+      logLossVal,
+      mseVal,
+      logLossGrad,
+      mseGrad
+    };
+  }, [predProb, trueLabel]);
+
+  // ─── THREE.JS 3D SIGMOID SURFACE SETUP ─────────────────────────────────
+  const init3DScene = useCallback(() => {
+    const container = mount3DRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth || 680;
+    const height = 400;
+
+    // Scene
+    const scene = new THREE.Scene();
+    scene3DRef.current = scene;
+    scene.background = new THREE.Color('#f8fafc');
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(12, 14, 16);
+    camera.lookAt(5.0, 2.0, 5.0);
+    camera3DRef.current = camera;
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    renderer3DRef.current = renderer;
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight('#ffffff', 0.85);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight('#ffffff', 1.2);
+    dirLight1.position.set(15, 25, 20);
+    dirLight1.castShadow = true;
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight('#0284c7', 0.45);
+    dirLight2.position.set(-15, 10, -15);
+    scene.add(dirLight2);
+
+    // Base Grid Floor
+    const gridHelper = new THREE.GridHelper(18, 18, '#cbd5e1', '#e2e8f0');
+    gridHelper.position.set(5.0, 0, 5.0);
+    scene.add(gridHelper);
+
+    // Build the 3D Parametric Sigmoid Sheet
+    const gridDim = 48;
+    const surfaceGeo = new THREE.PlaneGeometry(10, 10, gridDim, gridDim);
+    surfaceGeo.rotateX(-Math.PI / 2); // Lay flat on XZ plane
+    surfaceGeo.translate(5.0, 0, 5.0); // Center at (5, 5)
+
+    const posAttr = surfaceGeo.attributes.position;
+    const colors = [];
+    const colorLow = new THREE.Color('#ea580c'); // Orange for class 0 (P ~ 0)
+    const colorMid = new THREE.Color('#f8fafc'); // White for P = 0.5
+    const colorHigh = new THREE.Color('#0284c7'); // Blue for class 1 (P ~ 1)
+
+    const heightScale = 4.0; // 4 units represents P = 1.0
+
+    for (let i = 0; i < posAttr.count; i++) {
+      const x = posAttr.getX(i);
+      const y = posAttr.getZ(i); // Z in Three.js corresponds to feature x2
+      const zScore = w1_3d * x + w2_3d * y + bias_3d;
+      const prob = 1.0 / (1.0 + Math.exp(-Math.max(-50, Math.min(50, zScore))));
+      const elevatedY = prob * heightScale;
+      posAttr.setY(i, elevatedY);
+
+      // Vertex color gradient
+      const col = prob < 0.5
+        ? colorLow.clone().lerp(colorMid, prob * 2)
+        : colorMid.clone().lerp(colorHigh, (prob - 0.5) * 2);
+      colors.push(col.r, col.g, col.b);
+    }
+
+    surfaceGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    surfaceGeo.computeVertexNormals();
+
+    const surfaceMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.35,
+      metalness: 0.15,
+      side: THREE.DoubleSide,
+      shadowSide: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.92
+    });
+
+    const surfaceMesh = new THREE.Mesh(surfaceGeo, surfaceMat);
+    surfaceMesh.receiveShadow = true;
+    surfaceMesh.castShadow = true;
+    scene.add(surfaceMesh);
+    surfaceMeshRef.current = surfaceMesh;
+
+    // Subtle Wireframe overlay for 3D depth
+    const wireMat = new THREE.MeshBasicMaterial({
+      color: '#001f54',
+      wireframe: true,
+      transparent: true,
+      opacity: 0.08
+    });
+    const wireMesh = new THREE.Mesh(surfaceGeo, wireMat);
+    scene.add(wireMesh);
+    wireMeshRef.current = wireMesh;
+
+    // Add 3D Data Spheres
+    const pointsGroup = new THREE.Group();
+    dataset2D.forEach((pt) => {
+      const sphereGeo = new THREE.SphereGeometry(0.22, 16, 16);
+      const sphereMat = new THREE.MeshStandardMaterial({
+        color: pt.y === 1 ? '#0284c7' : '#ea580c',
+        metalness: 0.3,
+        roughness: 0.2
+      });
+      const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+      const actualY = pt.y === 1 ? heightScale : 0;
+      sphere.position.set(pt.x1, actualY, pt.x2);
+      sphere.castShadow = true;
+      pointsGroup.add(sphere);
+
+      // Vertical drop line to visual floor
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(pt.x1, 0, pt.x2),
+        new THREE.Vector3(pt.x1, actualY, pt.x2)
+      ]);
+      const lineMat = new THREE.LineDashedMaterial({
+        color: pt.y === 1 ? '#0284c7' : '#ea580c',
+        dashSize: 0.2,
+        gapSize: 0.1,
+        transparent: true,
+        opacity: 0.5
+      });
+      const line = new THREE.Line(lineGeo, lineMat);
+      line.computeLineDistances();
+      pointsGroup.add(line);
+    });
+    scene.add(pointsGroup);
+    pointsGroupRef.current = pointsGroup;
+
+    // Orbit Drag Controls
+    let isDragging = false;
+    let prevMouse = { x: 0, y: 0 };
+    let theta = 0.8;
+    let phi = 0.85;
+    const radius = 22;
+
+    const onMouseDown = (e) => {
+      isDragging = true;
+      prevMouse = { x: e.clientX, y: e.clientY };
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevMouse.x;
+      const dy = e.clientY - prevMouse.y;
+      prevMouse = { x: e.clientX, y: e.clientY };
+
+      theta -= dx * 0.008;
+      phi = Math.max(0.2, Math.min(Math.PI / 2 - 0.05, phi + dy * 0.008));
+    };
+
+    const onMouseUp = () => {
+      isDragging = false;
+    };
+
+    const domElem = renderer.domElement;
+    domElem.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate3D && !isDragging) {
+        theta += 0.0035;
+      }
+
+      camera.position.x = 5.0 + radius * Math.sin(phi) * Math.sin(theta);
+      camera.position.y = radius * Math.cos(phi);
+      camera.position.z = 5.0 + radius * Math.sin(phi) * Math.cos(theta);
+      camera.lookAt(5.0, 1.8, 5.0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      domElem.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+    };
+  }, [dataset2D, w1_3d, w2_3d, bias_3d, autoRotate3D]);
+
+  // Mount Three.js canvas once
+  useEffect(() => {
+    const cleanup = init3DScene();
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [init3DScene]);
+
+  // Update Three.js Surface Vertices when weights change
+  useEffect(() => {
+    if (!surfaceMeshRef.current || !wireMeshRef.current) return;
+    const geo = surfaceMeshRef.current.geometry;
+    const posAttr = geo.attributes.position;
+    const colorAttr = geo.attributes.color;
+    const heightScale = 4.0;
+
+    const colorLow = new THREE.Color('#ea580c');
+    const colorMid = new THREE.Color('#f8fafc');
+    const colorHigh = new THREE.Color('#0284c7');
+
+    for (let i = 0; i < posAttr.count; i++) {
+      const x = posAttr.getX(i);
+      const y = posAttr.getZ(i);
+      const zScore = w1_3d * x + w2_3d * y + bias_3d;
+      const prob = 1.0 / (1.0 + Math.exp(-Math.max(-50, Math.min(50, zScore))));
+      posAttr.setY(i, prob * heightScale);
+
+      const col = prob < 0.5
+        ? colorLow.clone().lerp(colorMid, prob * 2)
+        : colorMid.clone().lerp(colorHigh, (prob - 0.5) * 2);
+      colorAttr.setXYZ(i, col.r, col.g, col.b);
+    }
+    posAttr.needsUpdate = true;
+    colorAttr.needsUpdate = true;
+    geo.computeVertexNormals();
+
+    wireMeshRef.current.geometry = geo;
+  }, [w1_3d, w2_3d, bias_3d]);
+
+  // SVG Scalers for 2D Boundary Canvas (x1: 0 to 10, x2: 0 to 10)
+  const svg2DW = 520;
+  const svg2DH = 360;
+  const m2D = { left: 45, right: 25, top: 25, bottom: 45 };
+  const in2DW = svg2DW - m2D.left - m2D.right;
+  const in2DH = svg2DH - m2D.top - m2D.bottom;
+
+  const scale2DX = (x) => m2D.left + (x / 10.0) * in2DW;
+  const scale2DY = (y) => m2D.top + in2DH - (y / 10.0) * in2DH;
+
+  // Calculate 2D decision boundary line endpoints across the canvas
+  // At threshold tau: w1*x1 + w2*x2 + bias = ln(tau / (1 - tau))
+  const boundaryLine = useMemo(() => {
+    const targetZ = Math.log(threshold / (1 - threshold));
+    if (Math.abs(w2) < 1e-4) {
+      // Near-vertical boundary line
+      const xConst = (targetZ - bias) / (w1 || 1e-4);
+      return {
+        isVertical: true,
+        x1: xConst,
+        y1: 0,
+        x2: xConst,
+        y2: 10
+      };
+    }
+
+    const calcX2 = (x1Val) => (targetZ - bias - w1 * x1Val) / w2;
+    return {
+      isVertical: false,
+      x1: 0,
+      y1: calcX2(0),
+      x2: 10,
+      y2: calcX2(10)
+    };
+  }, [w1, w2, bias, threshold]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #001f54, #0284c7)',
+              width: '46px',
+              height: '46px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+            }}>
+              <IconSparkles size={24} style={{ color: '#ffffff' }} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  background: '#001f54',
+                  color: '#ffffff',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.05em'
+                }}>
+                  INTERACTIVE STUDIO
+                </span>
+                <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 700 }}>
+                  2D Decision Arena & 3D Three.js Surface
+                </span>
+              </div>
+              <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+                Logistic Regression Masterclass Studio
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px',
+          flexWrap: 'wrap',
+          marginTop: '1.25rem'
+        }}>
+          {[
+            { id: 'boundary', label: '2D Decision Boundary & Threshold' },
+            { id: 'surface3d', label: '3D Sigmoid Surface (Three.js)' },
+            { id: 'failure', label: 'Linear Failure vs. Sigmoid (1D)' },
+            { id: 'logloss', label: 'Log Loss vs. MSE Explorer' },
+            { id: 'code', label: 'Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 2D DECISION BOUNDARY & THRESHOLD ARENA ──────────── */}
+      {activeTab === 'boundary' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h4 style={{ margin: 0, color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+                  2D Decision Boundary Hyperplane & Classification Threshold
+                </h4>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px' }}>
+                  Adjust weights <MathFormula math="w_1, w_2" />, bias <MathFormula math="b" />, and threshold <MathFormula math="\tau" /> to minimize Binary Cross-Entropy loss.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', fontSize: '0.78rem', fontWeight: 700 }}>
+                <span style={{ color: '#ea580c' }}>● Class 0 (Orange)</span>
+                <span style={{ color: '#0284c7' }}>■ Class 1 (Blue)</span>
+                <span style={{ color: '#001f54' }}>— Boundary Line (<MathFormula math="P = \tau" />)</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 260px', gap: '1.25rem', alignItems: 'start' }}>
+              {/* SVG 2D Canvas */}
+              <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '0.75rem', position: 'relative' }}>
+                <svg viewBox={`0 0 ${svg2DW} ${svg2DH}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+                  {/* Grid Lines */}
+                  {[2, 4, 6, 8].map((val) => (
+                    <g key={`grid-2d-${val}`}>
+                      <line x1={scale2DX(val)} y1={m2D.top} x2={scale2DX(val)} y2={svg2DH - m2D.bottom} stroke="#f1f5f9" strokeWidth="1.5" />
+                      <line x1={m2D.left} y1={scale2DY(val)} x2={svg2DW - m2D.right} y2={scale2DY(val)} stroke="#f1f5f9" strokeWidth="1.5" />
+                      <text x={scale2DX(val)} y={svg2DH - m2D.bottom + 14} textAnchor="middle" fontSize="10" fill="#94a3b8">{val}</text>
+                      <text x={m2D.left - 6} y={scale2DY(val) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{val}</text>
+                    </g>
+                  ))}
+
+                  {/* Axes */}
+                  <line x1={m2D.left} y1={svg2DH - m2D.bottom} x2={svg2DW - m2D.right} y2={svg2DH - m2D.bottom} stroke="#64748b" strokeWidth="1.5" />
+                  <line x1={m2D.left} y1={m2D.top} x2={m2D.left} y2={svg2DH - m2D.bottom} stroke="#64748b" strokeWidth="1.5" />
+                  <text x={m2D.left + in2DW / 2} y={svg2DH - 8} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Feature x₁</text>
+                  <text transform={`rotate(-90 ${16} ${m2D.top + in2DH / 2})`} x={16} y={m2D.top + in2DH / 2} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Feature x₂</text>
+
+                  {/* Decision Boundary Line */}
+                  <clipPath id="boundaryClip">
+                    <rect x={m2D.left} y={m2D.top} width={in2DW} height={in2DH} />
+                  </clipPath>
+                  <g clipPath="url(#boundaryClip)">
+                    <line
+                      x1={scale2DX(boundaryLine.x1)}
+                      y1={scale2DY(boundaryLine.y1)}
+                      x2={scale2DX(boundaryLine.x2)}
+                      y2={scale2DY(boundaryLine.y2)}
+                      stroke="#001f54"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                    />
+                  </g>
+
+                  {/* Render Data Points */}
+                  {boundaryEvaluation.evaluatedPoints.map((pt) => {
+                    const cx = scale2DX(pt.x1);
+                    const cy = scale2DY(pt.x2);
+                    const isPositive = pt.y === 1;
+
+                    return (
+                      <g key={`pt-${pt.id}`}>
+                        {/* Error Highlight Halo if misclassified */}
+                        {!pt.isCorrect && (
+                          <circle cx={cx} cy={cy} r="10" fill="none" stroke="#dc2626" strokeWidth="2" strokeDasharray="3 2" />
+                        )}
+
+                        {isPositive ? (
+                          <rect
+                            x={cx - 6}
+                            y={cy - 6}
+                            width="12"
+                            height="12"
+                            rx="2"
+                            fill="#0284c7"
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                          />
+                        ) : (
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r="6"
+                            fill="#ea580c"
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                          />
+                        )}
+                      </g>
+                    );
+                  })}
+                </svg>
+
+                <div style={{
+                  position: 'absolute',
+                  bottom: '14px',
+                  right: '14px',
+                  background: 'rgba(255, 255, 255, 0.92)',
+                  backdropFilter: 'blur(4px)',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.72rem',
+                  color: '#001f54',
+                  fontWeight: 700
+                }}>
+                  Boundary: {w1.toFixed(1)}x₁ + {w2.toFixed(1)}x₂ + ({bias.toFixed(1)}) = {Math.log(threshold / (1 - threshold)).toFixed(2)}
+                </div>
+              </div>
+
+              {/* Sliders & Performance Cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {/* Sliders Box */}
+                <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '8px' }}>
+                    Model Parameters
+                  </div>
+
+                  {/* Weight 1 */}
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
+                      <span>Weight w₁:</span>
+                      <span style={{ color: '#0284c7' }}>{w1.toFixed(1)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-3.0"
+                      max="3.0"
+                      step="0.1"
+                      value={w1}
+                      onChange={(e) => setW1(parseFloat(e.target.value))}
+                      style={{ width: '100%', accentColor: '#001f54' }}
+                    />
+                  </div>
+
+                  {/* Weight 2 */}
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
+                      <span>Weight w₂:</span>
+                      <span style={{ color: '#0284c7' }}>{w2.toFixed(1)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-3.0"
+                      max="3.0"
+                      step="0.1"
+                      value={w2}
+                      onChange={(e) => setW2(parseFloat(e.target.value))}
+                      style={{ width: '100%', accentColor: '#001f54' }}
+                    />
+                  </div>
+
+                  {/* Bias */}
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
+                      <span>Bias b:</span>
+                      <span style={{ color: '#0284c7' }}>{bias.toFixed(1)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-15.0"
+                      max="5.0"
+                      step="0.5"
+                      value={bias}
+                      onChange={(e) => setBias(parseFloat(e.target.value))}
+                      style={{ width: '100%', accentColor: '#001f54' }}
+                    />
+                  </div>
+
+                  {/* Threshold */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
+                      <span>Decision Threshold τ:</span>
+                      <span style={{ color: '#059669' }}>{threshold.toFixed(2)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.10"
+                      max="0.90"
+                      step="0.05"
+                      value={threshold}
+                      onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                      style={{ width: '100%', accentColor: '#059669' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Confusion Matrix Card */}
+                <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '8px' }}>
+                    Confusion Matrix (N = 20)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', textAlign: 'center', fontSize: '0.75rem' }}>
+                    <div style={{ background: '#ecfdf5', padding: '6px', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                      <div style={{ color: '#047857', fontWeight: 800, fontSize: '1.1rem' }}>{boundaryEvaluation.tp}</div>
+                      <div style={{ color: '#065f46', fontSize: '0.68rem', fontWeight: 700 }}>True Pos (TP)</div>
+                    </div>
+                    <div style={{ background: '#fef2f2', padding: '6px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                      <div style={{ color: '#dc2626', fontWeight: 800, fontSize: '1.1rem' }}>{boundaryEvaluation.fp}</div>
+                      <div style={{ color: '#991b1b', fontSize: '0.68rem', fontWeight: 700 }}>False Pos (FP)</div>
+                    </div>
+                    <div style={{ background: '#fef2f2', padding: '6px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                      <div style={{ color: '#dc2626', fontWeight: 800, fontSize: '1.1rem' }}>{boundaryEvaluation.fn}</div>
+                      <div style={{ color: '#991b1b', fontSize: '0.68rem', fontWeight: 700 }}>False Neg (FN)</div>
+                    </div>
+                    <div style={{ background: '#ecfdf5', padding: '6px', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+                      <div style={{ color: '#047857', fontWeight: 800, fontSize: '1.1rem' }}>{boundaryEvaluation.tn}</div>
+                      <div style={{ color: '#065f46', fontSize: '0.68rem', fontWeight: 700 }}>True Neg (TN)</div>
+                    </div>
+                  </div>
+
+                  {/* Summary Metrics */}
+                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.78rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Accuracy:</span>
+                      <strong style={{ color: '#001f54' }}>{(boundaryEvaluation.accuracy * 100).toFixed(0)}%</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Precision:</span>
+                      <strong style={{ color: '#001f54' }}>{(boundaryEvaluation.precision * 100).toFixed(0)}%</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Recall:</span>
+                      <strong style={{ color: '#001f54' }}>{(boundaryEvaluation.recall * 100).toFixed(0)}%</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
+                      <span style={{ color: '#0284c7', fontWeight: 700 }}>Mean Log Loss:</span>
+                      <strong style={{ color: '#0284c7' }}>{boundaryEvaluation.meanLogLoss.toFixed(3)}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: 3D SIGMOID SURFACE (THREE.JS) ───────────────────── */}
+      <div style={{ display: activeTab === 'surface3d' ? 'block' : 'none' }}>
+        <div style={{
+          background: '#f8fafc',
+          borderRadius: '16px',
+          border: '1.5px solid #e2e8f0',
+          padding: '1.25rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <h4 style={{ margin: 0, color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+                3D Sigmoid Probability Surface: P(Y=1 | x₁, x₂) = σ(w₁x₁ + w₂x₂ + b)
+              </h4>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px' }}>
+                Drag with mouse to rotate in 3D. Height represents predicted probability (Floor = 0.0, Peak = 1.0).
+              </div>
+            </div>
+            <button
+              onClick={() => setAutoRotate3D(!autoRotate3D)}
+              style={{
+                background: autoRotate3D ? '#001f54' : '#ffffff',
+                color: autoRotate3D ? '#ffffff' : '#001f54',
+                border: '1.5px solid #001f54',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              {autoRotate3D ? 'Pause Auto-Rotate' : 'Resume Auto-Rotate'}
+            </button>
+          </div>
+
+          {/* Three.js Canvas Container */}
+          <div
+            ref={mount3DRef}
+            style={{
+              width: '100%',
+              height: '400px',
+              borderRadius: '14px',
+              overflow: 'hidden',
+              border: '1.5px solid #cbd5e1',
+              background: '#f8fafc',
+              position: 'relative'
+            }}
+          />
+
+          {/* 3D Sliders */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+            <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                <span>Tilt w₁:</span>
+                <span style={{ color: '#0284c7' }}>{w1_3d.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="-3.0"
+                max="3.0"
+                step="0.1"
+                value={w1_3d}
+                onChange={(e) => setW1_3d(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+            </div>
+
+            <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                <span>Tilt w₂:</span>
+                <span style={{ color: '#0284c7' }}>{w2_3d.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="-3.0"
+                max="3.0"
+                step="0.1"
+                value={w2_3d}
+                onChange={(e) => setW2_3d(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+            </div>
+
+            <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                <span>Offset Bias b:</span>
+                <span style={{ color: '#0284c7' }}>{bias_3d.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="-15.0"
+                max="5.0"
+                step="0.5"
+                value={bias_3d}
+                onChange={(e) => setBias_3d(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── TAB 3: LINEAR FAILURE VS SIGMOID (1D) ───────────────────── */}
+      {activeTab === 'failure' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h4 style={{ margin: 0, color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+                  Why Linear Regression Breaks on Classification: Outlier Distortion
+                </h4>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px' }}>
+                  Toggle an extreme positive outlier to watch the Linear boundary tilt and fail, while the Sigmoid curve holds firm.
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  onClick={() => setOutlierActive(!outlierActive)}
+                  style={{
+                    background: outlierActive ? '#dc2626' : '#001f54',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {outlierActive ? 'Remove Outlier' : 'Add Extreme Outlier'}
+                </button>
+              </div>
+            </div>
+
+            {outlierActive && (
+              <div style={{ background: '#fef2f2', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #fecaca', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, color: '#991b1b' }}>
+                  <span>Outlier Feature Value: {outlierX.toFixed(1)}</span>
+                  <span>Drag to test leverage:</span>
+                </div>
+                <input
+                  type="range"
+                  min="10.0"
+                  max="24.0"
+                  step="0.5"
+                  value={outlierX}
+                  onChange={(e) => setOutlierX(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#dc2626', marginTop: '4px' }}
+                />
+              </div>
+            )}
+
+            {/* Visual SVG Comparison */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '1rem' }}>
+              <svg viewBox="0 0 640 240" style={{ width: '100%', height: 'auto', display: 'block' }}>
+                {/* Grid line at y = 0, y = 0.5, y = 1.0 */}
+                {[0, 0.5, 1.0].map((yVal) => {
+                  const yPos = 190 - yVal * 140;
+                  return (
+                    <g key={`line-1d-${yVal}`}>
+                      <line x1={50} y1={yPos} x2={610} y2={yPos} stroke="#f1f5f9" strokeWidth="1.5" strokeDasharray={yVal === 0.5 ? '4 4' : 'none'} />
+                      <text x={42} y={yPos + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{yVal.toFixed(1)}</text>
+                    </g>
+                  );
+                })}
+
+                {/* X Axis */}
+                <line x1={50} y1={190} x2={610} y2={190} stroke="#64748b" strokeWidth="1.5" />
+                <text x={330} y={220} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Feature Value x</text>
+
+                {/* Linear Regression Line */}
+                <line
+                  x1={50}
+                  y1={190 - (fit1D.linSlope * 0 + fit1D.linIntercept) * 140}
+                  x2={610}
+                  y2={190 - (fit1D.linSlope * (outlierActive ? 24 : 10) + fit1D.linIntercept) * 140}
+                  stroke="#dc2626"
+                  strokeWidth="2.5"
+                />
+
+                {/* Logistic Sigmoid Curve */}
+                {(() => {
+                  const pathPoints = [];
+                  const maxX = outlierActive ? 24 : 10;
+                  for (let px = 0; px <= maxX; px += 0.2) {
+                    const z = fit1D.logSlope * px + fit1D.logIntercept;
+                    const p = 1.0 / (1.0 + Math.exp(-z));
+                    const sx = 50 + (px / maxX) * 560;
+                    const sy = 190 - p * 140;
+                    pathPoints.push(`${sx},${sy}`);
+                  }
+                  return (
+                    <polyline
+                      points={pathPoints.join(' ')}
+                      fill="none"
+                      stroke="#0284c7"
+                      strokeWidth="3.5"
+                    />
+                  );
+                })()}
+
+                {/* Decision Threshold Vertical Lines */}
+                {(() => {
+                  const maxX = outlierActive ? 24 : 10;
+                  const linThreshX = 50 + (fit1D.linThresholdX / maxX) * 560;
+                  const logThreshX = 50 + (fit1D.logThresholdX / maxX) * 560;
+                  return (
+                    <g>
+                      <line x1={linThreshX} y1={50} x2={linThreshX} y2={190} stroke="#dc2626" strokeWidth="2" strokeDasharray="3 3" />
+                      <line x1={logThreshX} y1={50} x2={logThreshX} y2={190} stroke="#0284c7" strokeWidth="2" strokeDasharray="3 3" />
+                      <text x={linThreshX} y={42} textAnchor="middle" fontSize="10" fill="#dc2626" fontWeight="700">Linear Threshold</text>
+                      <text x={logThreshX} y={26} textAnchor="middle" fontSize="10" fill="#0284c7" fontWeight="700">Sigmoid Threshold</text>
+                    </g>
+                  );
+                })()}
+
+                {/* Data Points */}
+                {active1DPoints.map((pt, idx) => {
+                  const maxX = outlierActive ? 24 : 10;
+                  const sx = 50 + (pt.x / maxX) * 560;
+                  const sy = 190 - pt.y * 140;
+                  const isOut = pt.isOutlier;
+
+                  return (
+                    <circle
+                      key={`pt1d-${idx}`}
+                      cx={sx}
+                      cy={sy}
+                      r={isOut ? '7' : '5.5'}
+                      fill={isOut ? '#dc2626' : (pt.y === 1 ? '#0284c7' : '#ea580c')}
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                  );
+                })}
+              </svg>
+
+              {/* Legend & Explanation */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                <div style={{ background: '#fef2f2', padding: '0.85rem', borderRadius: '10px', border: '1px solid #fecaca' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#dc2626', marginBottom: '4px' }}>
+                    Linear Regression (Red Line)
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: '1.5' }}>
+                    {outlierActive ? (
+                      <>The extreme outlier at x = {outlierX} has pulled the regression slope downward, dragging the decision threshold from ~4.0 to {fit1D.linThresholdX.toFixed(1)}, incorrectly flipping earlier positive samples!</>
+                    ) : (
+                      <>Outputs exceed 1.0 and drop below 0.0. Linear slope is fragile to future outlier additions.</>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ background: '#eff6ff', padding: '0.85rem', borderRadius: '10px', border: '1px solid #bfdbfe' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0284c7', marginBottom: '4px' }}>
+                    Logistic Sigmoid (Blue Curve)
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: '1.5' }}>
+                    Saturates smoothly at 1.0 and 0.0. Adding the distant point does not tilt the decision threshold because the loss on high confidence points is already near zero.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: LOG LOSS VS MSE COST EXPLORER ────────────────────── */}
+      {activeTab === 'logloss' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h4 style={{ margin: 0, color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+                  Binary Cross-Entropy (Log Loss) vs. Mean Squared Error (MSE)
+                </h4>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px' }}>
+                  See how Log Loss punishes confident wrong predictions with infinite loss, while MSE flattens out with vanishing gradients.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setTrueLabel(1)}
+                  style={{
+                    background: trueLabel === 1 ? '#0284c7' : '#ffffff',
+                    color: trueLabel === 1 ? '#ffffff' : '#64748b',
+                    border: '1.5px solid #0284c7',
+                    padding: '5px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  True Label y = 1
+                </button>
+                <button
+                  onClick={() => setTrueLabel(0)}
+                  style={{
+                    background: trueLabel === 0 ? '#ea580c' : '#ffffff',
+                    color: trueLabel === 0 ? '#ffffff' : '#64748b',
+                    border: '1.5px solid #ea580c',
+                    padding: '5px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  True Label y = 0
+                </button>
+              </div>
+            </div>
+
+            {/* Slider for Predicted Probability */}
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                  Model Prediction ŷ = P(Y=1|X): <code style={{ color: '#0284c7', fontSize: '1rem' }}>{predProb.toFixed(2)}</code>
+                </span>
+                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                  {predProb < 0.3 ? 'Strong Class 0' : predProb > 0.7 ? 'Strong Class 1' : 'Uncertain (Near 0.5)'}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.01"
+                max="0.99"
+                step="0.01"
+                value={predProb}
+                onChange={(e) => setPredProb(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+            </div>
+
+            {/* Loss Comparison SVG Curves */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '1rem' }}>
+              <svg viewBox="0 0 600 220" style={{ width: '100%', height: 'auto', display: 'block' }}>
+                {/* Loss curves */}
+                {(() => {
+                  const logLossPath = [];
+                  const msePath = [];
+
+                  for (let pVal = 0.01; pVal <= 0.99; pVal += 0.01) {
+                    const lLoss = trueLabel === 1 ? -Math.log(pVal) : -Math.log(1 - pVal);
+                    const mLoss = (trueLabel - pVal) ** 2;
+
+                    const sx = 50 + pVal * 500;
+                    const syLog = 190 - Math.min(4.5, lLoss) * 38;
+                    const syMSE = 190 - mLoss * 38 * 4.5; // Scaled to same height range
+
+                    logLossPath.push(`${sx},${syLog}`);
+                    msePath.push(`${sx},${syMSE}`);
+                  }
+
+                  const curX = 50 + predProb * 500;
+                  const curYLog = 190 - Math.min(4.5, lossAnalysis.logLossVal) * 38;
+
+                  return (
+                    <g>
+                      {/* Axes */}
+                      <line x1={50} y1={190} x2={550} y2={190} stroke="#64748b" strokeWidth="1.5" />
+                      <line x1={50} y1={20} x2={50} y2={190} stroke="#64748b" strokeWidth="1.5" />
+                      <text x={300} y={212} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Predicted Probability ŷ</text>
+                      <text transform={`rotate(-90 ${16} ${105})`} x={16} y={105} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Loss Value</text>
+
+                      {/* Log Loss Curve (Purple/Navy) */}
+                      <polyline points={logLossPath.join(' ')} fill="none" stroke="#001f54" strokeWidth="3" />
+
+                      {/* MSE Curve (Gray Dashed) */}
+                      <polyline points={msePath.join(' ')} fill="none" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 4" />
+
+                      {/* Current Point Dot on Log Loss */}
+                      <circle cx={curX} cy={curYLog} r="6" fill="#0284c7" stroke="#ffffff" strokeWidth="2" />
+                    </g>
+                  );
+                })()}
+              </svg>
+
+              {/* Numerical Loss Breakdown Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                <div style={{ background: '#eff6ff', padding: '1rem', borderRadius: '12px', border: '1.5px solid #bfdbfe' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 800, textTransform: 'uppercase' }}>
+                    Binary Cross-Entropy (Log Loss)
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#001f54', marginTop: '4px' }}>
+                    {lossAnalysis.logLossVal.toFixed(3)}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                    Gradient Magnitude: <strong>{lossAnalysis.logLossGrad.toFixed(2)}</strong> (Strong corrective pull!)
+                  </div>
+                </div>
+
+                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                    Mean Squared Error (MSE)
+                  </div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#475569', marginTop: '4px' }}>
+                    {lossAnalysis.mseVal.toFixed(3)}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                    Gradient Magnitude: <strong>{lossAnalysis.mseGrad.toFixed(3)}</strong> (Vanishes when ŷ → 0 or 1)
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON IMPLEMENTATION (SKLEARN & NUMPY) ─────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              1. Production Scikit-Learn Pipeline (Regularization & Threshold Tuning):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                'from sklearn.linear_model import LogisticRegression',
+                'from sklearn.model_selection import train_test_split',
+                'from sklearn.metrics import classification_report, roc_auc_score',
+                '',
+                '# 1. Generate Synthetic Classification Dataset (20 samples)',
+                'X = np.array([',
+                '    [1.5, 2.0], [2.0, 3.0], [2.5, 1.5], [3.0, 3.5], [1.8, 4.5],',
+                '    [3.5, 2.2], [2.8, 4.0], [4.0, 2.8], [3.2, 5.0], [4.2, 3.8],',
+                '    [4.8, 6.2], [5.5, 5.0], [6.0, 6.8], [6.5, 5.5], [5.2, 7.5],',
+                '    [7.0, 6.0], [7.2, 7.2], [8.0, 5.8], [6.8, 8.2], [8.5, 7.5]',
+                '])',
+                'y = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])',
+                '',
+                '# 2. Fit Logistic Regression Model with L2 Regularization',
+                'clf = LogisticRegression(solver="lbfgs", C=1.0, random_state=42)',
+                'clf.fit(X, y)',
+                '',
+                'w1, w2 = clf.coef_[0]',
+                'bias = clf.intercept_[0]',
+                'print(f"Learned Equation: z = {w1:.3f}*x1 + {w2:.3f}*x2 + ({bias:.3f})")',
+                '',
+                '# 3. Output Predicted Probabilities for Unseen Samples',
+                'X_test = np.array([[2.2, 2.8], [6.2, 6.0]])',
+                'probs = clf.predict_proba(X_test)',
+                'for i, (p0, p1) in enumerate(probs):',
+                '    print(f"Sample {i+1}: P(Class 0) = {p0:.3f}, P(Class 1) = {p1:.3f}")',
+                '',
+                '# 4. Custom Threshold Classification (tau = 0.30)',
+                'preds_custom = (probs[:, 1] >= 0.30).astype(int)',
+                'print("Predictions with tau=0.30:", preds_custom)'
+              ].join('\n')}
+              title="logistic_regression_sklearn.py"
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              2. Vectorized Pure NumPy Implementation (From Scratch with Gradient Descent):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                '',
+                'class PureNumpyLogisticRegression:',
+                '    def __init__(self, lr=0.1, n_iters=1000):',
+                '        self.lr = lr',
+                '        self.n_iters = n_iters',
+                '        self.weights = None',
+                '        self.bias = None',
+                '        self.cost_history = []',
+                '',
+                '    def _sigmoid(self, z):',
+                '        z = np.clip(z, -500, 500)',
+                '        return 1.0 / (1.0 + np.exp(-z))',
+                '',
+                '    def fit(self, X, y):',
+                '        n_samples, n_features = X.shape',
+                '        self.weights = np.zeros(n_features)',
+                '        self.bias = 0.0',
+                '',
+                '        for epoch in range(self.n_iters):',
+                '            # 1. Forward Pass (Linear score -> Sigmoid)',
+                '            z = np.dot(X, self.weights) + self.bias',
+                '            y_hat = self._sigmoid(z)',
+                '',
+                '            # 2. Binary Cross-Entropy Loss',
+                '            eps = 1e-15',
+                '            y_hat_safe = np.clip(y_hat, eps, 1 - eps)',
+                '            loss = - (1 / n_samples) * np.sum(y * np.log(y_hat_safe) + (1 - y) * np.log(1 - y_hat_safe))',
+                '            self.cost_history.append(loss)',
+                '',
+                '            # 3. Vectorized Gradient Computation',
+                '            dw = (1 / n_samples) * np.dot(X.T, (y_hat - y))',
+                '            db = (1 / n_samples) * np.sum(y_hat - y)',
+                '',
+                '            # 4. Parameter Updates',
+                '            self.weights -= self.lr * dw',
+                '            self.bias -= self.lr * db',
+                '',
+                '    def predict_proba(self, X):',
+                '        z = np.dot(X, self.weights) + self.bias',
+                '        return self._sigmoid(z)',
+                '',
+                '    def predict(self, X, threshold=0.5):',
+                '        return (self.predict_proba(X) >= threshold).astype(int)'
+              ].join('\n')}
+              title="logistic_regression_numpy_scratch.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
-  'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1'
+  'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
+  'ml-4-1'
 ];
 
 export default function MLLessonArticlePage() {
@@ -13812,6 +15140,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'salary_prediction_project_studio' && (
               <SalaryPredictionProjectStudio />
+            )}
+            {lesson.diagram.type === 'logistic_regression_interactive_studio' && (
+              <LogisticRegressionInteractiveStudio />
             )}
           </div>
         )}
