@@ -17372,11 +17372,1223 @@ const NaiveBayesInteractiveStudio = () => {
   );
 };
 
+// ─── SUPPORT VECTOR MACHINES (SVM) INTERACTIVE STUDIO ─────────────────────
+const SVMInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('margin');
+
+  // Tab 1: 2D Margin Arena State
+  const [cParam, setCParam] = useState(1.0);
+  const [angleDeg, setAngleDeg] = useState(45);
+  const [biasOffset, setBiasOffset] = useState(-5.0);
+  const [queryPt, setQueryPt] = useState({ x: 5.5, y: 5.5 });
+
+  // Tab 2: 3D Kernel Trick State & Refs
+  const mount3DSVMRef = useRef(null);
+  const scene3DSVMRef = useRef(null);
+  const camera3DSVMRef = useRef(null);
+  const renderer3DSVMRef = useRef(null);
+  const planeMeshRef = useRef(null);
+  const pointsGroupRef = useRef(null);
+  const [autoRotate3D, setAutoRotate3D] = useState(true);
+  const [elevationAlpha, setElevationAlpha] = useState(0.85);
+
+  // Tab 3: RBF Kernel C vs Gamma State
+  const [rbfC, setRbfC] = useState(1.0);
+  const [rbfGamma, setRbfGamma] = useState(0.8);
+
+  // Tab 4: Support Vector Regression (SVR) State
+  const [svrEpsilon, setSvrEpsilon] = useState(0.8);
+  const [svrC, setSvrC] = useState(10.0);
+
+  // Benchmark 2D Linearly Separable Dataset (16 points)
+  const dataset2D = useMemo(() => [
+    // Class -1: Orange (lower-right region)
+    { id: 1, x: 5.5, y: 2.2, yVal: -1 },
+    { id: 2, x: 6.8, y: 3.0, yVal: -1 },
+    { id: 3, x: 7.5, y: 1.8, yVal: -1 },
+    { id: 4, x: 8.2, y: 3.5, yVal: -1 },
+    { id: 5, x: 6.2, y: 4.5, yVal: -1 }, // Near-margin support vector candidate
+    { id: 6, x: 7.0, y: 5.2, yVal: -1 }, // Near-margin support vector candidate
+    { id: 7, x: 8.8, y: 4.8, yVal: -1 },
+    { id: 8, x: 7.8, y: 6.5, yVal: -1 },
+
+    // Class +1: Blue (upper-left region)
+    { id: 9, x: 2.0, y: 4.5, yVal: 1 },
+    { id: 10, x: 3.2, y: 5.8, yVal: 1 },
+    { id: 11, x: 2.5, y: 7.0, yVal: 1 },
+    { id: 12, x: 4.0, y: 6.2, yVal: 1 }, // Near-margin support vector candidate
+    { id: 13, x: 4.8, y: 7.5, yVal: 1 }, // Near-margin support vector candidate
+    { id: 14, x: 3.5, y: 8.5, yVal: 1 },
+    { id: 15, x: 5.5, y: 8.0, yVal: 1 },
+    { id: 16, x: 1.8, y: 6.0, yVal: 1 }
+  ], []);
+
+  // Compute 2D Hyperplane Geometry
+  const marginGeometry = useMemo(() => {
+    // Normal vector from angle
+    const rad = (angleDeg * Math.PI) / 180.0;
+    // w vector: (cos, sin) scaled inversely by C for margin width simulation
+    // Higher C => narrower margin corridor => higher ||w||
+    const wMag = 0.5 + Math.log10(cParam + 1.0) * 0.8;
+    const w1 = Math.cos(rad) * wMag;
+    const w2 = Math.sin(rad) * wMag;
+    const b = biasOffset;
+
+    // Margin width = 2 / ||w||
+    const normW = Math.sqrt(w1 * w1 + w2 * w2);
+    const marginWidth = (2.0 / normW).toFixed(2);
+
+    // Evaluate functional distance for each point: f(x) = w^T x + b
+    let supportVectorsCount = 0;
+    let slackViolationsCount = 0;
+
+    const evaluatedPoints = dataset2D.map((pt) => {
+      const funcVal = w1 * pt.x + w2 * pt.y + b;
+      const marginProd = pt.yVal * funcVal; // y * (w^T x + b)
+
+      // A support vector has y * (w^T x + b) <= 1.05
+      const isSupportVector = marginProd <= 1.08;
+      const isSlackViolation = marginProd < 1.0;
+      const isMisclassified = marginProd < 0;
+
+      if (isSupportVector) supportVectorsCount++;
+      if (isSlackViolation) slackViolationsCount++;
+
+      return {
+        ...pt,
+        funcVal,
+        marginProd,
+        isSupportVector,
+        isSlackViolation,
+        isMisclassified
+      };
+    });
+
+    // Evaluate query point
+    const queryFuncVal = w1 * queryPt.x + w2 * queryPt.y + b;
+    const queryDist = Math.abs(queryFuncVal) / normW;
+    const queryClass = queryFuncVal >= 0 ? 1 : -1;
+
+    return {
+      w1,
+      w2,
+      b,
+      normW,
+      marginWidth,
+      evaluatedPoints,
+      supportVectorsCount,
+      slackViolationsCount,
+      queryFuncVal,
+      queryDist,
+      queryClass
+    };
+  }, [dataset2D, angleDeg, biasOffset, cParam, queryPt]);
+
+  // Tab 2: 3D Concentric Ring Dataset (30 points)
+  const datasetConcentric = useMemo(() => {
+    const pts = [];
+    // Inner cluster (Class 1, radius 0.8 to 2.2)
+    for (let i = 0; i < 15; i++) {
+      const theta = (i / 15.0) * Math.PI * 2 + 0.1;
+      const r = 1.0 + Math.sin(i * 3) * 0.7;
+      pts.push({
+        id: `inner-${i}`,
+        x: 5.0 + r * Math.cos(theta),
+        y: 5.0 + r * Math.sin(theta),
+        cls: 1
+      });
+    }
+    // Outer ring (Class -1, radius 3.5 to 4.5)
+    for (let i = 0; i < 15; i++) {
+      const theta = (i / 15.0) * Math.PI * 2 + 0.2;
+      const r = 3.6 + Math.cos(i * 2) * 0.5;
+      pts.push({
+        id: `outer-${i}`,
+        x: 5.0 + r * Math.cos(theta),
+        y: 5.0 + r * Math.sin(theta),
+        cls: -1
+      });
+    }
+    return pts;
+  }, []);
+
+  // ─── THREE.JS 3D KERNEL TRICK SETUP ─────────────────────────────────
+  const init3DSVMScene = useCallback(() => {
+    const container = mount3DSVMRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth || 680;
+    const height = 400;
+
+    const scene = new THREE.Scene();
+    scene3DSVMRef.current = scene;
+    scene.background = new THREE.Color('#f8fafc');
+
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(16, 14, 18);
+    camera.lookAt(5.0, 3.0, 5.0);
+    camera3DSVMRef.current = camera;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    renderer3DSVMRef.current = renderer;
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight('#ffffff', 0.85);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight('#ffffff', 1.2);
+    dirLight1.position.set(20, 30, 20);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight('#0284c7', 0.45);
+    dirLight2.position.set(-15, -10, -15);
+    scene.add(dirLight2);
+
+    // Floor Grid
+    const gridFloor = new THREE.GridHelper(10, 10, '#cbd5e1', '#e2e8f0');
+    gridFloor.position.set(5.0, 0, 5.0);
+    scene.add(gridFloor);
+
+    // Dynamic 3D Points Group
+    const pointsGroup = new THREE.Group();
+    scene.add(pointsGroup);
+    pointsGroupRef.current = pointsGroup;
+
+    // Render 3D Spheres with Elevation
+    const updatePoints = () => {
+      pointsGroup.clear();
+      datasetConcentric.forEach((pt) => {
+        const distFromCenterSq = (pt.x - 5.0) ** 2 + (pt.y - 5.0) ** 2;
+        // Parabolic mapping: z = alpha * r^2
+        const zElevation = elevationAlpha * (distFromCenterSq * 0.4);
+
+        const geo = new THREE.SphereGeometry(0.24, 16, 16);
+        const mat = new THREE.MeshStandardMaterial({
+          color: pt.cls === 1 ? '#0284c7' : '#ea580c',
+          metalness: 0.3,
+          roughness: 0.2
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(pt.x, zElevation, pt.y);
+        pointsGroup.add(mesh);
+
+        // Vertical drop line to floor
+        if (zElevation > 0.1) {
+          const lineGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(pt.x, 0, pt.y),
+            new THREE.Vector3(pt.x, zElevation, pt.y)
+          ]);
+          const lineMat = new THREE.LineDashedMaterial({
+            color: '#94a3b8',
+            dashSize: 0.2,
+            gapSize: 0.15,
+            transparent: true,
+            opacity: 0.5
+          });
+          const dropLine = new THREE.Line(lineGeo, lineMat);
+          dropLine.computeLineDistances();
+          pointsGroup.add(dropLine);
+        }
+      });
+    };
+    updatePoints();
+
+    // 3D Separating Hyperplane (Horizontal sheet cutting between classes)
+    const planeGeo = new THREE.PlaneGeometry(10, 10);
+    const planeMat = new THREE.MeshStandardMaterial({
+      color: '#001f54',
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide
+    });
+    const planeMesh = new THREE.Mesh(planeGeo, planeMat);
+    planeMesh.rotation.x = -Math.PI / 2;
+    // Position at separating threshold height
+    const thresholdHeight = elevationAlpha * 2.6;
+    planeMesh.position.set(5.0, thresholdHeight, 5.0);
+    scene.add(planeMesh);
+    planeMeshRef.current = planeMesh;
+
+    // Mouse Drag Orbit
+    let isDragging = false;
+    let prevMouse = { x: 0, y: 0 };
+    let theta = 0.8;
+    let phi = 0.85;
+    const radius = 22;
+
+    const onMouseDown = (e) => {
+      isDragging = true;
+      prevMouse = { x: e.clientX, y: e.clientY };
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevMouse.x;
+      const dy = e.clientY - prevMouse.y;
+      prevMouse = { x: e.clientX, y: e.clientY };
+
+      theta -= dx * 0.008;
+      phi = Math.max(0.2, Math.min(Math.PI / 2 - 0.05, phi + dy * 0.008));
+    };
+
+    const onMouseUp = () => {
+      isDragging = false;
+    };
+
+    const domElem = renderer.domElement;
+    domElem.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate3D && !isDragging) {
+        theta += 0.0035;
+      }
+
+      camera.position.x = 5.0 + radius * Math.sin(phi) * Math.sin(theta);
+      camera.position.y = 3.0 + radius * Math.cos(phi);
+      camera.position.z = 5.0 + radius * Math.sin(phi) * Math.cos(theta);
+      camera.lookAt(5.0, 3.0, 5.0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      domElem.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+    };
+  }, [datasetConcentric, elevationAlpha, autoRotate3D]);
+
+  // Mount Three.js canvas once
+  useEffect(() => {
+    const cleanup = init3DSVMScene();
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [init3DSVMScene]);
+
+  // Update 3D points and plane height when elevationAlpha changes
+  useEffect(() => {
+    if (!pointsGroupRef.current || !planeMeshRef.current) return;
+
+    pointsGroupRef.current.clear();
+    datasetConcentric.forEach((pt) => {
+      const distFromCenterSq = (pt.x - 5.0) ** 2 + (pt.y - 5.0) ** 2;
+      const zElevation = elevationAlpha * (distFromCenterSq * 0.4);
+
+      const geo = new THREE.SphereGeometry(0.24, 16, 16);
+      const mat = new THREE.MeshStandardMaterial({
+        color: pt.cls === 1 ? '#0284c7' : '#ea580c',
+        metalness: 0.3,
+        roughness: 0.2
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(pt.x, zElevation, pt.y);
+      pointsGroupRef.current.add(mesh);
+
+      if (zElevation > 0.1) {
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(pt.x, 0, pt.y),
+          new THREE.Vector3(pt.x, zElevation, pt.y)
+        ]);
+        const lineMat = new THREE.LineDashedMaterial({
+          color: '#94a3b8',
+          dashSize: 0.2,
+          gapSize: 0.15,
+          transparent: true,
+          opacity: 0.5
+        });
+        const dropLine = new THREE.Line(lineGeo, lineMat);
+        dropLine.computeLineDistances();
+        pointsGroupRef.current.add(dropLine);
+      }
+    });
+
+    const thresholdHeight = elevationAlpha * 2.6;
+    planeMeshRef.current.position.set(5.0, thresholdHeight, 5.0);
+  }, [datasetConcentric, elevationAlpha]);
+
+  // SVG Scalers for 2D Canvas (0 to 10)
+  const svgW = 540;
+  const svgH = 380;
+  const m2D = { left: 45, right: 25, top: 25, bottom: 45 };
+  const inW = svgW - m2D.left - m2D.right;
+  const inH = svgH - m2D.top - m2D.bottom;
+
+  const scaleX = (x) => m2D.left + (x / 10.0) * inW;
+  const scaleY = (y) => m2D.top + inH - (y / 10.0) * inH;
+
+  // Handle canvas click to place test point
+  const handleCanvasClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    const normX = Math.max(0.5, Math.min(9.5, ((clickX - m2D.left) / inW) * 10.0));
+    const normY = Math.max(0.5, Math.min(9.5, ((m2D.top + inH - clickY) / inH) * 10.0));
+
+    setQueryPt({ x: parseFloat(normX.toFixed(1)), y: parseFloat(normY.toFixed(1)) });
+  };
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #001f54, #0284c7)',
+              width: '46px',
+              height: '46px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+            }}>
+              <IconSparkles size={24} style={{ color: '#ffffff' }} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  background: '#001f54',
+                  color: '#ffffff',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.05em'
+                }}>
+                  INTERACTIVE STUDIO
+                </span>
+                <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 700 }}>
+                  Maximum Margin & 3D Kernel Trick
+                </span>
+              </div>
+              <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+                Support Vector Machines (SVM) Masterclass Studio
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px',
+          flexWrap: 'wrap',
+          marginTop: '1.25rem'
+        }}>
+          {[
+            { id: 'margin', label: '2D Maximum Margin & Support Vectors' },
+            { id: 'kernel3d', label: '3D Kernel Trick Transformation (Three.js)' },
+            { id: 'rbf', label: 'RBF Kernel C vs Gamma Landscape' },
+            { id: 'svr', label: 'Support Vector Regression (SVR)' },
+            { id: 'code', label: 'Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 2D MAXIMUM MARGIN & SUPPORT VECTORS ─────────────── */}
+      {activeTab === 'margin' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h4 style={{ margin: 0, color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+                  2D Maximum Margin Hyperplane & Support Vector Identifier
+                </h4>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px' }}>
+                  The dark navy line is the Decision Boundary (<MathFormula math="w^T x + b = 0" />). The dashed lines are Margin Planes (<MathFormula math="w^T x + b = \pm 1" />). Points with gold halos are the active Support Vectors.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', fontSize: '0.78rem', fontWeight: 700 }}>
+                <span style={{ color: '#ea580c' }}>● Class -1</span>
+                <span style={{ color: '#0284c7' }}>■ Class +1</span>
+                <span style={{ color: '#ca8a04' }}>◎ Support Vector</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 280px', gap: '1.25rem', alignItems: 'start' }}>
+              {/* Interactive SVG Canvas */}
+              <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '0.75rem', position: 'relative' }}>
+                <svg
+                  viewBox={`0 0 ${svgW} ${svgH}`}
+                  onClick={handleCanvasClick}
+                  style={{ width: '100%', height: 'auto', display: 'block', cursor: 'crosshair' }}
+                >
+                  {/* Grid Lines */}
+                  {[2, 4, 6, 8].map((val) => (
+                    <g key={`grid-${val}`}>
+                      <line x1={scaleX(val)} y1={m2D.top} x2={scaleX(val)} y2={svgH - m2D.bottom} stroke="#f1f5f9" strokeWidth="1.5" />
+                      <line x1={m2D.left} y1={scaleY(val)} x2={svgW - m2D.right} y2={scaleY(val)} stroke="#f1f5f9" strokeWidth="1.5" />
+                      <text x={scaleX(val)} y={svgH - m2D.bottom + 14} textAnchor="middle" fontSize="10" fill="#94a3b8">{val}</text>
+                      <text x={m2D.left - 6} y={scaleY(val) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{val}</text>
+                    </g>
+                  ))}
+
+                  {/* Axes */}
+                  <line x1={m2D.left} y1={svgH - m2D.bottom} x2={svgW - m2D.right} y2={svgH - m2D.bottom} stroke="#64748b" strokeWidth="1.5" />
+                  <line x1={m2D.left} y1={m2D.top} x2={m2D.left} y2={svgH - m2D.bottom} stroke="#64748b" strokeWidth="1.5" />
+                  <text x={m2D.left + inW / 2} y={svgH - 8} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Feature x₁</text>
+                  <text transform={`rotate(-90 ${16} ${m2D.top + inH / 2})`} x={16} y={m2D.top + inH / 2} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Feature x₂</text>
+
+                  {/* Render Decision Boundary & Margins */}
+                  {(() => {
+                    const { w1, w2, b } = marginGeometry;
+                    // For line w1 x + w2 y + b = C: y = (C - b - w1 x) / w2
+                    if (Math.abs(w2) < 0.01) return null;
+
+                    const getY = (xVal, targetVal) => (targetVal - b - w1 * xVal) / w2;
+
+                    const y0_left = getY(0, 0);
+                    const y0_right = getY(10, 0);
+
+                    const yPos_left = getY(0, 1);
+                    const yPos_right = getY(10, 1);
+
+                    const yNeg_left = getY(0, -1);
+                    const yNeg_right = getY(10, -1);
+
+                    return (
+                      <g>
+                        {/* Shaded Margin Corridor Polygon */}
+                        <polygon
+                          points={`
+                            ${scaleX(0)},${scaleY(yPos_left)}
+                            ${scaleX(10)},${scaleY(yPos_right)}
+                            ${scaleX(10)},${scaleY(yNeg_right)}
+                            ${scaleX(0)},${scaleY(yNeg_left)}
+                          `}
+                          fill="rgba(2, 132, 199, 0.08)"
+                        />
+
+                        {/* Positive Margin Boundary (+1) */}
+                        <line
+                          x1={scaleX(0)}
+                          y1={scaleY(yPos_left)}
+                          x2={scaleX(10)}
+                          y2={scaleY(yPos_right)}
+                          stroke="#0284c7"
+                          strokeWidth="2"
+                          strokeDasharray="4 3"
+                        />
+
+                        {/* Negative Margin Boundary (-1) */}
+                        <line
+                          x1={scaleX(0)}
+                          y1={scaleY(yNeg_left)}
+                          x2={scaleX(10)}
+                          y2={scaleY(yNeg_right)}
+                          stroke="#ea580c"
+                          strokeWidth="2"
+                          strokeDasharray="4 3"
+                        />
+
+                        {/* Central Optimal Decision Boundary (0) */}
+                        <line
+                          x1={scaleX(0)}
+                          y1={scaleY(y0_left)}
+                          x2={scaleX(10)}
+                          y2={scaleY(y0_right)}
+                          stroke="#001f54"
+                          strokeWidth="3"
+                        />
+                      </g>
+                    );
+                  })()}
+
+                  {/* Render Data Points */}
+                  {marginGeometry.evaluatedPoints.map((pt) => {
+                    const cx = scaleX(pt.x);
+                    const cy = scaleY(pt.y);
+
+                    return (
+                      <g key={`pt-${pt.id}`}>
+                        {/* Support Vector Glowing Halo */}
+                        {pt.isSupportVector && (
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r="11"
+                            fill="none"
+                            stroke="#eab308"
+                            strokeWidth="2.5"
+                          />
+                        )}
+
+                        {pt.yVal === 1 ? (
+                          <rect
+                            x={cx - 6}
+                            y={cy - 6}
+                            width="12"
+                            height="12"
+                            rx="2"
+                            fill="#0284c7"
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                          />
+                        ) : (
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r="6"
+                            fill="#ea580c"
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                          />
+                        )}
+                      </g>
+                    );
+                  })}
+
+                  {/* Test Query Point (Green Crosshair) */}
+                  <g transform={`translate(${scaleX(queryPt.x)}, ${scaleY(queryPt.y)})`}>
+                    <circle r="7" fill="#059669" stroke="#ffffff" strokeWidth="2" />
+                    <line x1="-10" y1="0" x2="10" y2="0" stroke="#059669" strokeWidth="1.5" />
+                    <line x1="0" y1="-10" x2="0" y2="10" stroke="#059669" strokeWidth="1.5" />
+                  </g>
+                </svg>
+
+                <div style={{
+                  position: 'absolute',
+                  bottom: '14px',
+                  right: '14px',
+                  background: 'rgba(255, 255, 255, 0.92)',
+                  backdropFilter: 'blur(4px)',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.72rem',
+                  color: '#001f54',
+                  fontWeight: 700
+                }}>
+                  Test Pt: ({queryPt.x.toFixed(1)}, {queryPt.y.toFixed(1)}) | f(x): {marginGeometry.queryFuncVal.toFixed(2)}
+                </div>
+              </div>
+
+              {/* Controls & Metrics Card */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {/* Hyperparameter Controls */}
+                <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '8px' }}>
+                    Hyperparameters & Plane Orientation
+                  </div>
+
+                  {/* Regularization C */}
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
+                      <span>Regularization (C):</span>
+                      <span style={{ color: '#0284c7' }}>{cParam.toFixed(1)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="20.0"
+                      step="0.5"
+                      value={cParam}
+                      onChange={(e) => setCParam(parseFloat(e.target.value))}
+                      style={{ width: '100%', accentColor: '#001f54' }}
+                    />
+                    <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                      {cParam > 10 ? 'Hard margin (narrow corridor, strict penalty)' : 'Soft margin (wide corridor, allows noise)'}
+                    </div>
+                  </div>
+
+                  {/* Plane Tilt Angle */}
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
+                      <span>Hyperplane Angle:</span>
+                      <span style={{ color: '#001f54' }}>{angleDeg}°</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="15"
+                      max="75"
+                      step="1"
+                      value={angleDeg}
+                      onChange={(e) => setAngleDeg(parseInt(e.target.value, 10))}
+                      style={{ width: '100%', accentColor: '#001f54' }}
+                    />
+                  </div>
+
+                  {/* Bias Offset */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
+                      <span>Bias Offset (b):</span>
+                      <span style={{ color: '#001f54' }}>{biasOffset.toFixed(1)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-9.0"
+                      max="-1.0"
+                      step="0.2"
+                      value={biasOffset}
+                      onChange={(e) => setBiasOffset(parseFloat(e.target.value))}
+                      style={{ width: '100%', accentColor: '#001f54' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Mathematical Readouts */}
+                <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>
+                    Geometric Margin Metrics
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+                    <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Margin Width (2/||w||)</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0284c7' }}>{marginGeometry.marginWidth}</div>
+                    </div>
+                    <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Support Vectors</div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#eab308' }}>{marginGeometry.supportVectorsCount} / 16</div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: marginGeometry.queryClass === 1 ? '#eff6ff' : '#fff7ed',
+                    border: `1.5px solid ${marginGeometry.queryClass === 1 ? '#bfdbfe' : '#fed7aa'}`,
+                    padding: '8px',
+                    borderRadius: '8px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Test Point Prediction</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 900, color: marginGeometry.queryClass === 1 ? '#0284c7' : '#ea580c' }}>
+                      {marginGeometry.queryClass === 1 ? 'Class +1 (Blue)' : 'Class -1 (Orange)'}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#475569', marginTop: '2px' }}>
+                      Orthogonal Distance: {marginGeometry.queryDist.toFixed(2)} units
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: 3D KERNEL TRICK TRANSFORMATION (THREE.JS) ────────── */}
+      <div style={{ display: activeTab === 'kernel3d' ? 'block' : 'none' }}>
+        <div style={{
+          background: '#f8fafc',
+          borderRadius: '16px',
+          border: '1.5px solid #e2e8f0',
+          padding: '1.25rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <h4 style={{ margin: 0, color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+                3D Kernel Trick: Lifting Non-Linear Data into Linear Separability
+              </h4>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px' }}>
+                In 2D (elevation = 0), concentric rings cannot be separated by any line. Increase elevation to watch the parabolic mapping lift the outer ring into 3D, where a flat horizontal plane slices between them!
+              </div>
+            </div>
+            <button
+              onClick={() => setAutoRotate3D(!autoRotate3D)}
+              style={{
+                background: autoRotate3D ? '#001f54' : '#ffffff',
+                color: autoRotate3D ? '#ffffff' : '#001f54',
+                border: '1.5px solid #001f54',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              {autoRotate3D ? 'Pause Auto-Rotate' : 'Resume Auto-Rotate'}
+            </button>
+          </div>
+
+          {/* Three.js Canvas Container */}
+          <div
+            ref={mount3DSVMRef}
+            style={{
+              width: '100%',
+              height: '400px',
+              borderRadius: '14px',
+              overflow: 'hidden',
+              border: '1.5px solid #cbd5e1',
+              background: '#f8fafc',
+              position: 'relative'
+            }}
+          />
+
+          {/* Elevation Slider */}
+          <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Feature Mapping Elevation: <MathFormula math="\phi(x) = (x_1, x_2, \alpha \cdot (x_1^2 + x_2^2))" />
+              </span>
+              <span style={{ color: '#0284c7', fontWeight: 800, fontSize: '0.9rem' }}>
+                Elevation Factor: {elevationAlpha.toFixed(2)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0.0"
+              max="1.5"
+              step="0.05"
+              value={elevationAlpha}
+              onChange={(e) => setElevationAlpha(parseFloat(e.target.value))}
+              style={{ width: '100%', accentColor: '#001f54' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
+              <span>Flat 2D Space (Inseparable)</span>
+              <span>Lifting into 3D Feature Space</span>
+              <span>Fully Separable in 3D (Flat Plane Slices Classes)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── TAB 3: RBF KERNEL C VS GAMMA LANDSCAPE ─────────────────── */}
+      {activeTab === 'rbf' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              Radial Basis Function (RBF) Kernel: C vs. Gamma (γ) Hyperparameter Tuning
+            </h4>
+            <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.88rem', color: '#475569' }}>
+              The RBF kernel computes similarity as <MathFormula math="K(x, z) = \exp(-\gamma ||x - z||^2)" />. Observe how <MathFormula math="\gamma" /> controls the radius of Gaussian influence and <MathFormula math="C" /> controls boundary softness.
+            </p>
+
+            {/* Sliders */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                  <span>Gamma (γ) - Gaussian Width:</span>
+                  <span style={{ color: '#0284c7' }}>{rbfGamma.toFixed(2)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="4.0"
+                  step="0.1"
+                  value={rbfGamma}
+                  onChange={(e) => setRbfGamma(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54' }}
+                />
+                <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                  {rbfGamma < 0.5 ? 'Broad curve, smooth boundary' : rbfGamma > 2.0 ? 'Tight spikes, high overfitting risk' : 'Balanced curvature'}
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                  <span>Regularization (C):</span>
+                  <span style={{ color: '#ea580c' }}>{rbfC.toFixed(1)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="25.0"
+                  step="0.5"
+                  value={rbfC}
+                  onChange={(e) => setRbfC(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#ea580c' }}
+                />
+                <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                  {rbfC > 15 ? 'Strict penalty, complex boundary' : 'Smooth boundary, permits margin slack'}
+                </div>
+              </div>
+            </div>
+
+            {/* Simulated RBF Boundary Display */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                  Simulated RBF Decision Boundary on Concentric Rings:
+                </div>
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  color: rbfGamma > 2.5 && rbfC > 10 ? '#dc2626' : rbfGamma < 0.4 && rbfC < 1.0 ? '#ea580c' : '#059669',
+                  background: rbfGamma > 2.5 && rbfC > 10 ? '#fef2f2' : rbfGamma < 0.4 && rbfC < 1.0 ? '#fff7ed' : '#ecfdf5',
+                  padding: '2px 8px',
+                  borderRadius: '4px'
+                }}>
+                  {rbfGamma > 2.5 && rbfC > 10 ? 'Overfitting (Isolated Islands)' : rbfGamma < 0.4 && rbfC < 1.0 ? 'Underfitting (Oversmoothed)' : 'Optimal Generalization'}
+                </span>
+              </div>
+
+              <svg viewBox="0 0 540 240" style={{ width: '100%', height: 'auto', display: 'block', background: '#f8fafc', borderRadius: '10px' }}>
+                {/* Background Shaded Region for Inner Class */}
+                {(() => {
+                  // Approximate radius based on gamma and C
+                  const baseR = 55;
+                  const wobble = (rbfGamma - 0.8) * 12;
+                  const currentR = Math.max(25, Math.min(85, baseR + wobble));
+
+                  return (
+                    <g>
+                      {/* Inner Class Shaded Region */}
+                      <circle cx="270" cy="120" r={currentR + 15} fill="rgba(2, 132, 199, 0.12)" />
+                      {/* RBF Decision Boundary Line */}
+                      <circle
+                        cx="270"
+                        cy="120"
+                        r={currentR}
+                        fill="none"
+                        stroke="#001f54"
+                        strokeWidth="3"
+                        strokeDasharray={rbfGamma > 2.0 ? '4 2' : 'none'}
+                      />
+                    </g>
+                  );
+                })()}
+
+                {/* Inner Data Points (Blue) */}
+                {[
+                  [270, 120], [255, 110], [285, 125], [265, 135], [275, 105], [250, 125], [290, 115]
+                ].map(([x, y], i) => (
+                  <rect key={`in-${i}`} x={x - 5} y={y - 5} width="10" height="10" rx="2" fill="#0284c7" stroke="#ffffff" strokeWidth="1.5" />
+                ))}
+
+                {/* Outer Data Points (Orange) */}
+                {[
+                  [270, 40], [335, 75], [350, 120], [335, 165], [270, 200], [205, 165], [190, 120], [205, 75],
+                  [240, 45], [300, 45], [345, 95], [345, 145], [300, 195], [240, 195], [195, 145], [195, 95]
+                ].map(([x, y], i) => (
+                  <circle key={`out-${i}`} cx={x} cy={y} r="5" fill="#ea580c" stroke="#ffffff" strokeWidth="1.5" />
+                ))}
+              </svg>
+
+              {/* 4 Quadrant Grid Rule of Thumb */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginTop: '1rem' }}>
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.75rem' }}>
+                  <strong style={{ color: '#001f54' }}>Low γ, Low C:</strong>
+                  <div style={{ color: '#64748b', marginTop: '2px' }}>Very smooth, linear-like boundary. High bias, low variance.</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.75rem' }}>
+                  <strong style={{ color: '#059669' }}>Optimal γ, Moderate C:</strong>
+                  <div style={{ color: '#64748b', marginTop: '2px' }}>Captures genuine non-linear curves without overfitting noise.</div>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.75rem' }}>
+                  <strong style={{ color: '#dc2626' }}>High γ, High C:</strong>
+                  <div style={{ color: '#64748b', marginTop: '2px' }}>Overfitting trap: creates tight circular islands hugging each point.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: SUPPORT VECTOR REGRESSION (SVR) EPSILON-TUBE ─────── */}
+      {activeTab === 'svr' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              Support Vector Regression (SVR) & The ε-Insensitive Tube
+            </h4>
+            <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.88rem', color: '#475569' }}>
+              Unlike OLS regression which penalizes every error, SVR constructs a margin corridor of width <MathFormula math="2\epsilon" />. Any sample falling inside the corridor incurs zero loss! Points on or outside the boundary become Support Vectors.
+            </p>
+
+            {/* Sliders */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                  <span>Epsilon (ε) Tube Width:</span>
+                  <span style={{ color: '#0284c7' }}>{svrEpsilon.toFixed(2)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.2"
+                  max="2.0"
+                  step="0.1"
+                  value={svrEpsilon}
+                  onChange={(e) => setSvrEpsilon(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54' }}
+                />
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                  <span>Regularization Penalty (C):</span>
+                  <span style={{ color: '#ea580c' }}>{svrC.toFixed(0)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  step="1"
+                  value={svrC}
+                  onChange={(e) => setSvrC(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#ea580c' }}
+                />
+              </div>
+            </div>
+
+            {/* SVR SVG Visualization */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '1rem' }}>
+              <svg viewBox="0 0 600 240" style={{ width: '100%', height: 'auto', display: 'block' }}>
+                {/* Axes */}
+                <line x1="50" y1="210" x2="560" y2="210" stroke="#64748b" strokeWidth="1.5" />
+                <line x1="50" y1="30" x2="50" y2="210" stroke="#64748b" strokeWidth="1.5" />
+                <text x="305" y="230" textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Feature X</text>
+                <text transform="rotate(-90 16 120)" x="16" y="120" textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Target Y</text>
+
+                {/* SVR Tube Shaded Region */}
+                {(() => {
+                  const epsPx = svrEpsilon * 25;
+                  return (
+                    <g>
+                      {/* Shaded Corridor */}
+                      <path
+                        d={`
+                          M 60,${180 - epsPx} Q 300,${50 - epsPx} 540,${90 - epsPx}
+                          L 540,${90 + epsPx} Q 300,${50 + epsPx} 60,${180 + epsPx} Z
+                        `}
+                        fill="rgba(2, 132, 199, 0.1)"
+                      />
+
+                      {/* Upper Tube Boundary (+epsilon) */}
+                      <path
+                        d={`M 60,${180 - epsPx} Q 300,${50 - epsPx} 540,${90 - epsPx}`}
+                        fill="none"
+                        stroke="#0284c7"
+                        strokeWidth="1.5"
+                        strokeDasharray="4 3"
+                      />
+
+                      {/* Lower Tube Boundary (-epsilon) */}
+                      <path
+                        d={`M 60,${180 + epsPx} Q 300,${50 + epsPx} 540,${90 + epsPx}`}
+                        fill="none"
+                        stroke="#0284c7"
+                        strokeWidth="1.5"
+                        strokeDasharray="4 3"
+                      />
+
+                      {/* Central SVR Prediction Curve f(x) */}
+                      <path
+                        d="M 60,180 Q 300,50 540,90"
+                        fill="none"
+                        stroke="#001f54"
+                        strokeWidth="3"
+                      />
+                    </g>
+                  );
+                })()}
+
+                {/* Sample Regression Points */}
+                {[
+                  { x: 100, y: 155 },
+                  { x: 140, y: 140 },
+                  { x: 190, y: 110 },
+                  { x: 230, y: 75 },
+                  { x: 270, y: 55 },
+                  { x: 310, y: 48 },
+                  { x: 360, y: 65 },
+                  { x: 400, y: 95 }, // Outlier outside tube
+                  { x: 440, y: 80 },
+                  { x: 490, y: 92 },
+                  { x: 520, y: 130 } // Outlier outside tube
+                ].map((pt, i) => {
+                  // Approximate curve center at pt.x
+                  const t = (pt.x - 60) / 480;
+                  const curveY = 180 * (1 - t) * (1 - t) + 2 * 50 * (1 - t) * t + 90 * t * t;
+                  const diff = Math.abs(pt.y - curveY);
+                  const isSV = diff >= svrEpsilon * 25 * 0.95;
+
+                  return (
+                    <g key={`svr-pt-${i}`}>
+                      {isSV && (
+                        <circle cx={pt.x} cy={pt.y} r="9" fill="none" stroke="#eab308" strokeWidth="2" />
+                      )}
+                      <circle cx={pt.x} cy={pt.y} r="5" fill="#001f54" />
+                      {/* Slack error line if outside tube */}
+                      {diff > svrEpsilon * 25 && (
+                        <line
+                          x1={pt.x}
+                          y1={pt.y}
+                          x2={pt.x}
+                          y2={pt.y > curveY ? curveY + svrEpsilon * 25 : curveY - svrEpsilon * 25}
+                          stroke="#dc2626"
+                          strokeWidth="2"
+                          strokeDasharray="2 2"
+                        />
+                      )}
+                    </g>
+                  );
+                })}
+              </svg>
+
+              <div style={{
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '10px',
+                padding: '0.75rem 1rem',
+                marginTop: '0.75rem',
+                fontSize: '0.8rem',
+                color: '#1e3a8a',
+                lineHeight: '1.4'
+              }}>
+                <strong>SVR Sparsity Guarantee:</strong> Only points lying on or outside the blue dashed <MathFormula math="\pm\epsilon" /> boundaries are Support Vectors (gold halos). Points resting safely inside the corridor contribute exactly <strong>0.0</strong> to the loss function and can be modified without altering the regression curve!
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON IMPLEMENTATION (SKLEARN PIPELINE) ────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              1. Production Scikit-Learn SVM Pipeline with GridSearchCV:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                'from sklearn.svm import SVC',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.pipeline import Pipeline',
+                'from sklearn.model_selection import GridSearchCV, train_test_split',
+                'from sklearn.datasets import make_circles',
+                'from sklearn.metrics import classification_report',
+                '',
+                '# 1. Generate Non-Linear Concentric Ring Dataset',
+                'X, y = make_circles(n_samples=600, noise=0.1, factor=0.4, random_state=42)',
+                'X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)',
+                '',
+                '# 2. Build Pipeline: StandardScaler + Support Vector Classifier',
+                'pipe = Pipeline([',
+                '    ("scaler", StandardScaler()),',
+                '    ("svm", SVC(kernel="rbf"))',
+                '])',
+                '',
+                '# 3. Grid Search over Regularization C and RBF Kernel Gamma',
+                'params = {',
+                '    "svm__C": [0.1, 1.0, 10.0, 50.0],',
+                '    "svm__gamma": ["scale", "auto", 0.01, 0.1, 1.0, 5.0]',
+                '}',
+                'grid = GridSearchCV(pipe, params, cv=5, scoring="accuracy")',
+                'grid.fit(X_train, y_train)',
+                '',
+                'print("Best Hyperparameters:", grid.best_params_)',
+                'print(f"Best 5-Fold Cross-Validation Accuracy: {grid.best_score_*100:.2f}%")',
+                '',
+                '# 4. Evaluate Best Estimator on Unseen Test Data',
+                'best_model = grid.best_estimator_',
+                'y_pred = best_model.predict(X_test)',
+                'print(classification_report(y_test, y_pred))',
+                '',
+                '# 5. Inspect Support Vectors',
+                'svm_step = best_model.named_steps["svm"]',
+                'print(f"Total Support Vectors: {len(svm_step.support_)} out of {len(X_train)} training instances")',
+                'print(f"Support Vectors per Class: {svm_step.n_support_}")'
+              ].join('\n')}
+              title="svm_production_pipeline.py"
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              2. Evaluating the Dual Decision Function from Scratch:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                '',
+                'def rbf_kernel(x1, x2, gamma=0.5):',
+                '    """Computes RBF Kernel between two coordinate arrays: exp(-gamma * ||x1 - x2||^2)"""',
+                '    return np.exp(-gamma * np.sum((x1 - x2) ** 2))',
+                '',
+                'def svm_dual_predict(X_query, support_vectors, dual_coefs, bias, gamma=0.5):',
+                '    """',
+                '    Evaluates SVM prediction using only the sparse support vectors:',
+                '    f(x) = sign( sum( alpha_i * y_i * K(x_i, x) ) + b )',
+                '    """',
+                '    predictions = []',
+                '    for x_q in X_query:',
+                '        f_x = bias',
+                '        for sv, alpha_y in zip(support_vectors, dual_coefs):',
+                '            f_x += alpha_y * rbf_kernel(sv, x_q, gamma)',
+                '        predictions.append(1 if f_x >= 0 else -1)',
+                '    return np.array(predictions)'
+              ].join('\n')}
+              title="svm_dual_predict_scratch.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4'
 ];
 
 export default function MLLessonArticlePage() {
@@ -17571,6 +18783,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'naive_bayes_interactive_studio' && (
               <NaiveBayesInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'svm_interactive_studio' && (
+              <SVMInteractiveStudio />
             )}
           </div>
         )}

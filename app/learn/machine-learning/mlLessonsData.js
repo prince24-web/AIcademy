@@ -3189,6 +3189,234 @@ export const mlLessonsData = {
       correctIndex: 0,
       explanation: 'Correct! Without smoothing, if a feature has zero frequency in the training data for a particular class, P(x_i | y) = 0. Because Naive Bayes multiplies all feature likelihoods together, a single zero probability forces the entire product to 0.0, completely blinding the model to hundreds of other strong evidence words.'
     }
+  },
+
+  'ml-4-4': {
+    id: 'ml-4-4',
+    title: 'Support Vector Machines (SVM)',
+    moduleTitle: 'MODULE 4: CLASSIFICATION',
+    readTime: '30 min read',
+    difficulty: 'Intermediate to Advanced',
+    badgeText: 'Max-Margin Classifier',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: 'https://www.geeksforgeeks.org/support-vector-machine-algorithm/',
+
+    learningObjectives: [
+      'Understand the Maximum Margin concept and prove why maximizing the margin corridor width (2 / ||w||) minimizes generalization error.',
+      'Formulate Hard Margin SVM as a convex quadratic programming optimization problem and derive canonical hyperplanes.',
+      'Introduce slack variables and balance the bias-variance tradeoff via the Soft Margin regularization hyperparameter C.',
+      'Understand the Dual formulation using Lagrange multipliers and discover why only Support Vectors (alpha > 0) determine the boundary.',
+      'Master the Kernel Trick and understand how Mercer kernels compute inner products in infinite-dimensional spaces without explicit feature transformation.',
+      'Tune core kernel functions (Linear, Polynomial, RBF/Gaussian, Sigmoid) and their hyperparameters (C and gamma).',
+      'Extend SVM to continuous regression using the epsilon-insensitive tube in Support Vector Regression (SVR).',
+      'Build, tune, and evaluate production SVM models in Scikit-Learn with data scaling and grid search.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Maximum Margin Paradigm: From Perceptrons to Optimal Hyperplanes',
+        paragraphs: [
+          'Suppose you are given a linearly separable binary classification dataset. There exist infinitely many straight lines (or hyperplanes in higher dimensions) that can completely separate the two classes with $100\\%$ training accuracy.',
+          'Early algorithms like the Perceptron simply stopped searching as soon as they found any separating hyperplane. However, a boundary that passes millimeters away from positive training samples is brittle: slight test noise will cause it to misclassify future unseen points. This prompts a fundamental engineering question: Out of the infinite separating hyperplanes, which one is mathematically the best?',
+          'The Maximum Margin Solution: Support Vector Machines (SVM), pioneered by Vladimir Vapnik and Alexey Chervonenkis, answer this question with geometric elegance. SVM selects the unique hyperplane that maximizes the margin—the shortest perpendicular distance between the decision boundary and the closest data points of any class.',
+          'Statistical Learning Theory Justification: According to Vapnik-Chervonenkis (VC) dimension theory, the theoretical upper bound on the generalization error of a linear classifier decreases as the geometric margin increases. A wide margin enforces a robust safety corridor, ensuring maximum tolerance against sensor noise, measurement error, and real-world variance.'
+        ]
+      },
+      {
+        heading: '2. Mathematical Anatomy of the Separating Hyperplane & Margin',
+        paragraphs: [
+          'Let the training dataset consist of $N$ pairs $(x_i, y_i)$, where $x_i \\in \\mathbb{R}^d$ represents a feature vector and $y_i \\in \\{-1, +1\\}$ represents binary class labels.',
+          '1. The Decision Hyperplane: A hyperplane in $d$-dimensional space is parameterized by a normal weight vector $w \\in \\mathbb{R}^d$ (perpendicular to the plane) and a scalar bias offset $b \\in \\mathbb{R}$:',
+          '$$w^T x + b = 0$$',
+          'The classification decision rule assigns classes based on the sign of the functional margin:',
+          '$$\\hat{y} = \\text{sign}(w^T x + b)$$',
+          '2. Orthogonal Distance to the Hyperplane: The perpendicular geometric distance from any point $x$ to the hyperplane is given by:',
+          '$$\\text{dist}(x) = \\frac{|w^T x + b|}{\\|w\\|}$$',
+          '3. Canonical Hyperplane Formulation: Because multiplying both $w$ and $b$ by any positive scalar leaves the geometric boundary unchanged, we can scale $w$ and $b$ such that the closest data points on either side satisfy $|w^T x + b| = 1$. The boundary constraints become:',
+          '$$w^T x_i + b \\ge +1 \\quad \\text{for } y_i = +1$$',
+          '$$w^T x_i + b \\le -1 \\quad \\text{for } y_i = -1$$',
+          'Combining these two inequalities using the label $y_i \\in \\{-1, +1\\}$ yields the unified constraint:',
+          '$$y_i (w^T x_i + b) \\ge 1 \\quad \\forall i \\in \\{1, \\dots, N\\}$$',
+          '4. Computing the Total Margin Width: The distance from the separating hyperplane ($w^T x + b = 0$) to the positive margin boundary ($w^T x + b = +1$) is $\\frac{1}{\\|w\\|}$. Symmetrically, the distance to the negative boundary is $\\frac{1}{\\|w\\|}$. Therefore, the total margin corridor width is:',
+          '$$\\text{Margin} = \\frac{2}{\\|w\\|}$$'
+        ]
+      },
+      {
+        heading: '3. Hard Margin SVM: Convex Quadratic Programming Optimization',
+        paragraphs: [
+          'Our goal is to maximize the margin $\\frac{2}{\\|w\\|}$ subject to the constraint that no training samples fall inside the margin corridor. Maximizing $\\frac{2}{\\|w\\|}$ is mathematically equivalent to minimizing $\\frac{\\|w\\|}{2}$, which is equivalent to minimizing $\\frac{1}{2}\\|w\\|^2$ (the squared L2 norm, chosen for its smooth differentiability).',
+          'The Primal Hard Margin Problem is formulated as:',
+          '$$\\min_{w, b} \\frac{1}{2} \\|w\\|^2 \\quad \\text{subject to} \\quad y_i(w^T x_i + b) \\ge 1 \\quad \\forall i = 1, \\dots, N$$',
+          'Mathematical Properties of Hard Margin SVM:',
+          '1. Strictly Convex Quadratic Program (QP): The objective function $\\frac{1}{2}\\|w\\|^2$ is strictly convex with linear inequality constraints. This guarantees that any local minimum is the unique global minimum—there are no local minima traps!',
+          '2. The Fatal Flaw of Hard Margin: Hard Margin SVM strictly forbids any margin violations. If the data is not $100\\%$ linearly separable, or if a single noise outlier crosses the boundary, no feasible solution exists, and the quadratic solver fails.'
+        ]
+      },
+      {
+        heading: '4. Soft Margin SVM: Slack Variables & Regularization Hyperparameter C',
+        paragraphs: [
+          'To handle real-world noisy and non-separable data, Corinna Cortes and Vladimir Vapnik (1995) introduced Soft Margin SVM by incorporating Slack Variables $\\xi_i \\ge 0$ (xi) for each training instance:',
+          '$$y_i(w^T x_i + b) \\ge 1 - \\xi_i, \\quad \\xi_i \\ge 0$$',
+          'The physical interpretation of slack variables:',
+          '• $\\xi_i = 0$: The point lies strictly on or outside the correct margin boundary (ideal classification).',
+          '• $0 < \\xi_i \\le 1$: The point violates the margin corridor, but still lies on the correct side of the decision boundary.',
+          '• $\\xi_i > 1$: The point crosses the decision boundary onto the wrong side (misclassified).',
+          'The Soft Margin Objective Function:',
+          '$$\\min_{w, b, \\xi} \\frac{1}{2} \\|w\\|^2 + C \\sum_{i=1}^N \\xi_i \\quad \\text{subject to } y_i(w^T x_i + b) \\ge 1 - \\xi_i, \\; \\xi_i \\ge 0$$',
+          'The Role of Regularization Hyperparameter $C$:',
+          'The parameter $C > 0$ controls the tradeoff between margin width and classification errors:',
+          '• Large $C$ (Hard Margin approach): Heavy penalty for slack violations. The optimizer prioritizes zero training errors over a wide margin, resulting in a narrow corridor with low bias and high variance (overfitting risk).',
+          '• Small $C$ (Soft Margin approach): Light penalty for slack violations. The optimizer permits more points inside the margin corridor in exchange for a wider, flatter boundary with high bias and low variance (greater robustness to outliers).',
+          'Hinge Loss Equivalence: Soft Margin SVM is mathematically equivalent to minimizing empirical Hinge Loss with an L2 weight regularizer: $\\min_{w, b} \\sum \\max(0, 1 - y_i(w^T x_i + b)) + \\frac{1}{2C}\\|w\\|^2$.'
+        ]
+      },
+      {
+        heading: '5. The Dual Formulation: Lagrange Multipliers & Support Vectors',
+        paragraphs: [
+          'To solve the constrained optimization problem and pave the way for the Kernel Trick, we construct the Primal Lagrangian using Lagrange multipliers $\\alpha_i \\ge 0$ and $\\mu_i \\ge 0$:',
+          '$$\\mathcal{L}(w, b, \\xi, \\alpha, \\mu) = \\frac{1}{2}\\|w\\|^2 + C \\sum_{i=1}^N \\xi_i - \\sum_{i=1}^N \\alpha_i [y_i(w^T x_i + b) - 1 + \\xi_i] - \\sum_{i=1}^N \\mu_i \\xi_i$$',
+          'Setting partial derivatives with respect to primal variables to zero:',
+          '$$\\frac{\\partial \\mathcal{L}}{\\partial w} = 0 \\implies w = \\sum_{i=1}^N \\alpha_i y_i x_i, \\quad \\frac{\\partial \\mathcal{L}}{\\partial b} = 0 \\implies \\sum_{i=1}^N \\alpha_i y_i = 0, \\quad \\frac{\\partial \\mathcal{L}}{\\partial \\xi_i} = 0 \\implies C - \\alpha_i - \\mu_i = 0$$',
+          'Substituting these back into the Lagrangian yields the Wolfe Dual Problem:',
+          '$$\\max_{\\alpha} \\sum_{i=1}^N \\alpha_i - \\frac{1}{2} \\sum_{i=1}^N \\sum_{j=1}^N \\alpha_i \\alpha_j y_i y_j (x_i \\cdot x_j) \\quad \\text{subject to } 0 \\le \\alpha_i \\le C, \\; \\sum_{i=1}^N \\alpha_i y_i = 0$$',
+          'The Marvel of Support Vectors (Karush-Kuhn-Tucker Conditions):',
+          'The KKT complementarity condition states: $\\alpha_i [y_i(w^T x_i + b) - 1 + \\xi_i] = 0$.',
+          'This produces a profound consequence: For any training sample that lies safely outside the margin corridor, its constraint is strictly satisfied with room to spare, which forces $\\alpha_i = 0$!',
+          'Only points that sit directly on the margin boundary ($y_i(w^T x_i + b) = 1$) or violate it have $\\alpha_i > 0$. These critical points are the Support Vectors. The entire weight vector $w = \\sum_{i \\in \\text{SV}} \\alpha_i y_i x_i$ is completely defined by this sparse subset. You could discard $90\\%$ of your non-support training data, and the decision boundary would remain mathematically identical!'
+        ]
+      },
+      {
+        heading: '6. The Kernel Trick: Conquering Non-Linearity in Infinite Dimensions',
+        paragraphs: [
+          'Many real-world datasets cannot be separated by a straight line or flat hyperplane (for example, concentric rings, checkerboard grids, or spiral manifolds). How can a linear algorithm classify non-linear data?',
+          'The High-Dimensional Projection Insight: Cover\'s Theorem on Separability states that a complex pattern-classification problem cast in a high-dimensional space non-linearly is more likely to be linearly separable than in a low-dimensional space.',
+          'Suppose we define a mapping function $\\phi(x)$ that lifts 2D points $(x_1, x_2)$ into a 3D feature space: $\\phi(x) = (x_1, x_2, x_1^2 + x_2^2)$. In this 3D space, points from the inner ring have low elevation $z$, while points from the outer ring have high elevation $z$. A simple horizontal 2D plane easily slices between them! Projecting this flat plane back down into 2D creates a circular non-linear decision boundary.',
+          'The Computational Curse: Explicitly projecting data into thousands or millions of dimensions causes combinatorial explosion in memory and computation time.',
+          'The Kernel Trick Revelation: Look closely at the SVM Dual optimization problem and decision function: $x$ appears exclusively inside inner products: $(x_i \\cdot x_j)$! We never need to know the explicit high-dimensional coordinates $\\phi(x)$. We only need the inner product $\\langle \\phi(x_i), \\phi(x_j) \\rangle$.',
+          'A Kernel Function $K(x, z)$ computes this inner product in high-dimensional Hilbert space directly using the original low-dimensional coordinates:',
+          '$$K(x, z) = \\langle \\phi(x), \\phi(z) \\rangle$$',
+          'According to Mercer\'s Theorem, any continuous, symmetric, positive semi-definite kernel function implicitly defines a valid feature space, enabling us to operate in infinite-dimensional spaces with zero extra compute cost!'
+        ]
+      },
+      {
+        heading: '7. Kernel Zoo: Linear, Polynomial, Radial Basis Function (RBF) & Sigmoid',
+        paragraphs: [
+          'Depending on the geometric structure of your problem, Scikit-Learn provides four foundational kernel functions:',
+          '1. Linear Kernel: $K(x, z) = x^T z$. No mapping is performed. Best for high-dimensional feature spaces where data is already linearly separable (e.g. text classification, genomics, Bag-of-Words). Extremely fast to train.',
+          '2. Polynomial Kernel: $K(x, z) = (\\gamma x^T z + r)^d$, where $d$ is the polynomial degree and $r$ is the independent coefficient. Models feature interactions up to degree $d$.',
+          '3. Radial Basis Function (RBF / Gaussian) Kernel: The most popular and versatile general-purpose kernel in machine learning:',
+          '$$K(x, z) = \\exp(-\\gamma \\|x - z\\|^2)$$',
+          'The RBF kernel computes similarity as a decaying exponential of Euclidean distance. Remarkably, the Taylor expansion of $e^u$ reveals that the RBF kernel corresponds to an infinite-dimensional feature space!',
+          'Tuning Hyperparameter $\\gamma$ (Gamma):',
+          '• Small $\\gamma$: Broad Gaussian curves. Each support vector has a wide sphere of influence, producing smooth, gentle decision boundaries (high bias, low variance).',
+          '• Large $\\gamma$: Tight Gaussian spikes centered tightly on each support vector. Creates complex, island-like decision boundaries that hug individual data points, risking extreme overfitting (low bias, high variance).',
+          '4. Sigmoid Kernel: $K(x, z) = \\tanh(\\gamma x^T z + r)$. Mimics the activation behavior of a multi-layer perceptron neural network.'
+        ]
+      },
+      {
+        heading: '8. Support Vector Regression (SVR): The Epsilon-Insensitive Tube',
+        paragraphs: [
+          'SVM extends naturally to continuous regression via Support Vector Regression (SVR), introduced by Harris Drucker et al. (1997).',
+          'While classification seeks a margin that keeps data out, SVR constructs an $\\epsilon$-insensitive tube corridor of width $2\\epsilon$ around the prediction function $f(x) = w^T x + b$:',
+          '• Zero Penalty Inside the Tube: Any data point falling inside the corridor ($|y_i - f(x_i)| \\le \\epsilon$) incurs zero loss!',
+          '• Linear Penalty Outside the Tube: Any data point falling outside the corridor is penalized linearly via slack variables $\\xi_i, \\xi_i^*$.',
+          'The SVR Optimization Objective:',
+          '$$\\min_{w, b, \\xi, \\xi^*} \\frac{1}{2}\\|w\\|^2 + C \\sum_{i=1}^N (\\xi_i + \\xi_i^*) \\quad \\text{s.t. } y_i - f(x_i) \\le \\epsilon + \\xi_i, \\; f(x_i) - y_i \\le \\epsilon + \\xi_i^*, \\; \\xi_i, \\xi_i^* \\ge 0$$',
+          'Just like in classification, only the points lying on or outside the $\\epsilon$-tube boundary act as Support Vectors, guaranteeing a sparse, robust regression solution immune to small residual noise.'
+        ]
+      },
+      {
+        heading: '9. Multi-Class Strategies (OvR vs. OvO) & Computational Complexity',
+        paragraphs: [
+          'Because SVM is inherently a binary classifier, multi-class problems ($K > 2$) are solved via decomposition architectures:',
+          '1. One-vs-Rest (OvR / One-vs-All): Trains $K$ binary classifiers. Classifier $k$ learns to separate class $k$ from all other $K-1$ classes combined. The predicted class is the one with the highest decision value: $\\hat{y} = \\arg\\max_k (w_k^T x + b_k)$.',
+          '2. One-vs-One (OvO): Trains $\\frac{K(K-1)}{2}$ binary classifiers for every pair of classes. Each classifier votes for one class, and the class with the most votes wins. This is the default strategy in Scikit-Learn\'s `SVC` (based on LIBSVM) because training many small sub-problems is often faster than training a few large ones.',
+          'Computational Complexity Tradeoffs:',
+          '• Standard Dual Quadratic Solvers (Sequential Minimal Optimization - SMO): Training complexity scales between $O(N^2)$ and $O(N^3)$ with dataset size $N$. Consequently, kernelized SVM is outstanding for small to medium datasets ($N \\le 50,000$), but struggles on millions of samples.',
+          '• Scaling to Massive Datasets: For large-scale data ($N > 100,000$), use `LinearSVC` (based on LIBLINEAR, scaling as $O(N)$) or Stochastic Gradient Descent (`SGDClassifier(loss="hinge")`).'
+        ]
+      },
+      {
+        heading: '10. Production Implementation: Scikit-Learn Pipeline & Hyperparameter Tuning',
+        paragraphs: [
+          'Feature scaling via `StandardScaler` is strictly mandatory for SVM: Because distance calculations and margin widths are sensitive to feature scales, unscaled features will completely distort the optimal hyperplane.',
+          'Here is a complete production pipeline showing standard scaling, non-linear RBF classification, and cross-validated grid search over $C$ and $\\gamma$:'
+        ],
+        codeBlock: [
+          'import numpy as np',
+          'from sklearn.svm import SVC',
+          'from sklearn.preprocessing import StandardScaler',
+          'from sklearn.pipeline import Pipeline',
+          'from sklearn.model_selection import GridSearchCV, train_test_split',
+          'from sklearn.metrics import classification_report',
+          '',
+          '# 1. Generate Non-Linear Concentric Ring Dataset',
+          'from sklearn.datasets import make_circles',
+          'X, y = make_circles(n_samples=500, noise=0.1, factor=0.4, random_state=42)',
+          '',
+          'X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)',
+          '',
+          '# 2. Build Pipeline: StandardScaler + Support Vector Classifier (RBF Kernel)',
+          'pipeline = Pipeline([',
+          '    ("scaler", StandardScaler()),',
+          '    ("svm", SVC(kernel="rbf"))',
+          '])',
+          '',
+          '# 3. Grid Search over Regularization C and RBF Kernel Gamma',
+          'param_grid = {',
+          '    "svm__C": [0.1, 1.0, 10.0, 50.0],',
+          '    "svm__gamma": ["scale", "auto", 0.01, 0.1, 1.0, 5.0]',
+          '}',
+          'grid = GridSearchCV(pipeline, param_grid, cv=5, scoring="accuracy")',
+          'grid.fit(X_train, y_train)',
+          '',
+          'print("Best Hyperparameters:", grid.best_params_)',
+          'print(f"Best 5-Fold Cross-Validation Accuracy: {grid.best_score_*100:.2f}%")',
+          '',
+          '# 4. Evaluate Best Model on Unseen Test Set',
+          'best_model = grid.best_estimator_',
+          'y_pred = best_model.predict(X_test)',
+          'print("\\n=== Classification Report ===")',
+          'print(classification_report(y_test, y_pred))',
+          '',
+          '# 5. Inspect Support Vectors',
+          'svm_step = best_model.named_steps["svm"]',
+          'print(f"Total Support Vectors: {len(svm_step.support_)} out of {len(X_train)} training points")',
+          'print(f"Support Vectors per Class: {svm_step.n_support_}")'
+        ].join('\n'),
+        codeBlockTitle: 'svm_production_pipeline.py'
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Demilitarized Border Zones & The Fortified Outposts',
+      text: 'Imagine two neighboring nations signing a peace treaty and seeking to establish a neutral Demilitarized Zone (DMZ) between their territories. A simple fence (Perceptron) might be drawn arbitrarily close to one nation\'s houses, leaving them vulnerable to conflict. Instead, treaty architects construct a wide, symmetric buffer zone that maximizes the distance to the closest houses on either side (Maximum Margin). The specific houses standing directly on the edges of this buffer corridor are the only critical structures that dictate where the boundary lies—they are the Support Vectors. All other houses situated safely deep within either country can be built, demolished, or relocated without shifting the DMZ border by a single millimeter.'
+    },
+
+    diagram: {
+      type: 'svm_interactive_studio'
+    },
+
+    takeaways: [
+      'SVM is a Maximum Margin Classifier that finds the unique hyperplane maximizing the geometric distance (2 / ||w||) to the closest data points.',
+      'Support Vectors are the sparse critical data points lying exactly on or violating the margin boundaries (alpha > 0); all other data points have zero influence on the decision boundary.',
+      'The Soft Margin hyperparameter C controls the tradeoff between margin width and slack violations: small C permits a wider corridor (high bias, low variance); large C enforces a strict narrow margin (low bias, high variance).',
+      'The Kernel Trick maps non-linear data into high-dimensional feature spaces by evaluating inner products directly via Mercer kernels without explicit coordinate transformations.',
+      'The RBF (Gaussian) kernel corresponds to an infinite-dimensional feature space, parameterized by gamma (which controls the radius of influence around each support vector).'
+    ],
+
+    quiz: {
+      question: 'What happens to the decision boundary of a trained Support Vector Machine if you remove a training data point that is located far away from the margin boundary (where alpha = 0)?',
+      options: [
+        'The decision boundary does not change at all because only Support Vectors (points with alpha > 0) determine the normal vector w and bias b',
+        'The decision boundary will shift towards the remaining data points to re-balance class variance',
+        'The entire quadratic programming problem must be re-solved from scratch and will produce a completely different hyperplane',
+        'The margin corridor width will double because the point was removed'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! In the Dual formulation, the weight vector is w = sum(alpha_i * y_i * x_i). Points located safely outside the margin corridor have Lagrange multiplier alpha_i = 0 according to the KKT complementarity condition. Consequently, they contribute zero to w and b, meaning removing them has absolutely no effect on the decision boundary.'
+    }
   }
 };
 
