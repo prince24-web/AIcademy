@@ -2773,6 +2773,208 @@ export const mlLessonsData = {
       correctIndex: 0,
       explanation: 'Correct! When the sigmoid function is plugged into Mean Squared Error, the resulting cost landscape becomes non-convex. When the model is confidently wrong (e.g. true label y=1 but predicted z is large negative), the sigmoid derivative sigma\'(z) vanishes to zero, causing the gradient to vanish and leaving the optimizer trapped on flat local plateaus.'
     }
+  },
+
+  'ml-4-2': {
+    id: 'ml-4-2',
+    title: 'K-Nearest Neighbors (KNN)',
+    moduleTitle: 'MODULE 4: CLASSIFICATION',
+    readTime: '27 min read',
+    difficulty: 'Beginner to Intermediate',
+    badgeText: 'Instance-Based ML',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: 'https://www.geeksforgeeks.org/k-nearest-neighbours/',
+
+    learningObjectives: [
+      'Master the distinction between parametric models (Linear/Logistic Regression) and non-parametric lazy learners (KNN).',
+      'Derive and compute core spatial distance metrics: Euclidean (L2), Manhattan (L1), Minkowski (Lp), and Cosine distance.',
+      'Analyze the bias-variance tradeoff across the spectrum of K (K=1 overfitting vs. K=N underfitting) and select optimal K.',
+      'Compare Uniform vs. Distance-Weighted voting rules (w = 1 / d) and understand KNN for continuous regression.',
+      'Understand why unscaled features distort distance metrics and implement standardization (StandardScaler).',
+      'Demystify the Curse of Dimensionality and explore spatial indexing data structures (KD-Trees, Ball Trees) to accelerate inference.',
+      'Train, tune, and evaluate KNN classifiers and regressors using Scikit-Learn and pure NumPy from scratch.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Intuition of Proximity: Non-Parametric & Lazy Learning',
+        paragraphs: [
+          'K-Nearest Neighbors (KNN) is one of the most intuitive and foundational algorithms in machine learning. Its core principle rests on a simple real-world axiom: "Birds of a feather flock together." If you want to predict the category of an unknown sample, look at the K historical samples closest to it in feature space and let them vote.',
+          'To deeply understand KNN, we must examine two fundamental machine learning paradigms:',
+          '1. Parametric vs. Non-Parametric Models: In Linear and Logistic Regression, we assumed a fixed mathematical equation ($y = w^T x + b$). The learning process consisted of estimating fixed parameters ($w, b$). Once training finished, the original training data could be discarded entirely. KNN, by contrast, is strictly non-parametric: It makes zero assumptions about the underlying probability distribution of the data. The decision boundary can take on any arbitrary, highly non-linear geometric shape.',
+          '2. Eager vs. Lazy Learning: Eager learners (Decision Trees, Logistic Regression, Neural Networks) spend substantial compute time during training to build an explicit model. At query time, making a prediction is instantaneous ($O(1)$). KNN is a lazy learner (also called instance-based learning): Training takes zero compute time ($O(1)$) because the algorithm simply stores the training instances in memory. However, all computation is deferred to query time, where calculating distances against all $N$ training points requires $O(N \\cdot d)$ operations per query.'
+        ]
+      },
+      {
+        heading: '2. Measuring Distance: Euclidean, Manhattan, Minkowski & Cosine',
+        paragraphs: [
+          'Because KNN relies entirely on proximity, the choice of mathematical Distance Metric defines the geometry of your feature space. Let $x = (x_1, x_2, \\dots, x_d)$ and $y = (y_1, y_2, \\dots, y_d)$ be two points in $d$-dimensional space:',
+          '1. Minkowski Distance ($L_p$ Norm): The generalized distance metric parameterized by order $p$:',
+          '$$D(x, y) = \\left( \\sum_{i=1}^d |x_i - y_i|^p \\right)^{\\frac{1}{p}}$$',
+          '2. Euclidean Distance ($L_2$ Norm, $p = 2$): The standard straight-line "ruler" distance derived from the Pythagorean theorem:',
+          '$$D_{\\text{Euclidean}}(x, y) = \\sqrt{\\sum_{i=1}^d (x_i - y_i)^2}$$',
+          'Euclidean distance is the default metric in machine learning. It is rotation-invariant, but its squared terms make it sensitive to extreme coordinate outliers.',
+          '3. Manhattan Distance ($L_1$ Norm / Taxicab, $p = 1$): Measures distance along grid-like axis-parallel paths, like navigating city blocks in Manhattan:',
+          '$$D_{\\text{Manhattan}}(x, y) = \\sum_{i=1}^d |x_i - y_i|$$',
+          'Manhattan distance does not square differences, making it significantly more robust to isolated feature outliers and often superior in moderately high-dimensional spaces.',
+          '4. Cosine Similarity & Distance: When working with text documents, word embeddings, or recommender systems, raw magnitude is often irrelevant compared to directional orientation:',
+          '$$\\text{Cosine Similarity}(x, y) = \\frac{x \\cdot y}{\\|x\\| \\|y\\|} = \\frac{\\sum x_i y_i}{\\sqrt{\\sum x_i^2} \\sqrt{\\sum y_i^2}}$$',
+          '$$D_{\\text{Cosine}}(x, y) = 1 - \\text{Cosine Similarity}(x, y)$$',
+          'Cosine distance ignores vector length, evaluating strictly whether two entities point in the same conceptual direction.'
+        ]
+      },
+      {
+        heading: '3. The Anatomy of K: The Bias-Variance Tradeoff Spectrum',
+        paragraphs: [
+          'The single most critical hyperparameter in KNN is $K$: the number of neighbors consulted during inference. The choice of $K$ controls the entire Bias-Variance tradeoff of the model:',
+          '• When $K = 1$ (1-Nearest Neighbor): The query point simply inherits the exact label of the single closest point in the training set. Training error is always $0.0$ ($100\\%$ accuracy). The decision boundary forms complex, jagged polygonal Voronoi cells around every training sample. This represents extreme High Variance and Low Bias: The model overfits to training noise and isolated outliers.',
+          '• When $K = N$ (Total Sample Count): The query point polls every single sample in the entire dataset. The prediction is identical everywhere: the global majority class! The decision boundary is completely flat. This represents extreme High Bias and Low Variance: The model completely ignores local feature structure, causing catastrophic underfitting.',
+          '• Finding the Optimal $K$: We want an intermediate $K$ that smooths away noise while preserving genuine class boundaries. Best practices for selecting $K$ include:',
+          '1. Odd Numbers for Binary Tasks: Choose an odd $K$ ($3, 5, 7, 11$) to guarantee that majority voting never results in a 50/50 tie.',
+          '2. Square Root Rule of Thumb: A common starting heuristic is $K \\approx \\sqrt{N}$, where $N$ is the number of training samples.',
+          '3. K-Fold Cross-Validation: Systematically evaluate validation error across a range of $K$ values (e.g., $K \\in [1, 31]$) and pick the $K$ at the "elbow" where test performance peaks.'
+        ]
+      },
+      {
+        heading: '4. Voting Mechanisms: Uniform vs. Distance-Weighted',
+        paragraphs: [
+          'Once the $K$ nearest neighbors are identified, how do they cast their votes? There are two primary voting strategies:',
+          '1. Uniform Voting (Majority Rule): Every neighbor gets exactly one equal vote, regardless of proximity. If $K = 5$, and 3 neighbors are at distance $9.8$ while 2 neighbors are at distance $0.1$, the distant cluster outvotes the immediate neighbors ($3$ vs $2$). This can lead to misclassifications in sparse or unevenly distributed datasets.',
+          '2. Distance-Weighted Voting (Inverse Distance Weighting - IDW): Each neighbor\'s vote is weighted inversely by its distance to the query point:',
+          '$$w_i = \\frac{1}{d(x_{\\text{query}}, x_i) + \\epsilon}$$',
+          'Here, $\\epsilon$ is a tiny positive constant (e.g., $10^{-5}$) to prevent division by zero if a query point overlaps a training sample. An immediate neighbor at distance $0.1$ exerts a voting weight of $10.0$, easily overriding three distant neighbors at distance $5.0$ ($w = 0.2$ each). Distance weighting provides smoother decision surfaces and effectively resolves tie votes.'
+        ]
+      },
+      {
+        heading: '5. KNN for Continuous Regression: Local Averaging',
+        paragraphs: [
+          'While primarily celebrated as a classifier, KNN adapts seamlessly to continuous regression problems (e.g. predicting house prices, temperatures, or salaries):',
+          '• Uniform KNN Regression: Predicts the arithmetic mean of the target values of the $K$ nearest neighbors:',
+          '$$\\hat{y} = \\frac{1}{K} \\sum_{i \\in \\mathcal{N}_K} y_i$$',
+          '• Distance-Weighted KNN Regression: Predicts a weighted average, where closer neighbors contribute proportionally more to the prediction:',
+          '$$\\hat{y} = \\frac{\\sum_{i \\in \\mathcal{N}_K} w_i y_i}{\\sum_{i \\in \\mathcal{N}_K} w_i}, \\quad \\text{where } w_i = \\frac{1}{d(x_{\\text{query}}, x_i)}$$',
+          'In regression, uniform KNN generates a piecewise step function, while distance-weighted KNN produces a smooth, continuous interpolation curve through local data clusters.'
+        ]
+      },
+      {
+        heading: '6. Feature Scaling: Why Scale Differences Break Distance Metrics',
+        paragraphs: [
+          'Feature scaling is an absolute, non-negotiable prerequisite for KNN. Because distance calculations treat coordinate differences symmetrically, features with large numerical magnitudes completely dominate the distance computation.',
+          'Consider a customer churn dataset with two features: Age ($20$ to $70$ years, variance $\\approx 50$) and Annual Income ($\\$20,000$ to $\\$200,000$, variance $\\approx 10^{10}$):',
+          '$$D(x, y) = \\sqrt{(\\Delta \\text{Age})^2 + (\\Delta \\text{Income})^2} = \\sqrt{(5)^2 + (30,000)^2} = \\sqrt{25 + 900,000,000} \\approx 30,000.0004$$',
+          'The age difference of 5 years contributes virtually zero to the distance calculation. The algorithm becomes completely blind to Age, effectively making decisions based solely on Income.',
+          'Standardization Solution: Transform all features using z-score normalization (`StandardScaler`):',
+          '$$z = \\frac{x - \\mu}{\\sigma}$$',
+          'After standardization, every feature has mean $\\mu = 0$ and standard deviation $\\sigma = 1$, allowing each attribute to contribute proportionately to the distance metric.'
+        ]
+      },
+      {
+        heading: '7. The Curse of Dimensionality: When Space Becomes Empty',
+        paragraphs: [
+          'As the number of features (dimensions $d$) increases, the volume of the feature space grows exponentially, causing a devastating phenomenon known as the Curse of Dimensionality:',
+          '1. Exponential Sparsity: In 1D space (a unit line $[0, 1]$), capturing $10\\%$ of data requires an interval of length $0.10$. In 2D space (unit square $[0, 1]^2$), capturing $10\\%$ requires a square of side length $\\sqrt{0.10} \\approx 0.316$. In 10D space, capturing $10\\%$ requires a hypercube of side length $(0.10)^{1/10} \\approx 0.794$. In 100 dimensions, you must traverse $(0.10)^{1/100} \\approx 0.977$ ($98\\%$ of the entire feature space) just to capture $10\\%$ of the data!',
+          '2. Equidistance of Points: In ultra-high dimensions, mathematical proofs show that the ratio between the distance to the nearest neighbor and the distance to the farthest neighbor approaches 1:',
+          '$$\\lim_{d \\to \\infty} \\frac{D_{\\max} - D_{\\min}}{D_{\\min}} = 0$$',
+          'When all points are essentially equidistant from one another, the concept of a "nearest" neighbor becomes mathematically meaningless.',
+          'Remediation: In high-dimensional datasets (e.g. genomics, text bag-of-words), you must apply dimensionality reduction techniques like Principal Component Analysis (PCA) or feature selection before running KNN.'
+        ]
+      },
+      {
+        heading: '8. Algorithmic Optimization: Brute Force, KD-Trees, and Ball Trees',
+        paragraphs: [
+          'Computing pairwise distances against every training sample takes $O(N \\cdot d)$ per query. For a dataset of 1,000,000 samples, a single prediction is painfully slow. To accelerate inference, Scikit-Learn implements specialized spatial indexing data structures:',
+          '1. Brute Force (`algorithm="brute"`): Computes all $N$ Euclidean distances directly. Ideal for small datasets or when memory is plentiful.',
+          '2. KD-Tree (`algorithm="kd_tree"`): A K-Dimensional binary tree that recursively partitions data along axis-aligned hyperplanes by splitting at median coordinate values. At query time, large swaths of space are pruned immediately via branch bounding boxes, reducing query complexity to $O(d \\log N)$. However, KD-Trees suffer severely when dimensions exceed $d > 20$.',
+          '3. Ball Tree (`algorithm="ball_tree"`): Partitions data points into nested multidimensional hyperspheres ("balls"). At query time, triangle inequality bounds ($|d(p, c) - d(q, c)| \\le d(p, q)$) allow entire clusters of points to be skipped. Ball Trees outperform KD-Trees in high dimensions and on non-uniform, clustered distributions.'
+        ]
+      },
+      {
+        heading: '9. Strengths, Weaknesses, and Industry Best Practices',
+        paragraphs: [
+          'Summary of tradeoffs for practical engineering:',
+          '• Strengths: Zero training time, non-parametric flexibility (models arbitrary non-linear boundaries), natural support for multi-class classification and multi-output regression, completely transparent decision paths.',
+          '• Weaknesses: High inference latency ($O(N \\cdot d)$), massive memory footprint (must keep entire training set in RAM), extreme sensitivity to irrelevant noise features and unscaled data, suffers from the Curse of Dimensionality.',
+          'Production Best Practices: Always wrap KNN in a Scikit-Learn `Pipeline` with `StandardScaler()`. For datasets with $N > 50,000$, consider Approximate Nearest Neighbors (ANN) libraries such as FAISS, Annoy, or HNSW for sub-millisecond retrieval.'
+        ]
+      },
+      {
+        heading: '10. Production Code with Scikit-Learn & NumPy Vectorization',
+        paragraphs: [
+          'Here is a complete production pipeline showing standard scaling, hyperparameter tuning with GridSearchCV, and a vectorized pure NumPy implementation from scratch:'
+        ],
+        codeBlock: [
+          'import numpy as np',
+          'from sklearn.neighbors import KNeighborsClassifier',
+          'from sklearn.preprocessing import StandardScaler',
+          'from sklearn.pipeline import Pipeline',
+          'from sklearn.model_selection import GridSearchCV, train_test_split',
+          'from sklearn.metrics import classification_report',
+          '',
+          '# 1. Generate Synthetic Customer Data (Age, Income, Credit Score)',
+          'np.random.seed(42)',
+          'X = np.random.randn(200, 3) * [15, 25000, 100] + [40, 65000, 650]',
+          'y = (X[:, 1] > 60000).astype(int) ^ (X[:, 0] > 45).astype(int)',
+          '',
+          'X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)',
+          '',
+          '# 2. Build Pipeline with Standardization and KNN',
+          'pipeline = Pipeline([',
+          '    ("scaler", StandardScaler()),',
+          '    ("knn", KNeighborsClassifier())',
+          '])',
+          '',
+          '# 3. Optimize Hyperparameters (K, distance metric, voting weights)',
+          'param_grid = {',
+          '    "knn__n_neighbors": [3, 5, 7, 9, 11],',
+          '    "knn__weights": ["uniform", "distance"],',
+          '    "knn__metric": ["euclidean", "manhattan"]',
+          '}',
+          '',
+          'grid = GridSearchCV(pipeline, param_grid, cv=5, scoring="accuracy")',
+          'grid.fit(X_train, y_train)',
+          '',
+          'print("Best Hyperparameters:", grid.best_params_)',
+          'print(f"Best 5-Fold Cross-Validation Accuracy: {grid.best_score_*100:.2f}%")',
+          '',
+          '# 4. Evaluate Best Model on Unseen Test Data',
+          'best_model = grid.best_estimator_',
+          'y_pred = best_model.predict(X_test)',
+          'print("\\n=== Test Classification Report ===")',
+          'print(classification_report(y_test, y_pred))'
+        ].join('\n'),
+        codeBlockTitle: 'knn_production_pipeline.py'
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: Real Estate Valuation & The Wisdom of the Neighborhood',
+      text: 'Imagine you are an appraiser evaluating a home with no prior price history. Instead of computing complex construction equations, you walk down the street and identify the 5 closest neighboring houses with similar square footage and bedroom counts. If 4 of the 5 sold for over $500,000, you classify the target home in the premium tier. If you weight the house directly next door twice as heavily as the house two blocks away, you have just performed Distance-Weighted K-Nearest Neighbors.'
+    },
+
+    diagram: {
+      type: 'knn_interactive_studio'
+    },
+
+    takeaways: [
+      'KNN is a non-parametric lazy learner: Training is instant O(1) storage, while inference is computationally heavy O(N * d) distance calculation.',
+      'Small K (e.g. K=1) leads to high variance and noisy, jagged decision boundaries (overfitting); large K (e.g. K=N) leads to high bias and majority-dominated flat boundaries (underfitting).',
+      'Euclidean (L2) distance is standard, while Manhattan (L1) distance is more robust to coordinate outliers.',
+      'Feature scaling via StandardScaler is mandatory because unscaled features with large numerical magnitudes completely drown out distance calculations.',
+      'The Curse of Dimensionality causes points in high-dimensional spaces to become equidistant, degrading nearest neighbor retrieval unless dimensionality reduction is applied.'
+    ],
+
+    quiz: {
+      question: 'What happens to a K-Nearest Neighbors model if one feature has values between 10,000 and 100,000 while another feature has values between 0 and 1, and no feature scaling is performed?',
+      options: [
+        'The feature with the 10,000 to 100,000 range will completely dominate Euclidean distance calculations, effectively rendering the second feature irrelevant',
+        'Scikit-Learn will automatically normalize the features internally during the fit step',
+        'The model will achieve 100% accuracy because large numbers contain more information',
+        'KNN distance metrics are mathematically invariant to linear scale transformations'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! Euclidean distance computes the sum of squared coordinate differences. A difference of 10,000 produces a squared term of 100,000,000, which completely dwarfs a squared difference of 1.0 (from 0 to 1). Without scaling, the second feature contributes 0.000001% to the distance and is completely ignored.'
+    }
   }
 };
 

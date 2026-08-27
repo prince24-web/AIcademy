@@ -200,7 +200,7 @@ const mlModules = [
     subtitle: 'Goal: Classify data with classification algorithms.',
     lessons: [
       { id: 'ml-4-1', name: 'Logistic Regression', nodeType: 'concept', status: 'active' },
-      { id: 'ml-4-2', name: 'K-Nearest Neighbors (KNN)', nodeType: 'star', status: 'locked' },
+      { id: 'ml-4-2', name: 'K-Nearest Neighbors (KNN)', nodeType: 'star', status: 'active' },
       { id: 'ml-4-3', name: 'Naive Bayes', nodeType: 'concept', status: 'locked' },
       { id: 'ml-4-4', name: 'Support Vector Machines (SVM)', nodeType: 'lightbulb', status: 'locked' },
       { id: 'ml-4-5', name: 'Decision Trees', nodeType: 'concept', status: 'locked' },

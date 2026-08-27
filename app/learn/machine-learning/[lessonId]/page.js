@@ -14950,11 +14950,1334 @@ const LogisticRegressionInteractiveStudio = () => {
   );
 };
 
+// ─── K-NEAREST NEIGHBORS (KNN) INTERACTIVE STUDIO ──────────────────────────
+const KNNInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('arena');
+
+  // 2D Arena State
+  const [kValue, setKValue] = useState(5);
+  const [queryX, setQueryX] = useState(4.8);
+  const [queryY, setQueryY] = useState(4.5);
+  const [metric, setMetric] = useState('euclidean'); // 'euclidean' or 'manhattan'
+  const [weighting, setWeighting] = useState('uniform'); // 'uniform' or 'distance'
+
+  // Bias-Variance Spectrum State
+  const [spectrumK, setSpectrumK] = useState(5);
+
+  // Feature Scaling State
+  const [isScaled, setIsScaled] = useState(false);
+
+  // 3D Three.js State & Refs
+  const mount3DKNNRef = useRef(null);
+  const scene3DKNNRef = useRef(null);
+  const camera3DKNNRef = useRef(null);
+  const renderer3DKNNRef = useRef(null);
+  const sphereMeshRef = useRef(null);
+  const querySphereRef = useRef(null);
+  const raysGroupRef = useRef(null);
+  const [autoRotate3D, setAutoRotate3D] = useState(true);
+  const [k3D, setK3D] = useState(5);
+  const [query3D, setQuery3D] = useState({ x: 5.0, y: 5.0, z: 5.0 });
+
+  // 2D Benchmark Classification Dataset (20 samples)
+  const dataset2D = useMemo(() => [
+    // Class 0: Negative / Orange (e.g. Non-buyers / Legitimate / Healthy)
+    { id: 1, x: 1.5, y: 2.2, cls: 0 },
+    { id: 2, x: 2.0, y: 3.5, cls: 0 },
+    { id: 3, x: 2.5, y: 1.8, cls: 0 },
+    { id: 4, x: 3.2, y: 3.0, cls: 0 },
+    { id: 5, x: 1.8, y: 4.8, cls: 0 },
+    { id: 6, x: 3.8, y: 2.0, cls: 0 },
+    { id: 7, x: 2.8, y: 4.2, cls: 0 },
+    { id: 8, x: 4.0, y: 3.6, cls: 0 },
+    { id: 9, x: 3.0, y: 5.5, cls: 0 },
+    { id: 10, x: 4.5, y: 4.0, cls: 0 },
+
+    // Class 1: Positive / Blue (e.g. Buyers / Fraud / Diseased)
+    { id: 11, x: 5.2, y: 6.0, cls: 1 },
+    { id: 12, x: 5.8, y: 4.8, cls: 1 },
+    { id: 13, x: 6.2, y: 6.8, cls: 1 },
+    { id: 14, x: 6.8, y: 5.5, cls: 1 },
+    { id: 15, x: 5.5, y: 7.8, cls: 1 },
+    { id: 16, x: 7.2, y: 6.2, cls: 1 },
+    { id: 17, x: 7.5, y: 7.5, cls: 1 },
+    { id: 18, x: 8.2, y: 5.8, cls: 1 },
+    { id: 19, x: 6.8, y: 8.5, cls: 1 },
+    { id: 20, x: 8.5, y: 7.2, cls: 1 }
+  ], []);
+
+  // 3D Spatial Dataset (30 samples across 3D space)
+  const dataset3D = useMemo(() => [
+    // Class 0 (15 points)
+    { id: 1, x: 2.0, y: 2.5, z: 2.0, cls: 0 },
+    { id: 2, x: 3.0, y: 2.0, z: 3.5, cls: 0 },
+    { id: 3, x: 2.5, y: 4.0, z: 2.8, cls: 0 },
+    { id: 4, x: 3.8, y: 3.2, z: 2.2, cls: 0 },
+    { id: 5, x: 1.8, y: 3.0, z: 4.2, cls: 0 },
+    { id: 6, x: 4.2, y: 2.8, z: 3.8, cls: 0 },
+    { id: 7, x: 2.8, y: 4.5, z: 4.0, cls: 0 },
+    { id: 8, x: 3.5, y: 1.8, z: 2.5, cls: 0 },
+    { id: 9, x: 4.5, y: 3.8, z: 3.0, cls: 0 },
+    { id: 10, x: 2.2, y: 2.2, z: 4.5, cls: 0 },
+    { id: 11, x: 3.2, y: 4.8, z: 2.0, cls: 0 },
+    { id: 12, x: 4.0, y: 2.2, z: 4.8, cls: 0 },
+    { id: 13, x: 1.5, y: 3.8, z: 3.2, cls: 0 },
+    { id: 14, x: 3.8, y: 4.2, z: 3.5, cls: 0 },
+    { id: 15, x: 2.8, y: 2.8, z: 2.8, cls: 0 },
+
+    // Class 1 (15 points)
+    { id: 16, x: 6.5, y: 6.8, z: 6.2, cls: 1 },
+    { id: 17, x: 7.2, y: 5.5, z: 7.0, cls: 1 },
+    { id: 18, x: 6.0, y: 7.5, z: 6.8, cls: 1 },
+    { id: 19, x: 7.8, y: 6.2, z: 5.5, cls: 1 },
+    { id: 20, x: 5.8, y: 6.0, z: 7.5, cls: 1 },
+    { id: 21, x: 8.0, y: 7.0, z: 6.5, cls: 1 },
+    { id: 22, x: 6.8, y: 8.2, z: 7.2, cls: 1 },
+    { id: 23, x: 7.5, y: 5.8, z: 8.0, cls: 1 },
+    { id: 24, x: 8.5, y: 7.5, z: 7.0, cls: 1 },
+    { id: 25, x: 6.2, y: 6.5, z: 8.2, cls: 1 },
+    { id: 26, x: 7.0, y: 7.8, z: 6.0, cls: 1 },
+    { id: 27, x: 8.2, y: 6.5, z: 7.8, cls: 1 },
+    { id: 28, x: 6.0, y: 8.5, z: 6.5, cls: 1 },
+    { id: 29, x: 7.8, y: 8.0, z: 7.5, cls: 1 },
+    { id: 30, x: 8.0, y: 6.0, z: 6.8, cls: 1 }
+  ], []);
+
+  // Compute 2D Query Nearest Neighbors
+  const queryNeighbors2D = useMemo(() => {
+    const computed = dataset2D.map((p) => {
+      let dist = 0;
+      if (metric === 'euclidean') {
+        dist = Math.sqrt((p.x - queryX) ** 2 + (p.y - queryY) ** 2);
+      } else {
+        // Manhattan L1
+        dist = Math.abs(p.x - queryX) + Math.abs(p.y - queryY);
+      }
+      return {
+        ...p,
+        distance: dist,
+        weight: 1.0 / (dist + 1e-4)
+      };
+    });
+
+    computed.sort((a, b) => a.distance - b.distance);
+    const kNeighbors = computed.slice(0, kValue);
+    const maxRadius = kNeighbors.length > 0 ? kNeighbors[kNeighbors.length - 1].distance : 0;
+
+    // Voting tally
+    let score0 = 0;
+    let score1 = 0;
+    let totalWeight = 0;
+
+    kNeighbors.forEach((n) => {
+      const w = weighting === 'distance' ? n.weight : 1.0;
+      totalWeight += w;
+      if (n.cls === 1) score1 += w;
+      else score0 += w;
+    });
+
+    const prob1 = totalWeight > 0 ? score1 / totalWeight : 0.5;
+    const predictedClass = prob1 >= 0.5 ? 1 : 0;
+
+    return {
+      allSorted: computed,
+      kNeighbors,
+      maxRadius,
+      score0,
+      score1,
+      prob1,
+      predictedClass
+    };
+  }, [dataset2D, queryX, queryY, kValue, metric, weighting]);
+
+  // Compute 3D Query Nearest Neighbors
+  const queryNeighbors3D = useMemo(() => {
+    const computed = dataset3D.map((p) => {
+      const dist = Math.sqrt((p.x - query3D.x) ** 2 + (p.y - query3D.y) ** 2 + (p.z - query3D.z) ** 2);
+      return { ...p, distance: dist };
+    });
+    computed.sort((a, b) => a.distance - b.distance);
+    const kNeighbors = computed.slice(0, k3D);
+    const radius = kNeighbors.length > 0 ? kNeighbors[kNeighbors.length - 1].distance : 1.0;
+
+    let c0 = 0;
+    let c1 = 0;
+    kNeighbors.forEach((n) => {
+      if (n.cls === 1) c1++;
+      else c0++;
+    });
+
+    return {
+      kNeighbors,
+      radius,
+      predictedClass: c1 >= c0 ? 1 : 0,
+      prob1: c1 / k3D
+    };
+  }, [dataset3D, query3D, k3D]);
+
+  // ─── THREE.JS 3D SCENE SETUP ─────────────────────────────────────────
+  const init3DScene = useCallback(() => {
+    const container = mount3DKNNRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth || 680;
+    const height = 400;
+
+    // Scene
+    const scene = new THREE.Scene();
+    scene3DKNNRef.current = scene;
+    scene.background = new THREE.Color('#f8fafc');
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(16, 14, 18);
+    camera.lookAt(5.0, 5.0, 5.0);
+    camera3DKNNRef.current = camera;
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    renderer3DKNNRef.current = renderer;
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight('#ffffff', 0.85);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight('#ffffff', 1.2);
+    dirLight1.position.set(20, 30, 20);
+    dirLight1.castShadow = true;
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight('#0284c7', 0.45);
+    dirLight2.position.set(-15, -10, -15);
+    scene.add(dirLight2);
+
+    // Coordinate Bounding Box Helper & Floor Grid
+    const boxHelper = new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10)), '#cbd5e1');
+    boxHelper.position.set(5.0, 5.0, 5.0);
+    scene.add(boxHelper);
+
+    const gridFloor = new THREE.GridHelper(10, 10, '#cbd5e1', '#e2e8f0');
+    gridFloor.position.set(5.0, 0, 5.0);
+    scene.add(gridFloor);
+
+    // Render Data Spheres
+    const pointsGroup = new THREE.Group();
+    dataset3D.forEach((pt) => {
+      const geo = new THREE.SphereGeometry(0.24, 16, 16);
+      const mat = new THREE.MeshStandardMaterial({
+        color: pt.cls === 1 ? '#0284c7' : '#ea580c',
+        metalness: 0.3,
+        roughness: 0.2
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(pt.x, pt.y, pt.z);
+      mesh.castShadow = true;
+      pointsGroup.add(mesh);
+    });
+    scene.add(pointsGroup);
+
+    // Render Central Query Diamond / Sphere (Gold Glowing)
+    const queryGeo = new THREE.OctahedronGeometry(0.42, 0);
+    const queryMat = new THREE.MeshStandardMaterial({
+      color: '#eab308',
+      emissive: '#ca8a04',
+      emissiveIntensity: 0.5,
+      metalness: 0.6,
+      roughness: 0.1
+    });
+    const queryMesh = new THREE.Mesh(queryGeo, queryMat);
+    queryMesh.position.set(query3D.x, query3D.y, query3D.z);
+    scene.add(queryMesh);
+    querySphereRef.current = queryMesh;
+
+    // Render Bounding Hypersphere Wireframe
+    const sphereGeo = new THREE.SphereGeometry(queryNeighbors3D.radius, 24, 24);
+    const sphereMat = new THREE.MeshBasicMaterial({
+      color: '#eab308',
+      wireframe: true,
+      transparent: true,
+      opacity: 0.35
+    });
+    const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+    sphereMesh.position.set(query3D.x, query3D.y, query3D.z);
+    scene.add(sphereMesh);
+    sphereMeshRef.current = sphereMesh;
+
+    // Render Rays Group to Neighbors
+    const raysGroup = new THREE.Group();
+    scene.add(raysGroup);
+    raysGroupRef.current = raysGroup;
+
+    // Update Rays
+    const updateRays = () => {
+      raysGroup.clear();
+      queryNeighbors3D.kNeighbors.forEach((n) => {
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(query3D.x, query3D.y, query3D.z),
+          new THREE.Vector3(n.x, n.y, n.z)
+        ]);
+        const lineMat = new THREE.LineDashedMaterial({
+          color: n.cls === 1 ? '#0284c7' : '#ea580c',
+          dashSize: 0.25,
+          gapSize: 0.15,
+          transparent: true,
+          opacity: 0.85
+        });
+        const line = new THREE.Line(lineGeo, lineMat);
+        line.computeLineDistances();
+        raysGroup.add(line);
+      });
+    };
+    updateRays();
+
+    // Mouse Drag Orbit
+    let isDragging = false;
+    let prevMouse = { x: 0, y: 0 };
+    let theta = 0.8;
+    let phi = 0.85;
+    const radius = 22;
+
+    const onMouseDown = (e) => {
+      isDragging = true;
+      prevMouse = { x: e.clientX, y: e.clientY };
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevMouse.x;
+      const dy = e.clientY - prevMouse.y;
+      prevMouse = { x: e.clientX, y: e.clientY };
+
+      theta -= dx * 0.008;
+      phi = Math.max(0.2, Math.min(Math.PI / 2 - 0.05, phi + dy * 0.008));
+    };
+
+    const onMouseUp = () => {
+      isDragging = false;
+    };
+
+    const domElem = renderer.domElement;
+    domElem.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate3D && !isDragging) {
+        theta += 0.0035;
+      }
+
+      camera.position.x = 5.0 + radius * Math.sin(phi) * Math.sin(theta);
+      camera.position.y = 5.0 + radius * Math.cos(phi);
+      camera.position.z = 5.0 + radius * Math.sin(phi) * Math.cos(theta);
+      camera.lookAt(5.0, 5.0, 5.0);
+
+      // Rotate query diamond gently
+      if (querySphereRef.current) {
+        querySphereRef.current.rotation.x += 0.01;
+        querySphereRef.current.rotation.y += 0.015;
+      }
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      domElem.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+    };
+  }, [dataset3D, query3D, queryNeighbors3D, autoRotate3D]);
+
+  // Mount Three.js canvas once
+  useEffect(() => {
+    const cleanup = init3DScene();
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [init3DScene]);
+
+  // Update 3D sphere radius and rays when K or query position changes
+  useEffect(() => {
+    if (!sphereMeshRef.current || !querySphereRef.current || !raysGroupRef.current) return;
+
+    querySphereRef.current.position.set(query3D.x, query3D.y, query3D.z);
+    sphereMeshRef.current.position.set(query3D.x, query3D.y, query3D.z);
+
+    // Update Hypersphere geometry size
+    sphereMeshRef.current.geometry.dispose();
+    sphereMeshRef.current.geometry = new THREE.SphereGeometry(queryNeighbors3D.radius, 24, 24);
+
+    // Update line rays
+    const raysGroup = raysGroupRef.current;
+    raysGroup.clear();
+    queryNeighbors3D.kNeighbors.forEach((n) => {
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(query3D.x, query3D.y, query3D.z),
+        new THREE.Vector3(n.x, n.y, n.z)
+      ]);
+      const lineMat = new THREE.LineDashedMaterial({
+        color: n.cls === 1 ? '#0284c7' : '#ea580c',
+        dashSize: 0.25,
+        gapSize: 0.15,
+        transparent: true,
+        opacity: 0.85
+      });
+      const line = new THREE.Line(lineGeo, lineMat);
+      line.computeLineDistances();
+      raysGroup.add(line);
+    });
+  }, [query3D, queryNeighbors3D]);
+
+  // Feature Scaling Raw vs Scaled Demonstration Data
+  const scalingPoints = useMemo(() => [
+    { name: 'Customer A (True: Churned)', age: 24, income: 35000, cls: 1 },
+    { name: 'Customer B (True: Retained)', age: 48, income: 37000, cls: 0 },
+    { name: 'Customer C (True: Churned)', age: 26, income: 82000, cls: 1 },
+    { name: 'Query Target Candidate', age: 25, income: 36000, isQuery: true }
+  ], []);
+
+  // Compute Scaled versions
+  const scalingEvaluation = useMemo(() => {
+    const ages = scalingPoints.map((p) => p.age);
+    const incomes = scalingPoints.map((p) => p.income);
+
+    const meanAge = ages.reduce((a, b) => a + b, 0) / ages.length;
+    const meanIncome = incomes.reduce((a, b) => a + b, 0) / incomes.length;
+
+    const stdAge = Math.sqrt(ages.reduce((acc, v) => acc + (v - meanAge) ** 2, 0) / ages.length);
+    const stdIncome = Math.sqrt(incomes.reduce((acc, v) => acc + (v - meanIncome) ** 2, 0) / incomes.length);
+
+    const queryRaw = scalingPoints.find((p) => p.isQuery);
+    const neighborsRaw = scalingPoints.filter((p) => !p.isQuery).map((p) => {
+      // Unscaled Euclidean
+      const dAge = p.age - queryRaw.age;
+      const dInc = p.income - queryRaw.income;
+      const rawDist = Math.sqrt(dAge ** 2 + dInc ** 2);
+
+      // Scaled Euclidean
+      const zAgeP = (p.age - meanAge) / stdAge;
+      const zIncP = (p.income - meanIncome) / stdIncome;
+      const zAgeQ = (queryRaw.age - meanAge) / stdAge;
+      const zIncQ = (queryRaw.income - meanIncome) / stdIncome;
+
+      const scaledDist = Math.sqrt((zAgeP - zAgeQ) ** 2 + (zIncP - zIncQ) ** 2);
+
+      return {
+        ...p,
+        rawDist,
+        scaledDist,
+        dAge,
+        dInc
+      };
+    });
+
+    const sortedRaw = [...neighborsRaw].sort((a, b) => a.rawDist - b.rawDist);
+    const sortedScaled = [...neighborsRaw].sort((a, b) => a.scaledDist - b.scaledDist);
+
+    return {
+      queryRaw,
+      sortedRaw,
+      sortedScaled,
+      nearestRaw: sortedRaw[0],
+      nearestScaled: sortedScaled[0]
+    };
+  }, [scalingPoints]);
+
+  // SVG Scalers for 2D Canvas (x: 0 to 10, y: 0 to 10)
+  const svgW = 540;
+  const svgH = 380;
+  const m2D = { left: 45, right: 25, top: 25, bottom: 45 };
+  const inW = svgW - m2D.left - m2D.right;
+  const inH = svgH - m2D.top - m2D.bottom;
+
+  const scaleX = (x) => m2D.left + (x / 10.0) * inW;
+  const scaleY = (y) => m2D.top + inH - (y / 10.0) * inH;
+
+  // Handle canvas click to place query point
+  const handleCanvasClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    const normX = Math.max(0.5, Math.min(9.5, ((clickX - m2D.left) / inW) * 10.0));
+    const normY = Math.max(0.5, Math.min(9.5, ((m2D.top + inH - clickY) / inH) * 10.0));
+
+    setQueryX(parseFloat(normX.toFixed(1)));
+    setQueryY(parseFloat(normY.toFixed(1)));
+  };
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #001f54, #0284c7)',
+              width: '46px',
+              height: '46px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+            }}>
+              <IconSparkles size={24} style={{ color: '#ffffff' }} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  background: '#001f54',
+                  color: '#ffffff',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.05em'
+                }}>
+                  INTERACTIVE STUDIO
+                </span>
+                <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 700 }}>
+                  2D Voronoi Arena & 3D Hypersphere
+                </span>
+              </div>
+              <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+                K-Nearest Neighbors (KNN) Masterclass Studio
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px',
+          flexWrap: 'wrap',
+          marginTop: '1.25rem'
+        }}>
+          {[
+            { id: 'arena', label: '2D Interactive Query & Voronoi Arena' },
+            { id: 'spatial3d', label: '3D Hypersphere Classifier (Three.js)' },
+            { id: 'spectrum', label: 'Bias-Variance Spectrum (K Tradeoff)' },
+            { id: 'scaling', label: 'Feature Scaling Impact Simulator' },
+            { id: 'code', label: 'Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 2D INTERACTIVE QUERY & VORONOI ARENA ─────────────── */}
+      {activeTab === 'arena' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h4 style={{ margin: 0, color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+                  2D Proximity Query & Dynamic Voting Arena
+                </h4>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px' }}>
+                  Click anywhere on the canvas or drag query sliders to watch KNN identify the <MathFormula math="K" /> closest neighbors and tally votes.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', fontSize: '0.78rem', fontWeight: 700 }}>
+                <span style={{ color: '#ea580c' }}>● Class 0 (Orange)</span>
+                <span style={{ color: '#0284c7' }}>■ Class 1 (Blue)</span>
+                <span style={{ color: '#ca8a04' }}>◆ Query Point (Gold)</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 280px', gap: '1.25rem', alignItems: 'start' }}>
+              {/* Interactive SVG Canvas */}
+              <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '0.75rem', position: 'relative' }}>
+                <svg
+                  viewBox={`0 0 ${svgW} ${svgH}`}
+                  onClick={handleCanvasClick}
+                  style={{ width: '100%', height: 'auto', display: 'block', cursor: 'crosshair' }}
+                >
+                  {/* Grid Lines */}
+                  {[2, 4, 6, 8].map((val) => (
+                    <g key={`grid-${val}`}>
+                      <line x1={scaleX(val)} y1={m2D.top} x2={scaleX(val)} y2={svgH - m2D.bottom} stroke="#f1f5f9" strokeWidth="1.5" />
+                      <line x1={m2D.left} y1={scaleY(val)} x2={svgW - m2D.right} y2={scaleY(val)} stroke="#f1f5f9" strokeWidth="1.5" />
+                      <text x={scaleX(val)} y={svgH - m2D.bottom + 14} textAnchor="middle" fontSize="10" fill="#94a3b8">{val}</text>
+                      <text x={m2D.left - 6} y={scaleY(val) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{val}</text>
+                    </g>
+                  ))}
+
+                  {/* Axes */}
+                  <line x1={m2D.left} y1={svgH - m2D.bottom} x2={svgW - m2D.right} y2={svgH - m2D.bottom} stroke="#64748b" strokeWidth="1.5" />
+                  <line x1={m2D.left} y1={m2D.top} x2={m2D.left} y2={svgH - m2D.bottom} stroke="#64748b" strokeWidth="1.5" />
+                  <text x={m2D.left + inW / 2} y={svgH - 8} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Feature x₁</text>
+                  <text transform={`rotate(-90 ${16} ${m2D.top + inH / 2})`} x={16} y={m2D.top + inH / 2} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Feature x₂</text>
+
+                  {/* Dynamic Bounding Search Circle (Euclidean) or Diamond (Manhattan) */}
+                  {metric === 'euclidean' ? (
+                    <circle
+                      cx={scaleX(queryX)}
+                      cy={scaleY(queryY)}
+                      r={(queryNeighbors2D.maxRadius / 10.0) * inW}
+                      fill="rgba(234, 179, 8, 0.08)"
+                      stroke="#eab308"
+                      strokeWidth="1.5"
+                      strokeDasharray="4 3"
+                    />
+                  ) : (
+                    (() => {
+                      const r = (queryNeighbors2D.maxRadius / 10.0) * inW;
+                      const qcx = scaleX(queryX);
+                      const qcy = scaleY(queryY);
+                      return (
+                        <polygon
+                          points={`${qcx},${qcy - r} ${qcx + r},${qcy} ${qcx},${qcy + r} ${qcx - r},${qcy}`}
+                          fill="rgba(234, 179, 8, 0.08)"
+                          stroke="#eab308"
+                          strokeWidth="1.5"
+                          strokeDasharray="4 3"
+                        />
+                      );
+                    })()
+                  )}
+
+                  {/* Connecting Rays from Query to K Neighbors */}
+                  {queryNeighbors2D.kNeighbors.map((n) => (
+                    <line
+                      key={`ray-${n.id}`}
+                      x1={scaleX(queryX)}
+                      y1={scaleY(queryY)}
+                      x2={scaleX(n.x)}
+                      y2={scaleY(n.y)}
+                      stroke={n.cls === 1 ? '#0284c7' : '#ea580c'}
+                      strokeWidth="2"
+                      strokeDasharray="3 2"
+                    />
+                  ))}
+
+                  {/* Render Data Points */}
+                  {dataset2D.map((p) => {
+                    const cx = scaleX(p.x);
+                    const cy = scaleY(p.y);
+                    const isNeighbor = queryNeighbors2D.kNeighbors.some((n) => n.id === p.id);
+
+                    return (
+                      <g key={`p-${p.id}`}>
+                        {isNeighbor && (
+                          <circle cx={cx} cy={cy} r="11" fill="none" stroke="#eab308" strokeWidth="2.5" />
+                        )}
+
+                        {p.cls === 1 ? (
+                          <rect
+                            x={cx - 6}
+                            y={cy - 6}
+                            width="12"
+                            height="12"
+                            rx="2"
+                            fill="#0284c7"
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                          />
+                        ) : (
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r="6"
+                            fill="#ea580c"
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                          />
+                        )}
+                      </g>
+                    );
+                  })}
+
+                  {/* Query Point (Gold Star / Diamond) */}
+                  <g transform={`translate(${scaleX(queryX)}, ${scaleY(queryY)})`}>
+                    <polygon
+                      points="0,-9 7,0 0,9 -7,0"
+                      fill="#eab308"
+                      stroke="#ffffff"
+                      strokeWidth="2.5"
+                    />
+                  </g>
+                </svg>
+
+                <div style={{
+                  position: 'absolute',
+                  bottom: '14px',
+                  right: '14px',
+                  background: 'rgba(255, 255, 255, 0.92)',
+                  backdropFilter: 'blur(4px)',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.72rem',
+                  color: '#001f54',
+                  fontWeight: 700
+                }}>
+                  Query: ({queryX.toFixed(1)}, {queryY.toFixed(1)}) | Radius: {queryNeighbors2D.maxRadius.toFixed(2)}
+                </div>
+              </div>
+
+              {/* Controls & Voting Ballot Card */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {/* Hyperparameters Card */}
+                <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '8px' }}>
+                    Hyperparameters
+                  </div>
+
+                  {/* K Slider */}
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
+                      <span>K (Number of Neighbors):</span>
+                      <span style={{ color: '#0284c7' }}>{kValue}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="11"
+                      step="2"
+                      value={kValue}
+                      onChange={(e) => setKValue(parseInt(e.target.value, 10))}
+                      style={{ width: '100%', accentColor: '#001f54' }}
+                    />
+                  </div>
+
+                  {/* Distance Metric Toggle */}
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Distance Metric:</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                      <button
+                        onClick={() => setMetric('euclidean')}
+                        style={{
+                          background: metric === 'euclidean' ? '#001f54' : '#f1f5f9',
+                          color: metric === 'euclidean' ? '#ffffff' : '#475569',
+                          border: 'none',
+                          padding: '4px 6px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Euclidean (L₂)
+                      </button>
+                      <button
+                        onClick={() => setMetric('manhattan')}
+                        style={{
+                          background: metric === 'manhattan' ? '#001f54' : '#f1f5f9',
+                          color: metric === 'manhattan' ? '#ffffff' : '#475569',
+                          border: 'none',
+                          padding: '4px 6px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Manhattan (L₁)
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Voting Rule Toggle */}
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '4px' }}>Voting Rule:</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                      <button
+                        onClick={() => setWeighting('uniform')}
+                        style={{
+                          background: weighting === 'uniform' ? '#001f54' : '#f1f5f9',
+                          color: weighting === 'uniform' ? '#ffffff' : '#475569',
+                          border: 'none',
+                          padding: '4px 6px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Uniform (1 vote)
+                      </button>
+                      <button
+                        onClick={() => setWeighting('distance')}
+                        style={{
+                          background: weighting === 'distance' ? '#001f54' : '#f1f5f9',
+                          color: weighting === 'distance' ? '#ffffff' : '#475569',
+                          border: 'none',
+                          padding: '4px 6px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Distance (1/d)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Prediction Result Ballot Box */}
+                <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>
+                    Query Inference Result
+                  </div>
+
+                  <div style={{
+                    background: queryNeighbors2D.predictedClass === 1 ? '#eff6ff' : '#fff7ed',
+                    border: `1.5px solid ${queryNeighbors2D.predictedClass === 1 ? '#bfdbfe' : '#fed7aa'}`,
+                    padding: '0.75rem',
+                    borderRadius: '10px',
+                    textAlign: 'center',
+                    marginBottom: '8px'
+                  }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
+                      Predicted Class
+                    </div>
+                    <div style={{
+                      fontSize: '1.25rem',
+                      fontWeight: 900,
+                      color: queryNeighbors2D.predictedClass === 1 ? '#0284c7' : '#ea580c',
+                      marginTop: '2px'
+                    }}>
+                      {queryNeighbors2D.predictedClass === 1 ? 'Class 1 (Blue)' : 'Class 0 (Orange)'}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: '2px' }}>
+                      Confidence: <strong>{(Math.max(queryNeighbors2D.prob1, 1 - queryNeighbors2D.prob1) * 100).toFixed(0)}%</strong>
+                    </div>
+                  </div>
+
+                  {/* Neighbor Vote Breakdown */}
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, marginBottom: '4px' }}>
+                    K = {kValue} Nearest Neighbors:
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', maxHeight: '110px', overflowY: 'auto' }}>
+                    {queryNeighbors2D.kNeighbors.map((n, idx) => (
+                      <div
+                        key={`nb-${n.id}`}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          background: '#f8fafc',
+                          padding: '3px 6px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem'
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, color: n.cls === 1 ? '#0284c7' : '#ea580c' }}>
+                          #{idx + 1}: Class {n.cls}
+                        </span>
+                        <span style={{ color: '#64748b' }}>
+                          d = {n.distance.toFixed(2)} {weighting === 'distance' && `(w = ${n.weight.toFixed(1)})`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: 3D HYPERSPHERE CLASSIFIER (THREE.JS) ────────────── */}
+      <div style={{ display: activeTab === 'spatial3d' ? 'block' : 'none' }}>
+        <div style={{
+          background: '#f8fafc',
+          borderRadius: '16px',
+          border: '1.5px solid #e2e8f0',
+          padding: '1.25rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <h4 style={{ margin: 0, color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+                3D Spatial Nearest Neighbors & Bounding Hypersphere
+              </h4>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px' }}>
+                Drag with mouse to inspect in 3D. The glowing gold diamond is the query point; the wireframe sphere envelopes the K nearest points.
+              </div>
+            </div>
+            <button
+              onClick={() => setAutoRotate3D(!autoRotate3D)}
+              style={{
+                background: autoRotate3D ? '#001f54' : '#ffffff',
+                color: autoRotate3D ? '#ffffff' : '#001f54',
+                border: '1.5px solid #001f54',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              {autoRotate3D ? 'Pause Auto-Rotate' : 'Resume Auto-Rotate'}
+            </button>
+          </div>
+
+          {/* Three.js Canvas Container */}
+          <div
+            ref={mount3DKNNRef}
+            style={{
+              width: '100%',
+              height: '400px',
+              borderRadius: '14px',
+              overflow: 'hidden',
+              border: '1.5px solid #cbd5e1',
+              background: '#f8fafc',
+              position: 'relative'
+            }}
+          />
+
+          {/* 3D Sliders */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+            <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                <span>K Value:</span>
+                <span style={{ color: '#0284c7' }}>{k3D}</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="15"
+                step="2"
+                value={k3D}
+                onChange={(e) => setK3D(parseInt(e.target.value, 10))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+            </div>
+
+            <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                <span>Query X Position:</span>
+                <span style={{ color: '#eab308' }}>{query3D.x.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="2.0"
+                max="8.0"
+                step="0.5"
+                value={query3D.x}
+                onChange={(e) => setQuery3D({ ...query3D, x: parseFloat(e.target.value) })}
+                style={{ width: '100%', accentColor: '#eab308' }}
+              />
+            </div>
+
+            <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                <span>Query Z Position:</span>
+                <span style={{ color: '#eab308' }}>{query3D.z.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="2.0"
+                max="8.0"
+                step="0.5"
+                value={query3D.z}
+                onChange={(e) => setQuery3D({ ...query3D, z: parseFloat(e.target.value) })}
+                style={{ width: '100%', accentColor: '#eab308' }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── TAB 3: BIAS-VARIANCE SPECTRUM (K TRADEOFF) ─────────────── */}
+      {activeTab === 'spectrum' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              The Bias-Variance Tradeoff Across the Spectrum of K
+            </h4>
+            <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.88rem', color: '#475569' }}>
+              Slide K from 1 to 20 to see how decision boundary complexity transforms from extreme overfitting (Voronoi islands) to extreme underfitting (global majority).
+            </p>
+
+            {/* Slider */}
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#001f54' }}>
+                  Current Hyperparameter K: <code style={{ color: '#0284c7', fontSize: '1.05rem' }}>K = {spectrumK}</code>
+                </span>
+                <span style={{ fontSize: '0.8rem', color: spectrumK === 1 ? '#dc2626' : spectrumK >= 15 ? '#ea580c' : '#059669', fontWeight: 800 }}>
+                  {spectrumK === 1 ? 'High Variance / Overfit' : spectrumK >= 15 ? 'High Bias / Underfit' : 'Balanced Generalization'}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="20"
+                step="1"
+                value={spectrumK}
+                onChange={(e) => setSpectrumK(parseInt(e.target.value, 10))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+            </div>
+
+            {/* Error Curve Illustration */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '1rem' }}>
+              <svg viewBox="0 0 600 220" style={{ width: '100%', height: 'auto', display: 'block' }}>
+                {/* Axes */}
+                <line x1={50} y1={190} x2={560} y2={190} stroke="#64748b" strokeWidth="1.5" />
+                <line x1={50} y1={20} x2={50} y2={190} stroke="#64748b" strokeWidth="1.5" />
+                <text x={305} y={212} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Hyperparameter K (Number of Neighbors)</text>
+                <text transform={`rotate(-90 ${16} ${105})`} x={16} y={105} textAnchor="middle" fontSize="11" fill="#64748b" fontWeight="700">Error Rate</text>
+
+                {/* Training Error Curve (Monotonically increases from 0) */}
+                <path
+                  d="M 60,185 Q 200,150 540,115"
+                  fill="none"
+                  stroke="#0284c7"
+                  strokeWidth="2.5"
+                />
+
+                {/* Validation / Test Error Curve (U-Shape with minimum around K=5-7) */}
+                <path
+                  d="M 60,95 Q 220,165 320,155 T 540,85"
+                  fill="none"
+                  stroke="#dc2626"
+                  strokeWidth="3"
+                />
+
+                {/* Current K Vertical Guideline */}
+                {(() => {
+                  const xPos = 60 + ((spectrumK - 1) / 19) * 480;
+                  return (
+                    <g>
+                      <line x1={xPos} y1={20} x2={xPos} y2={190} stroke="#001f54" strokeWidth="2" strokeDasharray="3 3" />
+                      <text x={xPos} y={16} textAnchor="middle" fontSize="10" fill="#001f54" fontWeight="800">K={spectrumK}</text>
+                    </g>
+                  );
+                })()}
+
+                {/* Labels */}
+                <text x={420} y={110} fontSize="10" fill="#0284c7" fontWeight="700">Training Error</text>
+                <text x={420} y={75} fontSize="10" fill="#dc2626" fontWeight="700">Validation Error (U-Shape)</text>
+              </svg>
+
+              {/* Three Milestone Explanations */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginTop: '1rem' }}>
+                <div style={{ background: '#fef2f2', padding: '0.85rem', borderRadius: '10px', border: '1px solid #fecaca' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#dc2626', marginBottom: '2px' }}>K = 1 (Overfitting)</div>
+                  <div style={{ fontSize: '0.75rem', color: '#334155', lineHeight: '1.4' }}>
+                    Zero training error ($100\%$ accuracy), but memorizes random noise. Complex Voronoi boundary around every single point.
+                  </div>
+                </div>
+
+                <div style={{ background: '#ecfdf5', padding: '0.85rem', borderRadius: '10px', border: '1px solid #a7f3d0' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#059669', marginBottom: '2px' }}>K ≈ 5–7 (Optimal)</div>
+                  <div style={{ fontSize: '0.75rem', color: '#334155', lineHeight: '1.4' }}>
+                    Sweet spot at the bottom of the validation error curve. Filters out outlier noise while capturing genuine cluster patterns.
+                  </div>
+                </div>
+
+                <div style={{ background: '#fff7ed', padding: '0.85rem', borderRadius: '10px', border: '1px solid #fed7aa' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#ea580c', marginBottom: '2px' }}>K = N (Underfitting)</div>
+                  <div style={{ fontSize: '0.75rem', color: '#334155', lineHeight: '1.4' }}>
+                    Polls the entire dataset. Completely flat boundary that predicts the overall majority class everywhere, ignoring features.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: FEATURE SCALING IMPACT SIMULATOR ────────────────── */}
+      {activeTab === 'scaling' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h4 style={{ margin: 0, color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+                  Why Feature Scaling is Mandatory for KNN
+                </h4>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px' }}>
+                  Observe how a large-magnitude feature (Income) completely drowns out a small-magnitude feature (Age) unless standardized.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setIsScaled(false)}
+                  style={{
+                    background: !isScaled ? '#dc2626' : '#ffffff',
+                    color: !isScaled ? '#ffffff' : '#64748b',
+                    border: '1.5px solid #dc2626',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Unscaled Raw Data (Distorted)
+                </button>
+                <button
+                  onClick={() => setIsScaled(true)}
+                  style={{
+                    background: isScaled ? '#059669' : '#ffffff',
+                    color: isScaled ? '#ffffff' : '#64748b',
+                    border: '1.5px solid #059669',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  StandardScaled Data (Correct)
+                </button>
+              </div>
+            </div>
+
+            {/* Comparison Table */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '1rem', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ background: '#001f54', color: '#ffffff', textAlign: 'left' }}>
+                    <th style={{ padding: '8px 12px', borderRadius: '8px 0 0 0' }}>Candidate Sample</th>
+                    <th style={{ padding: '8px 12px' }}>Age (Years)</th>
+                    <th style={{ padding: '8px 12px' }}>Annual Income ($)</th>
+                    <th style={{ padding: '8px 12px' }}>True Status</th>
+                    <th style={{ padding: '8px 12px' }}>{isScaled ? 'Standardized Distance (z)' : 'Raw Euclidean Distance'}</th>
+                    <th style={{ padding: '8px 12px', borderRadius: '0 8px 0 0' }}>Nearest Neighbor Ranking</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ background: '#fef9c3', fontWeight: 800, borderBottom: '1.5px solid #cbd5e1' }}>
+                    <td style={{ padding: '8px 12px', color: '#001f54' }}>Target Query Candidate</td>
+                    <td style={{ padding: '8px 12px' }}>25 yrs</td>
+                    <td style={{ padding: '8px 12px' }}>$36,000</td>
+                    <td style={{ padding: '8px 12px', color: '#ca8a04' }}>Query Point</td>
+                    <td style={{ padding: '8px 12px' }}>0.00 (Self)</td>
+                    <td style={{ padding: '8px 12px' }}>—</td>
+                  </tr>
+                  {(isScaled ? scalingEvaluation.sortedScaled : scalingEvaluation.sortedRaw).map((row, idx) => (
+                    <tr
+                      key={row.name}
+                      style={{
+                        borderBottom: '1px solid #e2e8f0',
+                        background: idx === 0 ? (isScaled ? '#ecfdf5' : '#fef2f2') : '#ffffff'
+                      }}
+                    >
+                      <td style={{ padding: '8px 12px', fontWeight: 700 }}>{row.name}</td>
+                      <td style={{ padding: '8px 12px' }}>{row.age} yrs</td>
+                      <td style={{ padding: '8px 12px' }}>${row.income.toLocaleString()}</td>
+                      <td style={{ padding: '8px 12px', fontWeight: 800, color: row.cls === 1 ? '#0284c7' : '#ea580c' }}>
+                        {row.cls === 1 ? 'Churned (1)' : 'Retained (0)'}
+                      </td>
+                      <td style={{ padding: '8px 12px', fontWeight: 800 }}>
+                        {isScaled ? `${row.scaledDist.toFixed(3)} z-units` : `${row.rawDist.toFixed(1)} units`}
+                      </td>
+                      <td style={{ padding: '8px 12px', fontWeight: 800, color: idx === 0 ? (isScaled ? '#059669' : '#dc2626') : '#64748b' }}>
+                        {idx === 0 ? '#1 Closest Match!' : `#${idx + 1}`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Explanatory Takeaway Card */}
+              <div style={{
+                marginTop: '1rem',
+                padding: '0.85rem 1rem',
+                borderRadius: '10px',
+                background: isScaled ? '#ecfdf5' : '#fef2f2',
+                border: `1.5px solid ${isScaled ? '#a7f3d0' : '#fecaca'}`,
+                fontSize: '0.82rem',
+                lineHeight: '1.5',
+                color: isScaled ? '#065f46' : '#991b1b'
+              }}>
+                {isScaled ? (
+                  <>
+                    <strong>Standardization Fixed the Model:</strong> Both Age and Income now have zero mean and unit variance. The model correctly identifies <strong>Customer A</strong> (Age 24, Income $35k) as the true nearest neighbor, accurately predicting Churn!
+                  </>
+                ) : (
+                  <>
+                    <strong>Scale Distortion Disaster:</strong> Even though Customer B is 48 years old (23 years older than our query candidate!), Customer B is erroneously selected as the nearest neighbor because their income ($37,000) is only $1,000 away, completely drowning out the age difference ($1,000^2 \gg 23^2$). The model incorrectly predicts Retained!
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON IMPLEMENTATION (SKLEARN & NUMPY) ─────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              1. Production Scikit-Learn Pipeline (StandardScaler + GridSearch):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                'from sklearn.neighbors import KNeighborsClassifier',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.pipeline import Pipeline',
+                'from sklearn.model_selection import GridSearchCV, train_test_split',
+                'from sklearn.metrics import classification_report',
+                '',
+                '# 1. Prepare sample multi-feature dataset (Age, Income, Credit)',
+                'np.random.seed(42)',
+                'X = np.random.randn(200, 3) * [12, 25000, 80] + [35, 60000, 680]',
+                'y = (X[:, 1] > 60000).astype(int) ^ (X[:, 0] > 40).astype(int)',
+                '',
+                'X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)',
+                '',
+                '# 2. Build Pipeline with Standardization and KNN',
+                'pipe = Pipeline([',
+                '    ("scaler", StandardScaler()),',
+                '    ("knn", KNeighborsClassifier())',
+                '])',
+                '',
+                '# 3. Optimize Hyperparameters (K, distance metric, voting weights)',
+                'params = {',
+                '    "knn__n_neighbors": [3, 5, 7, 9, 11],',
+                '    "knn__weights": ["uniform", "distance"],',
+                '    "knn__metric": ["euclidean", "manhattan"]',
+                '}',
+                '',
+                'grid = GridSearchCV(pipe, params, cv=5, scoring="accuracy")',
+                'grid.fit(X_train, y_train)',
+                '',
+                'print("Best Hyperparameters:", grid.best_params_)',
+                'print(f"Best Cross-Validation Accuracy: {grid.best_score_*100:.2f}%")',
+                '',
+                '# 4. Predict on Unseen Test Data',
+                'best_model = grid.best_estimator_',
+                'y_pred = best_model.predict(X_test)',
+                'print(classification_report(y_test, y_pred))'
+              ].join('\n')}
+              title="knn_production_pipeline.py"
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              2. Vectorized Pure NumPy Implementation (Pairwise Distances from Scratch):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                '',
+                'class PureNumpyKNN:',
+                '    def __init__(self, k=5, metric="euclidean", weights="uniform"):',
+                '        self.k = k',
+                '        self.metric = metric',
+                '        self.weights = weights',
+                '        self.X_train = None',
+                '        self.y_train = None',
+                '',
+                '    def fit(self, X, y):',
+                '        # Lazy learner: memorize training instances in O(1)',
+                '        self.X_train = np.array(X)',
+                '        self.y_train = np.array(y)',
+                '',
+                '    def _compute_distances(self, x_query):',
+                '        if self.metric == "euclidean":',
+                '            return np.sqrt(np.sum((self.X_train - x_query) ** 2, axis=1))',
+                '        elif self.metric == "manhattan":',
+                '            return np.sum(np.abs(self.X_train - x_query), axis=1)',
+                '        raise ValueError("Unsupported metric")',
+                '',
+                '    def predict(self, X):',
+                '        predictions = []',
+                '        for x_q in X:',
+                '            distances = self._compute_distances(x_q)',
+                '            # Indices of K nearest samples',
+                '            k_idx = np.argsort(distances)[:self.k]',
+                '            k_labels = self.y_train[k_idx]',
+                '',
+                '            if self.weights == "uniform":',
+                '                # Majority vote',
+                '                vals, counts = np.unique(k_labels, return_counts=True)',
+                '                pred = vals[np.argmax(counts)]',
+                '            elif self.weights == "distance":',
+                '                # Weighted by inverse distance',
+                '                k_dists = distances[k_idx] + 1e-7',
+                '                k_weights = 1.0 / k_dists',
+                '                unique_labels = np.unique(k_labels)',
+                '                weighted_votes = [np.sum(k_weights[k_labels == l]) for l in unique_labels]',
+                '                pred = unique_labels[np.argmax(weighted_votes)]',
+                '',
+                '            predictions.append(pred)',
+                '        return np.array(predictions)'
+              ].join('\n')}
+              title="knn_numpy_scratch.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1'
+  'ml-4-1', 'ml-4-2'
 ];
 
 export default function MLLessonArticlePage() {
@@ -15143,6 +16466,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'logistic_regression_interactive_studio' && (
               <LogisticRegressionInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'knn_interactive_studio' && (
+              <KNNInteractiveStudio />
             )}
           </div>
         )}
