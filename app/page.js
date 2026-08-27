@@ -208,12 +208,12 @@ const testimonials = [
 
 const faqs = [
   {
-    q: 'Is AIcademy free?',
-    a: 'Yes. AIcademy is completely free to start. You can take dozens of interactive courses, build coding streaks, and earn XP without paying anything. We also offer an optional premium plan with extra features for learners who want more.'
+    q: 'Is Vinci free?',
+    a: 'Yes. Vinci is completely free to start. You can take dozens of interactive courses, build coding streaks, and earn XP without paying anything. We also offer an optional premium plan with extra features for learners who want more.'
   },
   {
     q: 'How long does it take to learn AI engineering?',
-    a: "Most beginners can write useful AI-powered code within 1–2 months of consistent daily practice. Reaching a job-ready level for AI engineering usually takes 6–12 months. With AIcademy's gamified streaks and bite-sized lessons, you can make steady progress with as little as 15 minutes a day."
+    a: "Most beginners can write useful AI-powered code within 1–2 months of consistent daily practice. Reaching a job-ready level for AI engineering usually takes 6–12 months. With Vinci's gamified streaks and bite-sized lessons, you can make steady progress with as little as 15 minutes a day."
   },
   {
     q: 'What programming language should I learn first?',
@@ -221,15 +221,15 @@ const faqs = [
   },
   {
     q: 'Where can I learn AI and coding for free?',
-    a: 'Right here on AIcademy! We offer free interactive courses across Python, AI Engineering, Machine Learning, JavaScript, SQL, and more — taught through hands-on lessons with an in-browser code editor and instant AI feedback when you get stuck.'
+    a: 'Right here on Vinci! We offer free interactive courses across Python, AI Engineering, Machine Learning, JavaScript, SQL, and more — taught through hands-on lessons with an in-browser code editor and instant AI feedback when you get stuck.'
   },
   {
     q: 'How hard is it to learn to code?',
-    a: "Coding is a learnable skill, not a talent. Most beginners feel lost in the first few weeks — that's completely normal. The trick is short daily practice instead of long weekend sessions. AIcademy's bite-sized lessons and gamified streaks are built specifically to make sticking with it easy."
+    a: "Coding is a learnable skill, not a talent. Most beginners feel lost in the first few weeks — that's completely normal. The trick is short daily practice instead of long weekend sessions. Vinci's bite-sized lessons and gamified streaks are built specifically to make sticking with it easy."
   },
   {
-    q: 'Can I get a certificate from AIcademy?',
-    a: "Yes! Every course you complete on AIcademy comes with a verifiable certificate of completion. You can download it as a PDF and add it to your LinkedIn profile or résumé to showcase the AI and coding skills you've earned."
+    q: 'Can I get a certificate from Vinci?',
+    a: "Yes! Every course you complete on Vinci comes with a verifiable certificate of completion. You can download it as a PDF and add it to your LinkedIn profile or résumé to showcase the AI and coding skills you've earned."
   },
 ];
 
@@ -250,9 +250,9 @@ function Navbar() {
     <nav className={`${styles.nav} ${scrolled ? styles.navScrolled : ''}`}>
       <div className={styles.navInner}>
         <a href="/" className={styles.logo}>
-          <span className={styles.logoIcon}>AI</span>
-          <span className={styles.logoText}>cademy</span>
-          <span className={styles.logoTechBadge}>Tech</span>
+          <img src="/mascot.png" alt="Vinci" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
+          <span className={styles.logoText}>Vinci</span>
+          <span className={styles.logoTechBadge}>AI</span>
         </a>
 
         <div className={styles.navLinks}>
@@ -351,7 +351,7 @@ function HeroSection() {
       <div className={styles.heroInner}>
         <div className={styles.heroMascot}>
           <div className={styles.mascotWrapper}>
-            <img src="/mascot.png" alt="AIcademy mascot" className={styles.mascotImg} />
+            <img src="/mascot.png" alt="Vinci mascot" className={styles.mascotImg} />
           </div>
         </div>
 
@@ -406,7 +406,7 @@ function CatalogBanner() {
       <div className={styles.catalogBannerInner}>
         <div>
           <h2 className={styles.catalogBannerTitle}>Browse the full catalog</h2>
-          <p className={styles.catalogBannerDesc}>Every AIcademy course in one place — interactive lessons across Python, AI Engineering, Machine Learning, and more, runnable in your browser.</p>
+          <p className={styles.catalogBannerDesc}>Every Vinci course in one place — interactive lessons across Python, AI Engineering, Machine Learning, and more, runnable in your browser.</p>
         </div>
         <button className={styles.btnCatalog}>See all courses →</button>
       </div>
@@ -641,7 +641,7 @@ function FeaturesSection() {
   return (
     <section className={styles.featuresSection}>
       <div className={styles.featuresInner}>
-        <p className={styles.sectionEyebrow}>Why AIcademy?</p>
+        <p className={styles.sectionEyebrow}>Why Vinci?</p>
         <h2 className={styles.sectionTitleCenter}>Everything you need to succeed</h2>
         <p className={styles.sectionDescCenter}>We built the learning experience we wished we had when learning AI and coding.</p>
 
@@ -760,7 +760,7 @@ function FAQSection() {
       <div className={styles.faqInner}>
         <p className={styles.sectionEyebrow}>Got Questions?</p>
         <h2 className={styles.sectionTitleCenter}>Frequently Asked Questions</h2>
-        <p className={styles.sectionDescCenter}>Everything you need to know about AIcademy and learning AI &amp; coding.</p>
+        <p className={styles.sectionDescCenter}>Everything you need to know about Vinci and learning AI &amp; coding.</p>
 
         <div className={styles.faqList}>
           {faqs.map((faq, i) => (
@@ -794,7 +794,7 @@ function CTASection() {
     <section className={styles.ctaSection}>
       <div className={styles.ctaInner}>
         <h2 className={styles.ctaTitle}>Ready to start your AI journey?</h2>
-        <p className={styles.ctaDesc}>Join thousands of students learning Python, AI Engineering, and Machine Learning on AIcademy.</p>
+        <p className={styles.ctaDesc}>Join thousands of students learning Python, AI Engineering, and Machine Learning on Vinci.</p>
         <button className={styles.ctaBtn} id="cta-start">
           Start Learning — It&apos;s Free
         </button>
@@ -817,8 +817,8 @@ function Footer() {
         <div className={styles.footerTop}>
           <div className={styles.footerBrand}>
             <a href="/" className={styles.logo}>
-              <span className={styles.logoIcon}>AI</span>
-              <span className={styles.logoText}>cademy</span>
+              <img src="/mascot.png" alt="Vinci" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
+              <span className={styles.logoText} style={{ color: '#ffffff' }}>Vinci</span>
             </a>
             <p className={styles.footerBrandDesc}>The most effective way to learn AI &amp; coding through hands-on interactive courses.</p>
             <div className={styles.socialRow}>
@@ -837,7 +837,7 @@ function Footer() {
           ))}
         </div>
         <div className={styles.footerBottom}>
-          <span>© 2026 AIcademy. All rights reserved.</span>
+          <span>© 2026 Vinci. All rights reserved.</span>
         </div>
       </div>
     </footer>

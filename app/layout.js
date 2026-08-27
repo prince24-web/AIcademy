@@ -2,9 +2,9 @@ import './globals.css';
 import 'katex/dist/katex.min.css';
 
 export const metadata = {
-  title: 'AIcademy - Learn AI, Python & Machine Learning',
-  description: 'The most effective way to learn AI engineering, Python, and machine learning through hands-on interactive courses. Start your AI journey today.',
-  keywords: 'AI learning, Python course, machine learning, AI engineering, coding platform',
+  title: 'Vinci - Learn AI, Python & Machine Learning',
+  description: 'Vinci — The most effective way to learn AI engineering, Python, and machine learning through hands-on interactive courses. Start your AI journey today.',
+  keywords: 'Vinci, AI learning, Python course, machine learning, AI engineering, coding platform',
 };
 
 export default function RootLayout({ children }) {

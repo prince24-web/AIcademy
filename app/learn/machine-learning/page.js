@@ -381,8 +381,8 @@ export default function MLFundamentalsJourneyPage() {
     <div className={styles.container}>
       {/* ─── LEFT SIDEBAR ────────────────────────────────────────────── */}
       <aside className={styles.leftSidebar}>
-        <Link href="/" className={styles.sidebarLogo} title="AIcademy Home">
-          <img src="/mascot.png" alt="Mascot" className={styles.sidebarLogoImg} />
+        <Link href="/" className={styles.sidebarLogo} title="Vinci Home">
+          <img src="/mascot.png" alt="Vinci Mascot" className={styles.sidebarLogoImg} />
         </Link>
 
         <div className={styles.navItems}>

@@ -42,7 +42,7 @@ print(2026)`,
     ],
     analogy: 'Imagine a variable as a labeled storage box. The label on the outside is the variable name (e.g., "language"), and whatever you put inside the box is the value (e.g., "Python").',
     codeExample: `# Creating variables in Python
-site_name = "AIcademy"
+site_name = "Vinci"
 user_score = 95
 
 print(site_name)
@@ -75,7 +75,7 @@ print(user_score)`,
     ],
     analogy: 'Think of data types like types of containers in a kitchen: liquid goes in a bottle (String/Text), whole fruits go in a basket (Integers), and an on/off light switch represents a Boolean (True/False).',
     codeExample: `# Checking Python Data Types
-title = "AIcademy"    # str
+title = "Vinci"       # str
 age = 20              # int
 price = 19.99         # float
 is_active = True      # bool
@@ -89,13 +89,13 @@ print(type(age))`,
     ],
     challengeIntro: 'Print three different data types: a string, an integer, and a boolean value.',
     instructions: [
-      'Print text: print("AIcademy")',
+      'Print text: print("Vinci")',
       'Print a number: print(100)',
       'Print a boolean: print(True)'
     ],
-    initialCode: 'print("AIcademy")\nprint(100)\nprint(True)',
-    expectedOutput: 'AIcademy\n100\nTrue',
-    solutionCode: 'print("AIcademy")\nprint(100)\nprint(True)'
+    initialCode: 'print("Vinci")\nprint(100)\nprint(True)',
+    expectedOutput: 'Vinci\n100\nTrue',
+    solutionCode: 'print("Vinci")\nprint(100)\nprint(True)'
   },
 
   '1-4': {
@@ -535,7 +535,7 @@ else:
     analogy: 'A function is like a named recipe in a cookbook. Once defined, you can cook (call) the recipe as many times as you want without re-writing the instructions!',
     codeExample: `# Defining a function
 def greet():
-    print("Hello from AIcademy!")
+    print("Hello from Vinci!")
 
 # Calling the function
 greet()`,
@@ -544,14 +544,14 @@ greet()`,
       'Call functions by writing name() with parentheses.',
       'Prevents code duplication (DRY principle: Don\'t Repeat Yourself).'
     ],
-    challengeIntro: 'Define a function greet() that prints "Hello from AIcademy!" and call it.',
+    challengeIntro: 'Define a function greet() that prints "Hello from Vinci!" and call it.',
     instructions: [
-      'def greet(): print("Hello from AIcademy!")',
+      'def greet(): print("Hello from Vinci!")',
       'Call greet()'
     ],
-    initialCode: 'def greet():\n    print("Hello from AIcademy!")\n\ngreet()',
-    expectedOutput: 'Hello from AIcademy!',
-    solutionCode: 'def greet():\n    print("Hello from AIcademy!")\n\ngreet()'
+    initialCode: 'def greet():\n    print("Hello from Vinci!")\n\ngreet()',
+    expectedOutput: 'Hello from Vinci!',
+    solutionCode: 'def greet():\n    print("Hello from Vinci!")\n\ngreet()'
   },
 
   '4-2': {
