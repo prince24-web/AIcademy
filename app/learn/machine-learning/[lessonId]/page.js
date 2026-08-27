@@ -16273,11 +16273,1110 @@ const KNNInteractiveStudio = () => {
   );
 };
 
+// ─── NAIVE BAYES INTERACTIVE STUDIO ─────────────────────────────────────────
+const NaiveBayesInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('spam');
+
+  // Tab 1: Spam Filter State
+  const [emailText, setEmailText] = useState('urgent lottery prize winner claim cash now');
+  const [laplaceAlpha, setLaplaceAlpha] = useState(1.0);
+  const [spamPrior, setSpamPrior] = useState(0.4);
+
+  // Tab 2: 3D Gaussian Bell Surfaces State & Refs
+  const mount3DNBRef = useRef(null);
+  const scene3DNBRef = useRef(null);
+  const camera3DNBRef = useRef(null);
+  const renderer3DNBRef = useRef(null);
+  const meshGroupRef = useRef(null);
+  const [autoRotate3D, setAutoRotate3D] = useState(true);
+  const [mu0X, setMu0X] = useState(3.5);
+  const [mu1X, setMu1X] = useState(6.5);
+  const [sigmaVal, setSigmaVal] = useState(1.4);
+
+  // Tab 3: Bayes' Theorem Calculator State
+  const [diseasePrevalence, setDiseasePrevalence] = useState(1.0); // 1.0%
+  const [testSensitivity, setTestSensitivity] = useState(98.0); // 98%
+  const [falsePositiveRate, setFalsePositiveRate] = useState(5.0); // 5%
+
+  // Tab 4: Zero-Frequency State
+  const [includeUnseenWord, setIncludeUnseenWord] = useState(true);
+  const [smoothingAlphaTab4, setSmoothingAlphaTab4] = useState(0.0);
+
+  // Dictionary training statistics for Spam Filter
+  const spamDictionary = useMemo(() => ({
+    // word: { spamCount, hamCount }
+    urgent: { spam: 35, ham: 2 },
+    lottery: { spam: 42, ham: 0 },
+    prize: { spam: 28, ham: 1 },
+    winner: { spam: 31, ham: 1 },
+    claim: { spam: 26, ham: 3 },
+    cash: { spam: 38, ham: 4 },
+    now: { spam: 40, ham: 18 },
+    meeting: { spam: 1, ham: 45 },
+    project: { spam: 2, ham: 52 },
+    review: { spam: 3, ham: 38 },
+    tomorrow: { spam: 4, ham: 42 },
+    afternoon: { spam: 2, ham: 35 },
+    team: { spam: 1, ham: 48 },
+    exclusive: { spam: 29, ham: 2 },
+    luxury: { spam: 22, ham: 1 },
+    discount: { spam: 33, ham: 4 },
+    voucher: { spam: 27, ham: 1 },
+    click: { spam: 45, ham: 12 },
+    here: { spam: 39, ham: 15 },
+    security: { spam: 14, ham: 25 },
+    alert: { spam: 18, ham: 20 },
+    reset: { spam: 8, ham: 16 },
+    password: { spam: 12, ham: 22 },
+    immediately: { spam: 25, ham: 5 }
+  }), []);
+
+  const totalSpamWords = 600;
+  const totalHamWords = 800;
+  const vocabSize = 50;
+
+  // Compute Spam vs Ham Probabilities for Current Email Text
+  const spamEvaluation = useMemo(() => {
+    const rawWords = emailText.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).filter(Boolean);
+    const hamPrior = 1.0 - spamPrior;
+
+    let logSpam = Math.log(spamPrior);
+    let logHam = Math.log(hamPrior);
+
+    const tokenDetails = rawWords.map((word) => {
+      const stats = spamDictionary[word] || { spam: 0, ham: 0 };
+
+      // Smoothed likelihoods
+      const pWordSpam = (stats.spam + laplaceAlpha) / (totalSpamWords + laplaceAlpha * vocabSize);
+      const pWordHam = (stats.ham + laplaceAlpha) / (totalHamWords + laplaceAlpha * vocabSize);
+
+      logSpam += Math.log(pWordSpam);
+      logHam += Math.log(pWordHam);
+
+      return {
+        word,
+        spamCount: stats.spam,
+        hamCount: stats.ham,
+        pWordSpam,
+        pWordHam,
+        isSpamLeaning: pWordSpam > pWordHam
+      };
+    });
+
+    // Convert back from log-space via softmax stabilization
+    const maxLog = Math.max(logSpam, logHam);
+    const expSpam = Math.exp(logSpam - maxLog);
+    const expHam = Math.exp(logHam - maxLog);
+    const probSpam = expSpam / (expSpam + expHam);
+    const probHam = expHam / (expSpam + expHam);
+
+    return {
+      rawWords,
+      tokenDetails,
+      logSpam,
+      logHam,
+      probSpam,
+      probHam,
+      isSpam: probSpam >= 0.5
+    };
+  }, [emailText, laplaceAlpha, spamPrior, spamDictionary]);
+
+  // Bayes' Theorem Medical Calculator Evaluation
+  const bayesCalcResults = useMemo(() => {
+    const pD = diseasePrevalence / 100.0;
+    const pH = 1.0 - pD;
+    const pPosGivenD = testSensitivity / 100.0;
+    const pPosGivenH = falsePositiveRate / 100.0;
+
+    const truePosRate = pPosGivenD * pD;
+    const falsePosRate = pPosGivenH * pH;
+    const totalPosRate = truePosRate + falsePosRate;
+
+    const posteriorProb = totalPosRate > 0 ? (truePosRate / totalPosRate) * 100.0 : 0;
+
+    // Population of 1,000
+    const totalPop = 1000;
+    const truePosCount = Math.round(truePosRate * totalPop);
+    const falsePosCount = Math.round(falsePosRate * totalPop);
+    const trueNegCount = Math.round((1.0 - pPosGivenH) * pH * totalPop);
+    const falseNegCount = Math.round((1.0 - pPosGivenD) * pD * totalPop);
+
+    return {
+      pD,
+      pH,
+      pPosGivenD,
+      pPosGivenH,
+      truePosRate,
+      falsePosRate,
+      totalPosRate,
+      posteriorProb,
+      truePosCount,
+      falsePosCount,
+      trueNegCount,
+      falseNegCount
+    };
+  }, [diseasePrevalence, testSensitivity, falsePositiveRate]);
+
+  // ─── THREE.JS 3D GAUSSIAN DENSITY SETUP ──────────────────────────────
+  const init3DNBScene = useCallback(() => {
+    const container = mount3DNBRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth || 680;
+    const height = 400;
+
+    // Scene
+    const scene = new THREE.Scene();
+    scene3DNBRef.current = scene;
+    scene.background = new THREE.Color('#f8fafc');
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(16, 14, 18);
+    camera.lookAt(5.0, 2.0, 5.0);
+    camera3DNBRef.current = camera;
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    renderer3DNBRef.current = renderer;
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight('#ffffff', 0.85);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight('#ffffff', 1.2);
+    dirLight1.position.set(20, 30, 20);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight('#0284c7', 0.4);
+    dirLight2.position.set(-15, -10, -15);
+    scene.add(dirLight2);
+
+    // Coordinate Bounding Box Helper & Floor Grid
+    const gridFloor = new THREE.GridHelper(10, 10, '#cbd5e1', '#e2e8f0');
+    gridFloor.position.set(5.0, 0, 5.0);
+    scene.add(gridFloor);
+
+    // Dynamic Mesh Group
+    const meshGroup = new THREE.Group();
+    scene.add(meshGroup);
+    meshGroupRef.current = meshGroup;
+
+    // Build Parametric 3D Gaussian Bell Surfaces
+    const buildGaussianSurfaces = () => {
+      meshGroup.clear();
+
+      const segs = 35;
+      const size = 10;
+      const geom0 = new THREE.BufferGeometry();
+      const geom1 = new THREE.BufferGeometry();
+
+      const vertices0 = [];
+      const colors0 = [];
+      const vertices1 = [];
+      const colors1 = [];
+      const indices0 = [];
+      const indices1 = [];
+
+      const mu0 = { x: mu0X, y: 3.5 };
+      const mu1 = { x: mu1X, y: 6.5 };
+      const sigSq = sigmaVal * sigmaVal;
+      const heightScale = 14.0;
+
+      // Generate Vertices for Surface 0 (Orange) and Surface 1 (Blue)
+      for (let i = 0; i <= segs; i++) {
+        for (let j = 0; j <= segs; j++) {
+          const x = (i / segs) * size;
+          const z = (j / segs) * size;
+
+          // Gaussian 0
+          const distSq0 = (x - mu0.x) ** 2 + (z - mu0.y) ** 2;
+          const y0 = heightScale * Math.exp(-distSq0 / (2 * sigSq));
+          vertices0.push(x, y0, z);
+          colors0.push(0.92, 0.35 + (y0 / heightScale) * 0.4, 0.05);
+
+          // Gaussian 1
+          const distSq1 = (x - mu1.x) ** 2 + (z - mu1.y) ** 2;
+          const y1 = heightScale * Math.exp(-distSq1 / (2 * sigSq));
+          vertices1.push(x, y1, z);
+          colors1.push(0.01, 0.52 + (y1 / heightScale) * 0.3, 0.78);
+        }
+      }
+
+      // Generate Indices
+      for (let i = 0; i < segs; i++) {
+        for (let j = 0; j < segs; j++) {
+          const a = i * (segs + 1) + j;
+          const b = (i + 1) * (segs + 1) + j;
+          const c = (i + 1) * (segs + 1) + (j + 1);
+          const d = i * (segs + 1) + (j + 1);
+
+          indices0.push(a, b, d);
+          indices0.push(b, c, d);
+          indices1.push(a, b, d);
+          indices1.push(b, c, d);
+        }
+      }
+
+      geom0.setAttribute('position', new THREE.Float32BufferAttribute(vertices0, 3));
+      geom0.setAttribute('color', new THREE.Float32BufferAttribute(colors0, 3));
+      geom0.setIndex(indices0);
+      geom0.computeVertexNormals();
+
+      geom1.setAttribute('position', new THREE.Float32BufferAttribute(vertices1, 3));
+      geom1.setAttribute('color', new THREE.Float32BufferAttribute(colors1, 3));
+      geom1.setIndex(indices1);
+      geom1.computeVertexNormals();
+
+      const mat0 = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.65,
+        wireframe: false,
+        side: THREE.DoubleSide
+      });
+
+      const mat1 = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.65,
+        wireframe: false,
+        side: THREE.DoubleSide
+      });
+
+      const mesh0 = new THREE.Mesh(geom0, mat0);
+      const mesh1 = new THREE.Mesh(geom1, mat1);
+      meshGroup.add(mesh0);
+      meshGroup.add(mesh1);
+
+      // Decision Boundary Line on Floor Grid (where P(C0) = P(C1))
+      const midX = (mu0.x + mu1.x) / 2.0;
+      const lineGeom = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(midX, 0.05, 0),
+        new THREE.Vector3(midX, 0.05, 10)
+      ]);
+      const lineMat = new THREE.LineDashedMaterial({
+        color: '#001f54',
+        dashSize: 0.3,
+        gapSize: 0.2,
+        linewidth: 2
+      });
+      const boundLine = new THREE.Line(lineGeom, lineMat);
+      boundLine.computeLineDistances();
+      meshGroup.add(boundLine);
+    };
+    buildGaussianSurfaces();
+
+    // Mouse Orbit Controls
+    let isDragging = false;
+    let prevMouse = { x: 0, y: 0 };
+    let theta = 0.8;
+    let phi = 0.85;
+    const radius = 22;
+
+    const onMouseDown = (e) => {
+      isDragging = true;
+      prevMouse = { x: e.clientX, y: e.clientY };
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevMouse.x;
+      const dy = e.clientY - prevMouse.y;
+      prevMouse = { x: e.clientX, y: e.clientY };
+
+      theta -= dx * 0.008;
+      phi = Math.max(0.2, Math.min(Math.PI / 2 - 0.05, phi + dy * 0.008));
+    };
+
+    const onMouseUp = () => {
+      isDragging = false;
+    };
+
+    const domElem = renderer.domElement;
+    domElem.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate3D && !isDragging) {
+        theta += 0.0035;
+      }
+
+      camera.position.x = 5.0 + radius * Math.sin(phi) * Math.sin(theta);
+      camera.position.y = 2.0 + radius * Math.cos(phi);
+      camera.position.z = 5.0 + radius * Math.sin(phi) * Math.cos(theta);
+      camera.lookAt(5.0, 2.0, 5.0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      domElem.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+    };
+  }, [mu0X, mu1X, sigmaVal, autoRotate3D]);
+
+  // Mount Three.js canvas once
+  useEffect(() => {
+    const cleanup = init3DNBScene();
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [init3DNBScene]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #001f54, #0284c7)',
+              width: '46px',
+              height: '46px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+            }}>
+              <IconSparkles size={24} style={{ color: '#ffffff' }} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  background: '#001f54',
+                  color: '#ffffff',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.05em'
+                }}>
+                  INTERACTIVE STUDIO
+                </span>
+                <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 700 }}>
+                  Spam Filter & 3D Gaussian Bell
+                </span>
+              </div>
+              <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+                Naive Bayes Masterclass Studio
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          background: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          gap: '4px',
+          flexWrap: 'wrap',
+          marginTop: '1.25rem'
+        }}>
+          {[
+            { id: 'spam', label: 'Live Interactive Spam Filter (Multinomial NB)' },
+            { id: 'gaussian3d', label: '3D Gaussian Density Surfaces (Three.js)' },
+            { id: 'bayescalc', label: 'Bayes\' Theorem Visual Calculator' },
+            { id: 'smoothing', label: 'Laplace Smoothing & Zero-Frequency' },
+            { id: 'code', label: 'Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                border: 'none',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.2)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: LIVE INTERACTIVE SPAM FILTER (MULTINOMIAL NB) ───── */}
+      {activeTab === 'spam' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              Live Real-Time Spam Classification Engine
+            </h4>
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', color: '#475569' }}>
+              Type an email subject line or select a preset to see tokenization, conditional word likelihoods, and final Bayes posterior probabilities computed in real time.
+            </p>
+
+            {/* Presets */}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', alignSelf: 'center' }}>Presets:</span>
+              {[
+                { label: 'Spam Lottery', text: 'urgent lottery prize winner claim cash now' },
+                { label: 'Team Meeting', text: 'team meeting project review tomorrow afternoon' },
+                { label: 'Discount Voucher', text: 'exclusive luxury discount voucher click here' },
+                { label: 'Security Alert', text: 'urgent security alert reset password immediately' }
+              ].map((p) => (
+                <button
+                  key={p.label}
+                  onClick={() => setEmailText(p.text)}
+                  style={{
+                    background: emailText === p.text ? '#001f54' : '#ffffff',
+                    color: emailText === p.text ? '#ffffff' : '#001f54',
+                    border: '1px solid #cbd5e1',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Input Box */}
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                type="text"
+                value={emailText}
+                onChange={(e) => setEmailText(e.target.value)}
+                placeholder="Type email words here (e.g. urgent prize money meeting)..."
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #cbd5e1',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* Hyperparameter Controls */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: '#ffffff', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
+                  <span>Laplace Smoothing (α):</span>
+                  <span style={{ color: '#0284c7' }}>{laplaceAlpha.toFixed(1)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.0"
+                  max="3.0"
+                  step="0.2"
+                  value={laplaceAlpha}
+                  onChange={(e) => setLaplaceAlpha(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54' }}
+                />
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
+                  <span>Prior P(Spam):</span>
+                  <span style={{ color: '#ea580c' }}>{(spamPrior * 100).toFixed(0)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="0.9"
+                  step="0.05"
+                  value={spamPrior}
+                  onChange={(e) => setSpamPrior(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#ea580c' }}
+                />
+              </div>
+            </div>
+
+            {/* Real-Time Word Tokenization Breakdown Table */}
+            <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '0.75rem', overflowX: 'auto', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>
+                Token Evidence Breakdown (P(word | Class))
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', color: '#475569', textAlign: 'left' }}>
+                    <th style={{ padding: '6px 10px' }}>Token</th>
+                    <th style={{ padding: '6px 10px' }}>Training Count (Spam / Ham)</th>
+                    <th style={{ padding: '6px 10px' }}>P(word | Spam)</th>
+                    <th style={{ padding: '6px 10px' }}>P(word | Ham)</th>
+                    <th style={{ padding: '6px 10px' }}>Evidence Direction</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {spamEvaluation.tokenDetails.map((t, idx) => (
+                    <tr key={`${t.word}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '6px 10px', fontWeight: 700, color: '#001f54' }}>"{t.word}"</td>
+                      <td style={{ padding: '6px 10px' }}>{t.spamCount} / {t.hamCount}</td>
+                      <td style={{ padding: '6px 10px', color: '#ea580c', fontWeight: 700 }}>
+                        {(t.pWordSpam * 100).toFixed(2)}%
+                      </td>
+                      <td style={{ padding: '6px 10px', color: '#059669', fontWeight: 700 }}>
+                        {(t.pWordHam * 100).toFixed(2)}%
+                      </td>
+                      <td style={{ padding: '6px 10px', fontWeight: 800 }}>
+                        <span style={{
+                          color: t.isSpamLeaning ? '#dc2626' : '#059669',
+                          background: t.isSpamLeaning ? '#fef2f2' : '#ecfdf5',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.72rem'
+                        }}>
+                          {t.isSpamLeaning ? 'Spam Indicator' : 'Ham Indicator'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Final Posterior Banner */}
+            <div style={{
+              background: spamEvaluation.isSpam ? '#fef2f2' : '#ecfdf5',
+              border: `2px solid ${spamEvaluation.isSpam ? '#fecaca' : '#a7f3d0'}`,
+              borderRadius: '12px',
+              padding: '1rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                  Final Bayesian Inference Verdict
+                </div>
+                <div style={{
+                  fontSize: '1.4rem',
+                  fontWeight: 900,
+                  color: spamEvaluation.isSpam ? '#dc2626' : '#059669',
+                  marginTop: '2px'
+                }}>
+                  {spamEvaluation.isSpam ? 'SPAM DETECTED' : 'LEGITIMATE HAM (INBOX)'}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '2px' }}>
+                  Log-Score Spam: <code>{spamEvaluation.logSpam.toFixed(2)}</code> | Log-Score Ham: <code>{spamEvaluation.logHam.toFixed(2)}</code>
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'right', minWidth: '180px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#001f54', marginBottom: '4px' }}>
+                  Calculated Posterior Probabilities:
+                </div>
+                <div style={{ fontSize: '0.95rem', fontWeight: 800 }}>
+                  <span style={{ color: '#dc2626' }}>Spam: {(spamEvaluation.probSpam * 100).toFixed(1)}%</span>
+                  {'  |  '}
+                  <span style={{ color: '#059669' }}>Ham: {(spamEvaluation.probHam * 100).toFixed(1)}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: 3D GAUSSIAN DENSITY SURFACES (THREE.JS) ──────────── */}
+      <div style={{ display: activeTab === 'gaussian3d' ? 'block' : 'none' }}>
+        <div style={{
+          background: '#f8fafc',
+          borderRadius: '16px',
+          border: '1.5px solid #e2e8f0',
+          padding: '1.25rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <h4 style={{ margin: 0, color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+                3D Gaussian Probability Density Bells & Bayes Optimal Boundary
+              </h4>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px' }}>
+                Inspect the probability density functions P(X | Class 0) [Orange] and P(X | Class 1) [Blue]. The dashed line marks the Bayes Decision Boundary.
+              </div>
+            </div>
+            <button
+              onClick={() => setAutoRotate3D(!autoRotate3D)}
+              style={{
+                background: autoRotate3D ? '#001f54' : '#ffffff',
+                color: autoRotate3D ? '#ffffff' : '#001f54',
+                border: '1.5px solid #001f54',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              {autoRotate3D ? 'Pause Auto-Rotate' : 'Resume Auto-Rotate'}
+            </button>
+          </div>
+
+          {/* Three.js Canvas Container */}
+          <div
+            ref={mount3DNBRef}
+            style={{
+              width: '100%',
+              height: '400px',
+              borderRadius: '14px',
+              overflow: 'hidden',
+              border: '1.5px solid #cbd5e1',
+              background: '#f8fafc',
+              position: 'relative'
+            }}
+          />
+
+          {/* Sliders */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+            <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                <span>Class 0 Mean (μ₀):</span>
+                <span style={{ color: '#ea580c' }}>{mu0X.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="2.0"
+                max="4.5"
+                step="0.2"
+                value={mu0X}
+                onChange={(e) => setMu0X(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#ea580c' }}
+              />
+            </div>
+
+            <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                <span>Class 1 Mean (μ₁):</span>
+                <span style={{ color: '#0284c7' }}>{mu1X.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="5.5"
+                max="8.0"
+                step="0.2"
+                value={mu1X}
+                onChange={(e) => setMu1X(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#0284c7' }}
+              />
+            </div>
+
+            <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                <span>Feature Spread (σ):</span>
+                <span style={{ color: '#001f54' }}>{sigmaVal.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="0.8"
+                max="2.5"
+                step="0.1"
+                value={sigmaVal}
+                onChange={(e) => setSigmaVal(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── TAB 3: BAYES' THEOREM VISUAL CALCULATOR ──────────────────── */}
+      {activeTab === 'bayescalc' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              The Base Rate Fallacy: Medical Screening & Fraud Calculator
+            </h4>
+            <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.88rem', color: '#475569' }}>
+              Why does a positive result on a 98% accurate medical test only indicate a 16% chance of having a rare disease? Understand how Priors overpower Test Accuracy.
+            </p>
+
+            {/* Sliders */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                  <span>Disease Prevalence (Prior):</span>
+                  <span style={{ color: '#ea580c' }}>{diseasePrevalence.toFixed(1)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="15.0"
+                  step="0.1"
+                  value={diseasePrevalence}
+                  onChange={(e) => setDiseasePrevalence(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#ea580c' }}
+                />
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                  <span>Test Sensitivity (True Positive Rate):</span>
+                  <span style={{ color: '#059669' }}>{testSensitivity.toFixed(1)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="80.0"
+                  max="99.9"
+                  step="0.5"
+                  value={testSensitivity}
+                  onChange={(e) => setTestSensitivity(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#059669' }}
+                />
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                  <span>False Positive Rate (Healthy but +):</span>
+                  <span style={{ color: '#dc2626' }}>{falsePositiveRate.toFixed(1)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="1.0"
+                  max="15.0"
+                  step="0.5"
+                  value={falsePositiveRate}
+                  onChange={(e) => setFalsePositiveRate(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#dc2626' }}
+                />
+              </div>
+            </div>
+
+            {/* Population Grid Visualization (1,000 people) */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                  Simulated Population of 1,000 Tested Individuals:
+                </div>
+                <div style={{ display: 'flex', gap: '14px', fontSize: '0.75rem', fontWeight: 700 }}>
+                  <span style={{ color: '#059669' }}>● True Positive ({bayesCalcResults.truePosCount})</span>
+                  <span style={{ color: '#dc2626' }}>● False Positive ({bayesCalcResults.falsePosCount})</span>
+                  <span style={{ color: '#94a3b8' }}>● Healthy Negative ({bayesCalcResults.trueNegCount})</span>
+                </div>
+              </div>
+
+              {/* Mosaic Dots Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(50, 1fr)',
+                gap: '3px',
+                background: '#f8fafc',
+                padding: '10px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                maxHeight: '140px',
+                overflow: 'hidden'
+              }}>
+                {Array.from({ length: 400 }).map((_, i) => {
+                  let color = '#cbd5e1';
+                  if (i < Math.round((bayesCalcResults.truePosCount / 1000) * 400)) {
+                    color = '#059669'; // True positive
+                  } else if (i < Math.round(((bayesCalcResults.truePosCount + bayesCalcResults.falsePosCount) / 1000) * 400)) {
+                    color = '#dc2626'; // False positive
+                  }
+                  return (
+                    <div
+                      key={`dot-${i}`}
+                      style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: color
+                      }}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Formula & Posterior Output Card */}
+              <div style={{
+                marginTop: '1.25rem',
+                background: '#eff6ff',
+                border: '1.5px solid #bfdbfe',
+                borderRadius: '12px',
+                padding: '1rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem'
+              }}>
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: '#1e40af', fontWeight: 800, textTransform: 'uppercase' }}>
+                    Calculated Posterior Probability P(Disease | Positive Test)
+                  </div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#001f54', marginTop: '2px' }}>
+                    {bayesCalcResults.posteriorProb.toFixed(1)}%
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#334155', marginTop: '2px' }}>
+                    P(D | +) = [P(+ | D) · P(D)] / [P(+ | D) · P(D) + P(+ | H) · P(H)] = {bayesCalcResults.truePosCount} / ({bayesCalcResults.truePosCount} + {bayesCalcResults.falsePosCount})
+                  </div>
+                </div>
+
+                <div style={{ maxWidth: '280px', fontSize: '0.78rem', color: '#1e3a8a', lineHeight: '1.4' }}>
+                  <strong>Key Bayesian Insight:</strong> Because the disease is rare ({diseasePrevalence}%), the small {falsePositiveRate}% false-positive rate on the 99% healthy majority creates {bayesCalcResults.falsePosCount} false alarms, outnumbering the {bayesCalcResults.truePosCount} genuine positive cases!
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: LAPLACE SMOOTHING & ZERO-FREQUENCY ──────────────── */}
+      {activeTab === 'smoothing' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1.5px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#001f54', fontSize: '1.05rem', fontWeight: 800 }}>
+              The Zero-Frequency Vulnerability & Laplace Smoothing
+            </h4>
+            <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.88rem', color: '#475569' }}>
+              Observe what happens when an unseen word enters an incoming email. If smoothing is set to α = 0, a single zero wipes out all other evidence!
+            </p>
+
+            {/* Toggle Unseen Word & Slider */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, marginBottom: '6px' }}>Unseen Word in Email:</div>
+                <button
+                  onClick={() => setIncludeUnseenWord(!includeUnseenWord)}
+                  style={{
+                    width: '100%',
+                    background: includeUnseenWord ? '#dc2626' : '#059669',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {includeUnseenWord ? 'Word "cryptocurrency" Present' : 'No Unseen Words'}
+                </button>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, marginBottom: '4px' }}>
+                  <span>Laplace Smoothing (α):</span>
+                  <span style={{ color: smoothingAlphaTab4 === 0 ? '#dc2626' : '#059669', fontWeight: 800 }}>
+                    {smoothingAlphaTab4 === 0 ? 'α = 0.0 (No Smoothing!)' : `α = ${smoothingAlphaTab4.toFixed(1)}`}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.0"
+                  max="2.0"
+                  step="0.5"
+                  value={smoothingAlphaTab4}
+                  onChange={(e) => setSmoothingAlphaTab4(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54' }}
+                />
+              </div>
+            </div>
+
+            {/* Scenario Breakdown Card */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '14px',
+              border: `1.5px solid ${includeUnseenWord && smoothingAlphaTab4 === 0 ? '#fecaca' : '#cbd5e1'}`,
+              padding: '1.25rem'
+            }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54', marginBottom: '8px' }}>
+                Probability Product Chain:
+              </div>
+
+              {includeUnseenWord && smoothingAlphaTab4 === 0 ? (
+                <div style={{
+                  background: '#fef2f2',
+                  border: '1.5px solid #fecaca',
+                  padding: '1rem',
+                  borderRadius: '10px',
+                  color: '#991b1b',
+                  fontSize: '0.85rem',
+                  lineHeight: '1.5'
+                }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, marginBottom: '4px' }}>
+                    Catastrophic Zero-Frequency Lockup!
+                  </div>
+                  P(Ham | Email) ∝ 0.60 × 0.05 × 0.08 × <strong>0.00</strong> = <strong>0.0</strong><br />
+                  Because "cryptocurrency" had 0 counts in Ham during training, P(crypto | Ham) = 0. Multiplying across terms wipes out all 50 other legitimate words!
+                </div>
+              ) : (
+                <div style={{
+                  background: '#ecfdf5',
+                  border: '1.5px solid #a7f3d0',
+                  padding: '1rem',
+                  borderRadius: '10px',
+                  color: '#065f46',
+                  fontSize: '0.85rem',
+                  lineHeight: '1.5'
+                }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, marginBottom: '4px' }}>
+                    Model Protected by Additive Smoothing:
+                  </div>
+                  P(Ham | Email) ∝ 0.60 × 0.05 × 0.08 × <strong>{((0 + smoothingAlphaTab4) / (800 + smoothingAlphaTab4 * 50)).toFixed(4)}</strong> &gt; <strong>0.0</strong><br />
+                  Every word receives a tiny pseudo-count α, preventing zero division or multiplication while preserving the relative ranking of all genuine evidence words.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON IMPLEMENTATION (SKLEARN & NUMPY) ─────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              1. Production Scikit-Learn Text Pipeline (TF-IDF + Multinomial Naive Bayes):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                'from sklearn.feature_extraction.text import TfidfVectorizer',
+                'from sklearn.naive_bayes import MultinomialNB',
+                'from sklearn.pipeline import Pipeline',
+                'from sklearn.model_selection import GridSearchCV',
+                '',
+                '# 1. Training Corpus (Spam: 1, Ham: 0)',
+                'train_texts = [',
+                '    "urgent lottery winner claim your cash prize now",',
+                '    "exclusive discount voucher click link below",',
+                '    "team meeting scheduled for tomorrow afternoon",',
+                '    "quarterly financial report attached for review"',
+                ']',
+                'train_labels = [1, 1, 0, 0]',
+                '',
+                '# 2. Build Pipeline with TF-IDF Vectorizer & MultinomialNB',
+                'pipe = Pipeline([',
+                '    ("tfidf", TfidfVectorizer(ngram_range=(1, 2), stop_words="english")),',
+                '    ("nb", MultinomialNB())',
+                '])',
+                '',
+                '# 3. Optimize Laplace Smoothing Parameter (alpha)',
+                'params = {"nb__alpha": [0.01, 0.1, 0.5, 1.0, 2.0]}',
+                'grid = GridSearchCV(pipe, params, cv=2)',
+                'grid.fit(train_texts, train_labels)',
+                '',
+                'print("Optimal Smoothing Parameter:", grid.best_params_)',
+                'best_clf = grid.best_estimator_',
+                '',
+                '# 4. Predict on Unseen Emails',
+                'query_emails = ["urgent meeting with winner", "review financial report"]',
+                'preds = best_clf.predict(query_emails)',
+                'probs = best_clf.predict_proba(query_emails)',
+                'for email, pred, p in zip(query_emails, preds, probs):',
+                '    print(f"\'{email}\' -> {\'SPAM\' if pred == 1 else \'HAM\'} ({p[1]*100:.1f}% Spam)")'
+              ].join('\n')}
+              title="naive_bayes_production_pipeline.py"
+            />
+          </div>
+
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              2. Vectorized Pure NumPy Gaussian Naive Bayes from Scratch:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                '',
+                'class PureNumpyGaussianNB:',
+                '    def fit(self, X, y):',
+                '        self.classes = np.unique(y)',
+                '        self.parameters = {}',
+                '        ',
+                '        # Compute Prior, Mean, and Variance per class',
+                '        for c in self.classes:',
+                '            X_c = X[y == c]',
+                '            self.parameters[c] = {',
+                '                "prior": len(X_c) / len(X),',
+                '                "mean": np.mean(X_c, axis=0),',
+                '                "var": np.var(X_c, axis=0) + 1e-9 # eps for stability',
+                '            }',
+                '',
+                '    def _pdf(self, x, mean, var):',
+                '        # 1D Gaussian Probability Density Function',
+                '        return (1.0 / np.sqrt(2 * np.pi * var)) * np.exp(-((x - mean) ** 2) / (2 * var))',
+                '',
+                '    def predict(self, X):',
+                '        predictions = []',
+                '        for x in X:',
+                '            posteriors = {}',
+                '            for c in self.classes:',
+                '                prior = np.log(self.parameters[c]["prior"])',
+                '                # Sum of log-likelihoods across features to prevent underflow',
+                '                likelihoods = self._pdf(x, self.parameters[c]["mean"], self.parameters[c]["var"])',
+                '                log_likelihood = np.sum(np.log(likelihoods + 1e-12))',
+                '                posteriors[c] = prior + log_likelihood',
+                '            ',
+                '            # Maximum A Posteriori (MAP) class selection',
+                '            pred_class = max(posteriors, key=posteriors.get)',
+                '            predictions.append(pred_class)',
+                '        return np.array(predictions)'
+              ].join('\n')}
+              title="gaussian_nb_numpy_scratch.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2'
+  'ml-4-1', 'ml-4-2', 'ml-4-3'
 ];
 
 export default function MLLessonArticlePage() {
@@ -16469,6 +17568,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'knn_interactive_studio' && (
               <KNNInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'naive_bayes_interactive_studio' && (
+              <NaiveBayesInteractiveStudio />
             )}
           </div>
         )}

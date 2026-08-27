@@ -2975,6 +2975,220 @@ export const mlLessonsData = {
       correctIndex: 0,
       explanation: 'Correct! Euclidean distance computes the sum of squared coordinate differences. A difference of 10,000 produces a squared term of 100,000,000, which completely dwarfs a squared difference of 1.0 (from 0 to 1). Without scaling, the second feature contributes 0.000001% to the distance and is completely ignored.'
     }
+  },
+
+  'ml-4-3': {
+    id: 'ml-4-3',
+    title: 'Naive Bayes',
+    moduleTitle: 'MODULE 4: CLASSIFICATION',
+    readTime: '28 min read',
+    difficulty: 'Intermediate',
+    badgeText: 'Probabilistic Classifier',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: 'https://www.geeksforgeeks.org/naive-bayes-classifiers/',
+
+    learningObjectives: [
+      'Derive Bayes\' Theorem from conditional probability and formulate classification as a Maximum A Posteriori (MAP) decision rule.',
+      'Demystify the "Naive" conditional independence assumption and understand why it scales inference from O(2^d) to O(d).',
+      'Master log-likelihood transformations to prevent floating-point arithmetic underflow in high-dimensional text classification.',
+      'Understand the zero-frequency trap and implement additive Laplace and Lidstone smoothing (alpha > 0).',
+      'Contrast the three foundational variants: Gaussian NB (continuous), Multinomial NB (word counts), and Bernoulli NB (binary indicators).',
+      'Analyze the fundamental divide between Generative models (Naive Bayes) and Discriminative models (Logistic Regression).',
+      'Build end-to-end spam filtering and sentiment analysis pipelines in Scikit-Learn and write a vectorized Gaussian NB from scratch in NumPy.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Probabilistic Foundation: Bayes\' Theorem & MAP Decision Rule',
+        paragraphs: [
+          'Naive Bayes is a family of probabilistic machine learning classifiers grounded in Bayes\' Theorem—one of the most celebrated and fundamental formulas in probability theory. Rather than constructing a geometric boundary (like Support Vector Machines) or computing spatial distances (like KNN), Naive Bayes answers a purely probabilistic question: "Given the observed evidence X, what is the probability that this sample belongs to class y?"',
+          'Let $X = (x_1, x_2, \\dots, x_d)$ denote the feature vector of an incoming sample, and let $y \\in \\{C_1, C_2, \\dots, C_K\\}$ denote the candidate classes. Bayes\' Theorem states:',
+          '$$P(y \\mid X) = \\frac{P(X \\mid y) \\cdot P(y)}{P(X)}$$',
+          'To master Bayesian classification, you must understand the exact physical role of each component:',
+          '1. Posterior Probability $P(y \\mid X)$: The updated probability that the sample belongs to class $y$ after observing features $X$. This is the target output of our classifier.',
+          '2. Prior Probability $P(y)$: The baseline historical prevalence of class $y$ before observing any evidence. In a training set of $N$ samples with $N_y$ positive cases, $P(y) = N_y / N$. For example, if $20\\%$ of all historical emails are spam, the prior $P(\\text{Spam}) = 0.20$.',
+          '3. Likelihood $P(X \\mid y)$: The probability of observing feature vector $X$ assuming the true class is $y$. For example: "If an email is indeed spam, how likely is it to contain the words \'lottery\', \'winner\', and \'wire\'?"',
+          '4. Evidence (Marginal Probability) $P(X)$: The total probability of observing feature vector $X$ across all possible classes: $P(X) = \\sum_{k=1}^K P(X \\mid C_k) P(C_k)$. Notice that $P(X)$ is identical for every class $y$. Because our goal is to rank candidate classes and select the highest probability, $P(X)$ serves solely as a normalizing scale constant and can be safely dropped during classification!',
+          'Maximum A Posteriori (MAP) Decision Rule: The optimal class prediction $\\hat{y}$ is chosen as the class that maximizes the joint numerator:',
+          '$$\\hat{y} = \\arg\\max_{y} P(X \\mid y) \\cdot P(y)$$'
+        ]
+      },
+      {
+        heading: '2. The "Naive" Assumption: Conquering the Curse of Joint Likelihood',
+        paragraphs: [
+          'Why is the algorithm called "Naive"? The answer lies in the catastrophic computational difficulty of calculating the true joint likelihood $P(x_1, x_2, \\dots, x_d \\mid y)$.',
+          'Consider a document classification task with $d = 1,000$ binary word features. To estimate the true joint probability $P(x_1, x_2, \\dots, x_d \\mid y)$ without any simplifying assumptions, we would need to estimate $2^{1000} - 1$ distinct conditional probabilities for every class! That number exceeds the estimated total atoms in the observable universe. We would never have enough training data to encounter even a tiny fraction of these feature combinations.',
+          'The Naive Simplification: Naive Bayes cuts through this Gordian knot by making an audacious mathematical assumption: All features are conditionally independent given the class label $y$:',
+          '$$P(x_1, x_2, \\dots, x_d \\mid y) = \\prod_{i=1}^d P(x_i \\mid y) = P(x_1 \\mid y) \\cdot P(x_2 \\mid y) \\cdots P(x_d \\mid y)$$',
+          'By assuming conditional independence, the number of parameters to estimate collapses from exponential $O(2^d)$ to linear $O(d)$! We simply count the occurrence of each individual feature within each class independently.',
+          'Why does it work so well in practice? In real-world data, features are rarely completely independent (for example, the word "credit" and "card" appear together frequently). Yet empirical research has repeatedly demonstrated that Naive Bayes achieves competitive or state-of-the-art classification accuracy. This occurs because classification requires only correct rank-ordering of classes (is $P(\\text{Spam}) > P(\\text{Ham})$?), not perfectly calibrated probabilities. Even when individual probabilities are distorted by feature correlations, the decision threshold remains robust.'
+        ]
+      },
+      {
+        heading: '3. Floating-Point Underflow & The Log-Likelihood Transformation',
+        paragraphs: [
+          'In modern machine learning applications, feature vectors frequently span thousands of dimensions. In natural language processing, a document may contain $d = 3,000$ tokens. When computing the product of 3,000 individual probabilities where each $P(x_i \\mid y) < 0.01$:',
+          '$$\\prod_{i=1}^{3000} 0.01 = 10^{-6000}$$',
+          'Standard 64-bit double-precision floating-point numbers can only represent numbers down to approximately $2.22 \\times 10^{-308}$. Any value smaller than this causes Arithmetic Underflow: the computer truncates the number to exactly $0.0$. Multiplying across thousands of terms results in a posterior of zero for every class, causing the classifier to fail catastrophically.',
+          'The Log-Likelihood Solution: Because the natural logarithm $\\ln(z)$ is a strictly monotonically increasing function, maximizing $f(z)$ is mathematically equivalent to maximizing $\\ln(f(z))$. Applying the natural logarithm transforms the dangerous product of probabilities into a numerically stable sum of log-probabilities:',
+          '$$\\ln \\left( P(y) \\prod_{i=1}^d P(x_i \\mid y) \\right) = \\ln P(y) + \\sum_{i=1}^d \\ln P(x_i \\mid y)$$',
+          'Advantages of the Log-Likelihood Formulation:',
+          '1. Absolute Underflow Immunity: Instead of multiplying tiny decimals, we sum moderate negative numbers (e.g., $\\ln(0.001) \\approx -6.91$).',
+          '2. Computational Speed: In hardware, addition operations are significantly faster and consume fewer CPU cycles than repeated floating-point multiplication.'
+        ]
+      },
+      {
+        heading: '4. The Zero-Frequency Problem & Laplace (Additive) Smoothing',
+        paragraphs: [
+          'A dangerous vulnerability of raw frequency-based estimation is the Zero-Frequency Problem. Suppose during training, the word "cryptocurrency" appeared 10 times in Spam emails, but never appeared in a single legitimate (Ham) email. Then the raw Maximum Likelihood Estimate is:',
+          '$$P(\\text{"cryptocurrency"} \\mid \\text{Ham}) = \\frac{0}{N_{\\text{Ham}}} = 0.0$$',
+          'Now suppose an important email arrives from your CEO containing 150 normal words, but includes the sentence: "Please review our new cryptocurrency corporate policy." When computing the posterior probability for Ham, the zero probability enters the product:',
+          '$$P(\\text{Ham} \\mid \\text{Email}) \\propto P(\\text{Ham}) \\cdot P(\\text{meeting} \\mid \\text{Ham}) \\cdots \\underbrace{P(\\text{cryptocurrency} \\mid \\text{Ham})}_{0.0} = 0.0$$',
+          'A single unseen feature completely obliterates all other 149 words of overwhelming evidence, instantly forcing the entire posterior to zero!',
+          'Laplace (Additive) Smoothing: To prevent this zero-multiplication lockup, we introduce a pseudo-count $\\alpha$ (typically $\\alpha = 1$, known as Laplace smoothing; when $\\alpha < 1$, known as Lidstone smoothing):',
+          '$$P(w_i \\mid y) = \\frac{\\text{count}(w_i, y) + \\alpha}{\\sum_{w \\in V} \\text{count}(w, y) + \\alpha \\cdot |V|}$$',
+          'Here, $|V|$ represents the total vocabulary size (the number of unique features across all classes). By adding $\\alpha$ to the numerator and $\\alpha \\cdot |V|$ to the denominator, we ensure that every possible feature has a non-zero probability, while the sum of probabilities over the entire vocabulary remains exactly $1.0$.'
+        ]
+      },
+      {
+        heading: '5. The Three Core Variants: Gaussian, Multinomial & Bernoulli',
+        paragraphs: [
+          'Depending on the mathematical nature of your input features, Naive Bayes provides three specialized architectural variants:',
+          '1. Gaussian Naive Bayes (`GaussianNB`): Designed for continuous, real-valued features (e.g. temperature, blood pressure, salary). It assumes that continuous features within each class follow a normal (Gaussian) distribution parameterized by class mean $\\mu_{y,i}$ and variance $\\sigma_{y,i}^2$:',
+          '$$P(x_i \\mid y) = \\frac{1}{\\sqrt{2\\pi \\sigma_{y,i}^2}} \\exp\\left( -\\frac{(x_i - \\mu_{y,i})^2}{2\\sigma_{y,i}^2} \\right)$$',
+          '2. Multinomial Naive Bayes (`MultinomialNB`): Designed for discrete frequency counts (e.g. word token counts in text classification). The likelihood represents the probability of observing a particular token frequency vector generated by a multinomial distribution.',
+          '3. Bernoulli Naive Bayes (`BernoulliNB`): Designed for binary boolean features ($x_i \\in \\{0, 1\\}$, e.g. whether a word appears or not). Unlike Multinomial NB, Bernoulli NB explicitly models the absence of features:',
+          '$$P(X \\mid y) = \\prod_{i=1}^d P(x_i = 1 \\mid y)^{x_i} \\cdot (1 - P(x_i = 1 \\mid y))^{(1 - x_i)}$$',
+          'In Bernoulli NB, if a spam email characteristically *lacks* common polite greeting words, the absence of those words contributes directly to the spam classification score.'
+        ]
+      },
+      {
+        heading: '6. Real-World Case Study: Building a High-Throughput Spam Classifier',
+        paragraphs: [
+          'Let us trace a complete, end-to-end numerical computation for spam classification. Suppose we have a corpus with Prior Probabilities: $P(\\text{Spam}) = 0.40$ and $P(\\text{Ham}) = 0.60$.',
+          'A test message arrives containing three words: "urgent lottery winner". Using our smoothed training dictionary:',
+          '• $P(\\text{"urgent"} \\mid \\text{Spam}) = 0.05$, $P(\\text{"urgent"} \\mid \\text{Ham}) = 0.01$',
+          '• $P(\\text{"lottery"} \\mid \\text{Spam}) = 0.08$, $P(\\text{"lottery"} \\mid \\text{Ham}) = 0.001$',
+          '• $P(\\text{"winner"} \\mid \\text{Spam}) = 0.06$, $P(\\text{"winner"} \\mid \\text{Ham}) = 0.002$',
+          'Computing Unnormalized Joint Probabilities:',
+          '$$\\text{Score}(\\text{Spam}) = 0.40 \\times 0.05 \\times 0.08 \\times 0.06 = 0.40 \\times 0.00024 = 0.000096$$',
+          '$$\\text{Score}(\\text{Ham}) = 0.60 \\times 0.01 \\times 0.001 \\times 0.002 = 0.60 \\times 0.00000002 = 0.000000012$$',
+          'Normalizing Evidence $P(X) = 0.000096 + 0.000000012 = 0.000096012$:',
+          '$$P(\\text{Spam} \\mid X) = \\frac{0.000096}{0.000096012} = 99.987\\% \\quad \\implies \\quad \\text{Classified as SPAM}$$'
+        ]
+      },
+      {
+        heading: '7. Generative vs. Discriminative Classifiers: Naive Bayes vs. Logistic Regression',
+        paragraphs: [
+          'A foundational concept in statistical machine learning is the dichotomy between Generative and Discriminative models:',
+          '1. Generative Models (Naive Bayes, Gaussian Mixture Models, Hidden Markov Models): Model the joint probability distribution $P(X, Y) = P(X \\mid Y) P(Y)$. A generative model attempts to learn how the data was generated for each class. In theory, you could use a trained Naive Bayes model to generate new synthetic spam emails by sampling words from $P(w \\mid \\text{Spam})$.',
+          '2. Discriminative Models (Logistic Regression, Support Vector Machines, Neural Networks): Model the conditional probability $P(Y \\mid X)$ directly, focusing solely on carving the optimal decision boundary between classes.',
+          'The Ng & Jordan (2001) Theoretical Tradeoff: In their landmark paper, Andrew Ng and Michael Jordan proved that Naive Bayes reaches its asymptotic error rate at sample complexity $O(\\log d)$, whereas Logistic Regression requires $O(d)$ samples. This means Naive Bayes converges to its peak accuracy with far less training data than Logistic Regression, making it the premier choice for low-data regimes. However, as the dataset size $N \\to \\infty$, Logistic Regression achieves a lower asymptotic error because it does not assume feature independence.'
+        ]
+      },
+      {
+        heading: '8. Probability Calibration & The Overconfidence Phenomenon',
+        paragraphs: [
+          'While Naive Bayes is an exceptional classifier, it is notoriously poor at producing Calibrated Probabilities.',
+          'Because the model multiplies conditional probabilities under the false assumption that all features are independent, correlated features cause the model to double-count evidence. If an email contains "free", "gift", and "giveaway", Naive Bayes treats these three correlated words as three independent pieces of evidence, pushing the calculated posterior probability to $0.99999999$ or $0.00000001$.',
+          'Production Takeaway: If your application requires ranking items (e.g. sorting emails by spam suspicion or search results by relevance), Naive Bayes is superb because ranking is preserved. However, if your application relies on true calibrated probabilities (e.g. medical risk assessment or financial underwriting), you must calibrate the output using Platt Scaling or Isotonic Regression via Scikit-Learn\'s `CalibratedClassifierCV`.'
+        ]
+      },
+      {
+        heading: '9. Strengths, Weaknesses, and Production Applications',
+        paragraphs: [
+          'Engineering Evaluation of Naive Bayes:',
+          '• Strengths: Ultra-fast training ($O(N \\cdot d)$ linear time) requiring only single-pass frequency counting; instantaneous $O(d)$ prediction time; low memory footprint; resilient to irrelevant features; performs remarkably well on high-dimensional text datasets.',
+          '• Weaknesses: The conditional independence assumption is unrealistic in complex domains; zero-frequency trap without smoothing; poor probability calibration (overconfident predictions); incapable of learning non-linear feature interactions without manual feature crosses.',
+          'Prime Production Applications: Real-time spam filtering (SpamAssassin), sentiment analysis of customer reviews, multi-class document categorization, medical symptom screening, and real-time streaming classification where low latency is mandatory.'
+        ]
+      },
+      {
+        heading: '10. Production Implementation: Scikit-Learn Pipeline & NumPy from Scratch',
+        paragraphs: [
+          'Here is a complete production pipeline showing text preprocessing with TF-IDF, hyperparameter tuning with GridSearchCV, and a vectorized pure NumPy Gaussian Naive Bayes implementation from scratch:'
+        ],
+        codeBlock: [
+          'import numpy as np',
+          'from sklearn.feature_extraction.text import TfidfVectorizer',
+          'from sklearn.naive_bayes import MultinomialNB',
+          'from sklearn.pipeline import Pipeline',
+          'from sklearn.model_selection import GridSearchCV, train_test_split',
+          'from sklearn.metrics import classification_report',
+          '',
+          '# 1. Sample Text Dataset (Spam vs. Ham)',
+          'corpus = [',
+          '    ("Urgent lottery winner claim cash prize now", 1),',
+          '    ("Exclusive discount voucher click link below", 1),',
+          '    ("Congratulations you won millions wire funds", 1),',
+          '    ("Team meeting scheduled for tomorrow afternoon", 0),',
+          '    ("Quarterly financial report attached for review", 0),',
+          '    ("Project deadline extended please update repository", 0)',
+          ']',
+          'texts = [doc[0] for doc in corpus]',
+          'labels = np.array([doc[1] for doc in corpus])',
+          '',
+          '# 2. Build Production Pipeline: TF-IDF Vectorizer + Multinomial Naive Bayes',
+          'pipeline = Pipeline([',
+          '    ("tfidf", TfidfVectorizer(ngram_range=(1, 2), stop_words="english")),',
+          '    ("nb", MultinomialNB())',
+          '])',
+          '',
+          '# 3. Hyperparameter Tuning for Laplace Smoothing (alpha)',
+          'param_grid = {',
+          '    "nb__alpha": [0.01, 0.1, 0.5, 1.0, 2.0]',
+          '}',
+          'grid = GridSearchCV(pipeline, param_grid, cv=2, scoring="accuracy")',
+          'grid.fit(texts, labels)',
+          '',
+          'print("Best Smoothing Parameter (alpha):", grid.best_params_)',
+          'best_model = grid.best_estimator_',
+          '',
+          '# 4. Predict on Unseen Emails',
+          'new_emails = [',
+          '    "Urgent meeting with cash winner",',
+          '    "Review report for project deadline"',
+          ']',
+          'predictions = best_model.predict(new_emails)',
+          'probs = best_model.predict_proba(new_emails)',
+          '',
+          'for email, pred, p in zip(new_emails, predictions, probs):',
+          '    label = "SPAM" if pred == 1 else "HAM"',
+          '    print(f"Email: \'{email}\' -> {label} (Spam Prob: {p[1]*100:.2f}%)")'
+        ].join('\n'),
+        codeBlockTitle: 'naive_bayes_production_pipeline.py'
+      }
+    ],
+
+    analogy: {
+      title: 'Real-World Analogy: The Emergency Room Doctor & Bayes\' Theorem',
+      text: 'Imagine an emergency room physician assessing a patient with a sudden cough and fever. Before running tests, the doctor starts with a Prior Probability: during flu season, 15% of visiting patients have influenza. Next, the doctor evaluates Likelihood: what is the probability of this specific symptom combination given the flu versus a rare tropical infection? Multiplying the base prevalence (prior) by the symptom likelihoods, the doctor arrives at the Posterior Probability. If the doctor assumes each symptom occurs independently given the illness (e.g. fever doesn\'t directly cause cough, both are caused by the virus), the doctor has just performed Naive Bayes classification.'
+    },
+
+    diagram: {
+      type: 'naive_bayes_interactive_studio'
+    },
+
+    takeaways: [
+      'Bayes\' Theorem updates prior beliefs with observed evidence: Posterior = (Likelihood * Prior) / Evidence.',
+      'The "Naive" assumption treats all features as conditionally independent given the class, reducing parameter complexity from exponential O(2^d) to linear O(d).',
+      'The Log-Likelihood transformation replaces dangerous multiplications of tiny numbers with numerically stable sums, preventing arithmetic underflow.',
+      'Laplace (Additive) Smoothing with alpha > 0 assigns a non-zero probability to unseen features, preventing a single zero from wiping out the entire posterior.',
+      'Generative models like Naive Bayes learn the joint distribution P(X, Y) and converge with far fewer training samples than discriminative models like Logistic Regression.'
+    ],
+
+    quiz: {
+      question: 'Why is Laplace smoothing (alpha > 0) mandatory when using Multinomial Naive Bayes for text classification in production?',
+      options: [
+        'If an incoming document contains a word never seen in a given class during training, its likelihood will be zero, causing the entire posterior product to become zero regardless of all other words',
+        'Because without Laplace smoothing, the algorithm cannot calculate matrix inverses',
+        'Because Laplace smoothing converts the text strings into vectorized float arrays',
+        'Because Scikit-Learn will throw a ZeroDivisionError during the fit phase if alpha is zero'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! Without smoothing, if a feature has zero frequency in the training data for a particular class, P(x_i | y) = 0. Because Naive Bayes multiplies all feature likelihoods together, a single zero probability forces the entire product to 0.0, completely blinding the model to hundreds of other strong evidence words.'
+    }
   }
 };
 
