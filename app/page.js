@@ -188,8 +188,8 @@ const features = [
     title: 'Interactive Code Editor',
     desc: 'Write, run, and test your code directly in the browser. No complex setup required — start learning in seconds.',
     icon: <IconCode />,
-    color: '#dbeafe',
-    iconColor: '#2563eb',
+    color: '#fef3c7',
+    iconColor: '#b45309',
   },
   {
     title: 'Instant AI Feedback',
@@ -305,7 +305,7 @@ function Navbar() {
                   <div><strong>Blog</strong><small>Tutorials and guides from our team</small></div>
                 </a>
                 <a href="#" className={styles.dropdownItemRich}>
-                  <span className={styles.dropdownItemIconWrap} style={{ background: '#dbeafe', color: '#2563eb' }}><IconBook size={18} /></span>
+                  <span className={styles.dropdownItemIconWrap} style={{ background: '#fef3c7', color: '#b45309' }}><IconBook size={18} /></span>
                   <div><strong>Docs</strong><small>Reference docs for every language</small></div>
                 </a>
                 <a href="#" className={styles.dropdownItemRich}>
@@ -325,7 +325,7 @@ function Navbar() {
             {companyOpen && (
               <div className={styles.dropdown}>
                 <a href="#" className={styles.dropdownItemRich}>
-                  <span className={styles.dropdownItemIconWrap} style={{ background: '#f0f4ff', color: '#3b82f6' }}><IconTarget size={18} /></span>
+                  <span className={styles.dropdownItemIconWrap} style={{ background: '#f4f4f5', color: '#18181b' }}><IconTarget size={18} /></span>
                   <div><strong>About Us</strong><small>Our mission and story</small></div>
                 </a>
                 <a href="#" className={styles.dropdownItemRich}>
@@ -595,8 +595,8 @@ function LearnByDoingSection() {
 }
 
 function CoursesSection() {
-  const levelColors = { Beginner: '#dcfce7', Intermediate: '#dbeafe', Advanced: '#fce7f3' };
-  const levelText = { Beginner: '#16a34a', Intermediate: '#2563eb', Advanced: '#9333ea' };
+  const levelColors = { Beginner: '#dcfce7', Intermediate: '#fef3c7', Advanced: '#f3e8ff' };
+  const levelText = { Beginner: '#16a34a', Intermediate: '#b45309', Advanced: '#7c3aed' };
 
   return (
     <section className={styles.courses} id="courses">

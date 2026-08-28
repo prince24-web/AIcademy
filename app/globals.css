@@ -7,22 +7,40 @@
 }
 
 :root {
-  --brand-blue: #1a9be8;
-  --brand-blue-dark: #1388d0;
-  --brand-blue-light: #e8f4fd;
-  --brand-blue-lighter: #f0f8ff;
-  --text-primary: #1a1a2e;
-  --text-secondary: #4a5568;
-  --text-muted: #718096;
+  /* Option 2: Da Vinci Atelier — Obsidian Black, Crisp White, Refined Grays & Champagne Amber */
+  --brand-black: #09090b;
+  --brand-charcoal: #18181b;
+  --brand-primary: #09090b;
+  --brand-primary-hover: #27272a;
+  
+  --brand-accent: #d97706;          /* Champagne Gold / Renaissance Amber */
+  --brand-accent-dark: #b45309;     /* Deep Amber */
+  --brand-accent-light: #fef3c7;    /* Soft Amber tint */
+  --brand-accent-lighter: #fffbeb;  /* Pale Amber surface */
+  --brand-accent-border: #fde68a;
+  
+  /* Fallback aliases for legacy tokens */
+  --brand-blue: #09090b;
+  --brand-blue-dark: #27272a;
+  --brand-blue-light: #f4f4f5;
+  --brand-blue-lighter: #fafafa;
+  --bg-light-blue: #f4f4f5;
+
+  --text-primary: #09090b;
+  --text-secondary: #52525b;
+  --text-muted: #71717a;
+  
   --bg-white: #ffffff;
-  --bg-light: #f7f9fc;
-  --bg-light-blue: #e8f3fb;
-  --border-color: #e2e8f0;
+  --bg-light: #f4f4f5;
+  --bg-surface: #fafafa;
+  --border-color: #e4e4e7;
   --border-radius: 12px;
   --border-radius-lg: 20px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
-  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 12px 36px rgba(0,0,0,0.08);
+  --shadow-gold: 0 8px 24px rgba(217, 119, 6, 0.22);
 }
 
 html {
