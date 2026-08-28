@@ -18584,11 +18584,1124 @@ const SVMInteractiveStudio = () => {
   );
 };
 
+
+// ─── DECISION TREES INTERACTIVE STUDIO ──────────────────────────────────────
+const DecisionTreeInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('partition'); // 'partition', 'calculator', 'regression', 'pruning', 'code'
+
+  // Tab 1 & 2: Dataset selection & state
+  const [selectedDataset, setSelectedDataset] = useState('blobs'); // 'blobs', 'moons', 'diagonal'
+  const [maxDepth, setMaxDepth] = useState(3);
+  const [criterion, setCriterion] = useState('gini'); // 'gini' or 'entropy'
+  const [minSamplesSplit, setMinSamplesSplit] = useState(2);
+  const [ccpAlpha, setCcpAlpha] = useState(0.0);
+  const [hoveredNodeId, setHoveredNodeId] = useState(null);
+
+  // Manual split calculator state
+  const [calcSplitFeature, setCalcSplitFeature] = useState('X1');
+  const [calcThreshold, setCalcThreshold] = useState(5.0);
+
+  // Regression Tree state
+  const [regDepth, setRegDepth] = useState(2);
+
+  // Datasets for 2D classification (0 to 10 scale)
+  const datasets = useMemo(() => {
+    // 1. Blobs (Well separated rectangular-friendly clusters)
+    const blobs = [
+      // Class 0: Blue
+      { id: 'b1', x: 2.2, y: 7.5, yVal: 0 },
+      { id: 'b2', x: 3.1, y: 8.2, yVal: 0 },
+      { id: 'b3', x: 2.8, y: 6.4, yVal: 0 },
+      { id: 'b4', x: 4.0, y: 7.8, yVal: 0 },
+      { id: 'b5', x: 1.8, y: 6.9, yVal: 0 },
+      { id: 'b6', x: 3.5, y: 8.8, yVal: 0 },
+      { id: 'b7', x: 2.5, y: 8.5, yVal: 0 },
+      { id: 'b8', x: 4.2, y: 6.8, yVal: 0 },
+
+      // Class 1: Orange
+      { id: 'o1', x: 6.5, y: 2.8, yVal: 1 },
+      { id: 'o2', x: 7.8, y: 3.5, yVal: 1 },
+      { id: 'o3', x: 8.2, y: 2.1, yVal: 1 },
+      { id: 'o4', x: 7.0, y: 4.2, yVal: 1 },
+      { id: 'o5', x: 8.9, y: 3.0, yVal: 1 },
+      { id: 'o6', x: 6.1, y: 2.0, yVal: 1 },
+      { id: 'o7', x: 7.4, y: 1.8, yVal: 1 },
+      { id: 'o8', x: 8.5, y: 4.5, yVal: 1 },
+
+      // Mixed / Border samples
+      { id: 'b9', x: 4.8, y: 3.2, yVal: 0 },
+      { id: 'b10', x: 5.2, y: 4.0, yVal: 0 },
+      { id: 'o9', x: 4.5, y: 2.2, yVal: 1 },
+      { id: 'o10', x: 5.6, y: 7.2, yVal: 1 }
+    ];
+
+    // 2. Moons (Curved non-linear distribution)
+    const moons = [
+      // Upper Crescent: Blue (Class 0)
+      { id: 'm1', x: 1.8, y: 5.2, yVal: 0 },
+      { id: 'm2', x: 2.6, y: 6.8, yVal: 0 },
+      { id: 'm3', x: 3.8, y: 7.8, yVal: 0 },
+      { id: 'm4', x: 5.2, y: 7.5, yVal: 0 },
+      { id: 'm5', x: 6.4, y: 6.2, yVal: 0 },
+      { id: 'm6', x: 3.2, y: 7.2, yVal: 0 },
+      { id: 'm7', x: 4.6, y: 7.9, yVal: 0 },
+      { id: 'm8', x: 5.8, y: 7.0, yVal: 0 },
+
+      // Lower Crescent: Orange (Class 1)
+      { id: 'm9', x: 4.2, y: 4.5, yVal: 1 },
+      { id: 'm10', x: 5.4, y: 3.2, yVal: 1 },
+      { id: 'm11', x: 6.8, y: 2.8, yVal: 1 },
+      { id: 'm12', x: 7.9, y: 3.6, yVal: 1 },
+      { id: 'm13', x: 8.5, y: 5.0, yVal: 1 },
+      { id: 'm14', x: 6.0, y: 3.0, yVal: 1 },
+      { id: 'm15', x: 7.2, y: 3.2, yVal: 1 },
+      { id: 'm16', x: 8.1, y: 4.2, yVal: 1 }
+    ];
+
+    // 3. Diagonal Split (Demonstrating the Orthogonal Axis Limitation / Jagged Staircase)
+    const diagonal = [
+      // Points satisfying X1 + X2 > 10: Orange (Class 1)
+      { id: 'd1', x: 6.0, y: 5.5, yVal: 1 },
+      { id: 'd2', x: 7.5, y: 4.2, yVal: 1 },
+      { id: 'd3', x: 8.0, y: 6.8, yVal: 1 },
+      { id: 'd4', x: 5.2, y: 6.2, yVal: 1 },
+      { id: 'd5', x: 4.5, y: 7.0, yVal: 1 },
+      { id: 'd6', x: 8.5, y: 3.2, yVal: 1 },
+      { id: 'd7', x: 7.0, y: 7.5, yVal: 1 },
+      { id: 'd8', x: 6.2, y: 8.2, yVal: 1 },
+
+      // Points satisfying X1 + X2 <= 10: Blue (Class 0)
+      { id: 'd9', x: 2.2, y: 3.0, yVal: 0 },
+      { id: 'd10', x: 3.5, y: 4.2, yVal: 0 },
+      { id: 'd11', x: 4.8, y: 2.5, yVal: 0 },
+      { id: 'd12', x: 2.0, y: 6.0, yVal: 0 },
+      { id: 'd13', x: 5.0, y: 3.8, yVal: 0 },
+      { id: 'd14', x: 3.0, y: 5.5, yVal: 0 },
+      { id: 'd15', x: 1.5, y: 4.5, yVal: 0 },
+      { id: 'd16', x: 4.0, y: 1.8, yVal: 0 }
+    ];
+
+    return { blobs, moons, diagonal };
+  }, []);
+
+  const activePoints = datasets[selectedDataset] || datasets.blobs;
+
+  // Compute Gini Impurity and Shannon Entropy
+  const calculateImpurity = (points, metric = criterion) => {
+    if (!points || points.length === 0) return 0.0;
+    const n = points.length;
+    const count0 = points.filter((p) => p.yVal === 0).length;
+    const count1 = points.filter((p) => p.yVal === 1).length;
+    const p0 = count0 / n;
+    const p1 = count1 / n;
+
+    if (metric === 'gini') {
+      return 1.0 - (p0 * p0 + p1 * p1);
+    } else {
+      // Shannon Entropy in bits
+      const log0 = p0 > 0 ? p0 * Math.log2(p0) : 0;
+      const log1 = p1 > 0 ? p1 * Math.log2(p1) : 0;
+      return -(log0 + log1);
+    }
+  };
+
+  // Greedy Tree Builder function simulating CART
+  const treeModel = useMemo(() => {
+    let nextNodeId = 1;
+
+    const buildTree = (pts, depth, bounds) => {
+      const n = pts.length;
+      const c0 = pts.filter((p) => p.yVal === 0).length;
+      const c1 = pts.filter((p) => p.yVal === 1).length;
+      const currentImpurity = calculateImpurity(pts, criterion);
+      const majorityClass = c1 > c0 ? 1 : 0;
+
+      const node = {
+        id: `node-${nextNodeId++}`,
+        depth,
+        samples: n,
+        counts: [c0, c1],
+        impurity: currentImpurity,
+        majorityClass,
+        bounds: { ...bounds },
+        isLeaf: true,
+        splitFeature: null,
+        threshold: null,
+        left: null,
+        right: null,
+        gain: 0
+      };
+
+      // Stopping conditions: pure, max depth reached, or too few samples
+      if (
+        depth >= maxDepth ||
+        c0 === 0 ||
+        c1 === 0 ||
+        n < minSamplesSplit
+      ) {
+        return node;
+      }
+
+      // Exhaustive search over both features (X1 and X2)
+      let bestGain = 0;
+      let bestFeature = null;
+      let bestThreshold = null;
+      let bestLeftPts = null;
+      let bestRightPts = null;
+
+      ['X1', 'X2'].forEach((feature) => {
+        const key = feature === 'X1' ? 'x' : 'y';
+        const vals = Array.from(new Set(pts.map((p) => p[key]))).sort((a, b) => a - b);
+
+        for (let i = 0; i < vals.length - 1; i++) {
+          const t = (vals[i] + vals[i + 1]) / 2.0;
+          const leftPts = pts.filter((p) => p[key] <= t);
+          const rightPts = pts.filter((p) => p[key] > t);
+
+          if (leftPts.length === 0 || rightPts.length === 0) continue;
+
+          const impL = calculateImpurity(leftPts, criterion);
+          const impR = calculateImpurity(rightPts, criterion);
+          const weightedChildImp = (leftPts.length / n) * impL + (rightPts.length / n) * impR;
+          const gain = currentImpurity - weightedChildImp;
+
+          // Check if gain exceeds pruning threshold penalty
+          if (gain > bestGain) {
+            bestGain = gain;
+            bestFeature = feature;
+            bestThreshold = t;
+            bestLeftPts = leftPts;
+            bestRightPts = rightPts;
+          }
+        }
+      });
+
+      // If best gain is significant and beats ccpAlpha penalty
+      if (bestGain > 0.005 + ccpAlpha * 2.5 && bestLeftPts && bestRightPts) {
+        node.isLeaf = false;
+        node.splitFeature = bestFeature;
+        node.threshold = bestThreshold;
+        node.gain = bestGain;
+
+        // Subdivide bounding box for left and right
+        const leftBounds = { ...bounds };
+        const rightBounds = { ...bounds };
+
+        if (bestFeature === 'X1') {
+          leftBounds.xMax = bestThreshold;
+          rightBounds.xMin = bestThreshold;
+        } else {
+          leftBounds.yMax = bestThreshold;
+          rightBounds.yMin = bestThreshold;
+        }
+
+        node.left = buildTree(bestLeftPts, depth + 1, leftBounds);
+        node.right = buildTree(bestRightPts, depth + 1, rightBounds);
+      }
+
+      return node;
+    };
+
+    return buildTree(activePoints, 0, { xMin: 0, xMax: 10, yMin: 0, yMax: 10 });
+  }, [activePoints, maxDepth, criterion, minSamplesSplit, ccpAlpha]);
+
+  // Extract all leaf regions from the built tree model
+  const leafRegions = useMemo(() => {
+    const leaves = [];
+    const traverse = (node) => {
+      if (!node) return;
+      if (node.isLeaf) {
+        leaves.push(node);
+      } else {
+        traverse(node.left);
+        traverse(node.right);
+      }
+    };
+    traverse(treeModel);
+    return leaves;
+  }, [treeModel]);
+
+  // Extract all decision boundary lines from the tree model
+  const decisionLines = useMemo(() => {
+    const lines = [];
+    const traverse = (node) => {
+      if (!node || node.isLeaf) return;
+      if (node.splitFeature === 'X1') {
+        lines.push({
+          id: `line-${node.id}`,
+          nodeId: node.id,
+          x1: node.threshold,
+          y1: node.bounds.yMin,
+          x2: node.threshold,
+          y2: node.bounds.yMax,
+          feature: 'X1',
+          threshold: node.threshold,
+          depth: node.depth
+        });
+      } else {
+        lines.push({
+          id: `line-${node.id}`,
+          nodeId: node.id,
+          x1: node.bounds.xMin,
+          y1: node.threshold,
+          x2: node.bounds.xMax,
+          y2: node.threshold,
+          feature: 'X2',
+          threshold: node.threshold,
+          depth: node.depth
+        });
+      }
+      traverse(node.left);
+      traverse(node.right);
+    };
+    traverse(treeModel);
+    return lines;
+  }, [treeModel]);
+
+  // Manual split evaluation for Tab 2 (Split Calculator)
+  const manualSplitEval = useMemo(() => {
+    const parentPts = activePoints;
+    const n = parentPts.length;
+    const parentImp = calculateImpurity(parentPts, criterion);
+
+    const key = calcSplitFeature === 'X1' ? 'x' : 'y';
+    const leftPts = parentPts.filter((p) => p[key] <= calcThreshold);
+    const rightPts = parentPts.filter((p) => p[key] > calcThreshold);
+
+    const nL = leftPts.length;
+    const nR = rightPts.length;
+
+    const impL = calculateImpurity(leftPts, criterion);
+    const impR = calculateImpurity(rightPts, criterion);
+
+    const weightedChildImp = n > 0 ? (nL / n) * impL + (nR / n) * impR : 0;
+    const gain = parentImp - weightedChildImp;
+
+    return {
+      parentPts,
+      parentImp,
+      leftPts,
+      rightPts,
+      nL,
+      nR,
+      impL,
+      impR,
+      weightedChildImp,
+      gain: Math.max(0, gain)
+    };
+  }, [activePoints, calcSplitFeature, calcThreshold, criterion]);
+
+  // Regression Tree dataset: y = sin(x) + noise on [0, 2pi]
+  const regressionData = useMemo(() => {
+    const points = [];
+    const n = 28;
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * 6.28;
+      const trueY = Math.sin(x);
+      const noise = ((i * 17) % 7 - 3) * 0.08;
+      points.push({ x: parseFloat(x.toFixed(2)), y: parseFloat((trueY + noise).toFixed(2)) });
+    }
+    return points;
+  }, []);
+
+  // Compute 1D piecewise constant steps for Regression Tree
+  const regressionSteps = useMemo(() => {
+    const splitNode = (pts, d, xMin, xMax) => {
+      if (pts.length === 0) return [];
+      const meanY = pts.reduce((acc, p) => acc + p.y, 0) / pts.length;
+
+      if (d >= regDepth || pts.length <= 3) {
+        return [{ xMin, xMax, predY: meanY, samples: pts.length }];
+      }
+
+      // Find best split minimizing variance / sum of squared errors
+      let bestSSE = Infinity;
+      let bestX = null;
+      let bestLeft = null;
+      let bestRight = null;
+
+      for (let i = 0; i < pts.length - 1; i++) {
+        const t = (pts[i].x + pts[i + 1].x) / 2.0;
+        const left = pts.filter((p) => p.x <= t);
+        const right = pts.filter((p) => p.x > t);
+
+        if (left.length === 0 || right.length === 0) continue;
+
+        const meanL = left.reduce((acc, p) => acc + p.y, 0) / left.length;
+        const meanR = right.reduce((acc, p) => acc + p.y, 0) / right.length;
+
+        const sseL = left.reduce((acc, p) => acc + (p.y - meanL) ** 2, 0);
+        const sseR = right.reduce((acc, p) => acc + (p.y - meanR) ** 2, 0);
+        const totalSSE = sseL + sseR;
+
+        if (totalSSE < bestSSE) {
+          bestSSE = totalSSE;
+          bestX = t;
+          bestLeft = left;
+          bestRight = right;
+        }
+      }
+
+      if (!bestX) {
+        return [{ xMin, xMax, predY: meanY, samples: pts.length }];
+      }
+
+      return [
+        ...splitNode(bestLeft, d + 1, xMin, bestX),
+        ...splitNode(bestRight, d + 1, bestX, xMax)
+      ];
+    };
+
+    return splitNode(regressionData, 0, 0, 6.28);
+  }, [regressionData, regDepth]);
+
+  // Scalers for 2D Feature Canvas (0 to 10)
+  const svgW = 460;
+  const svgH = 380;
+  const pad = { left: 40, right: 20, top: 20, bottom: 40 };
+  const plotW = svgW - pad.left - pad.right;
+  const plotH = svgH - pad.top - pad.bottom;
+
+  const scX = (x) => pad.left + (x / 10.0) * plotW;
+  const scY = (y) => pad.top + plotH - (y / 10.0) * plotH;
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #001f54, #d97706)',
+              width: '46px',
+              height: '46px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(217,119,6,0.25)'
+            }}>
+              <IconSparkles size={24} style={{ color: '#ffffff' }} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  background: '#001f54',
+                  color: '#ffffff',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.05em'
+                }}>
+                  INTERACTIVE STUDIO
+                </span>
+                <span style={{ fontSize: '0.78rem', color: '#d97706', fontWeight: 700 }}>
+                  Orthogonal Partitioning & Tree Hierarchy
+                </span>
+              </div>
+              <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+                Decision Tree Masterclass Studio
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'partition', label: '2D Partition & Tree Graph' },
+            { id: 'calculator', label: 'Step-by-Step Split Calculator' },
+            { id: 'regression', label: 'Regression Tree (Staircase)' },
+            { id: 'pruning', label: 'Cost-Complexity Pruning' },
+            { id: 'code', label: 'Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 2D PARTITION SPACE & LIVE TREE GRAPH ─────────────── */}
+      {activeTab === 'partition' && (
+        <div>
+          {/* Controls Bar */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: '1rem',
+            background: '#f8fafc',
+            padding: '1rem',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            marginBottom: '1.25rem'
+          }}>
+            {/* Dataset selector */}
+            <div>
+              <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#001f54', display: 'block', marginBottom: '4px' }}>
+                Dataset Topology:
+              </label>
+              <select
+                value={selectedDataset}
+                onChange={(e) => setSelectedDataset(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color: '#001f54',
+                  background: '#ffffff'
+                }}
+              >
+                <option value="blobs">Bimodal Blobs (Rectangular Friendly)</option>
+                <option value="moons">Non-Linear Moons (Curved Crescent)</option>
+                <option value="diagonal">Diagonal Boundary (Staircase Test)</option>
+              </select>
+            </div>
+
+            {/* Impurity Criterion */}
+            <div>
+              <label style={{ fontSize: '0.74rem', fontWeight: 800, color: '#001f54', display: 'block', marginBottom: '4px' }}>
+                Impurity Metric:
+              </label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  onClick={() => setCriterion('gini')}
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    border: '1px solid #cbd5e1',
+                    cursor: 'pointer',
+                    background: criterion === 'gini' ? '#001f54' : '#ffffff',
+                    color: criterion === 'gini' ? '#ffffff' : '#334155'
+                  }}
+                >
+                  Gini Impurity
+                </button>
+                <button
+                  onClick={() => setCriterion('entropy')}
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    border: '1px solid #cbd5e1',
+                    cursor: 'pointer',
+                    background: criterion === 'entropy' ? '#001f54' : '#ffffff',
+                    color: criterion === 'entropy' ? '#ffffff' : '#334155'
+                  }}
+                >
+                  Entropy (Bits)
+                </button>
+              </div>
+            </div>
+
+            {/* Max Depth Slider */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800, color: '#001f54', marginBottom: '4px' }}>
+                <span>Max Tree Depth:</span>
+                <span style={{ color: '#d97706' }}>{maxDepth}</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="4"
+                step="1"
+                value={maxDepth}
+                onChange={(e) => setMaxDepth(parseInt(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b' }}>
+                <span>1 (Stump)</span>
+                <span>4 (Fine partition)</span>
+              </div>
+            </div>
+
+            {/* Post-Pruning ccp_alpha Slider */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800, color: '#001f54', marginBottom: '4px' }}>
+                <span>Pruning (ccp_alpha):</span>
+                <span style={{ color: '#d97706' }}>{ccpAlpha.toFixed(2)}</span>
+              </div>
+              <input
+                type="range"
+                min="0.0"
+                max="0.12"
+                step="0.01"
+                value={ccpAlpha}
+                onChange={(e) => setCcpAlpha(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b' }}>
+                <span>0.00 (Unpruned)</span>
+                <span>0.12 (High penalty)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Dual Display Grid: 2D Feature Canvas (Left) & Live SVG Tree Graph (Right) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
+            {/* 2D Partition Space Canvas */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '1.5px solid #cbd5e1',
+              padding: '1rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>
+                  2D Orthogonal Partition Space ($X_1$ vs $X_2$)
+                </div>
+                <div style={{ display: 'flex', gap: '12px', fontSize: '0.72rem', fontWeight: 700 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#2563eb', display: 'inline-block' }}></span>
+                    Class 0
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#ea580c', display: 'inline-block' }}></span>
+                    Class 1
+                  </span>
+                </div>
+              </div>
+
+              <svg width="100%" height="320" viewBox={`0 0 ${svgW} ${svgH}`} style={{ display: 'block', background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Rectangular Leaf Color Tints */}
+                {leafRegions.map((leaf) => {
+                  const x = scX(leaf.bounds.xMin);
+                  const y = scY(leaf.bounds.yMax);
+                  const w = scX(leaf.bounds.xMax) - x;
+                  const h = scY(leaf.bounds.yMin) - y;
+                  const isHighlighted = hoveredNodeId === leaf.id;
+
+                  return (
+                    <rect
+                      key={leaf.id}
+                      x={x}
+                      y={y}
+                      width={Math.max(0, w)}
+                      height={Math.max(0, h)}
+                      fill={leaf.majorityClass === 0 ? '#eff6ff' : '#fff7ed'}
+                      stroke={isHighlighted ? '#001f54' : 'none'}
+                      strokeWidth={isHighlighted ? 3 : 0}
+                      opacity={0.8}
+                    />
+                  );
+                })}
+
+                {/* Grid guidelines */}
+                {[2, 4, 6, 8].map((v) => (
+                  <g key={`grid-${v}`}>
+                    <line x1={scX(v)} y1={scY(0)} x2={scX(v)} y2={scY(10)} stroke="#e2e8f0" strokeDasharray="3 3" />
+                    <line x1={scX(0)} y1={scY(v)} x2={scX(10)} y2={scY(v)} stroke="#e2e8f0" strokeDasharray="3 3" />
+                  </g>
+                ))}
+
+                {/* Axes */}
+                <line x1={scX(0)} y1={scY(0)} x2={scX(10)} y2={scY(0)} stroke="#64748b" strokeWidth="1.5" />
+                <line x1={scX(0)} y1={scY(0)} x2={scX(0)} y2={scY(10)} stroke="#64748b" strokeWidth="1.5" />
+
+                {/* Axis Labels */}
+                <text x={scX(5)} y={svgH - 8} textAnchor="middle" fontSize="12" fontWeight="700" fill="#001f54">
+                  Feature X1
+                </text>
+                <text x={14} y={scY(5)} textAnchor="middle" fontSize="12" fontWeight="700" fill="#001f54" transform={`rotate(-90, 14, ${scY(5)})`}>
+                  Feature X2
+                </text>
+
+                {/* Axis Ticks */}
+                {[0, 2, 4, 6, 8, 10].map((v) => (
+                  <g key={`tick-${v}`}>
+                    <text x={scX(v)} y={scY(0) + 16} textAnchor="middle" fontSize="10" fill="#64748b">
+                      {v}
+                    </text>
+                    <text x={scX(0) - 10} y={scY(v) + 4} textAnchor="end" fontSize="10" fill="#64748b">
+                      {v}
+                    </text>
+                  </g>
+                ))}
+
+                {/* Orthogonal Split Boundaries */}
+                {decisionLines.map((line) => {
+                  const isHovered = hoveredNodeId === line.nodeId;
+                  return (
+                    <line
+                      key={line.id}
+                      x1={scX(line.x1)}
+                      y1={scY(line.y1)}
+                      x2={scX(line.x2)}
+                      y2={scY(line.y2)}
+                      stroke={isHovered ? '#d97706' : '#001f54'}
+                      strokeWidth={isHovered ? 3.5 : 2.0}
+                      strokeDasharray={line.depth > 0 ? '4 2' : 'none'}
+                    />
+                  );
+                })}
+
+                {/* Data Points */}
+                {activePoints.map((pt) => (
+                  <circle
+                    key={pt.id}
+                    cx={scX(pt.x)}
+                    cy={scY(pt.y)}
+                    r={pt.yVal === 0 ? 5.5 : 5.5}
+                    fill={pt.yVal === 0 ? '#2563eb' : '#ea580c'}
+                    stroke="#ffffff"
+                    strokeWidth="1.5"
+                  />
+                ))}
+              </svg>
+
+              <div style={{ marginTop: '0.75rem', fontSize: '0.74rem', color: '#475569', lineHeight: '1.5' }}>
+                <strong>Key Geometric Observation:</strong> Notice how every split boundary is strictly parallel to either the vertical or horizontal axis. When the true boundary is diagonal, the tree must approximate it using a jagged orthogonal staircase!
+              </div>
+            </div>
+
+            {/* Live SVG Tree Hierarchy Graph */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '1.5px solid #cbd5e1',
+              padding: '1rem',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.03)'
+            }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54', marginBottom: '0.75rem' }}>
+                Hierarchical Decision Tree Structure
+              </div>
+
+              {/* Tree Node Visualizer (Recursive Render) */}
+              <div style={{ maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}>
+                {(() => {
+                  const renderTreeNode = (node) => {
+                    if (!node) return null;
+                    const isHovered = hoveredNodeId === node.id;
+
+                    return (
+                      <div
+                        key={node.id}
+                        onMouseEnter={() => setHoveredNodeId(node.id)}
+                        onMouseLeave={() => setHoveredNodeId(null)}
+                        style={{
+                          marginLeft: `${node.depth * 20}px`,
+                          marginBottom: '8px',
+                          padding: '8px 12px',
+                          borderRadius: '10px',
+                          border: isHovered ? '2px solid #d97706' : '1px solid #e2e8f0',
+                          background: node.isLeaf
+                            ? (node.majorityClass === 0 ? '#f0f7ff' : '#fff7ed')
+                            : '#ffffff',
+                          transition: 'all 0.2s ease',
+                          boxShadow: isHovered ? '0 4px 12px rgba(217,119,6,0.15)' : 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ fontWeight: 800, fontSize: '0.78rem', color: '#001f54' }}>
+                            {node.isLeaf ? (
+                              <span style={{ color: node.majorityClass === 0 ? '#2563eb' : '#ea580c' }}>
+                                Leaf Region (Class {node.majorityClass})
+                              </span>
+                            ) : (
+                              <span>Split: {node.splitFeature} &le; {node.threshold.toFixed(2)}</span>
+                            )}
+                          </div>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: '#f1f5f9',
+                            color: '#475569'
+                          }}>
+                            Depth {node.depth}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+                          <span>Samples: <strong>{node.samples}</strong></span>
+                          <span>Distribution: [C0: {node.counts[0]}, C1: {node.counts[1]}]</span>
+                          <span>{criterion === 'gini' ? 'Gini' : 'Entropy'}: <strong>{node.impurity.toFixed(3)}</strong></span>
+                        </div>
+                      </div>
+                    );
+                  };
+
+                  const collectNodes = (node) => {
+                    if (!node) return [];
+                    const res = [node];
+                    if (node.left) res.push(...collectNodes(node.left));
+                    if (node.right) res.push(...collectNodes(node.right));
+                    return res;
+                  };
+
+                  return collectNodes(treeModel).map(renderTreeNode);
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: STEP-BY-STEP SPLIT CALCULATOR ─────────────────────── */}
+      {activeTab === 'calculator' && (
+        <div>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1.25rem',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54', marginBottom: '8px' }}>
+              Interactive Impurity & Information Gain Arithmetic Engine
+            </div>
+            <p style={{ fontSize: '0.78rem', color: '#475569', margin: '0 0 1rem 0' }}>
+              Choose a candidate feature and threshold to see the exact formula and numerical evaluation of Parent Impurity, Left Child, Right Child, and resulting Information Gain.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#001f54', display: 'block', marginBottom: '4px' }}>
+                  Split Feature:
+                </label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {['X1', 'X2'].map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setCalcSplitFeature(f)}
+                      style={{
+                        flex: 1,
+                        padding: '6px',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        border: '1px solid #cbd5e1',
+                        cursor: 'pointer',
+                        background: calcSplitFeature === f ? '#001f54' : '#ffffff',
+                        color: calcSplitFeature === f ? '#ffffff' : '#334155'
+                      }}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#001f54', marginBottom: '4px' }}>
+                  <span>Candidate Threshold ({calcSplitFeature} &le; t):</span>
+                  <span style={{ color: '#d97706' }}>{calcThreshold.toFixed(1)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="1.0"
+                  max="9.0"
+                  step="0.2"
+                  value={calcThreshold}
+                  onChange={(e) => setCalcThreshold(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Mathematical Step-by-Step Breakdown Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+            {/* Step 1: Parent Node */}
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>
+                Step 1: Parent Dataset (S)
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: '1.6' }}>
+                Total Samples: <strong>{manualSplitEval.parentPts.length}</strong><br />
+                Class 0: <strong>{manualSplitEval.parentPts.filter((p) => p.yVal === 0).length}</strong> | Class 1: <strong>{manualSplitEval.parentPts.filter((p) => p.yVal === 1).length}</strong><br />
+                <div style={{ marginTop: '8px', padding: '8px', background: '#f1f5f9', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem', color: '#001f54' }}>
+                  Parent {criterion === 'gini' ? 'Gini' : 'Entropy'} = <strong>{manualSplitEval.parentImp.toFixed(4)}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 2: Left & Right Children */}
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>
+                Step 2: Partitioned Children
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: '1.6' }}>
+                <strong>Left ({calcSplitFeature} &le; {calcThreshold.toFixed(1)}):</strong><br />
+                Samples: {manualSplitEval.nL} | {criterion === 'gini' ? 'Gini' : 'Entropy'}: <strong>{manualSplitEval.impL.toFixed(4)}</strong><br />
+                <strong>Right ({calcSplitFeature} &gt; {calcThreshold.toFixed(1)}):</strong><br />
+                Samples: {manualSplitEval.nR} | {criterion === 'gini' ? 'Gini' : 'Entropy'}: <strong>{manualSplitEval.impR.toFixed(4)}</strong><br />
+                <div style={{ marginTop: '8px', padding: '8px', background: '#f1f5f9', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem', color: '#001f54' }}>
+                  Weighted Children Impurity = <strong>{manualSplitEval.weightedChildImp.toFixed(4)}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3: Information Gain / Reduction */}
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1.5px solid #d97706' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#d97706', marginBottom: '6px' }}>
+                Step 3: Reduction in Impurity (Gain)
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: '1.6' }}>
+                <div style={{ fontWeight: 700, color: '#001f54', marginBottom: '4px' }}>
+                  Reduction = Parent Impurity &minus; Weighted Children Impurity
+                </div>
+                <div style={{ marginTop: '8px', padding: '8px', background: '#fffbeb', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 800, color: '#b45309' }}>
+                  Gain = {manualSplitEval.parentImp.toFixed(4)} - {manualSplitEval.weightedChildImp.toFixed(4)} = {manualSplitEval.gain.toFixed(4)}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '6px' }}>
+                  {manualSplitEval.gain > 0.15 ? 'High Information Gain! This is an excellent candidate split.' : 'Low Information Gain. The tree algorithm will look for a cleaner split.'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: REGRESSION TREE (STAIRCASE APPROXIMATION) ─────────── */}
+      {activeTab === 'regression' && (
+        <div>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#f8fafc',
+            padding: '1rem',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            marginBottom: '1.25rem',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                1D Regression Tree: Non-Linear Function Approximation
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                Target: y = sin(x) + noise. Notice how depth controls the granularity of the piecewise constant staircase.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54' }}>Tree Depth:</span>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {[1, 2, 3, 4].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setRegDepth(d)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      border: '1px solid #cbd5e1',
+                      cursor: 'pointer',
+                      background: regDepth === d ? '#001f54' : '#ffffff',
+                      color: regDepth === d ? '#ffffff' : '#334155'
+                    }}
+                  >
+                    Depth {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Regression Plot SVG */}
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1rem' }}>
+            <svg width="100%" height="280" viewBox="0 0 540 280" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+              {/* Axes */}
+              <line x1="40" y1="140" x2="520" y2="140" stroke="#cbd5e1" strokeDasharray="3 3" />
+              <line x1="40" y1="20" x2="40" y2="250" stroke="#64748b" strokeWidth="1.5" />
+              <line x1="40" y1="250" x2="520" y2="250" stroke="#64748b" strokeWidth="1.5" />
+
+              {/* Data points */}
+              {regressionData.map((pt, idx) => {
+                const cx = 40 + (pt.x / 6.28) * 460;
+                const cy = 140 - pt.y * 85;
+                return (
+                  <circle key={idx} cx={cx} cy={cy} r="4" fill="#0284c7" stroke="#ffffff" strokeWidth="1" />
+                );
+              })}
+
+              {/* Piecewise constant staircase step function */}
+              {regressionSteps.map((step, idx) => {
+                const x1 = 40 + (step.xMin / 6.28) * 460;
+                const x2 = 40 + (step.xMax / 6.28) * 460;
+                const y = 140 - step.predY * 85;
+
+                return (
+                  <g key={idx}>
+                    <line x1={x1} y1={y} x2={x2} y2={y} stroke="#ea580c" strokeWidth="3" />
+                    {idx > 0 && (
+                      <line
+                        x1={x1}
+                        y1={140 - regressionSteps[idx - 1].predY * 85}
+                        x2={x1}
+                        y2={y}
+                        stroke="#ea580c"
+                        strokeWidth="1.5"
+                        strokeDasharray="2 2"
+                      />
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', fontSize: '0.74rem' }}>
+              <span style={{ color: '#0284c7', fontWeight: 700 }}>Blue Dots: Training Data Samples</span>
+              <span style={{ color: '#ea580c', fontWeight: 800 }}>Orange Staircase: Regression Tree Step Function</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: COST-COMPLEXITY PRUNING PATH ──────────────────────── */}
+      {activeTab === 'pruning' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1.25rem'
+          }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54', marginBottom: '8px' }}>
+              Understanding Minimal Cost-Complexity Post-Pruning (CCP)
+            </div>
+            <p style={{ fontSize: '0.78rem', color: '#475569', margin: '0 0 1rem 0', lineHeight: '1.6' }}>
+              Cost-Complexity Pruning penalizes tree size using the regularization parameter $\alpha$. As $\alpha$ increases, more subtrees are pruned, reducing variance at the cost of slight bias.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.78rem', color: '#ef4444', marginBottom: '4px' }}>
+                  Unpruned Tree (alpha = 0)
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  Train Acc: 100% | Test Acc: 81.2%<br />
+                  Depth: 9 | Leaves: 34<br />
+                  <strong>High Variance (Overfitting)</strong>
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '2px solid #059669' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.78rem', color: '#059669', marginBottom: '4px' }}>
+                  Optimal Pruned Tree (alpha = 0.015)
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  Train Acc: 94.8% | Test Acc: 93.4%<br />
+                  Depth: 4 | Leaves: 7<br />
+                  <strong>Balanced Bias-Variance</strong>
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.78rem', color: '#f59e0b', marginBottom: '4px' }}>
+                  Over-Pruned Stump (alpha = 0.08)
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  Train Acc: 71.0% | Test Acc: 68.5%<br />
+                  Depth: 1 | Leaves: 2<br />
+                  <strong>High Bias (Underfitting)</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE IMPLEMENTATION ────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              1. Training and Pruning with Scikit-Learn (Classification & CCP):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from sklearn.datasets import load_breast_cancer',
+                'from sklearn.tree import DecisionTreeClassifier, export_text, plot_tree',
+                'from sklearn.model_selection import train_test_split',
+                '',
+                '# Load dataset',
+                'cancer = load_breast_cancer()',
+                'X_train, X_test, y_train, y_test = train_test_split(',
+                '    cancer.data, cancer.target, test_size=0.25, random_state=42',
+                ')',
+                '',
+                '# 1. Compute Cost-Complexity Pruning Path',
+                'clf_full = DecisionTreeClassifier(random_state=42)',
+                'path = clf_full.cost_complexity_pruning_path(X_train, y_train)',
+                'ccp_alphas = path.ccp_alphas',
+                '',
+                '# 2. Train optimal tree with chosen alpha',
+                'optimal_alpha = ccp_alphas[len(ccp_alphas) // 2]',
+                'clf_pruned = DecisionTreeClassifier(random_state=42, ccp_alpha=optimal_alpha)',
+                'clf_pruned.fit(X_train, y_train)',
+                '',
+                'print(f"Pruned Tree Depth: {clf_pruned.get_depth()}")',
+                'print(f"Test Accuracy: {clf_pruned.score(X_test, y_test) * 100:.2f}%")',
+                '',
+                '# 3. Print White-Box Decision Rules',
+                'print(export_text(clf_pruned, feature_names=list(cancer.feature_names), max_depth=2))'
+              ].join('\n')}
+              title="decision_tree_sklearn_pruning.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5'
 ];
 
 export default function MLLessonArticlePage() {
@@ -18786,6 +19899,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'svm_interactive_studio' && (
               <SVMInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'decision_tree_interactive_studio' && (
+              <DecisionTreeInteractiveStudio />
             )}
           </div>
         )}
