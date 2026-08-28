@@ -18587,7 +18587,12 @@ const SVMInteractiveStudio = () => {
 
 // ─── DECISION TREES INTERACTIVE STUDIO ──────────────────────────────────────
 const DecisionTreeInteractiveStudio = () => {
-  const [activeTab, setActiveTab] = useState('partition'); // 'partition', 'calculator', 'regression', 'pruning', 'code'
+  const [activeTab, setActiveTab] = useState('loantree');
+  // Loan Approval Tree Simulator State
+  const [applicantAge, setApplicantAge] = useState(35);
+  const [applicantIncome, setApplicantIncome] = useState(65);
+  const [applicantCredit, setApplicantCredit] = useState(720);
+  const [simulationMode, setSimulationMode] = useState(true); // 'partition', 'calculator', 'regression', 'pruning', 'code'
 
   // Tab 1 & 2: Dataset selection & state
   const [selectedDataset, setSelectedDataset] = useState('blobs'); // 'blobs', 'moons', 'diagonal'
@@ -19031,6 +19036,7 @@ const DecisionTreeInteractiveStudio = () => {
           border: '1px solid #e2e8f0'
         }}>
           {[
+            { id: 'loantree', label: 'Loan Approval Flow' },
             { id: 'partition', label: '2D Partition & Tree Graph' },
             { id: 'calculator', label: 'Step-by-Step Split Calculator' },
             { id: 'regression', label: 'Regression Tree (Staircase)' },
@@ -19059,7 +19065,672 @@ const DecisionTreeInteractiveStudio = () => {
         </div>
       </div>
 
-      {/* ─── TAB 1: 2D PARTITION SPACE & LIVE TREE GRAPH ─────────────── */}
+      
+      {/* ─── TAB 0: LOAN APPROVAL DECISION TREE (FIGURE 4.1) ─────────── */}
+      {activeTab === 'loantree' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Header & Mode Switch */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#f8fafc',
+            padding: '0.85rem 1.25rem',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#001f54' }}>
+                Figure 4.1: Decision Tree for Loan Approval
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                Hierarchical splitting flowchart: Root Node &rarr; Internal Decision Nodes &rarr; Leaf Classification.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>Mode:</span>
+              <button
+                onClick={() => setSimulationMode(false)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                  background: !simulationMode ? '#001f54' : '#ffffff',
+                  color: !simulationMode ? '#ffffff' : '#475569'
+                }}
+              >
+                Textbook Diagram
+              </button>
+              <button
+                onClick={() => setSimulationMode(true)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                  background: simulationMode ? '#001f54' : '#ffffff',
+                  color: simulationMode ? '#ffffff' : '#475569'
+                }}
+              >
+                Live Interactive Simulator
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Applicant Controls (Visible in Simulator Mode) */}
+          {simulationMode && (
+            <div style={{
+              background: '#f8fafc',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '16px',
+              padding: '1.25rem',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.02)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>
+                  Applicant Profile Inputs:
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => { setApplicantAge(24); setApplicantIncome(35); setApplicantCredit(680); }}
+                    style={{ padding: '4px 8px', borderRadius: '6px', background: '#ffffff', border: '1px solid #cbd5e1', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Young &le; 30 + Low Inc (&rarr; Deny)
+                  </button>
+                  <button
+                    onClick={() => { setApplicantAge(27); setApplicantIncome(75); setApplicantCredit(650); }}
+                    style={{ padding: '4px 8px', borderRadius: '6px', background: '#ffffff', border: '1px solid #cbd5e1', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Young &le; 30 + High Inc (&rarr; Approve)
+                  </button>
+                  <button
+                    onClick={() => { setApplicantAge(45); setApplicantIncome(90); setApplicantCredit(620); }}
+                    style={{ padding: '4px 8px', borderRadius: '6px', background: '#ffffff', border: '1px solid #cbd5e1', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Mature &gt; 30 + Low Credit (&rarr; Deny)
+                  </button>
+                  <button
+                    onClick={() => { setApplicantAge(38); setApplicantIncome(60); setApplicantCredit(740); }}
+                    style={{ padding: '4px 8px', borderRadius: '6px', background: '#ffffff', border: '1px solid #cbd5e1', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Mature &gt; 30 + High Credit (&rarr; Approve)
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                {/* Age Slider */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#001f54', marginBottom: '4px' }}>
+                    <span>Applicant Age:</span>
+                    <span style={{ color: '#d97706', fontWeight: 800 }}>{applicantAge} years</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="18"
+                    max="70"
+                    step="1"
+                    value={applicantAge}
+                    onChange={(e) => setApplicantAge(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#001f54' }}
+                  />
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                    Root condition: {applicantAge > 30 ? 'Age > 30 (YES - Right Branch)' : 'Age <= 30 (NO - Left Branch)'}
+                  </div>
+                </div>
+
+                {/* Income Slider */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#001f54', marginBottom: '4px' }}>
+                    <span>Annual Income:</span>
+                    <span style={{ color: '#0284c7', fontWeight: 800 }}>${applicantIncome}K</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="20"
+                    max="120"
+                    step="5"
+                    value={applicantIncome}
+                    onChange={(e) => setApplicantIncome(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#0284c7' }}
+                  />
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                    Sub-condition: {applicantIncome > 50 ? 'Income > $50K (YES)' : 'Income <= $50K (NO)'}
+                  </div>
+                </div>
+
+                {/* Credit Score Slider */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#001f54', marginBottom: '4px' }}>
+                    <span>Credit Score:</span>
+                    <span style={{ color: '#059669', fontWeight: 800 }}>{applicantCredit}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="500"
+                    max="850"
+                    step="10"
+                    value={applicantCredit}
+                    onChange={(e) => setApplicantCredit(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#059669' }}
+                  />
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                    Sub-condition: {applicantCredit > 700 ? 'Credit > 700 (YES)' : 'Credit <= 700 (NO)'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SVG Decision Tree Graphic (Figure 4.1 Exact Match) */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            border: '1.5px solid #cbd5e1',
+            padding: '1.5rem',
+            boxShadow: '0 6px 24px rgba(0,0,0,0.03)',
+            position: 'relative'
+          }}>
+            {/* Title from Textbook */}
+            <div style={{ textAlign: 'center', marginBottom: '0.5rem', fontFamily: 'Georgia, serif' }}>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#1e293b', margin: '0 0 4px 0' }}>
+                Tree Structure and Splitting Criteria
+              </h2>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#334155', margin: '0 0 10px 0' }}>
+                Decision Tree: Loan Approval
+              </h3>
+            </div>
+
+            {/* Tree Evaluation Calculations */}
+            {(() => {
+              const isAgeYes = applicantAge > 30;
+              const isIncomeYes = applicantIncome > 50;
+              const isCreditYes = applicantCredit > 700;
+
+              // Which leaf is active?
+              // Leaf 1: Age <= 30 and Income <= 50 -> DENY
+              // Leaf 2: Age <= 30 and Income > 50 -> APPROVE
+              // Leaf 3: Age > 30 and Credit <= 700 -> DENY
+              // Leaf 4: Age > 30 and Credit > 700 -> APPROVE
+              const activeLeaf = !isAgeYes
+                ? (!isIncomeYes ? 1 : 2)
+                : (!isCreditYes ? 3 : 4);
+
+              const isApproved = activeLeaf === 2 || activeLeaf === 4;
+
+              // Node active states
+              const isRootActive = true;
+              const isIncomeActive = !isAgeYes;
+              const isCreditActive = isAgeYes;
+
+              // Branch active states
+              const isBranchRootLeftActive = !isAgeYes;
+              const isBranchRootRightActive = isAgeYes;
+              const isBranchIncomeLeftActive = !isAgeYes && !isIncomeYes;
+              const isBranchIncomeRightActive = !isAgeYes && isIncomeYes;
+              const isBranchCreditLeftActive = isAgeYes && !isCreditYes;
+              const isBranchCreditRightActive = isAgeYes && isCreditYes;
+
+              return (
+                <div>
+                  <svg
+                    width="100%"
+                    height="380"
+                    viewBox="0 0 720 380"
+                    style={{ display: 'block', margin: '0 auto', overflow: 'visible' }}
+                  >
+                    <defs>
+                      <filter id="glowApproved" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="4" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                      <filter id="glowDenied" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="4" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
+
+                    {/* ─── LEVEL 0: ROOT NODE ───────────────────────── */}
+                    {/* Label above root: Root Node */}
+                    <text
+                      x="360"
+                      y="26"
+                      textAnchor="middle"
+                      fontFamily="Georgia, serif"
+                      fontSize="13"
+                      fontStyle="italic"
+                      fill="#64748b"
+                    >
+                      Root Node
+                    </text>
+
+                    {/* Branch: Root to Left (Income) */}
+                    <line
+                      x1="320"
+                      y1="75"
+                      x2="190"
+                      y2="135"
+                      stroke="#dc2626"
+                      strokeWidth={simulationMode && isBranchRootLeftActive ? 4 : 2}
+                      opacity={simulationMode && !isBranchRootLeftActive ? 0.3 : 1}
+                    />
+                    <text
+                      x="235"
+                      y="98"
+                      fontFamily="Georgia, serif"
+                      fontSize="13"
+                      fontStyle="italic"
+                      fontWeight="bold"
+                      fill="#dc2626"
+                      opacity={simulationMode && !isBranchRootLeftActive ? 0.3 : 1}
+                    >
+                      No
+                    </text>
+
+                    {/* Branch: Root to Right (Credit) */}
+                    <line
+                      x1="400"
+                      y1="75"
+                      x2="530"
+                      y2="135"
+                      stroke="#16a34a"
+                      strokeWidth={simulationMode && isBranchRootRightActive ? 4 : 2}
+                      opacity={simulationMode && !isBranchRootRightActive ? 0.3 : 1}
+                    />
+                    <text
+                      x="475"
+                      y="98"
+                      fontFamily="Georgia, serif"
+                      fontSize="13"
+                      fontStyle="italic"
+                      fontWeight="bold"
+                      fill="#16a34a"
+                      opacity={simulationMode && !isBranchRootRightActive ? 0.3 : 1}
+                    >
+                      Yes
+                    </text>
+
+                    {/* Root Box: Age > 30? */}
+                    <g transform="translate(285, 36)">
+                      <rect
+                        width="150"
+                        height="44"
+                        rx="6"
+                        fill="#2c3e50"
+                        stroke={simulationMode && isRootActive ? '#d97706' : '#1e293b'}
+                        strokeWidth={simulationMode && isRootActive ? 2.5 : 1}
+                        style={{
+                          filter: simulationMode && isRootActive ? 'drop-shadow(0 4px 10px rgba(0,0,0,0.2))' : 'none'
+                        }}
+                      />
+                      <text
+                        x="75"
+                        y="27"
+                        textAnchor="middle"
+                        fontFamily="sans-serif"
+                        fontSize="14"
+                        fontWeight="600"
+                        fill="#ffffff"
+                      >
+                        Age &gt; 30?
+                      </text>
+                    </g>
+
+                    {/* ─── LEVEL 1: INTERNAL DECISION NODES ──────────── */}
+                    {/* Left Node: Income > 50K? */}
+                    {/* Branch: Income to Deny */}
+                    <line
+                      x1="160"
+                      y1="180"
+                      x2="105"
+                      y2="245"
+                      stroke="#dc2626"
+                      strokeWidth={simulationMode && isBranchIncomeLeftActive ? 4 : 2}
+                      opacity={simulationMode && !isBranchIncomeLeftActive ? 0.3 : 1}
+                    />
+                    <text
+                      x="120"
+                      y="212"
+                      fontFamily="Georgia, serif"
+                      fontSize="13"
+                      fontStyle="italic"
+                      fontWeight="bold"
+                      fill="#dc2626"
+                      opacity={simulationMode && !isBranchIncomeLeftActive ? 0.3 : 1}
+                    >
+                      No
+                    </text>
+
+                    {/* Branch: Income to Approve */}
+                    <line
+                      x1="220"
+                      y1="180"
+                      x2="275"
+                      y2="245"
+                      stroke="#16a34a"
+                      strokeWidth={simulationMode && isBranchIncomeRightActive ? 4 : 2}
+                      opacity={simulationMode && !isBranchIncomeRightActive ? 0.3 : 1}
+                    />
+                    <text
+                      x="255"
+                      y="212"
+                      fontFamily="Georgia, serif"
+                      fontSize="13"
+                      fontStyle="italic"
+                      fontWeight="bold"
+                      fill="#16a34a"
+                      opacity={simulationMode && !isBranchIncomeRightActive ? 0.3 : 1}
+                    >
+                      Yes
+                    </text>
+
+                    {/* Income Box */}
+                    <g
+                      transform="translate(115, 136)"
+                      opacity={simulationMode && !isIncomeActive ? 0.4 : 1}
+                    >
+                      <rect
+                        width="150"
+                        height="44"
+                        rx="6"
+                        fill="#3ca9e2"
+                        stroke={simulationMode && isIncomeActive ? '#0284c7' : '#0284c7'}
+                        strokeWidth={simulationMode && isIncomeActive ? 2.5 : 1}
+                        style={{
+                          filter: simulationMode && isIncomeActive ? 'drop-shadow(0 4px 10px rgba(60,169,226,0.35))' : 'none'
+                        }}
+                      />
+                      <text
+                        x="75"
+                        y="27"
+                        textAnchor="middle"
+                        fontFamily="sans-serif"
+                        fontSize="14"
+                        fontWeight="600"
+                        fill="#ffffff"
+                      >
+                        Income &gt; 50K?
+                      </text>
+                    </g>
+
+                    {/* Right Node: Credit > 700? */}
+                    {/* Branch: Credit to Deny */}
+                    <line
+                      x1="500"
+                      y1="180"
+                      x2="445"
+                      y2="245"
+                      stroke="#dc2626"
+                      strokeWidth={simulationMode && isBranchCreditLeftActive ? 4 : 2}
+                      opacity={simulationMode && !isBranchCreditLeftActive ? 0.3 : 1}
+                    />
+                    <text
+                      x="460"
+                      y="212"
+                      fontFamily="Georgia, serif"
+                      fontSize="13"
+                      fontStyle="italic"
+                      fontWeight="bold"
+                      fill="#dc2626"
+                      opacity={simulationMode && !isBranchCreditLeftActive ? 0.3 : 1}
+                    >
+                      No
+                    </text>
+
+                    {/* Branch: Credit to Approve */}
+                    <line
+                      x1="560"
+                      y1="180"
+                      x2="615"
+                      y2="245"
+                      stroke="#16a34a"
+                      strokeWidth={simulationMode && isBranchCreditRightActive ? 4 : 2}
+                      opacity={simulationMode && !isBranchCreditRightActive ? 0.3 : 1}
+                    />
+                    <text
+                      x="595"
+                      y="212"
+                      fontFamily="Georgia, serif"
+                      fontSize="13"
+                      fontStyle="italic"
+                      fontWeight="bold"
+                      fill="#16a34a"
+                      opacity={simulationMode && !isBranchCreditRightActive ? 0.3 : 1}
+                    >
+                      Yes
+                    </text>
+
+                    {/* Credit Box */}
+                    <g
+                      transform="translate(455, 136)"
+                      opacity={simulationMode && !isCreditActive ? 0.4 : 1}
+                    >
+                      <rect
+                        width="150"
+                        height="44"
+                        rx="6"
+                        fill="#3ca9e2"
+                        stroke={simulationMode && isCreditActive ? '#0284c7' : '#0284c7'}
+                        strokeWidth={simulationMode && isCreditActive ? 2.5 : 1}
+                        style={{
+                          filter: simulationMode && isCreditActive ? 'drop-shadow(0 4px 10px rgba(60,169,226,0.35))' : 'none'
+                        }}
+                      />
+                      <text
+                        x="75"
+                        y="27"
+                        textAnchor="middle"
+                        fontFamily="sans-serif"
+                        fontSize="14"
+                        fontWeight="600"
+                        fill="#ffffff"
+                      >
+                        Credit &gt; 700?
+                      </text>
+                    </g>
+
+                    {/* ─── LEVEL 2: LEAF NODES (TERMINAL) ─────────────── */}
+                    {/* Leaf 1: Left DENY */}
+                    <g
+                      transform="translate(50, 246)"
+                      opacity={simulationMode && activeLeaf !== 1 ? 0.35 : 1}
+                    >
+                      <rect
+                        width="110"
+                        height="40"
+                        rx="6"
+                        fill="#e25b5b"
+                        stroke={simulationMode && activeLeaf === 1 ? '#b91c1c' : 'none'}
+                        strokeWidth={simulationMode && activeLeaf === 1 ? 3 : 0}
+                        style={{
+                          filter: simulationMode && activeLeaf === 1 ? 'drop-shadow(0 0 12px rgba(226,91,91,0.6))' : 'none'
+                        }}
+                      />
+                      <text
+                        x="55"
+                        y="25"
+                        textAnchor="middle"
+                        fontFamily="sans-serif"
+                        fontSize="13"
+                        fontWeight="bold"
+                        fill="#ffffff"
+                        letterSpacing="0.05em"
+                      >
+                        DENY
+                      </text>
+                      {/* Leaf label under left DENY */}
+                      <text
+                        x="55"
+                        y="60"
+                        textAnchor="middle"
+                        fontFamily="Georgia, serif"
+                        fontSize="13"
+                        fontStyle="italic"
+                        fill="#64748b"
+                      >
+                        Leaf
+                      </text>
+                    </g>
+
+                    {/* Leaf 2: Left APPROVE */}
+                    <g
+                      transform="translate(220, 246)"
+                      opacity={simulationMode && activeLeaf !== 2 ? 0.35 : 1}
+                    >
+                      <rect
+                        width="110"
+                        height="40"
+                        rx="6"
+                        fill="#3eb370"
+                        stroke={simulationMode && activeLeaf === 2 ? '#047857' : 'none'}
+                        strokeWidth={simulationMode && activeLeaf === 2 ? 3 : 0}
+                        style={{
+                          filter: simulationMode && activeLeaf === 2 ? 'drop-shadow(0 0 12px rgba(62,179,112,0.6))' : 'none'
+                        }}
+                      />
+                      <text
+                        x="55"
+                        y="25"
+                        textAnchor="middle"
+                        fontFamily="sans-serif"
+                        fontSize="13"
+                        fontWeight="bold"
+                        fill="#ffffff"
+                        letterSpacing="0.05em"
+                      >
+                        APPROVE
+                      </text>
+                    </g>
+
+                    {/* Leaf 3: Right DENY */}
+                    <g
+                      transform="translate(390, 246)"
+                      opacity={simulationMode && activeLeaf !== 3 ? 0.35 : 1}
+                    >
+                      <rect
+                        width="110"
+                        height="40"
+                        rx="6"
+                        fill="#e25b5b"
+                        stroke={simulationMode && activeLeaf === 3 ? '#b91c1c' : 'none'}
+                        strokeWidth={simulationMode && activeLeaf === 3 ? 3 : 0}
+                        style={{
+                          filter: simulationMode && activeLeaf === 3 ? 'drop-shadow(0 0 12px rgba(226,91,91,0.6))' : 'none'
+                        }}
+                      />
+                      <text
+                        x="55"
+                        y="25"
+                        textAnchor="middle"
+                        fontFamily="sans-serif"
+                        fontSize="13"
+                        fontWeight="bold"
+                        fill="#ffffff"
+                        letterSpacing="0.05em"
+                      >
+                        DENY
+                      </text>
+                    </g>
+
+                    {/* Leaf 4: Right APPROVE */}
+                    <g
+                      transform="translate(560, 246)"
+                      opacity={simulationMode && activeLeaf !== 4 ? 0.35 : 1}
+                    >
+                      <rect
+                        width="110"
+                        height="40"
+                        rx="6"
+                        fill="#3eb370"
+                        stroke={simulationMode && activeLeaf === 4 ? '#047857' : 'none'}
+                        strokeWidth={simulationMode && activeLeaf === 4 ? 3 : 0}
+                        style={{
+                          filter: simulationMode && activeLeaf === 4 ? 'drop-shadow(0 0 12px rgba(62,179,112,0.6))' : 'none'
+                        }}
+                      />
+                      <text
+                        x="55"
+                        y="25"
+                        textAnchor="middle"
+                        fontFamily="sans-serif"
+                        fontSize="13"
+                        fontWeight="bold"
+                        fill="#ffffff"
+                        letterSpacing="0.05em"
+                      >
+                        APPROVE
+                      </text>
+                    </g>
+
+                    {/* Caption Below Diagram */}
+                    <text
+                      x="360"
+                      y="355"
+                      textAnchor="middle"
+                      fontFamily="Georgia, serif"
+                      fontSize="14"
+                      fontStyle="italic"
+                      fill="#475569"
+                    >
+                      Figure 4.1: Decision tree for loan approval.
+                    </text>
+                  </svg>
+
+                  {/* Evaluation Result Audit Card (Simulator Mode) */}
+                  {simulationMode && (
+                    <div style={{
+                      marginTop: '1.25rem',
+                      padding: '1rem 1.25rem',
+                      borderRadius: '12px',
+                      background: isApproved ? '#f0fdf4' : '#fef2f2',
+                      border: `1.5px solid ${isApproved ? '#86efac' : '#fca5a5'}`,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '1rem'
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 800, color: isApproved ? '#166534' : '#991b1b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Evaluation Path Traversed:
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: '#1e293b', marginTop: '4px' }}>
+                          <strong>Step 1:</strong> Age ({applicantAge}) &gt; 30? &rarr; <strong>{isAgeYes ? 'YES (Right)' : 'NO (Left)'}</strong> &rarr;{' '}
+                          <strong>Step 2:</strong> {isAgeYes
+                            ? `Credit (${applicantCredit}) > 700? \u2192 ${isCreditYes ? 'YES' : 'NO'}`
+                            : `Income ($${applicantIncome}K) > $50K? \u2192 ${isIncomeYes ? 'YES' : 'NO'}`}
+                        </div>
+                      </div>
+
+                      <div style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        background: isApproved ? '#16a34a' : '#dc2626',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                        fontWeight: 800,
+                        boxShadow: isApproved ? '0 4px 12px rgba(22,163,74,0.3)' : '0 4px 12px rgba(220,38,38,0.3)'
+                      }}>
+                        {isApproved ? 'LOAN APPROVED' : 'LOAN DENIED'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+{/* ─── TAB 1: 2D PARTITION SPACE & LIVE TREE GRAPH ─────────────── */}
       {activeTab === 'partition' && (
         <div>
           {/* Controls Bar */}
