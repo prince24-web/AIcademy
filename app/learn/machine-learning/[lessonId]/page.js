@@ -20368,11 +20368,912 @@ const DecisionTreeInteractiveStudio = () => {
   );
 };
 
+
+// ─── RANDOM FOREST INTERACTIVE STUDIO ───────────────────────────────────────
+const RandomForestInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('ensemble_tree'); // 'ensemble_tree', 'boundary', 'oob', 'importance', 'code'
+
+  // Tab 1: Multi-Tree Loan Approval Ensemble State
+  const [applicantIncome, setApplicantIncome] = useState(60);     // in $K
+  const [applicantCredit, setApplicantCredit] = useState(680);    // score
+  const [applicantDebtRatio, setApplicantDebtRatio] = useState(24); // %
+  const [applicantExperience, setApplicantExperience] = useState(2); // years
+  const [applicantAge, setApplicantAge] = useState(29);          // years
+  const [simulationMode, setSimulationMode] = useState(true);
+
+  // Tab 2: Decision Boundary Comparison State
+  const [nEstimators, setNEstimators] = useState(15);
+  const [featureRandomness, setFeatureRandomness] = useState('sqrt'); // 'sqrt' or 'all'
+
+  // Tab 3: OOB Curve Hover State
+  const [hoveredTreesCount, setHoveredTreesCount] = useState(30);
+
+  // Evaluation for Tree 1 (Income & Loan Focus)
+  // Root: Income > 55K?
+  // If No -> Loan < 20K? -> Yes: APPROVE, No: DENY
+  // If Yes -> APPROVE
+  const t1_isIncomeYes = applicantIncome > 55;
+  const t1_isLoanYes = applicantIncome >= 40; // Proxy for loan amount qualification
+  const t1_vote = t1_isIncomeYes ? 'APPROVE' : (t1_isLoanYes ? 'APPROVE' : 'DENY');
+
+  // Evaluation for Tree 2 (Credit & Debt Ratio Focus)
+  // Root: Credit > 710?
+  // If No -> Debt Ratio < 28%? -> Yes: APPROVE, No: DENY
+  // If Yes -> APPROVE
+  const t2_isCreditYes = applicantCredit > 710;
+  const t2_isDebtRatioYes = applicantDebtRatio < 28;
+  const t2_vote = t2_isCreditYes ? 'APPROVE' : (t2_isDebtRatioYes ? 'APPROVE' : 'DENY');
+
+  // Evaluation for Tree 3 (Experience & Age Focus)
+  // Root: Experience > 3 Yrs?
+  // If No -> Age > 32? -> Yes: APPROVE, No: DENY
+  // If Yes -> APPROVE
+  const t3_isExpYes = applicantExperience > 3;
+  const t3_isAgeYes = applicantAge > 32;
+  const t3_vote = t3_isExpYes ? 'APPROVE' : (t3_isAgeYes ? 'APPROVE' : 'DENY');
+
+  // Aggregation of 3 Trees
+  const votes = [t1_vote, t2_vote, t3_vote];
+  const approveCount = votes.filter((v) => v === 'APPROVE').length;
+  const denyCount = votes.filter((v) => v === 'DENY').length;
+  const ensembleConsensus = approveCount >= 2 ? 'APPROVE' : 'DENY';
+  const confidencePercent = ((Math.max(approveCount, denyCount) / 3.0) * 100).toFixed(1);
+
+  // Synthetic OOB Error Data Points (1 to 100 trees)
+  const oobCurveData = useMemo(() => {
+    const data = [];
+    for (let b = 1; b <= 100; b += 2) {
+      // Single tree starts high error ~24%, then asymptotically decays to ~7.5%
+      const trainErr = Math.max(1.0, 15.0 / Math.sqrt(b) + 1.2);
+      const testErr = Math.max(7.2, 23.0 / Math.sqrt(b) + 6.5);
+      const oobErr = Math.max(7.4, 25.0 / Math.sqrt(b) + 6.8);
+      data.push({ b, trainErr, testErr, oobErr });
+    }
+    return data;
+  }, []);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{
+        borderBottom: '1.5px solid #f1f5f9',
+        paddingBottom: '1.25rem',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #001f54, #16a34a)',
+              width: '46px',
+              height: '46px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 14px rgba(22,163,74,0.25)'
+            }}>
+              <IconSparkles size={24} style={{ color: '#ffffff' }} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  background: '#001f54',
+                  color: '#ffffff',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.05em'
+                }}>
+                  INTERACTIVE STUDIO
+                </span>
+                <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700 }}>
+                  Ensemble Voting & Bagging Architecture
+                </span>
+              </div>
+              <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+                Random Forest Masterclass Studio
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation Pill Group */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'ensemble_tree', label: 'Loan Approval Forest (Figure 4.2)' },
+            { id: 'boundary', label: '1 Tree vs Random Forest' },
+            { id: 'oob', label: 'OOB Error Convergence' },
+            { id: 'importance', label: 'Feature Importance (MDI vs Permutation)' },
+            { id: 'code', label: 'Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: LOAN APPROVAL FOREST (FIGURE 4.2) ─────────────────── */}
+      {activeTab === 'ensemble_tree' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Header & Mode Switch */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#f8fafc',
+            padding: '0.85rem 1.25rem',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#001f54' }}>
+                Figure 4.2: Random Forest Architecture for Loan Approval
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                Multiple decorrelated decision trees train on bootstrap samples, evaluate applicant features in parallel, and cast votes to reach an ensemble consensus.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>Mode:</span>
+              <button
+                onClick={() => setSimulationMode(false)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                  background: !simulationMode ? '#001f54' : '#ffffff',
+                  color: !simulationMode ? '#ffffff' : '#475569'
+                }}
+              >
+                Textbook Diagram
+              </button>
+              <button
+                onClick={() => setSimulationMode(true)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                  background: simulationMode ? '#001f54' : '#ffffff',
+                  color: simulationMode ? '#ffffff' : '#475569'
+                }}
+              >
+                Live Interactive Simulator
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Applicant Sliders */}
+          {simulationMode && (
+            <div style={{
+              background: '#f8fafc',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '16px',
+              padding: '1.25rem',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.02)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>
+                  Applicant Profile Inputs:
+                </div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => { setApplicantIncome(38); setApplicantCredit(640); setApplicantDebtRatio(35); setApplicantExperience(1); setApplicantAge(24); }}
+                    style={{ padding: '4px 8px', borderRadius: '6px', background: '#ffffff', border: '1px solid #cbd5e1', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    High-Risk Profile (All Deny)
+                  </button>
+                  <button
+                    onClick={() => { setApplicantIncome(62); setApplicantCredit(690); setApplicantDebtRatio(22); setApplicantExperience(2); setApplicantAge(28); }}
+                    style={{ padding: '4px 8px', borderRadius: '6px', background: '#ffffff', border: '1px solid #cbd5e1', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Borderline Profile (2 Approve, 1 Deny)
+                  </button>
+                  <button
+                    onClick={() => { setApplicantIncome(95); setApplicantCredit(760); setApplicantDebtRatio(18); setApplicantExperience(6); setApplicantAge(36); }}
+                    style={{ padding: '4px 8px', borderRadius: '6px', background: '#ffffff', border: '1px solid #cbd5e1', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Prime Profile (All Approve)
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '1rem' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#001f54', marginBottom: '4px' }}>
+                    <span>Income:</span>
+                    <span style={{ color: '#0284c7', fontWeight: 800 }}>${applicantIncome}K</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="20"
+                    max="120"
+                    step="5"
+                    value={applicantIncome}
+                    onChange={(e) => setApplicantIncome(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#0284c7' }}
+                  />
+                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Tested in Tree 1</div>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#001f54', marginBottom: '4px' }}>
+                    <span>Credit Score:</span>
+                    <span style={{ color: '#16a34a', fontWeight: 800 }}>{applicantCredit}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="500"
+                    max="850"
+                    step="10"
+                    value={applicantCredit}
+                    onChange={(e) => setApplicantCredit(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#16a34a' }}
+                  />
+                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Tested in Tree 2</div>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#001f54', marginBottom: '4px' }}>
+                    <span>Debt Ratio:</span>
+                    <span style={{ color: '#d97706', fontWeight: 800 }}>{applicantDebtRatio}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="10"
+                    max="50"
+                    step="2"
+                    value={applicantDebtRatio}
+                    onChange={(e) => setApplicantDebtRatio(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#d97706' }}
+                  />
+                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Tested in Tree 2</div>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#001f54', marginBottom: '4px' }}>
+                    <span>Experience:</span>
+                    <span style={{ color: '#9333ea', fontWeight: 800 }}>{applicantExperience} yrs</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="12"
+                    step="1"
+                    value={applicantExperience}
+                    onChange={(e) => setApplicantExperience(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#9333ea' }}
+                  />
+                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Tested in Tree 3</div>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#001f54', marginBottom: '4px' }}>
+                    <span>Age:</span>
+                    <span style={{ color: '#475569', fontWeight: 800 }}>{applicantAge} yrs</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="18"
+                    max="70"
+                    step="1"
+                    value={applicantAge}
+                    onChange={(e) => setApplicantAge(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#475569' }}
+                  />
+                  <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Tested in Tree 3</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SVG Multi-Tree Ensemble Diagram (Figure 4.2) */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            border: '1.5px solid #cbd5e1',
+            padding: '1.5rem 1rem',
+            boxShadow: '0 6px 24px rgba(0,0,0,0.03)',
+            overflowX: 'auto'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '0.5rem', fontFamily: 'Georgia, serif' }}>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#1e293b', margin: '0 0 4px 0' }}>
+                Ensemble Architecture & Majority Voting
+              </h2>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#334155', margin: '0 0 10px 0' }}>
+                Figure 4.2: Random Forest Ensemble for Loan Approval
+              </h3>
+            </div>
+
+            <svg
+              width="100%"
+              height="440"
+              viewBox="0 0 940 440"
+              style={{ display: 'block', margin: '0 auto', minWidth: '780px' }}
+            >
+              {/* ─── TREE 1 (Left: X = 150) ─────────────────────────── */}
+              <g transform="translate(20, 20)">
+                {/* Tree 1 Header Box */}
+                <rect x="20" y="0" width="240" height="260" rx="12" fill="#fafafa" stroke="#e2e8f0" strokeDasharray="3 3" />
+                <text x="140" y="22" textAnchor="middle" fontFamily="sans-serif" fontSize="11" fontWeight="800" fill="#0284c7">
+                  TREE 1 (Subspace: Income & Loan)
+                </text>
+
+                {/* Root: Income > 55K? */}
+                <rect x="70" y="36" width="140" height="36" rx="6" fill="#2c3e50" />
+                <text x="140" y="58" textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="700">
+                  Income &gt; 55K?
+                </text>
+
+                {/* Branches from Root */}
+                {/* Left Branch to Loan */}
+                <line x1="110" y1="72" x2="70" y2="116" stroke="#dc2626" strokeWidth={simulationMode && !t1_isIncomeYes ? 3.5 : 1.5} opacity={simulationMode && t1_isIncomeYes ? 0.3 : 1} />
+                <text x="80" y="94" fill="#dc2626" fontSize="11" fontStyle="italic" fontWeight="bold">No</text>
+
+                {/* Right Branch to Direct Approve */}
+                <line x1="170" y1="72" x2="210" y2="116" stroke="#16a34a" strokeWidth={simulationMode && t1_isIncomeYes ? 3.5 : 1.5} opacity={simulationMode && !t1_isIncomeYes ? 0.3 : 1} />
+                <text x="195" y="94" fill="#16a34a" fontSize="11" fontStyle="italic" fontWeight="bold">Yes</text>
+
+                {/* Child Left: Loan < 20K? */}
+                <g opacity={simulationMode && t1_isIncomeYes ? 0.35 : 1}>
+                  <rect x="20" y="116" width="100" height="34" rx="6" fill="#3ca9e2" />
+                  <text x="70" y="138" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="700">Loan &lt; 20K?</text>
+
+                  {/* Leaves under Loan */}
+                  <line x1="45" y1="150" x2="30" y2="185" stroke="#dc2626" strokeWidth={simulationMode && !t1_isIncomeYes && !t1_isLoanYes ? 3.5 : 1.5} />
+                  <text x="30" y="168" fill="#dc2626" fontSize="10" fontStyle="italic" fontWeight="bold">No</text>
+
+                  <line x1="95" y1="150" x2="110" y2="185" stroke="#16a34a" strokeWidth={simulationMode && !t1_isIncomeYes && t1_isLoanYes ? 3.5 : 1.5} />
+                  <text x="108" y="168" fill="#16a34a" fontSize="10" fontStyle="italic" fontWeight="bold">Yes</text>
+
+                  {/* Leaf Deny */}
+                  <rect x="5" y="185" width="50" height="26" rx="4" fill="#e25b5b" opacity={simulationMode && t1_vote !== 'DENY' ? 0.3 : 1} />
+                  <text x="30" y="202" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="bold">DENY</text>
+
+                  {/* Leaf Approve */}
+                  <rect x="85" y="185" width="50" height="26" rx="4" fill="#3eb370" opacity={simulationMode && t1_vote !== 'APPROVE' || t1_isIncomeYes ? 0.3 : 1} />
+                  <text x="110" y="202" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="bold">APPROVE</text>
+                </g>
+
+                {/* Direct Approve Leaf */}
+                <rect x="180" y="116" width="60" height="32" rx="4" fill="#3eb370" opacity={simulationMode && !t1_isIncomeYes ? 0.3 : 1} />
+                <text x="210" y="136" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="bold">APPROVE</text>
+
+                {/* Tree 1 Vote Pill Box */}
+                <rect x="50" y="222" width="180" height="30" rx="8" fill={t1_vote === 'APPROVE' ? '#dcfce7' : '#fee2e2'} stroke={t1_vote === 'APPROVE' ? '#86efac' : '#fca5a5'} />
+                <text x="140" y="242" textAnchor="middle" fontSize="12" fontWeight="800" fill={t1_vote === 'APPROVE' ? '#166534' : '#991b1b'}>
+                  Tree 1 Vote: {t1_vote}
+                </text>
+              </g>
+
+              {/* ─── TREE 2 (Center: X = 470) ───────────────────────── */}
+              <g transform="translate(350, 20)">
+                {/* Tree 2 Header Box */}
+                <rect x="20" y="0" width="240" height="260" rx="12" fill="#fafafa" stroke="#e2e8f0" strokeDasharray="3 3" />
+                <text x="140" y="22" textAnchor="middle" fontFamily="sans-serif" fontSize="11" fontWeight="800" fill="#16a34a">
+                  TREE 2 (Subspace: Credit & Debt)
+                </text>
+
+                {/* Root: Credit > 710? */}
+                <rect x="70" y="36" width="140" height="36" rx="6" fill="#2c3e50" />
+                <text x="140" y="58" textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="700">
+                  Credit &gt; 710?
+                </text>
+
+                {/* Branches from Root */}
+                {/* Left to Debt Ratio */}
+                <line x1="110" y1="72" x2="70" y2="116" stroke="#dc2626" strokeWidth={simulationMode && !t2_isCreditYes ? 3.5 : 1.5} opacity={simulationMode && t2_isCreditYes ? 0.3 : 1} />
+                <text x="80" y="94" fill="#dc2626" fontSize="11" fontStyle="italic" fontWeight="bold">No</text>
+
+                {/* Right to Direct Approve */}
+                <line x1="170" y1="72" x2="210" y2="116" stroke="#16a34a" strokeWidth={simulationMode && t2_isCreditYes ? 3.5 : 1.5} opacity={simulationMode && !t2_isCreditYes ? 0.3 : 1} />
+                <text x="195" y="94" fill="#16a34a" fontSize="11" fontStyle="italic" fontWeight="bold">Yes</text>
+
+                {/* Child Left: Debt < 28%? */}
+                <g opacity={simulationMode && t2_isCreditYes ? 0.35 : 1}>
+                  <rect x="20" y="116" width="100" height="34" rx="6" fill="#3ca9e2" />
+                  <text x="70" y="138" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="700">Debt &lt; 28%?</text>
+
+                  {/* Leaves */}
+                  <line x1="45" y1="150" x2="30" y2="185" stroke="#dc2626" strokeWidth={simulationMode && !t2_isCreditYes && !t2_isDebtRatioYes ? 3.5 : 1.5} />
+                  <text x="30" y="168" fill="#dc2626" fontSize="10" fontStyle="italic" fontWeight="bold">No</text>
+
+                  <line x1="95" y1="150" x2="110" y2="185" stroke="#16a34a" strokeWidth={simulationMode && !t2_isCreditYes && t2_isDebtRatioYes ? 3.5 : 1.5} />
+                  <text x="108" y="168" fill="#16a34a" fontSize="10" fontStyle="italic" fontWeight="bold">Yes</text>
+
+                  {/* Leaf Deny */}
+                  <rect x="5" y="185" width="50" height="26" rx="4" fill="#e25b5b" opacity={simulationMode && t2_vote !== 'DENY' ? 0.3 : 1} />
+                  <text x="30" y="202" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="bold">DENY</text>
+
+                  {/* Leaf Approve */}
+                  <rect x="85" y="185" width="50" height="26" rx="4" fill="#3eb370" opacity={simulationMode && t2_vote !== 'APPROVE' || t2_isCreditYes ? 0.3 : 1} />
+                  <text x="110" y="202" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="bold">APPROVE</text>
+                </g>
+
+                {/* Direct Approve Leaf */}
+                <rect x="180" y="116" width="60" height="32" rx="4" fill="#3eb370" opacity={simulationMode && !t2_isCreditYes ? 0.3 : 1} />
+                <text x="210" y="136" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="bold">APPROVE</text>
+
+                {/* Tree 2 Vote Pill Box */}
+                <rect x="50" y="222" width="180" height="30" rx="8" fill={t2_vote === 'APPROVE' ? '#dcfce7' : '#fee2e2'} stroke={t2_vote === 'APPROVE' ? '#86efac' : '#fca5a5'} />
+                <text x="140" y="242" textAnchor="middle" fontSize="12" fontWeight="800" fill={t2_vote === 'APPROVE' ? '#166534' : '#991b1b'}>
+                  Tree 2 Vote: {t2_vote}
+                </text>
+              </g>
+
+              {/* ─── TREE 3 (Right: X = 790) ───────────────────────── */}
+              <g transform="translate(680, 20)">
+                {/* Tree 3 Header Box */}
+                <rect x="20" y="0" width="240" height="260" rx="12" fill="#fafafa" stroke="#e2e8f0" strokeDasharray="3 3" />
+                <text x="140" y="22" textAnchor="middle" fontFamily="sans-serif" fontSize="11" fontWeight="800" fill="#9333ea">
+                  TREE 3 (Subspace: Exp & Age)
+                </text>
+
+                {/* Root: Experience > 3? */}
+                <rect x="70" y="36" width="140" height="36" rx="6" fill="#2c3e50" />
+                <text x="140" y="58" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="700">
+                  Experience &gt; 3 Yrs?
+                </text>
+
+                {/* Branches from Root */}
+                {/* Left to Age */}
+                <line x1="110" y1="72" x2="70" y2="116" stroke="#dc2626" strokeWidth={simulationMode && !t3_isExpYes ? 3.5 : 1.5} opacity={simulationMode && t3_isExpYes ? 0.3 : 1} />
+                <text x="80" y="94" fill="#dc2626" fontSize="11" fontStyle="italic" fontWeight="bold">No</text>
+
+                {/* Right to Direct Approve */}
+                <line x1="170" y1="72" x2="210" y2="116" stroke="#16a34a" strokeWidth={simulationMode && t3_isExpYes ? 3.5 : 1.5} opacity={simulationMode && !t3_isExpYes ? 0.3 : 1} />
+                <text x="195" y="94" fill="#16a34a" fontSize="11" fontStyle="italic" fontWeight="bold">Yes</text>
+
+                {/* Child Left: Age > 32? */}
+                <g opacity={simulationMode && t3_isExpYes ? 0.35 : 1}>
+                  <rect x="20" y="116" width="100" height="34" rx="6" fill="#3ca9e2" />
+                  <text x="70" y="138" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="700">Age &gt; 32?</text>
+
+                  {/* Leaves */}
+                  <line x1="45" y1="150" x2="30" y2="185" stroke="#dc2626" strokeWidth={simulationMode && !t3_isExpYes && !t3_isAgeYes ? 3.5 : 1.5} />
+                  <text x="30" y="168" fill="#dc2626" fontSize="10" fontStyle="italic" fontWeight="bold">No</text>
+
+                  <line x1="95" y1="150" x2="110" y2="185" stroke="#16a34a" strokeWidth={simulationMode && !t3_isExpYes && t3_isAgeYes ? 3.5 : 1.5} />
+                  <text x="108" y="168" fill="#16a34a" fontSize="10" fontStyle="italic" fontWeight="bold">Yes</text>
+
+                  {/* Leaf Deny */}
+                  <rect x="5" y="185" width="50" height="26" rx="4" fill="#e25b5b" opacity={simulationMode && t3_vote !== 'DENY' ? 0.3 : 1} />
+                  <text x="30" y="202" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="bold">DENY</text>
+
+                  {/* Leaf Approve */}
+                  <rect x="85" y="185" width="50" height="26" rx="4" fill="#3eb370" opacity={simulationMode && t3_vote !== 'APPROVE' || t3_isExpYes ? 0.3 : 1} />
+                  <text x="110" y="202" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="bold">APPROVE</text>
+                </g>
+
+                {/* Direct Approve Leaf */}
+                <rect x="180" y="116" width="60" height="32" rx="4" fill="#3eb370" opacity={simulationMode && !t3_isExpYes ? 0.3 : 1} />
+                <text x="210" y="136" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="bold">APPROVE</text>
+
+                {/* Tree 3 Vote Pill Box */}
+                <rect x="50" y="222" width="180" height="30" rx="8" fill={t3_vote === 'APPROVE' ? '#dcfce7' : '#fee2e2'} stroke={t3_vote === 'APPROVE' ? '#86efac' : '#fca5a5'} />
+                <text x="140" y="242" textAnchor="middle" fontSize="12" fontWeight="800" fill={t3_vote === 'APPROVE' ? '#166534' : '#991b1b'}>
+                  Tree 3 Vote: {t3_vote}
+                </text>
+              </g>
+
+              {/* ─── CONNECTING VOTING STREAMS TO AGGREGATOR ─────────── */}
+              <path d="M 160 280 L 160 320 L 420 340" stroke="#0284c7" strokeWidth="2.5" fill="none" strokeDasharray="4 2" />
+              <path d="M 490 280 L 490 340" stroke="#16a34a" strokeWidth="2.5" fill="none" strokeDasharray="4 2" />
+              <path d="M 820 280 L 820 320 L 560 340" stroke="#9333ea" strokeWidth="2.5" fill="none" strokeDasharray="4 2" />
+
+              {/* ─── ENSEMBLE AGGREGATOR (MAJORITY VOTING CHAMBER) ───── */}
+              <g transform="translate(300, 340)">
+                <rect
+                  x="0"
+                  y="0"
+                  width="340"
+                  height="68"
+                  rx="14"
+                  fill="#001f54"
+                  stroke="#d97706"
+                  strokeWidth="2"
+                  style={{ filter: 'drop-shadow(0 6px 16px rgba(0,31,84,0.25))' }}
+                />
+                <text x="170" y="24" textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="800" letterSpacing="0.05em">
+                  ENSEMBLE AGGREGATOR (MAJORITY VOTE)
+                </text>
+                <text x="170" y="44" textAnchor="middle" fill="#93c5fd" fontSize="11" fontWeight="600">
+                  Tally: {approveCount} APPROVE vs {denyCount} DENY
+                </text>
+                <text x="170" y="60" textAnchor="middle" fill={ensembleConsensus === 'APPROVE' ? '#86efac' : '#fca5a5'} fontSize="12" fontWeight="800">
+                  FINAL VERDICT: LOAN {ensembleConsensus}D ({confidencePercent}% Consensus)
+                </text>
+              </g>
+
+              {/* Caption Below Diagram */}
+              <text
+                x="470"
+                y="432"
+                textAnchor="middle"
+                fontFamily="Georgia, serif"
+                fontSize="13"
+                fontStyle="italic"
+                fill="#64748b"
+              >
+                Figure 4.2: Random Forest ensemble aggregating predictions from decorrelated decision trees.
+              </text>
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: 1 TREE VS RANDOM FOREST (VARIANCE REDUCTION) ──────── */}
+      {activeTab === 'boundary' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#f8fafc',
+            padding: '1rem 1.25rem',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Variance Reduction: Single Unconstrained Tree vs. Random Forest
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                Notice how individual trees create brittle, jagged, noisy boundaries, while ensembling averages out the noise into a smooth decision surface.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#001f54', marginBottom: '2px' }}>
+                  <span>Number of Trees (B):</span>
+                  <span style={{ color: '#d97706', fontWeight: 800 }}>{nEstimators}</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="50"
+                  step="1"
+                  value={nEstimators}
+                  onChange={(e) => setNEstimators(parseInt(e.target.value))}
+                  style={{ width: '140px', accentColor: '#001f54' }}
+                />
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#001f54', display: 'block', marginBottom: '2px' }}>
+                  Feature Subspace:
+                </span>
+                <button
+                  onClick={() => setFeatureRandomness(featureRandomness === 'sqrt' ? 'all' : 'sqrt')}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    border: '1px solid #cbd5e1',
+                    background: featureRandomness === 'sqrt' ? '#001f54' : '#ffffff',
+                    color: featureRandomness === 'sqrt' ? '#ffffff' : '#475569',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {featureRandomness === 'sqrt' ? 'Random Subspace (sqrt)' : 'All Features (Bagging)'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Dual Boundary Comparison Display */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+            {/* Left: Single Decision Tree */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ef4444', marginBottom: '6px' }}>
+                Single Unconstrained Decision Tree (High Variance)
+              </div>
+              <svg width="100%" height="220" viewBox="0 0 320 220" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Jagged Overfitted Boundary Rectangles */}
+                <rect x="0" y="0" width="160" height="120" fill="#eff6ff" opacity="0.7" />
+                <rect x="160" y="0" width="160" height="120" fill="#fff7ed" opacity="0.7" />
+                <rect x="0" y="120" width="220" height="100" fill="#fff7ed" opacity="0.7" />
+                <rect x="220" y="120" width="100" height="100" fill="#eff6ff" opacity="0.7" />
+                <rect x="80" y="40" width="40" height="40" fill="#fff7ed" opacity="0.9" /> {/* Overfitted Island */}
+
+                {/* Jagged lines */}
+                <line x1="160" y1="0" x2="160" y2="120" stroke="#001f54" strokeWidth="2" />
+                <line x1="0" y1="120" x2="320" y2="120" stroke="#001f54" strokeWidth="2" />
+                <line x1="220" y1="120" x2="220" y2="220" stroke="#001f54" strokeWidth="2" />
+                <rect x="80" y="40" width="40" height="40" stroke="#dc2626" strokeWidth="2" fill="none" strokeDasharray="3 2" />
+
+                {/* Scatter Points */}
+                <circle cx="95" cy="58" r="4" fill="#ea580c" stroke="#ffffff" strokeWidth="1" />
+                <circle cx="60" cy="50" r="4" fill="#2563eb" stroke="#ffffff" strokeWidth="1" />
+                <circle cx="110" cy="90" r="4" fill="#2563eb" stroke="#ffffff" strokeWidth="1" />
+                <circle cx="250" cy="180" r="4" fill="#2563eb" stroke="#ffffff" strokeWidth="1" />
+                <circle cx="210" cy="60" r="4" fill="#ea580c" stroke="#ffffff" strokeWidth="1" />
+                <circle cx="270" cy="80" r="4" fill="#ea580c" stroke="#ffffff" strokeWidth="1" />
+              </svg>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '6px' }}>
+                Memorizes solitary noise samples by carving out unnatural isolated rectangular boxes.
+              </div>
+            </div>
+
+            {/* Right: Random Forest (Ensemble Averaged) */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #059669', padding: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#059669', marginBottom: '6px' }}>
+                Random Forest (B = {nEstimators} Trees - Low Variance)
+              </div>
+              <svg width="100%" height="220" viewBox="0 0 320 220" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Smooth Ensemble Boundary Curve via Soft Gradient Simulation */}
+                <path
+                  d={`M 0 0 L 170 0 Q ${170 - nEstimators * 0.4} 110 210 220 L 0 220 Z`}
+                  fill="#eff6ff"
+                  opacity="0.8"
+                />
+                <path
+                  d={`M 170 0 Q ${170 - nEstimators * 0.4} 110 210 220 L 320 220 L 320 0 Z`}
+                  fill="#fff7ed"
+                  opacity="0.8"
+                />
+                <path
+                  d={`M 170 0 Q ${170 - nEstimators * 0.4} 110 210 220`}
+                  stroke="#059669"
+                  strokeWidth="3"
+                  fill="none"
+                />
+
+                {/* Same Scatter Points */}
+                <circle cx="95" cy="58" r="4" fill="#ea580c" stroke="#ffffff" strokeWidth="1" />
+                <circle cx="60" cy="50" r="4" fill="#2563eb" stroke="#ffffff" strokeWidth="1" />
+                <circle cx="110" cy="90" r="4" fill="#2563eb" stroke="#ffffff" strokeWidth="1" />
+                <circle cx="250" cy="180" r="4" fill="#2563eb" stroke="#ffffff" strokeWidth="1" />
+                <circle cx="210" cy="60" r="4" fill="#ea580c" stroke="#ffffff" strokeWidth="1" />
+                <circle cx="270" cy="80" r="4" fill="#ea580c" stroke="#ffffff" strokeWidth="1" />
+              </svg>
+              <div style={{ fontSize: '0.72rem', color: '#059669', marginTop: '6px', fontWeight: 600 }}>
+                Smooth generalized boundary. The outlier at (95, 58) is out-voted by majority consensus!
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: OOB ERROR CONVERGENCE ─────────────────────────────── */}
+      {activeTab === 'oob' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem'
+          }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54', marginBottom: '4px' }}>
+              Out-Of-Bag (OOB) Error vs. Test Error vs. Number of Trees
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Notice how OOB error tracks the true test error tightly and asymptotically converges. Unlike deep neural nets or boosting, Random Forest does NOT overfit as B &rarr; &infin;!
+            </div>
+          </div>
+
+          {/* SVG Plot for Error Curves */}
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1rem' }}>
+            <svg width="100%" height="240" viewBox="0 0 540 240" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+              {/* Gridlines */}
+              {[50, 100, 150, 200].map((y) => (
+                <line key={y} x1="45" y1={y} x2="520" y2={y} stroke="#e2e8f0" strokeDasharray="3 3" />
+              ))}
+
+              {/* Axes */}
+              <line x1="45" y1="20" x2="45" y2="210" stroke="#64748b" strokeWidth="1.5" />
+              <line x1="45" y1="210" x2="520" y2="210" stroke="#64748b" strokeWidth="1.5" />
+
+              {/* Curve 1: Training Error (Dark Blue) */}
+              <path
+                d={oobCurveData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${45 + (d.b / 100) * 460} ${210 - (d.trainErr / 30) * 190}`).join(' ')}
+                stroke="#001f54"
+                strokeWidth="2"
+                fill="none"
+              />
+
+              {/* Curve 2: Test Error (Green) */}
+              <path
+                d={oobCurveData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${45 + (d.b / 100) * 460} ${210 - (d.testErr / 30) * 190}`).join(' ')}
+                stroke="#16a34a"
+                strokeWidth="2.5"
+                fill="none"
+              />
+
+              {/* Curve 3: OOB Error (Dashed Amber) */}
+              <path
+                d={oobCurveData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${45 + (d.b / 100) * 460} ${210 - (d.oobErr / 30) * 190}`).join(' ')}
+                stroke="#d97706"
+                strokeWidth="2"
+                strokeDasharray="4 3"
+                fill="none"
+              />
+
+              {/* Legend */}
+              <g transform="translate(320, 30)">
+                <line x1="0" y1="0" x2="20" y2="0" stroke="#001f54" strokeWidth="2" />
+                <text x="26" y="4" fontSize="10" fontWeight="700" fill="#001f54">Train Error</text>
+
+                <line x1="0" y1="16" x2="20" y2="16" stroke="#16a34a" strokeWidth="2.5" />
+                <text x="26" y="20" fontSize="10" fontWeight="700" fill="#16a34a">Test Error</text>
+
+                <line x1="0" y1="32" x2="20" y2="32" stroke="#d97706" strokeWidth="2" strokeDasharray="4 3" />
+                <text x="26" y="36" fontSize="10" fontWeight="700" fill="#d97706">OOB Error (Free CV)</text>
+              </g>
+
+              {/* Axis labels */}
+              <text x="280" y="232" textAnchor="middle" fontSize="11" fontWeight="700" fill="#475569">Number of Trees (n_estimators)</text>
+              <text x="14" y="115" textAnchor="middle" fontSize="11" fontWeight="700" fill="#475569" transform="rotate(-90, 14, 115)">Error Rate (%)</text>
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: FEATURE IMPORTANCE (MDI VS PERMUTATION) ───────────── */}
+      {activeTab === 'importance' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54', marginBottom: '4px' }}>
+              Gini Impurity (MDI) vs. Permutation Importance (MDA)
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Notice how MDI inflates continuous noise features (like Customer ID or random floats), whereas Permutation Importance correctly assigns them near-zero impact.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+            {/* MDI Bars */}
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0284c7', marginBottom: '8px' }}>
+                Mean Decrease in Impurity (MDI - Gini Importance)
+              </div>
+              {[
+                { name: 'Income ($K)', val: 38 },
+                { name: 'Credit Score', val: 28 },
+                { name: 'Continuous Random Noise', val: 18 },
+                { name: 'Debt-to-Income', val: 11 },
+                { name: 'Binary Homeowner Flag', val: 5 }
+              ].map((item, idx) => (
+                <div key={idx} style={{ marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 600 }}>
+                    <span style={{ color: item.name.includes('Noise') ? '#ef4444' : '#1e293b' }}>{item.name}</span>
+                    <span>{item.val}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${item.val}%`, height: '100%', background: item.name.includes('Noise') ? '#ef4444' : '#0284c7' }} />
+                  </div>
+                </div>
+              ))}
+              <div style={{ fontSize: '0.68rem', color: '#ef4444', marginTop: '4px' }}>
+                Warning: MDI is biased towards continuous features with many split points.
+              </div>
+            </div>
+
+            {/* Permutation Bars */}
+            <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '12px', border: '1.5px solid #059669' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#059669', marginBottom: '8px' }}>
+                Permutation Importance (MDA - Unbiased on Test Data)
+              </div>
+              {[
+                { name: 'Income ($K)', val: 42 },
+                { name: 'Credit Score', val: 34 },
+                { name: 'Debt-to-Income', val: 16 },
+                { name: 'Binary Homeowner Flag', val: 7 },
+                { name: 'Continuous Random Noise', val: 1 }
+              ].map((item, idx) => (
+                <div key={idx} style={{ marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 600 }}>
+                    <span style={{ color: item.name.includes('Noise') ? '#64748b' : '#1e293b' }}>{item.name}</span>
+                    <span>{item.val}% drop</span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${item.val}%`, height: '100%', background: item.name.includes('Noise') ? '#cbd5e1' : '#059669' }} />
+                  </div>
+                </div>
+              ))}
+              <div style={{ fontSize: '0.68rem', color: '#059669', marginTop: '4px', fontWeight: 600 }}>
+                Correct: Scrambling the noise column causes almost zero drop in test score!
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON IMPLEMENTATION ────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production Scikit-Learn Random Forest Pipeline with Parallelism:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from sklearn.ensemble import RandomForestClassifier',
+                'from sklearn.inspection import permutation_importance',
+                'from sklearn.datasets import make_classification',
+                'from sklearn.model_selection import train_test_split',
+                '',
+                '# 1. Generate Synthetic Dataset',
+                'X, y = make_classification(n_samples=2000, n_features=20, n_informative=10, random_state=42)',
+                'X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)',
+                '',
+                '# 2. Train Random Forest with OOB Evaluation & Multi-Core Execution',
+                'rf = RandomForestClassifier(',
+                '    n_estimators=250,      # 250 diverse trees',
+                '    max_features="sqrt",   # Random Subspace Method: sqrt(20) ~ 4 features per split',
+                '    oob_score=True,        # Compute Out-of-Bag validation for free',
+                '    n_jobs=-1,             # Use all available CPU cores in parallel',
+                '    random_state=42',
+                ')',
+                'rf.fit(X_train, y_train)',
+                '',
+                'print(f"OOB Cross-Validation Score: {rf.oob_score_ * 100:.2f}%")',
+                'print(f"Test Set Accuracy: {rf.score(X_test, y_test) * 100:.2f}%")',
+                '',
+                '# 3. Compute Unbiased Permutation Importance',
+                'perm_imp = permutation_importance(rf, X_test, y_test, n_repeats=10, random_state=42, n_jobs=-1)',
+                'print("Top Feature Test Impact:", perm_imp.importances_mean[:5])'
+              ].join('\n')}
+              title="random_forest_production_pipeline.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6'
 ];
 
 export default function MLLessonArticlePage() {
@@ -20573,6 +21474,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'decision_tree_interactive_studio' && (
               <DecisionTreeInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'random_forest_interactive_studio' && (
+              <RandomForestInteractiveStudio />
             )}
           </div>
         )}

@@ -3724,4 +3724,282 @@ print(f"\nRegression Tree Test RMSE: {rmse:.2f}")`
     }
   }
 
+,
+
+  'ml-4-6': {
+    id: 'ml-4-6',
+    title: 'Random Forest: Ensemble Learning, Bagging & Random Subspaces',
+    moduleTitle: 'MODULE 4: CLASSIFICATION',
+    readTime: '35 min read',
+    difficulty: 'Intermediate to Advanced',
+    badgeText: 'Ensemble Learning & Bagging',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: 'https://www.geeksforgeeks.org/random-forest-algorithm-in-machine-learning/',
+
+    learningObjectives: [
+      'Understand the Ensemble Learning paradigm: Marquis de Condorcet\'s Jury Theorem and why crowds of diverse models outperform individual experts.',
+      'Master Bootstrap Aggregating (Bagging): sampling with replacement and prove mathematically that each bootstrap sample contains ~63.2% of the original data.',
+      'Derive Out-Of-Bag (OOB) error estimation and understand why it provides free, unbiased cross-validation during model training.',
+      'Understand the Random Subspace Method (Feature Bagging) and prove why selecting m = floor(sqrt(d)) candidate features decorrelates individual trees.',
+      'Derive the mathematical variance reduction formula of ensembles: Var(X_bar) = rho * sigma^2 + ((1 - rho) / B) * sigma^2.',
+      'Inspect the Loan Approval Random Forest Architecture (Figure 4.2): tracing how multiple decorrelated trees vote to reach consensus.',
+      'Contrast Classification voting strategies (Hard Majority vs Soft Probability) and Regression continuous averaging.',
+      'Evaluate Feature Importance via Mean Decrease in Impurity (MDI) versus Permutation Importance (MDA).',
+      'Engineer and tune critical hyperparameters: n_estimators, max_features, max_depth, min_samples_leaf, and parallel execution (n_jobs=-1).',
+      'Build, tune, and deploy a production Random Forest classifier and regressor pipeline in Python using Scikit-Learn.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Wisdom of the Crowd: From Unstable Trees to Ensemble Learning',
+        paragraphs: [
+          'In the previous lesson, we analyzed the elegance and transparency of Decision Trees. However, we discovered their fatal vulnerability: High Variance. A decision tree grown without harsh constraints easily memorizes noise, outliers, and idiosyncratic data artifacts. Furthermore, trees are notoriously unstable: adding or removing just a single observation near the root split threshold can alter the chosen split feature, causing a seismic cascade that completely reshapes the entire downstream tree topology.',
+          'To overcome this fragility, machine learning turns to one of the most celebrated principles in statistical decision theory: Ensemble Learning.',
+          'The Philosophy of Ensembles: Rather than attempting to train a single, infallible, hyper-complex model (a "super-expert"), Ensemble Learning trains a collection of multiple diverse models (a "committee") and aggregates their individual predictions into a unified consensus.',
+          'Condorcet\'s Jury Theorem (1785): The mathematical foundation of ensemble voting dates back to the French philosopher Marquis de Condorcet. Suppose you assemble a jury of $B$ independent jurors to decide a binary verdict ($y \\in \\{0, 1\\}$). If each individual juror makes the correct decision with probability $p > 0.5$, the probability $P_{\\text{jury}}$ that the majority vote is correct is given by the cumulative binomial distribution:',
+          '$$P_{\\text{jury}} = \\sum_{k = \\lfloor B/2 \\rfloor + 1}^B \\binom{B}{k} p^k (1 - p)^{B - k}$$',
+          'As the number of independent jurors $B \\to \\infty$, the probability of a correct majority vote approaches $1.0$ ($100\\%$ accuracy)! For instance, if each individual tree has an accuracy of only $p = 0.65$, an ensemble of 25 independent trees achieves a majority voting accuracy of over $93.7\\%$, and an ensemble of 101 independent trees exceeds $99.8\\%$! The collective wisdom of the crowd mathematically crushes the performance of any individual member.'
+        ]
+      },
+      {
+        heading: '2. Bootstrap Aggregating (Bagging): Resampling with Replacement',
+        paragraphs: [
+          'Condorcet\'s Jury Theorem carries a critical prerequisite: The models must be independent. If you train 100 decision trees on the exact same training dataset using the exact same algorithm, they will make identical splits, yield identical errors, and provide zero variance reduction.',
+          'To generate distinct, diverse training datasets from a single fixed training set of size $N$, Leo Breiman (1996) introduced Bootstrap Aggregating, universally known as Bagging.',
+          'The Bootstrap Resampling Procedure: Given a training set $D$ containing $N$ instances:',
+          '1. Draw $N$ samples uniformly at random from $D$ with replacement. Because sampling is done with replacement, some original samples will appear multiple times in the bootstrap sample $D_b$, while others will not appear at all.',
+          '2. Train a full, unconstrained decision tree $T_b$ on bootstrap sample $D_b$.',
+          '3. Repeat this process $B$ times to generate $B$ distinct trees $\\{T_1, T_2, \\dots, T_B\\}$.',
+          'Mathematical Derivation: The 63.2% Unique Sample Rule:',
+          'What fraction of the original $N$ observations actually make it into each bootstrap dataset? Let us derive this rigorously:',
+          '1. In a single random draw from $N$ items, the probability of NOT selecting a specific observation $x_i$ is:',
+          '$$P(\\text{Not chosen in 1 draw}) = 1 - \\frac{1}{N}$$',
+          '2. Because each of the $N$ draws is independent, the probability that observation $x_i$ is NEVER selected across all $N$ draws is:',
+          '$$P(\\text{Not chosen in } N \\text{ draws}) = \\left( 1 - \\frac{1}{N} \\right)^N$$',
+          '3. Taking the limit as the dataset size $N \\to \\infty$, we invoke the classical calculus definition of the exponential constant $e = \\lim_{N \\to \\infty} (1 + 1/N)^N$:',
+          '$$\\lim_{N \\to \\infty} \\left( 1 - \\frac{1}{N} \\right)^N = e^{-1} = \\frac{1}{e} \\approx 0.3679 \\approx 36.8\\%$$',
+          '4. Therefore, the probability that observation $x_i$ IS included at least once in the bootstrap sample is:',
+          '$$P(\\text{Included}) = 1 - e^{-1} \\approx 1 - 0.3679 = 0.6321 \\approx 63.2\\%$$',
+          'Conclusion: Each bootstrapped decision tree is trained on approximately $63.2\\%$ of unique observations from the original dataset, leaving approximately $36.8\\%$ of samples completely unseen.'
+        ]
+      },
+      {
+        heading: '3. Out-Of-Bag (OOB) Error: Free Built-In Cross-Validation',
+        paragraphs: [
+          'The $36.8\\%$ of observations left out of a tree\'s bootstrap sample are called Out-Of-Bag (OOB) instances for that tree. This mathematical byproduct provides an extraordinary engineering advantage: Built-in, zero-cost cross-validation!',
+          'How OOB Score is Evaluated:',
+          '1. For every training instance $x_i$, identify the subset of trees in the forest that did NOT include $x_i$ in their bootstrap training set (on average, roughly $36.8\\%$ of all trees, or about 37 out of 100 trees).',
+          '2. Pass instance $x_i$ through only those OOB trees and aggregate their predictions via majority vote (for classification) or arithmetic mean (for regression) to compute the OOB ensemble prediction $\\hat{y}_i^{\\text{OOB}}$.',
+          '3. Compute the overall OOB Error across all $N$ instances:',
+          '$$\\text{OOB Error} = \\frac{1}{N} \\sum_{i=1}^N \\mathbb{I}\\left( y_i \\ne \\hat{y}_i^{\\text{OOB}} \\right)$$',
+          'Why OOB is a Superpower: In standard machine learning workflows, evaluating generalization error requires holding out a dedicated test split or running computationally expensive 5-fold or 10-fold cross-validation (which multiplies training time by 5x or 10x). With Random Forests, the OOB Error serves as a statistically unbiased proxy for test error computed simultaneously during training without holding back any data!'
+        ]
+      },
+      {
+        heading: '4. The Random Subspace Method: Decorrelating Trees via Feature Randomness',
+        paragraphs: [
+          'While Bagging substantially improves model performance over a single tree, it suffers from a subtle, critical limitation when applied to real-world datasets: Tree Correlation.',
+          'The Fatal Flaw of Pure Bagging: Suppose a loan dataset has 10 features, but one feature (for example, "Credit Score" or "Income") is overwhelmingly predictive. Even though each bootstrap sample $D_b$ contains slightly different data points, almost every single tree will select that same dominant feature for its root split! Because all trees share the same top-level architecture, their predictions become strongly correlated.',
+          'The Mathematical Variance Reduction Formula: Let us analyze the variance of an ensemble of $B$ identical estimators, each having variance $\\sigma^2$ and pairwise correlation $\\rho$ ($0 \\le \\rho \\le 1$):',
+          '$$\\text{Var}\\left( \\frac{1}{B} \\sum_{b=1}^B T_b(x) \\right) = \\rho \\sigma^2 + \\frac{1 - \\rho}{B} \\sigma^2$$',
+          'Notice what happens as the number of trees $B \\to \\infty$:',
+          '$$\\lim_{B \\to \\infty} \\left[ \\rho \\sigma^2 + \\frac{1 - \\rho}{B} \\sigma^2 \\right] = \\rho \\sigma^2$$',
+          'The second term $\\frac{1-\\rho}{B}\\sigma^2$ vanishes to zero as more trees are added. However, the first term $\\rho \\sigma^2$ remains! If the trees are correlated (say $\\rho = 0.8$), you can add 10,000 trees, but the ensemble variance will never drop below $80\\%$ of a single tree\'s variance!',
+          'Leo Breiman & Adele Cutler\'s Breakthrough (2001): To drive $\\rho \\to 0$, we must force the trees to become decorrelated. Random Forest achieves this by introducing the Random Subspace Method (Feature Bagging):',
+          'At every single node split in every tree, the algorithm randomly draws a small subset of $m$ candidate features out of the total $d$ features:',
+          '- For Classification: $m = \\lfloor \\sqrt{d} \\rfloor$ (e.g., in a dataset with $d = 64$ features, only $\\sqrt{64} = 8$ random features are evaluated at each split).',
+          '- For Regression: $m = \\lfloor d / 3 \\rfloor$.',
+          'By forbidding the tree from considering all features at every split, dominant features cannot monopolize the root nodes. Alternative features are given the opportunity to split, creating a genuinely diverse forest of structurally independent decision rules. This reduces $\\rho$, unleashing the full variance-reducing power of the ensemble!'
+        ]
+      },
+      {
+        heading: '5. The Random Forest Architecture: Figure 4.2 Loan Approval Ensemble Illustration',
+        paragraphs: [
+          'In Figure 4.1 from our previous lesson, we examined a single decision tree for loan approval that evaluated Age > 30, followed by Income > 50K or Credit > 700. In Figure 4.2, we scale this architecture to a full Random Forest ensemble.',
+          'The Ensemble Mechanism:',
+          '1. Bootstrap Sampling: Three separate bootstrapped training subsets ($D_1, D_2, D_3$) are generated with replacement from the master applicant records.',
+          '2. Random Feature Subspaces: Each tree is constrained to different random feature subsets at each split:',
+          '- Tree 1 (Income & Loan Amount Focus): Evaluates whether Income > 55K? If No, checks Loan Amount < 20K. (Captures debt capacity).',
+          '- Tree 2 (Credit Score & Debt Ratio Focus): Evaluates whether Credit Score > 710? If No, checks Debt-to-Income < 0.28. (Captures repayment reliability).',
+          '- Tree 3 (Age & Employment History Focus): Evaluates whether Employment History > 3 Years? If No, checks Age > 32. (Captures job stability).',
+          '3. Parallel Inference: When a new applicant profile arrives (e.g., Age = 28, Income = $62K, Credit Score = 680, Debt Ratio = 0.22):',
+          '- Tree 1 evaluates: Income ($62K) > 55K? Yes -> APPROVE.',
+          '- Tree 2 evaluates: Credit (680) > 710? No -> Debt Ratio (0.22) < 0.28? Yes -> APPROVE.',
+          '- Tree 3 evaluates: Employment (2 yrs) > 3 yrs? No -> Age (28) > 32? No -> DENY.',
+          '4. Majority Voting Aggregation: The ensemble tallies the votes: 2 APPROVE vs. 1 DENY. The consensus verdict is LOAN APPROVED with a $66.7\\%$ confidence rating! Even though Tree 3 voted DENY, the ensemble correctly filtered out individual model idiosyncrasy.'
+        ]
+      },
+      {
+        heading: '6. Feature Importance: Mean Decrease in Impurity (MDI) vs. Permutation Importance (MDA)',
+        paragraphs: [
+          'Because Random Forests average hundreds of distinct trees with randomized splits, we lose the simple single-flowchart interpretability of individual decision trees. However, Random Forests replace visual flowcharts with powerful, statistically robust Feature Importance metrics.',
+          'Method 1: Mean Decrease in Impurity (MDI / Gini Importance):',
+          'For each feature $x_j$, MDI computes the total reduction in impurity ($\\Delta \\text{Gini}$) achieved by splits on $x_j$, weighted by the number of samples passing through those nodes, averaged across all $B$ trees in the forest:',
+          '$$\\text{Importance}(x_j) = \\frac{1}{B} \\sum_{b=1}^B \\sum_{t \\in T_b \\text{ split on } x_j} \\frac{N_t}{N} \\Delta \\text{Gini}(t)$$',
+          'Limitation of MDI: MDI is computationally fast because it is computed during tree construction. However, it suffers from a well-known statistical bias: continuous features with many unique numerical values have far more split opportunities than categorical binary features, artificially inflating their MDI scores even if they contain pure noise.',
+          'Method 2: Permutation Feature Importance (Mean Decrease in Accuracy - MDA):',
+          'Leo Breiman\'s gold-standard solution directly measures causal predictive impact on unseen test data (or OOB data):',
+          '1. Measure the baseline accuracy score $S_{\\text{baseline}}$ on test dataset $D_{\\text{test}}$.',
+          '2. For feature $x_j$, randomly shuffle (permute) the values of column $j$ across all test instances while leaving all other columns intact. This completely breaks the relationship between feature $x_j$ and the true target $y$.',
+          '3. Compute the degraded accuracy score $S_{\\text{permuted}}(j)$ on the shuffled dataset.',
+          '4. The Permutation Importance is the difference: $\\text{Importance}(x_j) = S_{\\text{baseline}} - S_{\\text{permuted}}(j)$.',
+          'If scrambling column $j$ causes model accuracy to plummet from $95\\%$ to $65\\%$, feature $x_j$ is deeply critical. If scrambling it causes zero change in accuracy, the model does not depend on that feature at all!'
+        ]
+      },
+      {
+        heading: '7. Hyperparameter Engineering: The Random Forest Tuning Playbook',
+        paragraphs: [
+          'Random Forest is celebrated as one of the most robust "off-the-shelf" algorithms in machine learning because its default hyperparameters rarely overfit. However, fine-tuning unlocks peak performance:',
+          '1. `n_estimators` (Number of Trees, default: 100):',
+          '- Does Random Forest overfit if you set `n_estimators` too high? NO! Unlike boosting algorithms, increasing `n_estimators` in Bagging simply drives the sample variance term $\\frac{1-\\rho}{B}\\sigma^2$ closer to zero without altering model bias. Setting $B = 200\\text{--}500$ is standard. The only penalty is training runtime and memory footprint.',
+          '2. `max_features` (Features evaluated per split):',
+          '- The primary lever for controlling tree correlation $\\rho$. Lower `max_features` (e.g. $\\sqrt{d}$) decorrelates trees, lowering ensemble variance, but slightly increases individual tree bias. In practice, `max_features="sqrt"` is near-optimal for classification, and `max_features="log2"` or $0.33$ is standard for regression.',
+          '3. `max_depth` (Maximum Tree Depth, default: `None`):',
+          '- In single decision trees, limiting depth is essential to stop overfitting. In Random Forests, individual trees are deliberately allowed to grow deep (low bias, high variance), because ensemble averaging cancels out the variance. Setting `max_depth` is only necessary when managing memory in production edge devices.',
+          '4. `min_samples_leaf` & `min_samples_split`:',
+          '- Setting `min_samples_leaf=3` or `5` prevents leaves from isolating on single noise outliers, slightly smoothing probability estimates and reducing model file size by up to $40\\%$.',
+          '5. `n_jobs=-1` (Embarrassingly Parallel Execution):',
+          '- Because each tree is trained independently on its own bootstrap sample, Random Forests scale linearly across all CPU cores. Setting `n_jobs=-1` utilizes all physical and logical cores, accelerating training by 8x to 16x.'
+        ]
+      },
+      {
+        heading: '8. Comparative Analysis: Single Decision Trees vs. Random Forests vs. Gradient Boosted Trees',
+        paragraphs: [
+          'Understanding when to deploy Random Forest versus alternative models is a cornerstone skill for senior AI engineers:',
+          '1. Single Decision Tree: High interpretability (white-box flowchart), fast training, but high variance, prone to overfitting, and sensitive to noise.',
+          '2. Random Forest (Bagging): Extremely high predictive accuracy, robust to noise, handles high-dimensional data, virtually immune to overfitting as $B \\to \\infty$, embarrassingly parallel. Limitation: Loss of single-tree flowchart interpretability (black-box ensemble), higher memory footprint.',
+          '3. Gradient Boosted Trees (XGBoost / LightGBM): Sequentially trains trees to correct the residual errors of preceding trees (Boosting). Often achieves slightly higher accuracy than Random Forest on clean tabular benchmarks, but requires careful regularization tuning to avoid overfitting and cannot be parallelized across trees during training.'
+        ]
+      },
+      {
+        heading: '9. Production Implementation with Scikit-Learn: Classification, OOB & Permutation Importance',
+        paragraphs: [
+          'Below is a production-grade Python script illustrating the complete Random Forest lifecycle: enabling OOB scoring, training in parallel, evaluating test accuracy, comparing MDI vs. Permutation importance, and training a Random Forest Regressor.'
+        ],
+        codeBlockTitle: 'random_forest_masterclass.py',
+        codeBlock: `import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_breast_cancer, fetch_california_housing
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.inspection import permutation_importance
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import classification_report, accuracy_score, mean_squared_error
+
+# =====================================================================
+# 1. RANDOM FOREST CLASSIFICATION WITH OOB EVALUATION
+# =====================================================================
+cancer = load_breast_cancer()
+X_cls, y_cls = cancer.data, cancer.target
+feature_names = cancer.feature_names
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_cls, y_cls, test_size=0.25, random_state=42, stratify=y_cls
+)
+
+# Initialize Random Forest with Out-of-Bag scoring and multi-core parallelism
+rf_clf = RandomForestClassifier(
+    n_estimators=200,
+    max_features='sqrt',       # Random Subspace Method (floor(sqrt(d)))
+    oob_score=True,            # Enable free Out-of-Bag validation
+    n_jobs=-1,                 # Utilize all CPU cores in parallel
+    random_state=42
+)
+rf_clf.fit(X_train, y_train)
+
+# Evaluate performance
+train_acc = accuracy_score(y_train, rf_clf.predict(X_train))
+test_acc = accuracy_score(y_test, rf_clf.predict(X_test))
+oob_acc = rf_clf.oob_score_
+
+print("--- Random Forest Classification Results ---")
+print(f"Training Accuracy: {train_acc * 100:.2f}%")
+print(f"Out-of-Bag (OOB) Accuracy: {oob_acc * 100:.2f}%  <-- Free Cross-Validation")
+print(f"Test Set Accuracy: {test_acc * 100:.2f}%\n")
+
+# =====================================================================
+# 2. FEATURE IMPORTANCE: MDI (GINI) VS. PERMUTATION IMPORTANCE
+# =====================================================================
+# A. Mean Decrease in Impurity (MDI)
+mdi_importances = rf_clf.feature_importances_
+
+# B. Permutation Feature Importance (Unbiased test set evaluation)
+perm_result = permutation_importance(
+    rf_clf, X_test, y_test, n_repeats=10, random_state=42, n_jobs=-1
+)
+p_importances = perm_result.importances_mean
+
+top5_mdi = np.argsort(mdi_importances)[::-1][:5]
+top5_perm = np.argsort(p_importances)[::-1][:5]
+
+print("--- Top 5 Features (MDI / Gini Importance) ---")
+for r, idx in enumerate(top5_mdi, 1):
+    print(f"{r}. {feature_names[idx]}: {mdi_importances[idx]*100:.2f}%")
+
+print("\n--- Top 5 Features (Permutation Importance on Test Data) ---")
+for r, idx in enumerate(top5_perm, 1):
+    print(f"{r}. {feature_names[idx]}: {p_importances[idx]*100:.2f}% drop in accuracy")
+
+# =====================================================================
+# 3. RANDOM FOREST REGRESSION: CALIFORNIA HOUSING
+# =====================================================================
+housing = fetch_california_housing()
+X_reg, y_reg = housing.data[:3000], housing.target[:3000] # Subsample for demo
+
+X_tr_r, X_te_r, y_tr_r, y_te_r = train_test_split(
+    X_reg, y_reg, test_size=0.25, random_state=42
+)
+
+rf_reg = RandomForestRegressor(
+    n_estimators=150,
+    max_features=0.33,         # d / 3 candidate features per split
+    oob_score=True,
+    n_jobs=-1,
+    random_state=42
+)
+rf_reg.fit(X_tr_r, y_tr_r)
+
+y_pred_r = rf_reg.predict(X_te_r)
+rmse = np.sqrt(mean_squared_error(y_te_r, y_pred_r))
+r2 = rf_reg.score(X_te_r, y_te_r)
+
+print(f"\n--- Random Forest Regression Results ---")
+print(f"OOB R2 Score: {rf_reg.oob_score_:.4f}")
+print(f"Test RMSE: \${rmse * 100000:.2f} (in actual home value dollars)")
+print(f"Test R2 Score: {r2:.4f}")`
+      }
+    ],
+
+    analogy: {
+      title: 'The Real-World Analogy: The Panel of Medical Specialists',
+      text: 'Imagine a patient visiting a hospital with a rare, ambiguous medical condition. If a single junior doctor diagnoses the patient, they might fixate on one unusual symptom and misdiagnose them (high variance of a single tree). Instead, the hospital convenes a tumor board of 15 diverse specialists: a radiologist examines the CT scans, a cardiologist reviews the ECG, an endocrinologist inspects the hormone panels, and a pathologist evaluates biopsy slides. Each specialist brings a distinct perspective (decorrelated features). They debate, take a vote, and reach a consensus diagnosis. The group verdict is vastly more reliable and error-tolerant than the opinion of any single physician.'
+    },
+
+    diagram: {
+      type: 'random_forest_interactive_studio',
+      caption: 'Interactive Random Forest Studio: Inspect the multi-tree Loan Approval Ensemble (Figure 4.2), explore live decision boundaries as trees vote, track Out-Of-Bag error convergence, and compare MDI vs Permutation Feature Importance.'
+    },
+
+    takeaways: [
+      'Random Forest is an ensemble method that combines Bootstrap Aggregating (Bagging) with the Random Subspace Method (Feature Bagging).',
+      'Each bootstrap sample draws N instances with replacement, capturing approximately 63.2% unique data while leaving ~36.8% Out-of-Bag (OOB).',
+      'OOB error provides statistically unbiased cross-validation during training with zero extra computational overhead.',
+      'Selecting m = floor(sqrt(d)) random features at each split decorrelates trees, driving ensemble variance down toward zero as B increases.',
+      'Unlike single trees, Random Forests do not overfit as n_estimators grows; adding more trees asymptotically levels off test error.',
+      'Permutation Feature Importance provides an unbiased causal measure of feature impact compared to impurity-biased MDI.'
+    ],
+
+    quiz: {
+      question: 'Why does adding feature randomness (selecting m = floor(sqrt(d)) features at each split) in Random Forest yield a lower ensemble generalization error than standard Bagging (where all d features are considered at every split)?',
+      options: [
+        'Because feature randomness decorrelates the individual trees, which reduces the pairwise correlation rho in the ensemble variance formula Var = rho * sigma^2 + ((1-rho)/B) * sigma^2',
+        'Because restricting the feature count forces trees to train faster, allowing the computer to fit ten times more trees in memory',
+        'Because feature randomness converts non-convex optimization problems into strictly convex quadratic programs',
+        'Because single decision trees cannot process more than 10 features without numerical underflow'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! In standard Bagging, if a dataset has dominant predictive features, almost every tree splits on those same features, causing trees to become strongly correlated (rho near 1.0). As a result, the ensemble variance cannot drop below rho * sigma^2. By forcing each split to consider only a random subset of m = floor(sqrt(d)) features, dominant features are excluded from many splits, driving down tree correlation rho and drastically reducing overall ensemble variance!'
+    }
+  }
+
 };
