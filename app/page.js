@@ -350,8 +350,36 @@ function HeroSection() {
     <section className={styles.hero}>
       <div className={styles.heroInner}>
         <div className={styles.heroMascot}>
-          <div className={styles.mascotWrapper}>
-            <img src="/mascot.png" alt="Vinci mascot" className={styles.mascotImg} />
+          <div className={styles.mascotStage}>
+            {/* Blueprint Grid Background */}
+            <div className={styles.blueprintGrid} />
+
+            {/* Left Diagram: Venn Diagram */}
+            <div className={styles.diagramLeft}>
+              <img
+                src="/ml-venn.png"
+                alt="Machine Learning Venn Diagram: Plenty of Data, Better Algorithms, Technology"
+                className={styles.diagramImg}
+              />
+            </div>
+
+            {/* Center Mascot: Leonardo da Vinci */}
+            <div className={styles.mascotWrapper}>
+              <img
+                src="/mascot.png"
+                alt="Vinci mascot"
+                className={styles.mascotImg}
+              />
+            </div>
+
+            {/* Right Diagram: Deep Neural Network */}
+            <div className={styles.diagramRight}>
+              <img
+                src="/neural-network.png"
+                alt="Deep Neural Network Architecture: Input, Hidden, and Output Layers"
+                className={styles.diagramImg}
+              />
+            </div>
           </div>
         </div>
 
