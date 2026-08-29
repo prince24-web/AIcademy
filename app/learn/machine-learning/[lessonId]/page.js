@@ -24498,11 +24498,864 @@ const HierarchicalInteractiveStudio = () => {
   );
 };
 
+
+// ─── DBSCAN THREE.JS INTERACTIVE STUDIO (ml-5-4) ────────────────────────────
+const DBSCANInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'core_border_noise', 'shapes_shootout', 'k_distance', 'code'
+
+  // Hyperparameters
+  const [epsilon, setEpsilon] = useState(1.4);
+  const [minPts, setMinPts] = useState(4);
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Tab 4: k-distance elbow state
+  const [selectedKDistIndex, setSelectedKDistIndex] = useState(65);
+
+  const containerRef = useRef(null);
+  const sceneStateRef = useRef({
+    points: [],
+    pointMeshes: [],
+    epsSphereMesh: null,
+    scene: null,
+    renderer: null,
+    camera: null,
+    isMouseDown: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
+    rotX: 0.35,
+    rotY: 0.45
+  });
+
+  const clusterPalette = useMemo(() => [
+    0x0284c7, // Cluster 0: Cerulean Blue
+    0x16a34a, // Cluster 1: Emerald Green
+    0xd97706, // Cluster 2: Amber Gold
+    0x9333ea  // Cluster 3: Royal Violet
+  ], []);
+
+  // Generate non-spherical 3D dataset: Two intertwined 3D curved ribbons + random 3D noise
+  const generateDBSCANPoints = useCallback(() => {
+    const pts = [];
+    // Ribbon 1: Curved 3D crescent arch
+    for (let i = 0; i < 38; i++) {
+      const angle = (i / 38) * Math.PI * 1.35 - 0.2;
+      const r = 5.2;
+      pts.push({
+        id: `r1-${i}`,
+        x: r * Math.cos(angle) - 1.5 + (Math.random() - 0.5) * 0.7,
+        y: Math.sin(angle * 2) * 1.6 + (Math.random() - 0.5) * 0.6,
+        z: r * Math.sin(angle) - 1.0 + (Math.random() - 0.5) * 0.7,
+        type: 'unvisited',
+        cluster: -1
+      });
+    }
+
+    // Ribbon 2: Interlocking reversed 3D crescent arch
+    for (let i = 0; i < 38; i++) {
+      const angle = (i / 38) * Math.PI * 1.35 + Math.PI * 0.8;
+      const r = 5.2;
+      pts.push({
+        id: `r2-${i}`,
+        x: r * Math.cos(angle) + 1.5 + (Math.random() - 0.5) * 0.7,
+        y: -Math.sin(angle * 2) * 1.6 + (Math.random() - 0.5) * 0.6,
+        z: r * Math.sin(angle) + 1.0 + (Math.random() - 0.5) * 0.7,
+        type: 'unvisited',
+        cluster: -1
+      });
+    }
+
+    // Ambient 3D Noise Outliers (14 isolated points in surrounding space)
+    for (let i = 0; i < 14; i++) {
+      pts.push({
+        id: `noise-${i}`,
+        x: (Math.random() - 0.5) * 16.0,
+        y: (Math.random() - 0.5) * 8.0,
+        z: (Math.random() - 0.5) * 16.0,
+        type: 'unvisited',
+        cluster: -1
+      });
+    }
+    return pts;
+  }, []);
+
+  // Run full DBSCAN algorithm on 3D Euclidean distances
+  const executeDBSCAN = useCallback((pts, eps, minPoints) => {
+    const n = pts.length;
+    const epsSq = eps * eps;
+
+    // 1. Compute neighbors for all points
+    const neighbors = [];
+    for (let i = 0; i < n; i++) {
+      const p = pts[i];
+      const neigh = [];
+      for (let j = 0; j < n; j++) {
+        const q = pts[j];
+        const dSq = (p.x - q.x) ** 2 + (p.y - q.y) ** 2 + (p.z - q.z) ** 2;
+        if (dSq <= epsSq) {
+          neigh.push(j);
+        }
+      }
+      neighbors.push(neigh);
+    }
+
+    // 2. Identify Core points
+    const isCore = new Array(n).fill(false);
+    for (let i = 0; i < n; i++) {
+      if (neighbors[i].length >= minPoints) {
+        isCore[i] = true;
+      }
+    }
+
+    // 3. Cluster formation via density reachability
+    const visited = new Array(n).fill(false);
+    const clusterLabels = new Array(n).fill(-1); // -1 = Noise
+    let clusterId = 0;
+
+    for (let i = 0; i < n; i++) {
+      if (visited[i]) continue;
+      visited[i] = true;
+
+      if (!isCore[i]) {
+        // Initially noise (might become border later)
+        continue;
+      }
+
+      // Start new cluster from core point i
+      clusterLabels[i] = clusterId;
+      const queue = [...neighbors[i]];
+
+      while (queue.length > 0) {
+        const currentIdx = queue.shift();
+
+        if (!visited[currentIdx]) {
+          visited[currentIdx] = true;
+          if (isCore[currentIdx]) {
+            // Expand cluster wildfire
+            neighbors[currentIdx].forEach((neighIdx) => {
+              queue.push(neighIdx);
+            });
+          }
+        }
+
+        if (clusterLabels[currentIdx] === -1) {
+          clusterLabels[currentIdx] = clusterId;
+        }
+      }
+      clusterId++;
+    }
+
+    // 4. Classify each point as Core, Border, or Noise
+    const pointTypes = [];
+    for (let i = 0; i < n; i++) {
+      if (isCore[i]) {
+        pointTypes.push('core');
+      } else if (clusterLabels[i] !== -1) {
+        pointTypes.push('border');
+      } else {
+        pointTypes.push('noise');
+      }
+    }
+
+    return {
+      clusterLabels,
+      pointTypes,
+      numClusters: clusterId,
+      numNoise: clusterLabels.filter((c) => c === -1).length,
+      numCore: pointTypes.filter((t) => t === 'core').length,
+      numBorder: pointTypes.filter((t) => t === 'border').length
+    };
+  }, []);
+
+  // Mount Three.js 3D WebGL Canvas
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth || 640;
+    const height = 360;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 15, 25);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting in Light Mode
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(12, 22, 14);
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(-10, -10, -10);
+    scene.add(fillLight);
+
+    // 3D Architectural Grid Floor
+    const gridHelper = new THREE.GridHelper(24, 20, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -4.5;
+    scene.add(gridHelper);
+
+    // Generate Points
+    const pts = generateDBSCANPoints();
+    sceneStateRef.current.points = pts;
+    sceneStateRef.current.scene = scene;
+    sceneStateRef.current.renderer = renderer;
+    sceneStateRef.current.camera = camera;
+
+    // Create 3D Point Meshes
+    const pointGeo = new THREE.SphereGeometry(0.34, 14, 14);
+    const pointMeshes = [];
+
+    pts.forEach((pt) => {
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x94a3b8,
+        roughness: 0.25,
+        metalness: 0.2
+      });
+      const mesh = new THREE.Mesh(pointGeo, mat);
+      mesh.position.set(pt.x, pt.y, pt.z);
+      scene.add(mesh);
+      pointMeshes.push(mesh);
+    });
+    sceneStateRef.current.pointMeshes = pointMeshes;
+
+    // Interactive 3D Epsilon Bounding Sphere (centered at sample point 10)
+    const centerSample = pts[10];
+    const epsSphereGeo = new THREE.SphereGeometry(epsilon, 24, 24);
+    const epsSphereMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7,
+      transparent: true,
+      opacity: 0.20,
+      wireframe: true
+    });
+    const epsSphereMesh = new THREE.Mesh(epsSphereGeo, epsSphereMat);
+    epsSphereMesh.position.set(centerSample.x, centerSample.y, centerSample.z);
+    scene.add(epsSphereMesh);
+    sceneStateRef.current.epsSphereMesh = epsSphereMesh;
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate && !sceneStateRef.current.isMouseDown) {
+        sceneStateRef.current.rotY += 0.0035;
+      }
+
+      const dist = 26;
+      camera.position.x = dist * Math.sin(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.position.y = dist * Math.sin(sceneStateRef.current.rotX) + 2;
+      camera.position.z = dist * Math.cos(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Mouse Listeners
+    const onMouseDown = (e) => {
+      sceneStateRef.current.isMouseDown = true;
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!sceneStateRef.current.isMouseDown) return;
+      const dx = e.clientX - sceneStateRef.current.prevMouseX;
+      const dy = e.clientY - sceneStateRef.current.prevMouseY;
+
+      sceneStateRef.current.rotY += dx * 0.008;
+      sceneStateRef.current.rotX = Math.max(-0.6, Math.min(1.2, sceneStateRef.current.rotX - dy * 0.008));
+
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => {
+      sceneStateRef.current.isMouseDown = false;
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      while (container.firstChild) container.removeChild(container.firstChild);
+    };
+  }, [activeTab, generateDBSCANPoints, autoRotate]);
+
+  // Recolor meshes and resize epsilon sphere whenever epsilon or minPts changes
+  useEffect(() => {
+    if (activeTab !== 'three_d') return;
+
+    const { points, pointMeshes, epsSphereMesh } = sceneStateRef.current;
+    if (!points.length || !pointMeshes.length) return;
+
+    const result = executeDBSCAN(points, epsilon, minPts);
+
+    // Resize epsilon bounding sphere
+    if (epsSphereMesh) {
+      const centerSample = points[10];
+      epsSphereMesh.position.set(centerSample.x, centerSample.y, centerSample.z);
+      epsSphereMesh.scale.set(epsilon / 1.4, epsilon / 1.4, epsilon / 1.4);
+    }
+
+    // Recolor each 3D point mesh
+    points.forEach((pt, idx) => {
+      const mesh = pointMeshes[idx];
+      if (!mesh) return;
+
+      const pType = result.pointTypes[idx];
+      const cId = result.clusterLabels[idx];
+
+      if (pType === 'noise') {
+        mesh.material.color.setHex(0x94a3b8);
+        mesh.material.transparent = true;
+        mesh.material.opacity = 0.35;
+        mesh.scale.set(0.7, 0.7, 0.7);
+      } else if (pType === 'border') {
+        const baseCol = clusterPalette[cId % clusterPalette.length];
+        mesh.material.color.setHex(baseCol);
+        mesh.material.transparent = true;
+        mesh.material.opacity = 0.75;
+        mesh.scale.set(0.85, 0.85, 0.85);
+      } else {
+        // Core Point: Solid vibrant sphere
+        const baseCol = clusterPalette[cId % clusterPalette.length];
+        mesh.material.color.setHex(baseCol);
+        mesh.material.transparent = false;
+        mesh.material.opacity = 1.0;
+        mesh.scale.set(1.05, 1.05, 1.05);
+      }
+    });
+  }, [epsilon, minPts, activeTab, executeDBSCAN, clusterPalette]);
+
+  const dbscanStats = useMemo(() => {
+    if (!sceneStateRef.current.points.length) {
+      const initialPts = generateDBSCANPoints();
+      return executeDBSCAN(initialPts, epsilon, minPts);
+    }
+    return executeDBSCAN(sceneStateRef.current.points, epsilon, minPts);
+  }, [epsilon, minPts, generateDBSCANPoints, executeDBSCAN]);
+
+  // Tab 4: Synthetic sorted k-distance curve data
+  const kDistanceData = useMemo(() => {
+    const data = [];
+    for (let i = 0; i < 90; i++) {
+      // Small distances for core points (0.3 - 1.2), sharp rise for noise (1.4 - 4.5)
+      let dist;
+      if (i < 60) {
+        dist = 0.4 + (i / 60) * 0.9;
+      } else {
+        dist = 1.3 + Math.pow((i - 60) / 30, 2.2) * 3.2;
+      }
+      data.push({ index: i, distance: parseFloat(dist.toFixed(2)) });
+    }
+    return data;
+  }, []);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                LIGHT STUDIO 3D
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Density Reachability & Outlier Detection
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              DBSCAN 3D Density Exploration Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'three_d', label: '1. 3D Density Explorer' },
+            { id: 'core_border_noise', label: '2. Core vs Border vs Noise' },
+            { id: 'shapes_shootout', label: '3. Non-Spherical Shapes' },
+            { id: 'k_distance', label: '4. k-Distance Elbow Plot' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D THREE.JS DENSITY EXPLORER ─────────────────────── */}
+      {activeTab === 'three_d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+              {/* Epsilon Slider */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Epsilon (&epsilon;) Radius:</span>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0284c7' }}>{epsilon.toFixed(1)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.8"
+                  max="2.6"
+                  step="0.1"
+                  value={epsilon}
+                  onChange={(e) => setEpsilon(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#0284c7' }}
+                />
+              </div>
+
+              {/* MinPts Slider */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>MinPts Threshold:</span>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#16a34a' }}>{minPts} points</span>
+                </div>
+                <input
+                  type="range"
+                  min="3"
+                  max="8"
+                  step="1"
+                  value={minPts}
+                  onChange={(e) => setMinPts(parseInt(e.target.value))}
+                  style={{ width: '100%', accentColor: '#16a34a' }}
+                />
+              </div>
+            </div>
+
+            {/* Sub-bar buttons */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', paddingTop: '4px', borderTop: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => { setEpsilon(1.4); setMinPts(4); }}
+                  style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#001f54', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Optimal Preset (&epsilon;=1.4, MinPts=4)
+                </button>
+                <button
+                  onClick={() => { setEpsilon(0.8); setMinPts(6); }}
+                  style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#dc2626', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Too Strict (Excessive Noise)
+                </button>
+                <button
+                  onClick={() => { setEpsilon(2.4); setMinPts(3); }}
+                  style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#d97706', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Too Loose (Over-Merged)
+                </button>
+              </div>
+
+              <button
+                onClick={() => setAutoRotate(!autoRotate)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: autoRotate ? '#eff6ff' : '#ffffff',
+                  color: autoRotate ? '#1e40af' : '#64748b',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                {autoRotate ? 'Pause Rotation' : 'Auto-Rotate'}
+              </button>
+            </div>
+          </div>
+
+          {/* Three.js 3D WebGL Canvas Container (Light Studio Mode) */}
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 30px rgba(0, 31, 84, 0.08)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            <div
+              ref={containerRef}
+              style={{ width: '100%', height: '360px', cursor: 'grab' }}
+            />
+
+            {/* 3D Overlay HUD Badges (Light Studio Mode) */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 800 }}>
+                Clusters Found: <span style={{ color: '#0284c7' }}>{dbscanStats.numClusters}</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                Core Points: <span style={{ color: '#16a34a' }}>{dbscanStats.numCore}</span> | Border: <span style={{ color: '#d97706' }}>{dbscanStats.numBorder}</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                Noise Outliers (Label -1): <span style={{ color: '#dc2626' }}>{dbscanStats.numNoise}</span>
+              </div>
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 2px 8px rgba(0,31,84,0.06)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              color: '#475569',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              pointerEvents: 'none'
+            }}>
+              Wireframe sphere shows active &epsilon;-radius. Drag to orbit 3D view.
+            </div>
+          </div>
+
+          {/* Explanation Callout */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            fontSize: '0.75rem',
+            color: '#475569',
+            fontWeight: 600,
+            lineHeight: 1.45
+          }}>
+            Notice the wireframe blue sphere in the 3D scene: it represents the <strong>&epsilon;-neighborhood</strong> around a point. As you slide &epsilon; and MinPts:
+            <br />
+            - <strong>Core Points</strong>: Rendered as bold, solid spheres (Cerulean Blue and Emerald Green).
+            <br />
+            - <strong>Border Points</strong>: Rendered as slightly smaller spheres on the cluster periphery.
+            <br />
+            - <strong>Noise Outliers</strong>: Rendered as faint, translucent gray spheres adrift in empty 3D space. DBSCAN cleans them automatically without corrupting cluster shapes!
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: CORE VS BORDER VS NOISE ──────────────────────────── */}
+      {activeTab === 'core_border_noise' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The 3-Point Taxonomy: Topological Rules of DBSCAN
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Every data point in the universe falls into exactly one of three categories based on &epsilon; and MinPts.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+            {/* Core Point Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', marginBottom: '4px' }}>
+                1. Core Point (Cluster Heart)
+              </div>
+              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                |N&epsilon;(p)| &ge; MinPts
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.45 }}>
+                Contains at least MinPts within radius &epsilon;.
+                <br /><br />
+                - <strong>Function:</strong> Generates new clusters and acts as a bridge to propagate density reachability across the cluster interior.
+              </div>
+            </div>
+
+            {/* Border Point Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #0284c7', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0284c7', marginBottom: '4px' }}>
+                2. Border Point (Cluster Perimeter)
+              </div>
+              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                |N&epsilon;(p)| &lt; MinPts &amp; p &in; N&epsilon;(Core)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.45 }}>
+                Has fewer than MinPts neighbors, but lies within the &epsilon;-radius of an existing Core Point.
+                <br /><br />
+                - <strong>Function:</strong> Forms the protective outer skin of a cluster; cannot expand the cluster further.
+              </div>
+            </div>
+
+            {/* Noise Point Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #dc2626', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#dc2626', marginBottom: '4px' }}>
+                3. Noise Outlier (Isolated Point)
+              </div>
+              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                Neither Core nor Border (Label = -1)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.45 }}>
+                Does not meet the density threshold and has no core points in its neighborhood.
+                <br /><br />
+                - <strong>Function:</strong> Automatically isolated with label -1; prevents noise from corrupting downstream analysis.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: SHAPES SHOOTOUT ──────────────────────────────────── */}
+      {activeTab === 'shapes_shootout' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Arbitrary Non-Convex Shapes: K-Means vs. DBSCAN
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Why density-based clustering succeeds where centroid-based algorithms fail.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* K-Means Failure */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #ef4444', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ef4444', marginBottom: '6px' }}>
+                K-Means on Concentric Moons
+              </div>
+              <svg width="100%" height="150" viewBox="0 0 240 150" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Upper Crescent */}
+                <path d="M 40 80 A 60 40 0 0 1 160 80" stroke="#0284c7" strokeWidth="6" fill="none" strokeLinecap="round" />
+                {/* Lower Crescent */}
+                <path d="M 80 85 A 60 40 0 0 0 200 85" stroke="#16a34a" strokeWidth="6" fill="none" strokeLinecap="round" />
+                {/* Straight linear cut */}
+                <line x1="120" y1="10" x2="120" y2="140" stroke="#dc2626" strokeWidth="2.5" strokeDasharray="4 2" />
+                <text x="120" y="80" textAnchor="middle" fontSize="9" fontWeight="800" fill="#dc2626">Linear Voronoi Cut</text>
+              </svg>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '8px' }}>
+                <strong>Failure:</strong> K-Means assumes spherical clusters and uses linear perpendicular bisectors, chopping the crescents in half.
+              </div>
+            </div>
+
+            {/* DBSCAN Success */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', marginBottom: '6px' }}>
+                DBSCAN on Concentric Moons
+              </div>
+              <svg width="100%" height="150" viewBox="0 0 240 150" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Upper Crescent pure blue */}
+                <path d="M 40 80 A 60 40 0 0 1 160 80" stroke="#0284c7" strokeWidth="6" fill="none" strokeLinecap="round" />
+                {/* Lower Crescent pure green */}
+                <path d="M 80 85 A 60 40 0 0 0 200 85" stroke="#16a34a" strokeWidth="6" fill="none" strokeLinecap="round" />
+                <text x="100" y="45" textAnchor="middle" fontSize="9" fontWeight="800" fill="#0284c7">Cluster 0</text>
+                <text x="140" y="125" textAnchor="middle" fontSize="9" fontWeight="800" fill="#16a34a">Cluster 1</text>
+              </svg>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '8px' }}>
+                <strong>Success:</strong> DBSCAN follows the contiguous density contours of each moon, discovering the exact natural shapes!
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: K-DISTANCE ELBOW PLOT ────────────────────────────── */}
+      {activeTab === 'k_distance' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Finding Optimal Epsilon: The Sorted k-Distance Elbow Graph
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Compute the distance to the k-th nearest neighbor for every sample, sort them, and find the sharp upward bend!
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>Inspect Point on Curve:</span>
+              <span style={{ fontSize: '0.96rem', fontWeight: 800, color: selectedKDistIndex === 60 ? '#16a34a' : '#0284c7' }}>
+                Distance &epsilon; = {kDistanceData[selectedKDistIndex].distance.toFixed(2)} {selectedKDistIndex === 60 ? '(Optimal Elbow Point!)' : ''}
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="89"
+              value={selectedKDistIndex}
+              onChange={(e) => setSelectedKDistIndex(parseInt(e.target.value))}
+              style={{ width: '100%', accentColor: '#001f54', marginBottom: '1rem' }}
+            />
+
+            {/* SVG k-distance plot */}
+            <svg width="100%" height="220" viewBox="0 0 460 220" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+              {[40, 80, 120, 160].map((y) => (
+                <line key={`grid-${y}`} x1="45" y1={y} x2="440" y2={y} stroke="#e2e8f0" strokeDasharray="3 3" />
+              ))}
+              <line x1="45" y1="20" x2="45" y2="190" stroke="#64748b" strokeWidth="1.5" />
+              <line x1="45" y1="190" x2="440" y2="190" stroke="#64748b" strokeWidth="1.5" />
+
+              {/* Curve path */}
+              <path
+                d={kDistanceData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${45 + (d.index / 89) * 395} ${190 - (d.distance / 5.0) * 165}`).join(' ')}
+                stroke="#001f54"
+                strokeWidth="3"
+                fill="none"
+              />
+
+              {/* Active point indicator */}
+              {(() => {
+                const cur = kDistanceData[selectedKDistIndex];
+                const cx = 45 + (cur.index / 89) * 395;
+                const cy = 190 - (cur.distance / 5.0) * 165;
+                return (
+                  <g>
+                    <line x1="45" y1={cy} x2={cx} y2={cy} stroke="#dc2626" strokeDasharray="2 2" />
+                    <line x1={cx} y1={cy} x2={cx} y2="190" stroke="#dc2626" strokeDasharray="2 2" />
+                    <circle cx={cx} cy={cy} r="6.5" fill="#dc2626" stroke="#ffffff" strokeWidth="2" />
+                  </g>
+                );
+              })()}
+
+              {/* Optimal Elbow Callout */}
+              <g transform="translate(310, 120)">
+                <circle cx="0" cy="0" r="14" fill="none" stroke="#16a34a" strokeWidth="2" strokeDasharray="3 2" />
+                <text x="18" y="4" fontSize="10" fontWeight="800" fill="#16a34a">Elbow (&epsilon; &approx; 1.4)</text>
+              </g>
+
+              <text x="240" y="210" textAnchor="middle" fontSize="10" fontWeight="700" fill="#475569">Sorted Points (Ascending Order)</text>
+              <text x="14" y="105" textAnchor="middle" fontSize="10" fontWeight="700" fill="#475569" transform="rotate(-90, 14, 105)">k-th Nearest Distance</text>
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production DBSCAN Pipeline with k-Distance Tuning & Outlier Isolation:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from sklearn.cluster import DBSCAN',
+                'from sklearn.neighbors import NearestNeighbors',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.metrics import silhouette_score',
+                'import numpy as np',
+                '',
+                '# 1. Feature scaling (mandatory for density clustering)',
+                'scaler = StandardScaler()',
+                'X_scaled = scaler.fit_transform(X_raw)',
+                '',
+                '# 2. Find optimal Epsilon via k-Nearest Neighbors (k = 4)',
+                'k = 4',
+                'nn = NearestNeighbors(n_neighbors=k).fit(X_scaled)',
+                'distances, _ = nn.kneighbors(X_scaled)',
+                'k_distances = np.sort(distances[:, k-1])',
+                '# Inspect elbow bend: optimal eps ~ 0.35',
+                '',
+                '# 3. Train Production DBSCAN Model',
+                'dbscan = DBSCAN(eps=0.35, min_samples=5)',
+                'labels = dbscan.fit_predict(X_scaled)',
+                '',
+                '# 4. Extract metrics',
+                'n_clusters = len(set(labels) - {-1})',
+                'n_noise = list(labels).count(-1)',
+                'print(f"Clusters found: {n_clusters}")',
+                'print(f"Noise outliers filtered: {n_noise} ({n_noise / len(X_scaled) * 100:.1f}%)")',
+                '',
+                '# 5. Evaluate Silhouette Score only on clustered points',
+                'mask = labels != -1',
+                'if n_clusters > 1 and np.sum(mask) > n_clusters:',
+                '    score = silhouette_score(X_scaled[mask], labels[mask])',
+                '    print(f"Cluster Silhouette Score: {score:.4f}")'
+              ].join('\n')}
+              title="dbscan_masterclass.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4'
 ];
 
 export default function MLLessonArticlePage() {
@@ -24721,6 +25574,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'hierarchical_interactive_studio' && (
               <HierarchicalInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'dbscan_interactive_studio' && (
+              <DBSCANInteractiveStudio />
             )}
           </div>
         )}
