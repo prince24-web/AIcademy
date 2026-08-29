@@ -26696,11 +26696,713 @@ const PCAInteractiveStudio = () => {
   );
 };
 
+
+// ─── CROSS-VALIDATION THREE.JS INTERACTIVE STUDIO (ml-6-1) ───────────────────
+const CrossValidationInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'stratified', 'timeseries', 'data_leakage', 'code'
+  const [kFolds, setKFolds] = useState(5); // K in [3, 4, 5, 6, 8, 10]
+  const [activeFoldIdx, setActiveFoldIdx] = useState(0); // Which fold is currently the validation set
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Fold accuracy scores generated with deterministic PRNG
+  const foldScores = useMemo(() => {
+    const rng = createSeededPRNG(700 + kFolds);
+    const scores = [];
+    for (let i = 0; i < kFolds; i++) {
+      // Base accuracy around 88% - 93%
+      const val = 87.5 + rng() * 6.0;
+      scores.push(parseFloat(val.toFixed(1)));
+    }
+    return scores;
+  }, [kFolds]);
+
+  const grandStats = useMemo(() => {
+    const mean = foldScores.reduce((a, b) => a + b, 0) / foldScores.length;
+    const variance = foldScores.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / foldScores.length;
+    const std = Math.sqrt(variance);
+    return {
+      mean: parseFloat(mean.toFixed(2)),
+      std: parseFloat(std.toFixed(2))
+    };
+  }, [foldScores]);
+
+  const containerRef = useRef(null);
+  const sceneStateRef = useRef({
+    foldMeshes: [],
+    scene: null,
+    renderer: null,
+    camera: null,
+    isMouseDown: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
+    rotX: 0.35,
+    rotY: 0.4
+  });
+
+  // Mount Three.js 3D WebGL Canvas
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth || 640;
+    const height = 360;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 14, 24);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting in Light Mode
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(12, 22, 14);
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(-10, -10, -10);
+    scene.add(fillLight);
+
+    // 3D Architectural Grid Floor
+    const gridHelper = new THREE.GridHelper(24, 20, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -4.0;
+    scene.add(gridHelper);
+
+    sceneStateRef.current.scene = scene;
+    sceneStateRef.current.renderer = renderer;
+    sceneStateRef.current.camera = camera;
+
+    // Create 3D Fold Blocks
+    // Total width is 16 units, each fold block has width = 16 / kFolds
+    const totalWidth = 16;
+    const blockWidth = (totalWidth / kFolds) - 0.25;
+    const blockHeight = 2.4;
+    const blockDepth = 4.5;
+
+    const foldMeshes = [];
+
+    for (let i = 0; i < kFolds; i++) {
+      const geo = new THREE.BoxGeometry(blockWidth, blockHeight, blockDepth);
+      const isVal = i === activeFoldIdx;
+
+      // Training: Cerulean Blue, Validation: Elevated Amber Gold
+      const mat = new THREE.MeshStandardMaterial({
+        color: isVal ? 0xf59e0b : 0x0284c7,
+        roughness: 0.25,
+        metalness: 0.15,
+        emissive: isVal ? 0x78350f : 0x000000,
+        emissiveIntensity: isVal ? 0.35 : 0
+      });
+
+      const mesh = new THREE.Mesh(geo, mat);
+      const xPos = -totalWidth / 2 + (i + 0.5) * (totalWidth / kFolds);
+      const yPos = isVal ? 1.6 : 0;
+      mesh.position.set(xPos, yPos, 0);
+
+      // Add wireframe edge border
+      const edges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({ color: isVal ? 0xd97706 : 0x0369a1, linewidth: 2 })
+      );
+      mesh.add(edges);
+
+      scene.add(mesh);
+      foldMeshes.push(mesh);
+    }
+    sceneStateRef.current.foldMeshes = foldMeshes;
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate && !sceneStateRef.current.isMouseDown) {
+        sceneStateRef.current.rotY += 0.0035;
+      }
+
+      const dist = 24;
+      camera.position.x = dist * Math.sin(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.position.y = dist * Math.sin(sceneStateRef.current.rotX) + 3.0;
+      camera.position.z = dist * Math.cos(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Mouse Listeners
+    const onMouseDown = (e) => {
+      sceneStateRef.current.isMouseDown = true;
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!sceneStateRef.current.isMouseDown) return;
+      const dx = e.clientX - sceneStateRef.current.prevMouseX;
+      const dy = e.clientY - sceneStateRef.current.prevMouseY;
+
+      sceneStateRef.current.rotY += dx * 0.008;
+      sceneStateRef.current.rotX = Math.max(-0.4, Math.min(1.2, sceneStateRef.current.rotX - dy * 0.008));
+
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => {
+      sceneStateRef.current.isMouseDown = false;
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      while (container.firstChild) container.removeChild(container.firstChild);
+    };
+  }, [activeTab, kFolds, activeFoldIdx, autoRotate]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                LIGHT STUDIO 3D
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                K-Fold Slicing & Anti-Leakage Architecture
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Cross-Validation 3D Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'three_d', label: '1. 3D K-Fold Rotation Studio' },
+            { id: 'stratified', label: '2. Stratified vs Random K-Fold' },
+            { id: 'timeseries', label: '3. Time Series Walk-Forward CV' },
+            { id: 'data_leakage', label: '4. Data Leakage Prevention' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D THREE.JS FOLD ROTATION STUDIO ────────────────── */}
+      {activeTab === 'three_d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Select Folds (K):</span>
+                {[3, 4, 5, 8, 10].map((k) => (
+                  <button
+                    key={k}
+                    onClick={() => {
+                      setKFolds(k);
+                      setActiveFoldIdx(0);
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      border: '1px solid',
+                      borderColor: kFolds === k ? '#001f54' : '#cbd5e1',
+                      background: kFolds === k ? '#001f54' : '#ffffff',
+                      color: kFolds === k ? '#ffffff' : '#475569',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    K = {k}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setActiveFoldIdx((prev) => (prev + 1) % kFolds)}
+                  style={{
+                    padding: '5px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(2,132,199,0.25)'
+                  }}
+                >
+                  Step to Next Fold ({(activeFoldIdx + 1) % kFolds + 1})
+                </button>
+                <button
+                  onClick={() => setAutoRotate(!autoRotate)}
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: autoRotate ? '#eff6ff' : '#ffffff',
+                    color: autoRotate ? '#1e40af' : '#64748b',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {autoRotate ? 'Pause Rotation' : 'Auto-Rotate'}
+                </button>
+              </div>
+            </div>
+
+            {/* Fold Slices Selector */}
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+              {Array.from({ length: kFolds }).map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveFoldIdx(idx)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 4px',
+                    borderRadius: '8px',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    textAlign: 'center',
+                    border: '1.5px solid',
+                    borderColor: activeFoldIdx === idx ? '#f59e0b' : '#cbd5e1',
+                    background: activeFoldIdx === idx ? '#fef3c7' : '#ffffff',
+                    color: activeFoldIdx === idx ? '#b45309' : '#0284c7',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div>Fold {idx + 1}</div>
+                  <div style={{ fontSize: '0.64rem', fontWeight: 600, color: activeFoldIdx === idx ? '#b45309' : '#64748b', marginTop: '2px' }}>
+                    {activeFoldIdx === idx ? 'VALIDATION' : 'TRAIN'}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 900, marginTop: '2px', color: activeFoldIdx === idx ? '#b45309' : '#0f172a' }}>
+                    {foldScores[idx]}%
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Three.js 3D WebGL Canvas Container (Light Studio Mode) */}
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 30px rgba(0, 31, 84, 0.08)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            <div
+              ref={containerRef}
+              style={{ width: '100%', height: '360px', cursor: 'grab' }}
+            />
+
+            {/* 3D Overlay HUD Badges (Light Studio Mode) */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 800 }}>
+                Iteration {activeFoldIdx + 1} of {kFolds}: <span style={{ color: '#d97706' }}>Fold {activeFoldIdx + 1} is Validation Slice</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                Training Set: <span style={{ color: '#0284c7' }}>{((kFolds - 1) / kFolds * 100).toFixed(0)}% of data</span> | Validation Set: <span style={{ color: '#d97706' }}>{(100 / kFolds).toFixed(0)}%</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 800 }}>
+                Fold {activeFoldIdx + 1} Accuracy: <span style={{ color: '#16a34a' }}>{foldScores[activeFoldIdx]}%</span>
+              </div>
+            </div>
+
+            {/* Bottom HUD: Grand CV Score */}
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              left: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              border: '1.5px solid #001f54',
+              boxShadow: '0 4px 14px rgba(0,31,84,0.1)',
+              padding: '6px 14px',
+              borderRadius: '8px',
+              color: '#001f54',
+              fontSize: '0.8rem',
+              fontWeight: 900,
+              pointerEvents: 'none'
+            }}>
+              Overall CV Score: <span style={{ color: '#16a34a' }}>{grandStats.mean}%</span> <span style={{ color: '#64748b', fontWeight: 600 }}>(&plusmn;{grandStats.std}%)</span>
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 2px 8px rgba(0,31,84,0.06)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              color: '#475569',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              pointerEvents: 'none'
+            }}>
+              Gold block = Elevated Validation Set | Blue blocks = Training Folds.
+            </div>
+          </div>
+
+          {/* Explanation Callout */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            fontSize: '0.75rem',
+            color: '#475569',
+            fontWeight: 600,
+            lineHeight: 1.45
+          }}>
+            Click <strong>"Step to Next Fold"</strong> above! Watch the golden validation slice hop from Fold 1 to Fold 2 to Fold 3. In each iteration, the model trains on the {kFolds - 1} blue blocks and tests on the elevated golden block. By averaging all {kFolds} scores (<strong>{grandStats.mean}% &plusmn; {grandStats.std}%</strong>), you eliminate the risk of a lucky or unlucky split!
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: STRATIFIED VS RANDOM K-FOLD ──────────────────────── */}
+      {activeTab === 'stratified' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Stratified K-Fold vs. Standard Random K-Fold
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Why imbalanced classification datasets require StratifiedKFold to prevent degenerate validation folds.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Standard Random Split */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #dc2626', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#dc2626', marginBottom: '8px' }}>
+                Standard K-Fold (Random Shuffling)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '12px' }}>
+                Total Dataset: 90% Legitimate, 10% Fraud.
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700 }}>
+                    <span>Fold 1:</span>
+                    <span style={{ color: '#0284c7' }}>88% Legit | 12% Fraud</span>
+                  </div>
+                </div>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700 }}>
+                    <span>Fold 2:</span>
+                    <span style={{ color: '#0284c7' }}>96% Legit | 4% Fraud</span>
+                  </div>
+                </div>
+                <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', padding: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, color: '#dc2626' }}>
+                    <span>Fold 3 (DISASTER):</span>
+                    <span>100% Legit | 0% Fraud!</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#b91c1c', marginTop: '10px', fontWeight: 600 }}>
+                Fold 3 has ZERO fraud samples! The model cannot evaluate fraud recall or precision on Fold 3, corrupting the CV evaluation.
+              </div>
+            </div>
+
+            {/* Stratified Split */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#16a34a', marginBottom: '8px' }}>
+                Stratified K-Fold (Proportional Guarantee)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '12px' }}>
+                Forces each fold to mirror the exact population ratios.
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', padding: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, color: '#166534' }}>
+                    <span>Fold 1:</span>
+                    <span>90.0% Legit | 10.0% Fraud</span>
+                  </div>
+                </div>
+                <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', padding: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, color: '#166534' }}>
+                    <span>Fold 2:</span>
+                    <span>90.0% Legit | 10.0% Fraud</span>
+                  </div>
+                </div>
+                <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', padding: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, color: '#166534' }}>
+                    <span>Fold 3:</span>
+                    <span>90.0% Legit | 10.0% Fraud</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#15803d', marginTop: '10px', fontWeight: 600 }}>
+                Every single fold contains the exact same target class proportion. All folds provide stable, reliable metric calculations!
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: TIME SERIES WALK-FORWARD CV ──────────────────────── */}
+      {activeTab === 'timeseries' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Time Series Walk-Forward Validation (Expanding Window)
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              For temporal data (stocks, sensor telemetry), you cannot shuffle data across time without future data leakage.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#001f54', marginBottom: '12px' }}>
+              Expanding Chronological Window Structure:
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Split 1 */}
+              <div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>Split 1 (Months 1-3 Train &rarr; Month 4 Test):</div>
+                <div style={{ display: 'flex', height: '26px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                  <div style={{ width: '40%', background: '#0284c7', color: '#ffffff', fontSize: '0.66rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Train (Jan-Mar)
+                  </div>
+                  <div style={{ width: '20%', background: '#f59e0b', color: '#ffffff', fontSize: '0.66rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Test (Apr)
+                  </div>
+                  <div style={{ width: '40%', background: '#f1f5f9', color: '#94a3b8', fontSize: '0.66rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Unused Future
+                  </div>
+                </div>
+              </div>
+
+              {/* Split 2 */}
+              <div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>Split 2 (Months 1-4 Train &rarr; Month 5 Test):</div>
+                <div style={{ display: 'flex', height: '26px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                  <div style={{ width: '60%', background: '#0284c7', color: '#ffffff', fontSize: '0.66rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Train (Jan-Apr)
+                  </div>
+                  <div style={{ width: '20%', background: '#f59e0b', color: '#ffffff', fontSize: '0.66rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Test (May)
+                  </div>
+                  <div style={{ width: '20%', background: '#f1f5f9', color: '#94a3b8', fontSize: '0.66rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Unused Future
+                  </div>
+                </div>
+              </div>
+
+              {/* Split 3 */}
+              <div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>Split 3 (Months 1-5 Train &rarr; Month 6 Test):</div>
+                <div style={{ display: 'flex', height: '26px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                  <div style={{ width: '80%', background: '#0284c7', color: '#ffffff', fontSize: '0.66rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Train (Jan-May)
+                  </div>
+                  <div style={{ width: '20%', background: '#f59e0b', color: '#ffffff', fontSize: '0.66rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Test (Jun)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '14px', lineHeight: 1.45 }}>
+              Notice how the training window expands forward in time. The model is NEVER allowed to look at future time steps to predict past events, mirroring real-world deployment exactly!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: DATA LEAKAGE PREVENTION ──────────────────────────── */}
+      {activeTab === 'data_leakage' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Silent Killer: Data Leakage in Cross-Validation
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Why fitting feature scalers or imputers before splitting corrupts validation integrity.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* The Flawed Approach */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #dc2626', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#dc2626', marginBottom: '8px' }}>
+                Flawed: Scaling Before Cross-Validation
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.5 }}>
+                1. Apply <code>StandardScaler().fit_transform(X)</code> on the full dataset.
+                <br />
+                2. Run <code>cross_val_score(...)</code>.
+                <br /><br />
+                <strong>The Fatal Flaw:</strong> The scaler calculates global mean &mu; and std &sigma; using validation samples! The model gets subtle statistical hints about unseen test data, giving falsely high validation scores that collapse in production.
+              </div>
+            </div>
+
+            {/* The Correct Pipeline Approach */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#16a34a', marginBottom: '8px' }}>
+                Correct: Encapsulate in a Scikit-Learn Pipeline
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.5 }}>
+                Wrap preprocessing and model inside:
+                <br />
+                <code>Pipeline([(&#39;scaler&#39;, StandardScaler()), (&#39;clf&#39;, Model())])</code>
+                <br /><br />
+                <strong>The Protection:</strong> Scikit-Learn guarantees that <code>scaler.fit()</code> runs strictly on the training folds of each iteration. The validation fold remains 100% unseen and uncontaminated!
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON IMPLEMENTATION ────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production Leak-Free Cross-Validation with Pipeline:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from sklearn.datasets import load_breast_cancer',
+                'from sklearn.model_selection import cross_val_score, StratifiedKFold, TimeSeriesSplit',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.linear_model import LogisticRegression',
+                'from sklearn.pipeline import Pipeline',
+                'import numpy as np',
+                '',
+                '# 1. Load dataset',
+                'X, y = load_breast_cancer(return_X_y=True)',
+                '',
+                '# 2. Build Pipeline (Prevents Data Leakage)',
+                'pipeline = Pipeline([',
+                "    ('scaler', StandardScaler()),",
+                "    ('clf', LogisticRegression(max_iter=1000, random_state=42))",
+                '])',
+                '',
+                '# 3. Stratified 5-Fold Cross-Validation',
+                'cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)',
+                "scores = cross_val_score(pipeline, X, y, cv=cv, scoring='accuracy')",
+                '',
+                'print("Fold Scores:", np.round(scores, 3))',
+                'print(f"Grand Mean: {np.mean(scores)*100:.2f}% (+/- {np.std(scores)*100:.2f}%)")',
+                '',
+                '# 4. For Temporal Data: TimeSeriesSplit',
+                'tscv = TimeSeriesSplit(n_splits=5)',
+                "ts_scores = cross_val_score(pipeline, X, y, cv=tscv, scoring='accuracy')",
+                'print("Time Series CV Mean:", np.round(np.mean(ts_scores)*100, 2))'
+              ].join('\n')}
+              title="cross_validation_production.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1'
 ];
 
 export default function MLLessonArticlePage() {
@@ -26928,6 +27630,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'pca_interactive_studio' && (
               <PCAInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'cross_validation_interactive_studio' && (
+              <CrossValidationInteractiveStudio />
             )}
           </div>
         )}
