@@ -22945,16 +22945,20 @@ const KMeansInteractiveStudio = () => {
     }
     container.appendChild(renderer.domElement);
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    // Lighting (Light Studio Mode)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    dirLight.position.set(10, 20, 10);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(12, 22, 14);
     scene.add(dirLight);
 
-    // 3D Grid Floor
-    const gridHelper = new THREE.GridHelper(22, 18, 0x001f54, 0xe2e8f0);
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(-10, -10, -10);
+    scene.add(fillLight);
+
+    // 3D Grid Floor (Architectural Light Slate Grid)
+    const gridHelper = new THREE.GridHelper(24, 20, 0x94a3b8, 0xe2e8f0);
     gridHelper.position.y = -6;
     scene.add(gridHelper);
 
@@ -23116,7 +23120,7 @@ const KMeansInteractiveStudio = () => {
     lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
     lineGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
 
-    const lineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.35 });
+    const lineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55 });
     const lineMesh = new THREE.LineSegments(lineGeo, lineMat);
     scene.add(lineMesh);
     sceneStateRef.current.lineSegmentsMesh = lineMesh;
@@ -23410,21 +23414,21 @@ const KMeansInteractiveStudio = () => {
             </div>
           </div>
 
-          {/* Three.js 3D WebGL Canvas Container */}
+          {/* Three.js 3D WebGL Canvas Container (Light Studio Mode) */}
           <div style={{
             position: 'relative',
-            background: 'radial-gradient(circle at center, #0f172a, #020617)',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
             borderRadius: '18px',
             overflow: 'hidden',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.18)',
-            border: '1.5px solid #1e293b'
+            boxShadow: '0 8px 30px rgba(0, 31, 84, 0.08)',
+            border: '1.5px solid #cbd5e1'
           }}>
             <div
               ref={containerRef}
               style={{ width: '100%', height: '360px', cursor: 'grab' }}
             />
 
-            {/* 3D Overlay HUD Badges */}
+            {/* 3D Overlay HUD Badges (Light Studio Mode) */}
             <div style={{
               position: 'absolute',
               top: '12px',
@@ -23434,15 +23438,15 @@ const KMeansInteractiveStudio = () => {
               gap: '6px',
               pointerEvents: 'none'
             }}>
-              <div style={{ background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '6px', color: '#ffffff', fontSize: '0.72rem', fontWeight: 800 }}>
-                Phase: <span style={{ color: phase === 'converged' ? '#86efac' : '#38bdf8' }}>{phase.toUpperCase()}</span>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 800 }}>
+                Phase: <span style={{ color: phase === 'converged' ? '#16a34a' : '#0284c7' }}>{phase.toUpperCase()}</span>
               </div>
-              <div style={{ background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '6px', color: '#ffffff', fontSize: '0.72rem', fontWeight: 700 }}>
-                Lloyd Iterations: <span style={{ color: '#fbbf24' }}>{iteration}</span>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                Lloyd Iterations: <span style={{ color: '#d97706' }}>{iteration}</span>
               </div>
               {inertiaValue > 0 && (
-                <div style={{ background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '6px', color: '#ffffff', fontSize: '0.72rem', fontWeight: 700 }}>
-                  Inertia (WCSS): <span style={{ color: '#f472b6' }}>{inertiaValue.toFixed(1)}</span>
+                <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                  Inertia (WCSS): <span style={{ color: '#9333ea' }}>{inertiaValue.toFixed(1)}</span>
                 </div>
               )}
             </div>
@@ -23451,12 +23455,13 @@ const KMeansInteractiveStudio = () => {
               position: 'absolute',
               bottom: '12px',
               right: '14px',
-              background: 'rgba(15, 23, 42, 0.85)',
+              background: 'rgba(255, 255, 255, 0.94)',
               backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 2px 8px rgba(0,31,84,0.06)',
               padding: '4px 10px',
               borderRadius: '6px',
-              color: '#94a3b8',
+              color: '#475569',
               fontSize: '0.68rem',
               fontWeight: 600,
               pointerEvents: 'none'
