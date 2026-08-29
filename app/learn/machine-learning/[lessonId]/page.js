@@ -22814,6 +22814,16 @@ const ClusteringFoundationsStudio = () => {
 };
 
 
+// ─── DETERMINISTIC PSEUDO-RANDOM NUMBER GENERATOR FOR ZERO HYDRATION MISMATCH ───
+const createSeededPRNG = (seed = 42) => {
+  let s = (seed || 42) % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+};
+
 // ─── K-MEANS CLUSTERING THREE.JS INTERACTIVE STUDIO (ml-5-2) ────────────────
 const KMeansInteractiveStudio = () => {
   const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'elbow', 'kmeans_plus', 'failure_modes', 'code'
@@ -22855,6 +22865,7 @@ const KMeansInteractiveStudio = () => {
 
   // Initialize synthetic 3D dataset (60 points across 3 or 4 spatial clouds)
   const generate3DPoints = useCallback((k) => {
+    const rng = createSeededPRNG(100 + k);
     const pts = [];
     const centers = [
       { x: -5, y: 3, z: -3 },
@@ -22871,9 +22882,9 @@ const KMeansInteractiveStudio = () => {
       for (let i = 0; i < countPerCluster; i++) {
         pts.push({
           id: `${c}-${i}`,
-          x: center.x + (Math.random() - 0.5) * 3.4,
-          y: center.y + (Math.random() - 0.5) * 3.4,
-          z: center.z + (Math.random() - 0.5) * 3.4,
+          x: center.x + (rng() - 0.5) * 3.4,
+          y: center.y + (rng() - 0.5) * 3.4,
+          z: center.z + (rng() - 0.5) * 3.4,
           cluster: -1,
           trueCluster: c
         });
@@ -22884,20 +22895,21 @@ const KMeansInteractiveStudio = () => {
 
   // Initialize centroids (Random or K-Means++)
   const initializeCentroids = useCallback((k, pts, isPlusPlus = true) => {
+    const rng = createSeededPRNG(200 + k + (isPlusPlus ? 1 : 0));
     const cents = [];
     if (!pts.length) return cents;
 
     if (!isPlusPlus) {
-      // Pure Random Placement
+      // Pure Random Placement (Deterministic PRNG)
       for (let i = 0; i < k; i++) {
-        const randPt = pts[Math.floor(Math.random() * pts.length)];
-        cents.push({ x: randPt.x + (Math.random() - 0.5), y: randPt.y + (Math.random() - 0.5), z: randPt.z + (Math.random() - 0.5) });
+        const randPt = pts[Math.floor(rng() * pts.length)];
+        cents.push({ x: randPt.x + (rng() - 0.5), y: randPt.y + (rng() - 0.5), z: randPt.z + (rng() - 0.5) });
       }
       return cents;
     }
 
-    // K-Means++ Initialization
-    const firstIdx = Math.floor(Math.random() * pts.length);
+    // K-Means++ Initialization (Deterministic PRNG)
+    const firstIdx = Math.floor(rng() * pts.length);
     cents.push({ x: pts[firstIdx].x, y: pts[firstIdx].y, z: pts[firstIdx].z });
 
     for (let c = 1; c < k; c++) {
@@ -23785,13 +23797,14 @@ const HierarchicalInteractiveStudio = () => {
       { x: 5.0, z: -2.5, branch: 5 }
     ];
 
+    const rng = createSeededPRNG(300);
     centers.forEach((c) => {
       for (let i = 0; i < 7; i++) {
         pts.push({
           id: `${c.branch}-${i}`,
-          x: c.x + (Math.random() - 0.5) * 1.8,
-          y: -3.5 + (Math.random() - 0.5) * 0.4,
-          z: c.z + (Math.random() - 0.5) * 1.8,
+          x: c.x + (rng() - 0.5) * 1.8,
+          y: -3.5 + (rng() - 0.5) * 0.4,
+          z: c.z + (rng() - 0.5) * 1.8,
           branchId: c.branch
         });
       }
@@ -24533,8 +24546,9 @@ const DBSCANInteractiveStudio = () => {
     0x9333ea  // Cluster 3: Royal Violet
   ], []);
 
-  // Generate non-spherical 3D dataset: Two intertwined 3D curved ribbons + random 3D noise
+  // Generate non-spherical 3D dataset: Two intertwined 3D curved ribbons + random 3D noise (Deterministic PRNG)
   const generateDBSCANPoints = useCallback(() => {
+    const rng = createSeededPRNG(400);
     const pts = [];
     // Ribbon 1: Curved 3D crescent arch
     for (let i = 0; i < 38; i++) {
@@ -24542,9 +24556,9 @@ const DBSCANInteractiveStudio = () => {
       const r = 5.2;
       pts.push({
         id: `r1-${i}`,
-        x: r * Math.cos(angle) - 1.5 + (Math.random() - 0.5) * 0.7,
-        y: Math.sin(angle * 2) * 1.6 + (Math.random() - 0.5) * 0.6,
-        z: r * Math.sin(angle) - 1.0 + (Math.random() - 0.5) * 0.7,
+        x: r * Math.cos(angle) - 1.5 + (rng() - 0.5) * 0.7,
+        y: Math.sin(angle * 2) * 1.6 + (rng() - 0.5) * 0.6,
+        z: r * Math.sin(angle) - 1.0 + (rng() - 0.5) * 0.7,
         type: 'unvisited',
         cluster: -1
       });
@@ -24556,9 +24570,9 @@ const DBSCANInteractiveStudio = () => {
       const r = 5.2;
       pts.push({
         id: `r2-${i}`,
-        x: r * Math.cos(angle) + 1.5 + (Math.random() - 0.5) * 0.7,
-        y: -Math.sin(angle * 2) * 1.6 + (Math.random() - 0.5) * 0.6,
-        z: r * Math.sin(angle) + 1.0 + (Math.random() - 0.5) * 0.7,
+        x: r * Math.cos(angle) + 1.5 + (rng() - 0.5) * 0.7,
+        y: -Math.sin(angle * 2) * 1.6 + (rng() - 0.5) * 0.6,
+        z: r * Math.sin(angle) + 1.0 + (rng() - 0.5) * 0.7,
         type: 'unvisited',
         cluster: -1
       });
@@ -24568,9 +24582,9 @@ const DBSCANInteractiveStudio = () => {
     for (let i = 0; i < 14; i++) {
       pts.push({
         id: `noise-${i}`,
-        x: (Math.random() - 0.5) * 16.0,
-        y: (Math.random() - 0.5) * 8.0,
-        z: (Math.random() - 0.5) * 16.0,
+        x: (rng() - 0.5) * 16.0,
+        y: (rng() - 0.5) * 8.0,
+        z: (rng() - 0.5) * 16.0,
         type: 'unvisited',
         cluster: -1
       });
