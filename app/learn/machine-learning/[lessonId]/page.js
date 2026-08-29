@@ -23713,11 +23713,796 @@ const KMeansInteractiveStudio = () => {
   );
 };
 
+
+// ─── HIERARCHICAL CLUSTERING THREE.JS INTERACTIVE STUDIO (ml-5-3) ────────────
+const HierarchicalInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'dendrogram_2d', 'linkages', 'comparison', 'code'
+
+  // Tab 1: 3D Three.js State
+  const containerRef = useRef(null);
+  const [cutThreshold, setCutThreshold] = useState(3.2); // Slicing height along Y
+  const [autoRotate, setAutoRotate] = useState(true);
+  const [activeLinkageName, setActiveLinkageName] = useState('Ward');
+
+  // Tab 2: 2D Dendrogram State
+  const [dendroCut, setDendroCut] = useState(6.5);
+
+  const sceneStateRef = useRef({
+    points: [],
+    pointMeshes: [],
+    treeLinesMesh: null,
+    cuttingPlaneMesh: null,
+    scene: null,
+    renderer: null,
+    camera: null,
+    isMouseDown: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
+    rotX: 0.35,
+    rotY: 0.5
+  });
+
+  const clusterColors = useMemo(() => [
+    0x0284c7, // 0: Cerulean Blue
+    0x16a34a, // 1: Emerald Green
+    0xd97706, // 2: Amber Gold
+    0x9333ea, // 3: Royal Violet
+    0xe11d48, // 4: Crimson Rose
+    0x0d9488  // 5: Teal
+  ], []);
+
+  // Compute number of clusters and assign colors based on cut height tau
+  const getClusterAssignment = useCallback((tau) => {
+    // Height thresholds in our 3D hierarchy:
+    // tau >= 6.8: 1 cluster (Root)
+    // 4.8 <= tau < 6.8: 2 clusters (Left+Center vs Right)
+    // 2.6 <= tau < 4.8: 3 clusters (Left vs Center vs Right)
+    // 1.0 <= tau < 2.6: 5 clusters (Sub-branches)
+    // tau < 1.0: 6 fine-grained clusters
+    if (tau >= 6.8) return { count: 1, label: '1 Master Root Cluster', map: [0, 0, 0, 0, 0, 0] };
+    if (tau >= 4.8) return { count: 2, label: '2 Major Kingdoms', map: [0, 0, 1, 1, 0, 0] };
+    if (tau >= 2.6) return { count: 3, label: '3 Distinct Families', map: [0, 0, 1, 1, 2, 2] };
+    if (tau >= 1.0) return { count: 5, label: '5 Sub-Phyla Groups', map: [0, 3, 1, 1, 2, 4] };
+    return { count: 6, label: '6 Fine-Grained Species', map: [0, 3, 1, 5, 2, 4] };
+  }, []);
+
+  // Generate 3D data points with predefined hierarchical branch memberships
+  const generate3DHierarchyPoints = useCallback(() => {
+    const pts = [];
+    // 6 fine-grained sub-groups that form our tree:
+    // Sub-branch 0 (A1): left-front
+    // Sub-branch 1 (B1): right-front
+    // Sub-branch 2 (C1): center-front
+    // Sub-branch 3 (A2): left-back
+    // Sub-branch 4 (C2): center-back
+    // Sub-branch 5 (B2): right-back
+    const centers = [
+      { x: -5.5, z: 2.0, branch: 0 },
+      { x: 5.5, z: 2.0, branch: 1 },
+      { x: 0.0, z: 3.0, branch: 2 },
+      { x: -5.0, z: -2.5, branch: 3 },
+      { x: 0.5, z: -2.5, branch: 4 },
+      { x: 5.0, z: -2.5, branch: 5 }
+    ];
+
+    centers.forEach((c) => {
+      for (let i = 0; i < 7; i++) {
+        pts.push({
+          id: `${c.branch}-${i}`,
+          x: c.x + (Math.random() - 0.5) * 1.8,
+          y: -3.5 + (Math.random() - 0.5) * 0.4,
+          z: c.z + (Math.random() - 0.5) * 1.8,
+          branchId: c.branch
+        });
+      }
+    });
+    return pts;
+  }, []);
+
+  // Mount Three.js 3D WebGL Canvas
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth || 640;
+    const height = 360;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 15, 26);
+    camera.lookAt(0, 1, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting in Light Mode
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(12, 22, 14);
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(-10, -10, -10);
+    scene.add(fillLight);
+
+    // 3D Architectural Grid Floor
+    const gridHelper = new THREE.GridHelper(24, 20, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -3.8;
+    scene.add(gridHelper);
+
+    // Generate Points
+    const pts = generate3DHierarchyPoints();
+    sceneStateRef.current.points = pts;
+    sceneStateRef.current.scene = scene;
+    sceneStateRef.current.renderer = renderer;
+    sceneStateRef.current.camera = camera;
+
+    // Create 3D Point Meshes
+    const pointGeo = new THREE.SphereGeometry(0.32, 14, 14);
+    const pointMeshes = [];
+    const assignment = getClusterAssignment(cutThreshold);
+
+    pts.forEach((pt) => {
+      const clusterIdx = assignment.map[pt.branchId];
+      const col = clusterColors[clusterIdx % clusterColors.length];
+      const mat = new THREE.MeshStandardMaterial({
+        color: col,
+        roughness: 0.25,
+        metalness: 0.2
+      });
+      const mesh = new THREE.Mesh(pointGeo, mat);
+      mesh.position.set(pt.x, pt.y, pt.z);
+      scene.add(mesh);
+      pointMeshes.push(mesh);
+    });
+    sceneStateRef.current.pointMeshes = pointMeshes;
+
+    // Build 3D Hierarchical Tree Arches
+    // Points -> Sub-groups -> Major branches -> Master root
+    const linePositions = [];
+    const lineColors = [];
+
+    const add3DLine = (x1, y1, z1, x2, y2, z2, colorHex) => {
+      linePositions.push(x1, y1, z1, x2, y2, z2);
+      const c = new THREE.Color(colorHex);
+      lineColors.push(c.r, c.g, c.b, c.r, c.g, c.b);
+    };
+
+    // Sub-group centers at base
+    const subCenters = [
+      { x: -5.5, y: -3.5, z: 2.0 }, // 0
+      { x: 5.5, y: -3.5, z: 2.0 },  // 1
+      { x: 0.0, y: -3.5, z: 3.0 },  // 2
+      { x: -5.0, y: -3.5, z: -2.5 }, // 3
+      { x: 0.5, y: -3.5, z: -2.5 },  // 4
+      { x: 5.0, y: -3.5, z: -2.5 }   // 5
+    ];
+
+    // Connect points to their sub-center
+    pts.forEach((p) => {
+      const sc = subCenters[p.branchId];
+      add3DLine(p.x, p.y, p.z, sc.x, -2.5, sc.z, 0x94a3b8);
+    });
+
+    // Level 1: Sub-branches merge (height -0.8)
+    // 0 and 3 merge -> Left Branch at (-5.25, 0.5, -0.25)
+    add3DLine(subCenters[0].x, -2.5, subCenters[0].z, -5.25, 0.5, -0.25, 0x0284c7);
+    add3DLine(subCenters[3].x, -2.5, subCenters[3].z, -5.25, 0.5, -0.25, 0x0284c7);
+
+    // 2 and 4 merge -> Center Branch at (0.25, 0.8, 0.25)
+    add3DLine(subCenters[2].x, -2.5, subCenters[2].z, 0.25, 0.8, 0.25, 0xd97706);
+    add3DLine(subCenters[4].x, -2.5, subCenters[4].z, 0.25, 0.8, 0.25, 0xd97706);
+
+    // 1 and 5 merge -> Right Branch at (5.25, 1.0, -0.25)
+    add3DLine(subCenters[1].x, -2.5, subCenters[1].z, 5.25, 1.0, -0.25, 0x16a34a);
+    add3DLine(subCenters[5].x, -2.5, subCenters[5].z, 5.25, 1.0, -0.25, 0x16a34a);
+
+    // Level 2: Left and Center merge at (-2.5, 4.2, 0.0)
+    add3DLine(-5.25, 0.5, -0.25, -2.5, 4.2, 0.0, 0x0284c7);
+    add3DLine(0.25, 0.8, 0.25, -2.5, 4.2, 0.0, 0xd97706);
+
+    // Level 3: Master Root merge at (0.0, 6.8, 0.0)
+    add3DLine(-2.5, 4.2, 0.0, 0.0, 6.8, 0.0, 0x475569);
+    add3DLine(5.25, 1.0, -0.25, 0.0, 6.8, 0.0, 0x16a34a);
+
+    const treeLineGeo = new THREE.BufferGeometry();
+    treeLineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+    treeLineGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
+
+    const treeLineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, linewidth: 2 });
+    const treeLinesMesh = new THREE.LineSegments(treeLineGeo, treeLineMat);
+    scene.add(treeLinesMesh);
+    sceneStateRef.current.treeLinesMesh = treeLinesMesh;
+
+    // 3D Horizontal Cutting Plane at height cutThreshold
+    const planeGeo = new THREE.PlaneGeometry(22, 18);
+    const planeMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7,
+      transparent: true,
+      opacity: 0.22,
+      side: THREE.DoubleSide,
+      roughness: 0.3
+    });
+    const cuttingPlane = new THREE.Mesh(planeGeo, planeMat);
+    cuttingPlane.rotation.x = Math.PI / 2;
+    cuttingPlane.position.y = cutThreshold;
+
+    // Plane edge frame outline
+    const edgesGeo = new THREE.EdgesGeometry(planeGeo);
+    const edgesMat = new THREE.LineBasicMaterial({ color: 0x0284c7, linewidth: 2 });
+    const edgesMesh = new THREE.LineSegments(edgesGeo, edgesMat);
+    cuttingPlane.add(edgesMesh);
+
+    scene.add(cuttingPlane);
+    sceneStateRef.current.cuttingPlaneMesh = cuttingPlane;
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate && !sceneStateRef.current.isMouseDown) {
+        sceneStateRef.current.rotY += 0.003;
+      }
+
+      const dist = 26;
+      camera.position.x = dist * Math.sin(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.position.y = dist * Math.sin(sceneStateRef.current.rotX) + 3;
+      camera.position.z = dist * Math.cos(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.lookAt(0, 1, 0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Mouse Listeners
+    const onMouseDown = (e) => {
+      sceneStateRef.current.isMouseDown = true;
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!sceneStateRef.current.isMouseDown) return;
+      const dx = e.clientX - sceneStateRef.current.prevMouseX;
+      const dy = e.clientY - sceneStateRef.current.prevMouseY;
+
+      sceneStateRef.current.rotY += dx * 0.008;
+      sceneStateRef.current.rotX = Math.max(-0.6, Math.min(1.2, sceneStateRef.current.rotX - dy * 0.008));
+
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => {
+      sceneStateRef.current.isMouseDown = false;
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      while (container.firstChild) container.removeChild(container.firstChild);
+    };
+  }, [activeTab, generate3DHierarchyPoints, getClusterAssignment, clusterColors, autoRotate]);
+
+  // Update cutting plane position and recolor points dynamically when cutThreshold changes
+  useEffect(() => {
+    if (activeTab !== 'three_d') return;
+
+    const { cuttingPlaneMesh, pointMeshes, points } = sceneStateRef.current;
+    if (cuttingPlaneMesh) {
+      cuttingPlaneMesh.position.y = cutThreshold;
+    }
+
+    if (pointMeshes.length && points.length) {
+      const assignment = getClusterAssignment(cutThreshold);
+      pointMeshes.forEach((mesh, idx) => {
+        const pt = points[idx];
+        if (pt) {
+          const cIdx = assignment.map[pt.branchId];
+          mesh.material.color.setHex(clusterColors[cIdx % clusterColors.length]);
+        }
+      });
+    }
+  }, [cutThreshold, activeTab, getClusterAssignment, clusterColors]);
+
+  const activeAssignment = getClusterAssignment(cutThreshold);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                LIGHT STUDIO 3D
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Agglomerative Tree Slicing & Linkage Mechanics
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Hierarchical Clustering 3D Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'three_d', label: '1. 3D Tree Slicing Studio' },
+            { id: 'dendrogram_2d', label: '2. Interactive Dendrogram' },
+            { id: 'linkages', label: '3. The 4 Linkage Criteria' },
+            { id: 'comparison', label: '4. K-Means vs Hierarchical' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D THREE.JS TREE SLICING STUDIO ─────────────────── */}
+      {activeTab === 'three_d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>3D Cutting Plane Height (&tau;):</span>
+                <span style={{ marginLeft: '8px', fontSize: '0.86rem', fontWeight: 800, color: '#0284c7' }}>
+                  {cutThreshold.toFixed(1)}
+                </span>
+                <span style={{ marginLeft: '12px', fontSize: '0.74rem', fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>
+                  {activeAssignment.count} Clusters Formed ({activeAssignment.label})
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>Linkage:</span>
+                {['Ward', 'Complete', 'Single'].map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setActiveLinkageName(l)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      border: '1px solid',
+                      borderColor: activeLinkageName === l ? '#001f54' : '#cbd5e1',
+                      background: activeLinkageName === l ? '#001f54' : '#ffffff',
+                      color: activeLinkageName === l ? '#ffffff' : '#64748b',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {l}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setAutoRotate(!autoRotate)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: autoRotate ? '#eff6ff' : '#ffffff',
+                    color: autoRotate ? '#1e40af' : '#64748b',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {autoRotate ? 'Pause Rotation' : 'Auto-Rotate'}
+                </button>
+              </div>
+            </div>
+
+            {/* Slider for cutting plane height */}
+            <input
+              type="range"
+              min="0.2"
+              max="7.4"
+              step="0.1"
+              value={cutThreshold}
+              onChange={(e) => setCutThreshold(parseFloat(e.target.value))}
+              style={{ width: '100%', accentColor: '#0284c7' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>
+              <span>Leaves (Detailed Sub-Groups)</span>
+              <span>Balanced Cut (K = 3)</span>
+              <span>Root Trunk (K = 1)</span>
+            </div>
+          </div>
+
+          {/* Three.js 3D WebGL Canvas Container (Light Studio Mode) */}
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 30px rgba(0, 31, 84, 0.08)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            <div
+              ref={containerRef}
+              style={{ width: '100%', height: '360px', cursor: 'grab' }}
+            />
+
+            {/* 3D Overlay HUD Badges (Light Studio Mode) */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 800 }}>
+                Cut Height (&tau;): <span style={{ color: '#0284c7' }}>{cutThreshold.toFixed(1)}</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                Clusters Formed: <span style={{ color: '#16a34a' }}>{activeAssignment.count}</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                Linkage: <span style={{ color: '#d97706' }}>{activeLinkageName}</span>
+              </div>
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 2px 8px rgba(0,31,84,0.06)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              color: '#475569',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              pointerEvents: 'none'
+            }}>
+              Click and drag to orbit 3D camera
+            </div>
+          </div>
+
+          {/* Explanation Callout */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            fontSize: '0.75rem',
+            color: '#475569',
+            fontWeight: 600,
+            lineHeight: 1.45
+          }}>
+            The translucent blue horizontal plane represents the <strong>Distance Threshold Cut (&tau;)</strong>. Slide it up and down! As the plane slices through the vertical 3D tree branches, points below the cut dynamically recolor into their respective cluster branches. Notice how a single trained hierarchy provides all possible cluster counts from 1 to 6 without retraining!
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: INTERACTIVE 2D DENDROGRAM SLICER ─────────────────── */}
+      {activeTab === 'dendrogram_2d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Dendrogram: Reading the Evolutionary Tree
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Drag the red horizontal cut line up and down to observe how distance thresholds determine cluster divisions.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>Cut Height Threshold (h):</span>
+              <span style={{ fontSize: '1rem', fontWeight: 900, color: '#dc2626' }}>
+                h = {dendroCut.toFixed(1)} &rarr; {dendroCut >= 8.5 ? '1 Cluster' : dendroCut >= 5.5 ? '2 Clusters' : dendroCut >= 3.0 ? '3 Clusters' : '5 Clusters'}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="1.0"
+              max="9.5"
+              step="0.1"
+              value={dendroCut}
+              onChange={(e) => setDendroCut(parseFloat(e.target.value))}
+              style={{ width: '100%', accentColor: '#dc2626', marginBottom: '1rem' }}
+            />
+
+            {/* SVG Dendrogram Graphic */}
+            <svg width="100%" height="220" viewBox="0 0 460 220" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+              {/* Y Axis Gridlines */}
+              {[30, 70, 110, 150, 190].map((y) => (
+                <line key={`grid-${y}`} x1="45" y1={y} x2="440" y2={y} stroke="#e2e8f0" strokeDasharray="3 3" />
+              ))}
+              <line x1="45" y1="20" x2="45" y2="190" stroke="#64748b" strokeWidth="1.5" />
+              <line x1="45" y1="190" x2="440" y2="190" stroke="#64748b" strokeWidth="1.5" />
+
+              {/* Dendrogram Tree Branches */}
+              {/* Left Sub-tree: Samples 1 & 2 merge at h=2.5, 3 & 4 merge at h=3.0, then merge together at h=5.5 */}
+              <path d="M 80 190 L 80 140 L 120 140 L 120 190" stroke="#0284c7" strokeWidth="2.5" fill="none" />
+              <path d="M 160 190 L 160 130 L 200 130 L 200 190" stroke="#0284c7" strokeWidth="2.5" fill="none" />
+              <path d="M 100 140 L 100 80 L 180 80 L 180 130" stroke="#0284c7" strokeWidth="2.5" fill="none" />
+
+              {/* Center Branch: Samples 5 & 6 merge at h=2.8 */}
+              <path d="M 250 190 L 250 135 L 290 135 L 290 190" stroke="#d97706" strokeWidth="2.5" fill="none" />
+
+              {/* Left & Center merge at h=7.5 */}
+              <path d="M 140 80 L 140 40 L 270 40 L 270 135" stroke="#001f54" strokeWidth="2.5" fill="none" />
+
+              {/* Right Sub-tree: Samples 7 & 8 merge at h=3.5 */}
+              <path d="M 350 190 L 350 120 L 400 120 L 400 190" stroke="#16a34a" strokeWidth="2.5" fill="none" />
+
+              {/* Top Root merge at h=9.0 */}
+              <path d="M 205 40 L 205 25 L 375 25 L 375 120" stroke="#475569" strokeWidth="2.5" fill="none" />
+
+              {/* Horizontal Cut Line (Red Dashed) */}
+              {(() => {
+                const cutY = 190 - (dendroCut / 10) * 170;
+                return (
+                  <g>
+                    <line x1="45" y1={cutY} x2="440" y2={cutY} stroke="#dc2626" strokeWidth="2.5" strokeDasharray="5 3" />
+                    <rect x="365" y={cutY - 18} width="70" height="16" rx="4" fill="#fee2e2" stroke="#dc2626" />
+                    <text x="400" y={cutY - 6} textAnchor="middle" fontSize="9" fontWeight="800" fill="#dc2626">Cut: {dendroCut.toFixed(1)}</text>
+                  </g>
+                );
+              })()}
+
+              {/* Leaf labels */}
+              {['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'].map((lbl, i) => (
+                <text key={lbl} x={80 + i * 45} y="205" textAnchor="middle" fontSize="9" fontWeight="700" fill="#64748b">
+                  {lbl}
+                </text>
+              ))}
+
+              <text x="240" y="218" textAnchor="middle" fontSize="9" fontWeight="700" fill="#475569">Samples</text>
+              <text x="14" y="105" textAnchor="middle" fontSize="9" fontWeight="700" fill="#475569" transform="rotate(-90, 14, 105)">Linkage Distance</text>
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: THE 4 LINKAGE CRITERIA ───────────────────────────── */}
+      {activeTab === 'linkages' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Linkage Criteria: Defining Distance Between Clusters
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              The mathematical definition of cluster distance fundamentally dictates the geometry of the resulting groups.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+            {/* Single Linkage Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #ef4444', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ef4444', marginBottom: '4px' }}>
+                Single Linkage (Minimum Distance)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: 700, marginBottom: '6px' }}>
+                d(A, B) = min d(a, b)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.45 }}>
+                Measures the distance between the two closest points on cluster perimeters.
+                <br /><br />
+                - <strong>The Chaining Trap:</strong> A few stray noise points between two clusters will bridge them like beads on a string, creating an unnatural snake-like cluster.
+              </div>
+            </div>
+
+            {/* Complete Linkage Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #0284c7', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0284c7', marginBottom: '4px' }}>
+                Complete Linkage (Maximum Distance)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: 700, marginBottom: '6px' }}>
+                d(A, B) = max d(a, b)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.45 }}>
+                Measures the distance between the two furthest points across clusters.
+                <br /><br />
+                - <strong>Compact Spheres:</strong> Completely immune to chaining! Forces clusters to be tight, spherical balls of similar diameter.
+              </div>
+            </div>
+
+            {/* Average Linkage Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #d97706', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#d97706', marginBottom: '4px' }}>
+                Average Linkage (UPGMA)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: 700, marginBottom: '6px' }}>
+                d(A, B) = (1 / |A||B|) &Sigma; d(a, b)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.45 }}>
+                Calculates the average of all pairwise distances.
+                <br /><br />
+                - <strong>Robust Compromise:</strong> Less sensitive to outliers than single or complete linkage; widely used in computational biology and bioinformatics.
+              </div>
+            </div>
+
+            {/* Ward's Linkage Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', marginBottom: '4px' }}>
+                Ward's Minimum Variance (Gold Standard)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: 700, marginBottom: '6px' }}>
+                &Delta;ESS = (|A||B| / |A|+|B|) ||&mu;A - &mu;B||&sup2;
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.45 }}>
+                Minimizes the growth of total Within-Cluster Sum of Squares (Inertia).
+                <br /><br />
+                - <strong>Industry Favorite:</strong> Tends to produce clean, equal-sized, spherical clusters. Default in Scikit-Learn.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: K-MEANS VS HIERARCHICAL ──────────────────────────── */}
+      {activeTab === 'comparison' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Architecture Shootout: K-Means vs. Hierarchical Clustering
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Choose the right clustering tool based on data volume, interpretability needs, and computational resources.
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+                  <th style={{ padding: '8px 12px', color: '#001f54', fontWeight: 800 }}>Feature</th>
+                  <th style={{ padding: '8px 12px', color: '#0284c7', fontWeight: 800 }}>K-Means Clustering</th>
+                  <th style={{ padding: '8px 12px', color: '#16a34a', fontWeight: 800 }}>Hierarchical Clustering</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { feature: 'Number of Clusters (K)', kmeans: 'Must be specified in advance', hier: 'Determined post-hoc via Dendrogram cut' },
+                  { feature: 'Underlying Hierarchy', kmeans: 'None (flat partitioning)', hier: 'Full multi-scale nested tree (Dendrogram)' },
+                  { feature: 'Time Complexity', kmeans: 'O(N * K * iterations) - Very Fast', hier: 'O(N^2 log N) to O(N^3) - Slower' },
+                  { feature: 'Memory Complexity', kmeans: 'O(N * d) - Extremely Lightweight', hier: 'O(N^2) - Heavy (stores pairwise matrix)' },
+                  { feature: 'Dataset Scalability', kmeans: 'Millions of rows (MiniBatch)', hier: 'Best for N <= 50,000 samples' },
+                  { feature: 'Determinism', kmeans: 'Stochastic (depends on initialization seed)', hier: '100% Deterministic (exact same tree every run)' }
+                ].map((row, i) => (
+                  <tr key={row.feature} style={{ borderBottom: '1px solid #e2e8f0', background: i % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                    <td style={{ padding: '8px 12px', fontWeight: 700, color: '#0f172a' }}>{row.feature}</td>
+                    <td style={{ padding: '8px 12px', color: '#475569' }}>{row.kmeans}</td>
+                    <td style={{ padding: '8px 12px', color: '#475569' }}>{row.hier}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production SciPy Dendrogram & Scikit-Learn Agglomerative Clustering:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                'from scipy.cluster.hierarchy import dendrogram, linkage, fcluster',
+                'from sklearn.cluster import AgglomerativeClustering',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.datasets import make_blobs',
+                '',
+                '# 1. Generate & scale sample dataset',
+                'X, _ = make_blobs(n_samples=200, n_features=4, centers=4, random_state=42)',
+                'X_scaled = StandardScaler().fit_transform(X)',
+                '',
+                '# 2. Compute full Hierarchical tree using Ward Linkage in SciPy',
+                'Z = linkage(X_scaled, method="ward")',
+                '',
+                '# 3. Extract discrete clusters using a distance threshold cut',
+                'cut_height = 8.5',
+                'clusters_scipy = fcluster(Z, t=cut_height, criterion="distance")',
+                'num_clusters = len(np.unique(clusters_scipy))',
+                'print(f"Cut at height {cut_height} yields: {num_clusters} clusters")',
+                '',
+                '# 4. Scikit-Learn Agglomerative Clustering (K = 4)',
+                'model = AgglomerativeClustering(n_clusters=4, metric="euclidean", linkage="ward")',
+                'labels = model.fit_predict(X_scaled)',
+                '',
+                'print("\\n--- Scikit-Learn Cluster Breakdown ---")',
+                'for c in range(4):',
+                '    print(f"Cluster {c}: {np.sum(labels == c)} samples")'
+              ].join('\n')}
+              title="hierarchical_masterclass.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3'
 ];
 
 export default function MLLessonArticlePage() {
@@ -23933,6 +24718,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'kmeans_interactive_studio' && (
               <KMeansInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'hierarchical_interactive_studio' && (
+              <HierarchicalInteractiveStudio />
             )}
           </div>
         )}
