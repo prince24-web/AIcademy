@@ -352,6 +352,9 @@ export default function MLFundamentalsJourneyPage() {
     if (lesson.status === 'completed') {
       return <IconCheckmark size={30} />;
     }
+    if (lesson.status === 'locked') {
+      return <IconLock size={22} />;
+    }
     switch (lesson.nodeType) {
       case 'lightbulb':
         return <IconLightbulb size={26} />;
@@ -363,7 +366,7 @@ export default function MLFundamentalsJourneyPage() {
         return <IconFlag size={26} />;
       case 'concept':
       default:
-        return lesson.status === 'locked' ? <IconLock size={22} /> : <IconLightbulb size={26} />;
+        return <IconLightbulb size={26} />;
     }
   };
 
