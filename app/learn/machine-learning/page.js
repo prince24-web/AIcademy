@@ -205,8 +205,8 @@ const mlModules = [
       { id: 'ml-4-4', name: 'Support Vector Machines (SVM)', nodeType: 'lightbulb', status: 'active' },
       { id: 'ml-4-5', name: 'Decision Trees', nodeType: 'concept', status: 'active' },
       { id: 'ml-4-6', name: 'Random Forest', nodeType: 'star', status: 'active' },
-      { id: 'ml-4-7', name: 'Accuracy, Precision, Recall & F1', nodeType: 'concept', status: 'locked' },
-      { id: 'ml-4-8', name: 'Confusion Matrix & ROC-AUC', nodeType: 'concept', status: 'locked' },
+      { id: 'ml-4-7', name: 'Accuracy, Precision, Recall & F1', nodeType: 'concept', status: 'active' },
+      { id: 'ml-4-8', name: 'Confusion Matrix & ROC-AUC', nodeType: 'concept', status: 'active' },
       { id: 'ml-4-p1', name: 'Mini Project: Customer Churn Detection', nodeType: 'project', status: 'locked', isProject: true },
     ]
   },

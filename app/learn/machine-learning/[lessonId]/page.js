@@ -21269,11 +21269,1004 @@ const RandomForestInteractiveStudio = () => {
   );
 };
 
+
+// ─── CLASSIFICATION METRICS INTERACTIVE STUDIO (ml-4-7) ─────────────────────
+const MetricsInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('confusion_matrix'); // 'confusion_matrix', 'tradeoff', 'harmonic', 'multiclass', 'code'
+
+  // Tab 1: Confusion Matrix Counts
+  const [tp, setTp] = useState(85);
+  const [fp, setFp] = useState(15);
+  const [fn, setFn] = useState(15);
+  const [tn, setTn] = useState(885);
+
+  // Tab 2: Decision Threshold State
+  const [threshold, setThreshold] = useState(0.50);
+
+  // Tab 3: Harmonic Mean Comparison State
+  const [precInput, setPrecInput] = useState(0.90);
+  const [recInput, setRecInput] = useState(0.10);
+
+  // Calculations for Confusion Matrix
+  const totalSamples = tp + fp + fn + tn;
+  const accuracy = totalSamples > 0 ? (tp + tn) / totalSamples : 0;
+  const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+  const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
+  const specificity = tn + fp > 0 ? tn / (tn + fp) : 0;
+  const f1Score = precision + recall > 0 ? (2 * precision * recall) / (precision + recall) : 0;
+
+  // Preset Handlers for Simplified Intuition
+  const loadBalancedPreset = () => { setTp(80); setFp(20); setFn(20); setTn(80); };
+  const loadDoctorPreset = () => { setTp(0); setFp(0); setFn(10); setTn(990); };
+  const loadCautiousPreset = () => { setTp(100); setFp(250); setFn(0); setTn(650); };
+
+  // Calculations for Threshold See-Saw (Tab 2)
+  // As threshold increases (stricter): Precision increases, Recall decreases
+  const simPrecision = Math.min(0.98, Math.max(0.15, 0.40 + (threshold - 0.5) * 1.1));
+  const simRecall = Math.min(0.99, Math.max(0.08, 0.95 - (threshold - 0.1) * 1.05));
+  const simF1 = (2 * simPrecision * simRecall) / (simPrecision + simRecall);
+
+  // Calculations for Harmonic vs Arithmetic (Tab 3)
+  const arithmeticMean = (precInput + recInput) / 2.0;
+  const harmonicMean = precInput + recInput > 0 ? (2 * precInput * recInput) / (precInput + recInput) : 0;
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #2563eb)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(37,99,235,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                INTERACTIVE LAB
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#2563eb', fontWeight: 700 }}>
+                Simplified Mental Models & Metric Derivations
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Classification Metrics Studio: Accuracy, Precision, Recall & F1
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'confusion_matrix', label: '1. Confusion Matrix Engine' },
+            { id: 'tradeoff', label: '2. Precision-Recall See-Saw' },
+            { id: 'harmonic', label: '3. Harmonic vs Arithmetic Mean' },
+            { id: 'multiclass', label: '4. Multi-Class Averaging' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: CONFUSION MATRIX ENGINE ──────────────────────────── */}
+      {activeTab === 'confusion_matrix' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Plain English Story Prompt */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Test Scenarios: Click to See the Accuracy Paradox in Action
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                Watch how a model can score 99% accuracy while being completely useless!
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                onClick={loadDoctorPreset}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #ef4444',
+                  background: '#fef2f2',
+                  color: '#991b1b',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                The "Always Healthy" Doctor (Paradox)
+              </button>
+              <button
+                onClick={loadCautiousPreset}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #d97706',
+                  background: '#fffbeb',
+                  color: '#92400e',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                The Over-Cautious Metal Detector
+              </button>
+              <button
+                onClick={loadBalancedPreset}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#475569',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Balanced 50/50 Dataset
+              </button>
+            </div>
+          </div>
+
+          {/* 2x2 Matrix & Metric Cards Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+            {/* Left: 2x2 Matrix Quadrants */}
+            <div style={{ background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54', marginBottom: '1rem', textAlign: 'center' }}>
+                The 2x2 Confusion Matrix (Adjust Sample Counts)
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {/* True Positive */}
+                <div style={{ background: '#dcfce7', border: '1.5px solid #86efac', borderRadius: '12px', padding: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, color: '#166534' }}>
+                    <span>TRUE POSITIVE (TP)</span>
+                    <span style={{ fontSize: '0.9rem' }}>{tp}</span>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#14532d', margin: '4px 0' }}>
+                    Real Sick &rarr; Predicted SICK (Hit!)
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="200"
+                    value={tp}
+                    onChange={(e) => setTp(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#16a34a' }}
+                  />
+                </div>
+
+                {/* False Positive */}
+                <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '12px', padding: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, color: '#92400e' }}>
+                    <span>FALSE POSITIVE (FP)</span>
+                    <span style={{ fontSize: '0.9rem' }}>{fp}</span>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#78350f', margin: '4px 0' }}>
+                    Healthy &rarr; Predicted SICK (False Alarm)
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="300"
+                    value={fp}
+                    onChange={(e) => setFp(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#d97706' }}
+                  />
+                </div>
+
+                {/* False Negative */}
+                <div style={{ background: '#fee2e2', border: '1.5px solid #fca5a5', borderRadius: '12px', padding: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, color: '#991b1b' }}>
+                    <span>FALSE NEGATIVE (FN)</span>
+                    <span style={{ fontSize: '0.9rem' }}>{fn}</span>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#7f1d1d', margin: '4px 0' }}>
+                    Sick &rarr; Predicted HEALTHY (Dangerous Miss!)
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={fn}
+                    onChange={(e) => setFn(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#dc2626' }}
+                  />
+                </div>
+
+                {/* True Negative */}
+                <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: '12px', padding: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, color: '#1e40af' }}>
+                    <span>TRUE NEGATIVE (TN)</span>
+                    <span style={{ fontSize: '0.9rem' }}>{tn}</span>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#172554', margin: '4px 0' }}>
+                    Healthy &rarr; Predicted HEALTHY (Correct)
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1000"
+                    step="20"
+                    value={tn}
+                    onChange={(e) => setTn(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#2563eb' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '0.72rem', color: '#64748b' }}>
+                Total Patient Sample Size: <strong>{totalSamples}</strong>
+              </div>
+            </div>
+
+            {/* Right: Calculated Metric Scorecards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Accuracy Card */}
+              <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Accuracy</div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>(TP + TN) / Total</div>
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#001f54' }}>
+                    {(accuracy * 100).toFixed(1)}%
+                  </div>
+                </div>
+                {accuracy > 0.95 && recall < 0.20 && (
+                  <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', padding: '4px 8px', marginTop: '6px', fontSize: '0.68rem', color: '#991b1b', fontWeight: 700 }}>
+                    Accuracy Paradox Alert: High accuracy caused purely by massive True Negatives! Real diseases caught: 0!
+                  </div>
+                )}
+              </div>
+
+              {/* Precision Card */}
+              <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0284c7' }}>Precision (Alarm Trust)</div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>TP / (TP + FP) &rarr; "When alarm rings, % true"</div>
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0284c7' }}>
+                    {(precision * 100).toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+
+              {/* Recall Card */}
+              <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#16a34a' }}>Recall (Disease Coverage)</div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>TP / (TP + FN) &rarr; "Out of all sick, % caught"</div>
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#16a34a' }}>
+                    {(recall * 100).toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+
+              {/* F1-Score Card */}
+              <div style={{ background: '#ffffff', borderRadius: '12px', border: '1.5px solid #001f54', padding: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>F1-Score (Harmonic Balance)</div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>2 * (P * R) / (P + R) &rarr; Punishes lopsided models</div>
+                  </div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#001f54' }}>
+                    {(f1Score * 100).toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: PRECISION-RECALL SEE-SAW TRADEOFF ────────────────── */}
+      {activeTab === 'tradeoff' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The See-Saw Tradeoff: Sliding the Decision Threshold
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Drag the threshold dial below. Notice how being strict boosts Precision but hurts Recall, while being lenient catches everything but triggers false alarms.
+            </div>
+          </div>
+
+          {/* Draggable Threshold Dial */}
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>
+                Classification Threshold (Cutoff):
+              </span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#2563eb' }}>
+                {threshold.toFixed(2)} ({threshold < 0.35 ? 'Lenient / High Recall' : threshold > 0.65 ? 'Strict / High Precision' : 'Balanced'})
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0.05"
+              max="0.95"
+              step="0.05"
+              value={threshold}
+              onChange={(e) => setThreshold(parseFloat(e.target.value))}
+              style={{ width: '100%', accentColor: '#2563eb' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+              <span>0.05 (Flag Everything as Positive)</span>
+              <span>0.50 (Standard Default)</span>
+              <span>0.95 (Only Flag if 95% Confident)</span>
+            </div>
+
+            {/* Visual See-Saw Dual Display */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1.25rem' }}>
+              {/* Precision Meter */}
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px', padding: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 800, color: '#0284c7' }}>
+                  <span>Precision (Purity)</span>
+                  <span>{(simPrecision * 100).toFixed(1)}%</span>
+                </div>
+                <div style={{ width: '100%', height: '12px', background: '#e0f2fe', borderRadius: '6px', overflow: 'hidden', margin: '8px 0' }}>
+                  <div style={{ width: `${simPrecision * 100}%`, height: '100%', background: '#0284c7', transition: 'width 0.2s ease' }} />
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#0369a1' }}>
+                  {threshold > 0.65 ? 'High confidence: very few false alarms!' : 'Low: many innocent false alarms.'}
+                </div>
+              </div>
+
+              {/* Recall Meter */}
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 800, color: '#16a34a' }}>
+                  <span>Recall (Coverage)</span>
+                  <span>{(simRecall * 100).toFixed(1)}%</span>
+                </div>
+                <div style={{ width: '100%', height: '12px', background: '#dcfce7', borderRadius: '6px', overflow: 'hidden', margin: '8px 0' }}>
+                  <div style={{ width: `${simRecall * 100}%`, height: '100%', background: '#16a34a', transition: 'width 0.2s ease' }} />
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#15803d' }}>
+                  {threshold < 0.35 ? 'Catches almost 100% of real cases!' : 'Low: many real targets slipped through!'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: HARMONIC VS ARITHMETIC MEAN ──────────────────────── */}
+      {activeTab === 'harmonic' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Why F1 Uses the Harmonic Mean (Not the Arithmetic Mean)
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Try setting Recall to 0.10 and Precision to 0.90. Notice how the Arithmetic Average falsely reports a respectable 50%, while the Harmonic F1 crashes to protect you!
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Input Sliders */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1.25rem' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#0284c7' }}>
+                  <span>Precision:</span>
+                  <span>{(precInput * 100).toFixed(0)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.01"
+                  max="1.0"
+                  step="0.05"
+                  value={precInput}
+                  onChange={(e) => setPrecInput(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#0284c7' }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#16a34a' }}>
+                  <span>Recall:</span>
+                  <span>{(recInput * 100).toFixed(0)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.01"
+                  max="1.0"
+                  step="0.05"
+                  value={recInput}
+                  onChange={(e) => setRecInput(parseFloat(e.target.value))}
+                  style={{ width: '100%', accentColor: '#16a34a' }}
+                />
+              </div>
+            </div>
+
+            {/* Comparison Meters */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Arithmetic */}
+              <div style={{ background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: '12px', padding: '12px' }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#991b1b' }}>Standard Arithmetic Mean (P + R) / 2</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#991b1b' }}>{(arithmeticMean * 100).toFixed(1)}%</div>
+                <div style={{ fontSize: '0.68rem', color: '#7f1d1d' }}>Flawed: easily fooled when one metric is zero!</div>
+              </div>
+
+              {/* Harmonic */}
+              <div style={{ background: '#dcfce7', border: '1.5px solid #86efac', borderRadius: '12px', padding: '12px' }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#166534' }}>Harmonic Mean (The F1-Score) 2PR / (P + R)</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#166534' }}>{(harmonicMean * 100).toFixed(1)}%</div>
+                <div style={{ fontSize: '0.68rem', color: '#14532d' }}>Strict: only high when BOTH metrics are strong!</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: MULTI-CLASS AVERAGING ───────────────────────────── */}
+      {activeTab === 'multiclass' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Multi-Class Averaging: Macro vs. Micro vs. Weighted
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Suppose an image classifier detects Dogs (10,000 samples), Cats (5,000 samples), and rare Snow Leopards (10 samples). How do we compute overall F1?
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>Macro Average</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', margin: '4px 0 8px 0' }}>(F1_Dog + F1_Cat + F1_Leopard) / 3</div>
+              <div style={{ fontSize: '0.72rem', color: '#001f54', lineHeight: 1.4 }}>
+                Treats every class equally. If the model fails on rare Snow Leopards, Macro F1 plummets!
+              </div>
+            </div>
+
+            <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0284c7' }}>Micro Average</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', margin: '4px 0 8px 0' }}>Global pool of all TP, FP, FN</div>
+              <div style={{ fontSize: '0.72rem', color: '#0284c7', lineHeight: 1.4 }}>
+                Dominated by majority classes (Dogs). Ignores failures on rare categories.
+              </div>
+            </div>
+
+            <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a' }}>Weighted Average</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', margin: '4px 0 8px 0' }}>Weighted by sample counts</div>
+              <div style={{ fontSize: '0.72rem', color: '#16a34a', lineHeight: 1.4 }}>
+                Reflects average real-world test instance performance.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Complete Scikit-Learn Classification Report & Threshold Search:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from sklearn.metrics import classification_report, confusion_matrix, precision_recall_curve',
+                'from sklearn.linear_model import LogisticRegression',
+                'import numpy as np',
+                '',
+                '# 1. Fit model on training data',
+                'model = LogisticRegression().fit(X_train, y_train)',
+                'y_probs = model.predict_proba(X_test)[:, 1]',
+                '',
+                '# 2. Confusion Matrix & Detailed Report (Default 0.50 Threshold)',
+                'y_pred_default = model.predict(X_test)',
+                'print("Confusion Matrix:")',
+                'print(confusion_matrix(y_test, y_pred_default))',
+                'print("\nFull Report:")',
+                'print(classification_report(y_test, y_pred_default))',
+                '',
+                '# 3. Find Optimal Threshold for Maximum F1-Score',
+                'precisions, recalls, thresholds = precision_recall_curve(y_test, y_probs)',
+                'f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-10)',
+                'best_threshold = thresholds[np.argmax(f1_scores)]',
+                'print(f"Optimal Threshold: {best_threshold:.4f}")'
+              ].join('\n')}
+              title="metrics_evaluation.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── DIAGNOSTIC CURVES (ROC-AUC) INTERACTIVE STUDIO (ml-4-8) ─────────────────
+const ROCAUCInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('roc_sweeper'); // 'roc_sweeper', 'imbalance_trap', 'youden', 'radar', 'code'
+
+  // Tab 1: ROC Threshold & Separability State
+  const [threshold, setThreshold] = useState(0.50);
+  const [separability, setSeparability] = useState(1.6); // d-prime distance between class means (0.2 to 2.8)
+
+  // Tab 2: Imbalance Mode State
+  const [isImbalanced, setIsImbalanced] = useState(false);
+
+  // Derived ROC Points based on Separability d'
+  // True Positive Rate (Sensitivity) and False Positive Rate
+  const currentFpr = Math.max(0.01, Math.min(0.99, Math.exp(-2.2 * threshold * separability)));
+  const currentTpr = Math.max(0.01, Math.min(0.99, 1.0 - Math.exp(-2.2 * (1.0 - threshold + 0.3) * separability)));
+  const estimatedAuc = Math.min(0.99, Math.max(0.50, 0.50 + separability * 0.17));
+
+  // Youden's J for current threshold
+  const currentJ = currentTpr - currentFpr;
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #d97706)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(217,119,6,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                DIAGNOSTIC STUDIO
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#d97706', fontWeight: 700 }}>
+                Signal Detection & Threshold Sweeper
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Diagnostic Curves Studio: Confusion Matrix & ROC-AUC
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'roc_sweeper', label: '1. Interactive ROC Sweeper' },
+            { id: 'imbalance_trap', label: '2. The ROC Imbalance Trap' },
+            { id: 'youden', label: '3. Youden\'s J (Optimal Cutoff)' },
+            { id: 'radar', label: '4. WWII Radar Analogy' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: INTERACTIVE ROC SWEEPER ──────────────────────────── */}
+      {activeTab === 'roc_sweeper' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '1.25rem'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '4px' }}>
+                <span>Classification Threshold (Cutoff):</span>
+                <span style={{ color: '#2563eb' }}>{threshold.toFixed(2)}</span>
+              </div>
+              <input
+                type="range"
+                min="0.02"
+                max="0.98"
+                step="0.02"
+                value={threshold}
+                onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#2563eb' }}
+              />
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                Glides the operating red dot along the ROC curve!
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '4px' }}>
+                <span>Model Power (Class Separability d'):</span>
+                <span style={{ color: '#d97706' }}>{separability.toFixed(1)} &rarr; AUC: {estimatedAuc.toFixed(2)}</span>
+              </div>
+              <input
+                type="range"
+                min="0.2"
+                max="2.8"
+                step="0.1"
+                value={separability}
+                onChange={(e) => setSeparability(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#d97706' }}
+              />
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                Pulling classes apart bows the curve toward the top-left corner!
+              </div>
+            </div>
+          </div>
+
+          {/* Dual Visual: Probability Curves (Left) & SVG ROC Plot (Right) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+            {/* Left: Score Distributions */}
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54', marginBottom: '4px' }}>
+                Predicted Probability Score Distributions
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '8px' }}>
+                Vertical line shows current cutoff threshold
+              </div>
+
+              <svg width="100%" height="220" viewBox="0 0 320 220" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Clean Gaussian Negatives (Blue) */}
+                <path
+                  d="M 10 190 Q 70 190 90 60 Q 110 190 180 190 Z"
+                  fill="#3b82f6"
+                  opacity="0.3"
+                />
+                <path
+                  d="M 10 190 Q 70 190 90 60 Q 110 190 180 190"
+                  stroke="#2563eb"
+                  strokeWidth="2"
+                  fill="none"
+                />
+
+                {/* Sick Gaussian Positives (Red, shifts with separability) */}
+                <path
+                  d={`M ${90 + separability * 30} 190 Q ${150 + separability * 30} 190 ${170 + separability * 30} 60 Q ${190 + separability * 30} 190 ${270 + separability * 30} 190 Z`}
+                  fill="#ef4444"
+                  opacity="0.3"
+                />
+                <path
+                  d={`M ${90 + separability * 30} 190 Q ${150 + separability * 30} 190 ${170 + separability * 30} 60 Q ${190 + separability * 30} 190 ${270 + separability * 30} 190`}
+                  stroke="#dc2626"
+                  strokeWidth="2"
+                  fill="none"
+                />
+
+                {/* Threshold Vertical Line */}
+                <line
+                  x1={30 + threshold * 260}
+                  y1="20"
+                  x2={30 + threshold * 260}
+                  y2="195"
+                  stroke="#001f54"
+                  strokeWidth="3"
+                  strokeDasharray="4 2"
+                />
+                <text
+                  x={30 + threshold * 260}
+                  y="18"
+                  textAnchor="middle"
+                  fontSize="10"
+                  fontWeight="800"
+                  fill="#001f54"
+                >
+                  tau = {threshold.toFixed(2)}
+                </text>
+
+                {/* Base line */}
+                <line x1="20" y1="195" x2="300" y2="195" stroke="#94a3b8" strokeWidth="1" />
+
+                {/* Legend */}
+                <circle cx="45" cy="40" r="4" fill="#2563eb" />
+                <text x="55" y="43" fontSize="10" fontWeight="700" fill="#2563eb">Healthy Class (0)</text>
+                <circle cx="160" cy="40" r="4" fill="#dc2626" />
+                <text x="170" y="43" fontSize="10" fontWeight="700" fill="#dc2626">Sick Class (1)</text>
+              </svg>
+            </div>
+
+            {/* Right: The Dynamic ROC Curve */}
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #001f54', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>
+                  The ROC Curve (Receiver Operating Characteristic)
+                </div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#d97706' }}>
+                  AUC = {estimatedAuc.toFixed(2)}
+                </div>
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginBottom: '8px' }}>
+                Operating Point: TPR = {(currentTpr * 100).toFixed(0)}%, FPR = {(currentFpr * 100).toFixed(0)}%
+              </div>
+
+              <svg width="100%" height="220" viewBox="0 0 240 220" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Axes */}
+                <line x1="35" y1="15" x2="35" y2="185" stroke="#64748b" strokeWidth="1.5" />
+                <line x1="35" y1="185" x2="215" y2="185" stroke="#64748b" strokeWidth="1.5" />
+
+                {/* 45-Degree Coin Toss Diagonal */}
+                <line x1="35" y1="185" x2="215" y2="15" stroke="#cbd5e1" strokeWidth="1.5" strokeDasharray="3 3" />
+                <text x="135" y="115" fontSize="8" fill="#94a3b8" transform="rotate(-45, 135, 115)">Random Coin Toss (AUC = 0.50)</text>
+
+                {/* Bowing ROC Curve (Curve changes with separability) */}
+                <path
+                  d={`M 35 185 Q ${35 + 40 / separability} ${185 - 130 * (separability / 2.0)} 215 15`}
+                  stroke="#001f54"
+                  strokeWidth="3"
+                  fill="none"
+                />
+
+                {/* Current Operating Point (Red Dot) */}
+                <circle
+                  cx={35 + currentFpr * 180}
+                  cy={185 - currentTpr * 170}
+                  r="6"
+                  fill="#dc2626"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                  style={{ filter: 'drop-shadow(0 2px 6px rgba(220,38,38,0.5))' }}
+                />
+
+                {/* Axis Labels */}
+                <text x="125" y="202" textAnchor="middle" fontSize="9" fontWeight="700" fill="#475569">
+                  False Positive Rate (FPR)
+                </text>
+                <text x="12" y="100" textAnchor="middle" fontSize="9" fontWeight="700" fill="#475569" transform="rotate(-90, 12, 100)">
+                  True Positive Rate (TPR)
+                </text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: THE ROC IMBALANCE TRAP ──────────────────────────── */}
+      {activeTab === 'imbalance_trap' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                  The ROC-AUC Imbalance Trap: Why PR-AUC is Essential
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                  When negative cases outnumber positives 1,000 to 1 (like fraud or rare diseases), ROC-AUC paints a falsely rosy picture!
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsImbalanced(!isImbalanced)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  border: '1.5px solid #001f54',
+                  background: isImbalanced ? '#001f54' : '#ffffff',
+                  color: isImbalanced ? '#ffffff' : '#001f54',
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {isImbalanced ? 'Dataset: Severe Imbalance (99.9% Clean)' : 'Dataset: Balanced (50/50)'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+            {/* ROC Metric Box */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>ROC-AUC Metric</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#001f54', margin: '4px 0' }}>
+                {isImbalanced ? '0.97 (Misleadingly High!)' : '0.88 (Accurate)'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.4 }}>
+                {isImbalanced
+                  ? 'Because there are 999,000 clean samples, 1,000 false alarms barely register in the FPR denominator. ROC-AUC smiles and says everything is fine.'
+                  : 'Classes are balanced; ROC-AUC is completely valid and dependable.'}
+              </div>
+            </div>
+
+            {/* PR-AUC Metric Box */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #059669', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#059669' }}>Precision-Recall AUC (PR-AUC)</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: isImbalanced ? '#dc2626' : '#059669', margin: '4px 0' }}>
+                {isImbalanced ? '0.12 (Exposes Reality!)' : '0.86 (Accurate)'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.4 }}>
+                {isImbalanced
+                  ? 'Precision directly punishes the 1,000 false alarms because clean samples are not in the denominator. PR-AUC reveals the model is drowning in false alerts!'
+                  : 'PR-AUC tracks model quality consistently.'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: YOUDEN'S J STATISTIC ─────────────────────────────── */}
+      {activeTab === 'youden' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Youden\'s J: The Mathematically Optimal Cutoff Point
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              J = Sensitivity + Specificity - 1 = TPR - FPR. The threshold where J peaks gives you the maximum hits for the minimum false alarms.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>Current Youden Index (J):</span>
+              <span style={{ fontSize: '1.2rem', fontWeight: 900, color: currentJ > 0.45 ? '#16a34a' : '#d97706' }}>
+                J = {currentJ.toFixed(3)} {currentJ > 0.45 ? '(Near Optimal!)' : '(Sub-Optimal)'}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#475569' }}>
+              At tau = {threshold.toFixed(2)}, Sensitivity is {(currentTpr * 100).toFixed(1)}% and False Alarm Rate is {(currentFpr * 100).toFixed(1)}%.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: WWII RADAR ANALOGY ──────────────────────────────── */}
+      {activeTab === 'radar' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1.25rem' }}>
+            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#001f54', marginBottom: '4px' }}>
+              Signal Detection Theory: The WWII Radar Operator in the Fog
+            </div>
+            <div style={{ fontSize: '0.76rem', color: '#475569', lineHeight: 1.5 }}>
+              In 1940, British radar operators stared at flickering oscilloscope tubes watching for incoming Luftwaffe bombers.
+              The receiver dial controlled receiver sensitivity:
+              <br /><br />
+              - <strong>High Sensitivity (Low Threshold):</strong> Caught every bomber squadron (TPR = 100%), but every cloud and flock of seagulls triggered air raid sirens (FPR = 100%).
+              <br />
+              - <strong>Low Sensitivity (High Threshold):</strong> Zero false alarms from seagulls (FPR = 0%), but stealthy bombers slipped through in the fog (TPR = 0%).
+              <br /><br />
+              The ROC curve was literally invented to characterize the receiver\'s radar performance. A modern AI classifier is doing the exact same thing: picking out true signals from noisy backgrounds!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Scikit-Learn ROC-AUC, PR-AUC & Youden Threshold Pipeline:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from sklearn.metrics import roc_curve, roc_auc_score, precision_recall_curve, auc',
+                'from sklearn.ensemble import RandomForestClassifier',
+                'import numpy as np',
+                '',
+                '# 1. Fit classifier and compute probability scores',
+                'clf = RandomForestClassifier(n_estimators=100, random_state=42).fit(X_train, y_train)',
+                'y_probs = clf.predict_proba(X_test)[:, 1]',
+                '',
+                '# 2. Compute ROC-AUC Score',
+                'roc_auc = roc_auc_score(y_test, y_probs)',
+                'print(f"ROC-AUC Score: {roc_auc:.4f}")',
+                '',
+                '# 3. Compute Precision-Recall Curve (Crucial for Imbalance)',
+                'precision, recall, _ = precision_recall_curve(y_test, y_probs)',
+                'pr_auc = auc(recall, precision)',
+                'print(f"PR-AUC Score:  {pr_auc:.4f}")',
+                '',
+                '# 4. Find Optimal Operating Threshold via Youden\'s J',
+                'fpr, tpr, thresholds = roc_curve(y_test, y_probs)',
+                'j_scores = tpr - fpr',
+                'optimal_idx = np.argmax(j_scores)',
+                'optimal_tau = thresholds[optimal_idx]',
+                'print(f"Optimal Threshold (Youden J): {optimal_tau:.4f}")'
+              ].join('\n')}
+              title="roc_auc_evaluation.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8'
 ];
 
 export default function MLLessonArticlePage() {
@@ -21477,6 +22470,12 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'random_forest_interactive_studio' && (
               <RandomForestInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'metrics_interactive_studio' && (
+              <MetricsInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'roc_auc_interactive_studio' && (
+              <ROCAUCInteractiveStudio />
             )}
           </div>
         )}
