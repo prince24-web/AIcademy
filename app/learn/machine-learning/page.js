@@ -230,7 +230,7 @@ const mlModules = [
     subtitle: 'Goal: Tune, validate & improve ML models.',
     lessons: [
       { id: 'ml-6-1', name: 'Cross-Validation', nodeType: 'concept', status: 'active' },
-      { id: 'ml-6-2', name: 'Hyperparameters', nodeType: 'star', status: 'locked' },
+      { id: 'ml-6-2', name: 'Hyperparameters', nodeType: 'star', status: 'active' },
       { id: 'ml-6-3', name: 'Grid Search', nodeType: 'concept', status: 'locked' },
       { id: 'ml-6-4', name: 'Random Search', nodeType: 'lightbulb', status: 'locked' },
       { id: 'ml-6-5', name: 'Feature Selection', nodeType: 'concept', status: 'locked' },

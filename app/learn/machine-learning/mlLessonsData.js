@@ -5840,4 +5840,187 @@ for fold_i, (train_idx, val_idx) in enumerate(tscv.split(X)):
     }
   }
 
+,
+
+  'ml-6-2': {
+    id: 'ml-6-2',
+    title: 'Hyperparameters: The Dials, Knobs & Architecture of Machine Learning',
+    moduleTitle: 'MODULE 6: MODEL EVALUATION & IMPROVEMENT',
+    readTime: '28 min read',
+    difficulty: 'Intermediate',
+    badgeText: 'Model Capacity & Tuning Dynamics',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: 'https://www.geeksforgeeks.org/hyperparameter-tuning/',
+
+    learningObjectives: [
+      'Demystify the critical distinction between Model Parameters (learned weights) and Hyperparameters (human-tuned control dials).',
+      'Master the 3 functional categories of hyperparameters: Capacity/Complexity, Optimization/Convergence, and Structural Architecture.',
+      'Analyze the Bias-Variance tradeoff curve to locate the Goldilocks tuning sweet spot between underfitting and overfitting.',
+      'Understand why default library hyperparameters (e.g. max_depth=None in Scikit-Learn) frequently produce catastrophic overfitting.',
+      'Learn how to inspect, override, and analyze hyperparameters across major machine learning algorithms.',
+      'Explore an interactive 3D Three.js simulation in Light Studio Mode showing a 3D loss surface with dynamic hyperparameter coordinate navigation.',
+      'Build production validation curve pipelines in Python using Scikit-Learn to visualize hyperparameter sensitivity.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Core Intuition: Parameters vs. Hyperparameters',
+        paragraphs: [
+          'In machine learning, the words "parameter" and "hyperparameter" are frequently conflated by beginners, yet they represent two completely different layers of reality.',
+          'The Mental Model: The High-End Commercial Espresso Machine:',
+          'Imagine operating a $15,000 commercial espresso machine at a specialty cafe:',
+          '- Model Parameters (Internal Variables): Inside the machine, internal electronics continuously monitor and adjust water temperature, pump valve pressure, and boiler flow rate during brewing. You do not touch these directly; the machine automatically learns and recalibrates them during operation.',
+          '- Hyperparameters (External Control Knobs): On the front panel, you (the barista / machine learning engineer) must manually adjust the coffee bean grind size, the dose weight (18 grams), and the extraction timer (28 seconds) BEFORE pulling a single shot!',
+          'If you set the grind size too coarse (underfitting), water rushes through in 5 seconds and your coffee is sour and watery. If you set it too fine (overfitting), the machine chokes, burning the beans into bitter sludge. Your entire job as an engineer is finding the precise sweet spot on the control dials!'
+        ]
+      },
+      {
+        heading: '2. The Definitive Distinction: Learned Weights vs. Architectural Dials',
+        paragraphs: [
+          'Let us establish the formal boundaries between the two concepts:',
+          '1. Model Parameters (Internal, Learned from Data):',
+          '- Definition: The internal mathematical variables that the model learns automatically from the training data by minimizing a loss function.',
+          '- Who sets them? The optimization algorithm (e.g. Gradient Descent, Ordinary Least Squares).',
+          '- Examples: Slope coefficients ($w_1, w_2, \\dots$), bias/intercept ($b$), support vector coordinates in SVM, and synaptic weights in artificial neural networks.',
+          '- Storage: Saved inside the fitted model object (e.g. `model.coef_`, `model.intercept_`).',
+          '2. Hyperparameters (External, Set by the Engineer):',
+          '- Definition: The high-level configuration knobs set by the human engineer BEFORE the training process begins.',
+          '- Who sets them? You, the machine learning engineer (or an automated search algorithm like Grid Search).',
+          '- Examples: Learning rate ($\\eta$), regularization strength ($\\lambda$), maximum tree depth (`max_depth`), number of nearest neighbors ($K$), and number of estimators (`n_estimators`).',
+          '- Purpose: Hyperparameters govern the learning process itself and strictly control the model\'s structural capacity.'
+        ]
+      },
+      {
+        heading: '3. The Three Functional Categories of Hyperparameters',
+        paragraphs: [
+          'Every hyperparameter in machine learning falls into one of three core functional roles:',
+          'Category A: Capacity & Complexity Knobs (Governs Overfitting vs. Underfitting):',
+          '- `max_depth` (Trees / Forests): Caps the maximum decision branch layers. Shallow trees underfit; unbounded trees memorize noise.',
+          '- `min_samples_split` & `min_samples_leaf`: Minimum data points required to split a node. Higher values prevent hyper-specific leaf memorization.',
+          '- $C$ (SVM & Logistic Regression): Inverse regularization strength. Small $C$ creates a wide, forgiving margin; large $C$ forces strict, narrow boundaries.',
+          '- $\\alpha$ / $\\lambda$ (Ridge & Lasso): Penalty weight that shrinks large coefficients toward zero.',
+          'Category B: Optimization & Convergence Knobs (Governs Training Speed & Stability):',
+          '- Learning Rate ($\\eta$): Step size taken along the gradient surface. Too large causes divergence; too small causes glacial convergence.',
+          '- Batch Size: Number of samples processed before updating parameters (e.g. 32, 64, 128).',
+          '- Epochs / Max Iterations: Number of full passes through the training dataset.',
+          'Category C: Architectural & Geometric Knobs (Governs Model Shape):',
+          '- $K$ in K-Nearest Neighbors: Number of local voters. $K = 1$ is an ultra-wiggly boundary; $K = 100$ is a smooth global average.',
+          '- `n_estimators` (Random Forest, Gradient Boosting): Number of individual decision trees in the ensemble.',
+          '- Kernel Choice (SVM): `linear`, `poly`, `rbf`, or `sigmoid`.'
+        ]
+      },
+      {
+        heading: '4. The Bias-Variance Tuning Sweet Spot: The Goldilocks Zone',
+        paragraphs: [
+          'When tuning hyperparameters, you are directly orchestrating the Bias-Variance Tradeoff:',
+          '1. The Underfitting Zone (High Bias / Too Rigid):',
+          '- Occurs when the model is over-constrained (e.g. `max_depth=1`, $K=50$, $\\lambda=1000$).',
+          '- The model lacks the capacity to capture true underlying patterns. Both Training Error and Validation Error are painfully high.',
+          '2. The Overfitting Zone (High Variance / Too Flexible):',
+          '- Occurs when constraints are removed (e.g. `max_depth=None`, $K=1$, $\\lambda=0$).',
+          '- The model memorizes training noise. Training Error drops to near zero, but Validation Error explodes upward!',
+          '3. The Goldilocks Sweet Spot (Optimal Generalization):',
+          '- The exact balance point where the model captures true underlying signal without memorizing idiosyncrasies. Validation Error reaches its global minimum.'
+        ]
+      },
+      {
+        heading: '5. The Dangerous Trap of Library Defaults',
+        paragraphs: [
+          'A common misconception is assuming that Scikit-Learn\'s default hyperparameters are optimized for your dataset. In reality, defaults are selected for generic baseline execution, not peak performance!',
+          'Consider `DecisionTreeClassifier` in Scikit-Learn:',
+          '- Default `max_depth`: `None` (trees grow without limit).',
+          '- Default `min_samples_split`: `2` (splits down to individual pairs).',
+          'If you train a default Decision Tree on a real-world dataset with 20,000 rows, it will construct a monstrous tree with 40 branch levels and thousands of leaves, achieving 100% training accuracy while completely failing on new test data! You must actively tune hyperparameters to build production-grade models.'
+        ]
+      },
+      {
+        heading: '6. Production Implementation with Scikit-Learn',
+        paragraphs: [
+          'Below is a production Python script demonstrating how to inspect hyperparameters, test structural capacity variations, and plot an automated Validation Curve to discover the optimal sweet spot.'
+        ],
+        codeBlockTitle: 'hyperparameter_tuning_masterclass.py',
+        codeBlock: `import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_breast_cancer
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import validation_curve, train_test_split
+from sklearn.metrics import accuracy_score
+
+# =====================================================================
+# 1. LOAD DATASET & INITIALIZE MODEL
+# =====================================================================
+X, y = load_breast_cancer(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Inspect model hyperparameters
+clf = DecisionTreeClassifier(random_state=42)
+print("Default Hyperparameters:", clf.get_params())
+
+# =====================================================================
+# 2. EVALUATE THE DANGEROUS DEFAULT (Unconstrained max_depth=None)
+# =====================================================================
+clf_default = DecisionTreeClassifier(random_state=42).fit(X_train, y_train)
+train_acc = accuracy_score(y_train, clf_default.predict(X_train))
+test_acc = accuracy_score(y_test, clf_default.predict(X_test))
+
+print(f"\nDefault Decision Tree (max_depth=None):")
+print(f"Training Accuracy: {train_acc * 100:.2f}% (Memorization!)")
+print(f"Test Accuracy:     {test_acc * 100:.2f}% (Generalization gap: {(train_acc - test_acc) * 100:.2f}%)")
+
+# =====================================================================
+# 3. GENERATE VALIDATION CURVE ACROSS HYPERPARAMETER 'max_depth'
+# =====================================================================
+param_range = np.arange(1, 15)
+train_scores, val_scores = validation_curve(
+    DecisionTreeClassifier(random_state=42),
+    X, y,
+    param_name="max_depth",
+    param_range=param_range,
+    cv=5,
+    scoring="accuracy"
+)
+
+mean_train = np.mean(train_scores, axis=1)
+mean_val = np.mean(val_scores, axis=1)
+
+# Identify optimal hyperparameter sweet spot
+best_depth = param_range[np.argmax(mean_val)]
+print(f"\n--- Validation Curve Results ---")
+print(f"Optimal 'max_depth': {best_depth} (Peak Validation Accuracy: {np.max(mean_val) * 100:.2f}%)")`
+      }
+    ],
+
+    analogy: {
+      title: 'The Real-World Analogy: Tuning an Acoustic Guitar',
+      text: 'When a guitar string vibrates, the actual pitch frequencies and wave amplitudes produced during a concert are the Model Parameters (the physical sound produced). But the tuning pegs on the headstock—how tight you wind each string before playing—are the Hyperparameters! If you wind the pegs too loose, the strings buzz against the frets (underfitting). If you tighten them too hard, the strings snap (overfitting). You must dial each peg to the exact tension so the instrument plays harmonious chords.'
+    },
+
+    diagram: {
+      type: 'hyperparameters_interactive_studio',
+      caption: 'Interactive 3D Three.js Studio: Explore a 3D loss surface in Light Studio Mode, adjust capacity and regularization dials in real time, and observe the coordinate pin navigating between underfitting, the sweet spot, and overfitting.'
+    },
+
+    takeaways: [
+      'Model Parameters are learned automatically from data (e.g. weights w and bias b).',
+      'Hyperparameters are external control dials configured by the engineer before training begins.',
+      'The 3 categories of hyperparameters are Capacity (depth, C), Optimization (learning rate, batch size), and Architecture (K, n_estimators).',
+      'The Goldilocks Sweet Spot minimizes validation error by balancing bias against variance.',
+      'Never blindly trust library defaults; unconstrained models (like max_depth=None) often severely overfit.',
+      'Validation curves systematically measure performance across a spectrum of hyperparameter values.'
+    ],
+
+    quiz: {
+      question: 'Which of the following is a Model Parameter rather than a Hyperparameter?',
+      options: [
+        'The slope coefficient (weight w) of a feature in a trained Multiple Linear Regression model',
+        'The learning rate (eta) used in Gradient Descent',
+        'The number of trees (n_estimators) in a Random Forest',
+        'The number of neighbors (K) in K-Nearest Neighbors'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! The slope coefficient (weight w) is a Model Parameter calculated and learned directly from the training data by minimizing the loss function. Learning rate, n_estimators, and K are all Hyperparameters set by the engineer before training begins!'
+    }
+  }
+
 };

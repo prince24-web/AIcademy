@@ -27398,11 +27398,710 @@ const CrossValidationInteractiveStudio = () => {
   );
 };
 
+
+// ─── HYPERPARAMETERS THREE.JS INTERACTIVE STUDIO (ml-6-2) ───────────────────
+const HyperparametersInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'matrix', 'playbook', 'default_trap', 'code'
+  const [capacity, setCapacity] = useState(4); // Model Complexity (e.g. Tree Depth from 1 to 10)
+  const [regularization, setRegularization] = useState(0.3); // Lambda from 0.0 to 1.0
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Compute Loss metrics deterministically
+  // Training loss strictly decreases with capacity:
+  // Train Loss = 0.85 * exp(-0.45 * capacity) + 0.05 * (1 - regularization)
+  // Validation loss forms a parabolic bowl with minimum around capacity ~ 4-5 and regularization ~ 0.3
+  const lossMetrics = useMemo(() => {
+    const trainLoss = Math.max(0.02, 0.82 * Math.exp(-0.42 * capacity) + 0.08 * (1 - regularization));
+    
+    // Parabolic bowl for validation error
+    const capDist = Math.pow(capacity - 4.5, 2);
+    const regDist = Math.pow(regularization - 0.35, 2);
+    const valLoss = 0.18 + 0.022 * capDist + 0.35 * regDist;
+
+    let status = 'Goldilocks Zone (Optimal Balance)';
+    let statusColor = '#16a34a';
+    let statusBg = '#dcfce7';
+
+    if (capacity <= 2) {
+      status = 'Underfitting (High Bias: Model is too rigid)';
+      statusColor = '#d97706';
+      statusBg = '#fef3c7';
+    } else if (capacity >= 7 && regularization < 0.25) {
+      status = 'Overfitting (High Variance: Model memorizes noise)';
+      statusColor = '#dc2626';
+      statusBg = '#fee2e2';
+    }
+
+    return {
+      train: parseFloat(trainLoss.toFixed(3)),
+      val: parseFloat(valLoss.toFixed(3)),
+      status,
+      statusColor,
+      statusBg
+    };
+  }, [capacity, regularization]);
+
+  const containerRef = useRef(null);
+  const sceneStateRef = useRef({
+    surfaceMesh: null,
+    pinMesh: null,
+    beaconLine: null,
+    scene: null,
+    renderer: null,
+    camera: null,
+    isMouseDown: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
+    rotX: 0.45,
+    rotY: 0.5
+  });
+
+  // Mount Three.js 3D WebGL Canvas
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth || 640;
+    const height = 360;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 16, 26);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting in Light Mode
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(12, 22, 14);
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(-10, -10, -10);
+    scene.add(fillLight);
+
+    // 3D Architectural Grid Floor
+    const gridHelper = new THREE.GridHelper(24, 20, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -4.5;
+    scene.add(gridHelper);
+
+    sceneStateRef.current.scene = scene;
+    sceneStateRef.current.renderer = renderer;
+    sceneStateRef.current.camera = camera;
+
+    // Create 3D Loss Landscape Surface (Plane with custom elevation)
+    const gridSize = 24;
+    const planeGeo = new THREE.PlaneGeometry(16, 16, gridSize, gridSize);
+    planeGeo.rotateX(-Math.PI / 2); // Lay horizontal
+
+    const pos = planeGeo.attributes.position;
+    const colors = [];
+
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i); // Represents Capacity (scaled -8 to +8)
+      const z = pos.getZ(i); // Represents Regularization (scaled -8 to +8)
+
+      // Elevation: Parabolic bowl with optimal valley at (x = -1, z = -2)
+      const dx = (x + 1.0) * 0.35;
+      const dz = (z + 2.0) * 0.35;
+      const yElevation = Math.max(-2.5, 0.35 * (dx * dx + dz * dz) - 2.0);
+      pos.setY(i, yElevation);
+
+      // Color mapping: Emerald green in deep valley, Navy/Red on high ridges
+      if (yElevation < -1.2) {
+        colors.push(0.09, 0.64, 0.29); // Green (Optimal)
+      } else if (x > 3) {
+        colors.push(0.86, 0.15, 0.15); // Red (Overfitting)
+      } else {
+        colors.push(0.01, 0.52, 0.78); // Blue (Underfitting)
+      }
+    }
+    planeGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    planeGeo.computeVertexNormals();
+
+    const surfaceMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.35,
+      metalness: 0.1,
+      wireframe: false,
+      side: THREE.DoubleSide
+    });
+
+    const surfaceMesh = new THREE.Mesh(planeGeo, surfaceMat);
+    scene.add(surfaceMesh);
+    sceneStateRef.current.surfaceMesh = surfaceMesh;
+
+    // Add Wireframe overlay
+    const wireMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.18 });
+    const wireMesh = new THREE.Mesh(planeGeo, wireMat);
+    surfaceMesh.add(wireMesh);
+
+    // Create 3D Coordinate Indicator Pin (Glowing Amber Sphere)
+    const pinGeo = new THREE.SphereGeometry(0.55, 16, 16);
+    const pinMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b,
+      roughness: 0.2,
+      metalness: 0.3,
+      emissive: 0xd97706,
+      emissiveIntensity: 0.6
+    });
+    const pinMesh = new THREE.Mesh(pinGeo, pinMat);
+    scene.add(pinMesh);
+    sceneStateRef.current.pinMesh = pinMesh;
+
+    // Create Vertical Beacon Line
+    const lineGeo = new THREE.BufferGeometry();
+    lineGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, -4.5, 0, 0, 0, 0], 3));
+    const lineMat = new THREE.LineBasicMaterial({ color: 0xd97706, transparent: true, opacity: 0.6, linewidth: 2 });
+    const beaconLine = new THREE.Line(lineGeo, lineMat);
+    scene.add(beaconLine);
+    sceneStateRef.current.beaconLine = beaconLine;
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate && !sceneStateRef.current.isMouseDown) {
+        sceneStateRef.current.rotY += 0.0035;
+      }
+
+      const dist = 26;
+      camera.position.x = dist * Math.sin(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.position.y = dist * Math.sin(sceneStateRef.current.rotX) + 4.0;
+      camera.position.z = dist * Math.cos(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.lookAt(0, -0.5, 0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Mouse Drag Listeners
+    const onMouseDown = (e) => {
+      sceneStateRef.current.isMouseDown = true;
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!sceneStateRef.current.isMouseDown) return;
+      const dx = e.clientX - sceneStateRef.current.prevMouseX;
+      const dy = e.clientY - sceneStateRef.current.prevMouseY;
+
+      sceneStateRef.current.rotY += dx * 0.008;
+      sceneStateRef.current.rotX = Math.max(-0.2, Math.min(1.2, sceneStateRef.current.rotX - dy * 0.008));
+
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => {
+      sceneStateRef.current.isMouseDown = false;
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      while (container.firstChild) container.removeChild(container.firstChild);
+    };
+  }, [activeTab, autoRotate]);
+
+  // Update 3D Pin position when capacity or regularization changes
+  useEffect(() => {
+    if (activeTab !== 'three_d') return;
+
+    const { pinMesh, beaconLine } = sceneStateRef.current;
+    if (!pinMesh || !beaconLine) return;
+
+    // Map capacity [1, 10] -> X in [-7, 7]
+    const worldX = ((capacity - 1) / 9) * 14.0 - 7.0;
+
+    // Map regularization [0.0, 1.0] -> Z in [7, -7]
+    const worldZ = (1.0 - regularization) * 14.0 - 7.0;
+
+    // Compute elevation on surface
+    const dx = (worldX + 1.0) * 0.35;
+    const dz = (worldZ + 2.0) * 0.35;
+    const worldY = Math.max(-2.5, 0.35 * (dx * dx + dz * dz) - 2.0) + 0.6;
+
+    pinMesh.position.set(worldX, worldY, worldZ);
+
+    // Update beacon line
+    const linePos = beaconLine.geometry.attributes.position;
+    linePos.setXYZ(0, worldX, -4.5, worldZ);
+    linePos.setXYZ(1, worldX, worldY, worldZ);
+    linePos.needsUpdate = true;
+  }, [capacity, regularization, activeTab]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                LIGHT STUDIO 3D
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Loss Surface & Capacity Optimization
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Hyperparameters 3D Loss Surface Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'three_d', label: '1. 3D Hyperparameter Loss Surface' },
+            { id: 'matrix', label: '2. Parameters vs Hyperparameters' },
+            { id: 'playbook', label: '3. The Golden Tuning Playbook' },
+            { id: 'default_trap', label: '4. Library Defaults Trap' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D THREE.JS LOSS SURFACE STUDIO ──────────────────── */}
+      {activeTab === 'three_d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Dual Sliders Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1.25rem',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1.25rem'
+          }}>
+            {/* Slider 1: Model Capacity */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>
+                  Model Capacity (e.g. Tree Depth):
+                </span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0284c7' }}>
+                  Depth = {capacity}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={capacity}
+                onChange={(e) => setCapacity(parseInt(e.target.value))}
+                style={{ width: '100%', accentColor: '#0284c7' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#94a3b8', fontWeight: 600 }}>
+                <span>1 (Stump: Rigid)</span>
+                <span>4-5 (Balanced)</span>
+                <span>10 (Memorization)</span>
+              </div>
+            </div>
+
+            {/* Slider 2: Regularization */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>
+                  Regularization Penalty (&lambda;):
+                </span>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#16a34a' }}>
+                  &lambda; = {regularization.toFixed(2)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={Math.round(regularization * 100)}
+                onChange={(e) => setRegularization(parseInt(e.target.value) / 100)}
+                style={{ width: '100%', accentColor: '#16a34a' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#94a3b8', fontWeight: 600 }}>
+                <span>0.00 (No Penalty)</span>
+                <span>0.30 (Optimal Damping)</span>
+                <span>1.00 (Heavy Shrinkage)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Three.js 3D WebGL Canvas Container (Light Studio Mode) */}
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 30px rgba(0, 31, 84, 0.08)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            <div
+              ref={containerRef}
+              style={{ width: '100%', height: '360px', cursor: 'grab' }}
+            />
+
+            {/* 3D Overlay HUD Badges (Light Studio Mode) */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ background: lossMetrics.statusBg, border: '1.5px solid', borderColor: lossMetrics.statusColor, padding: '4px 10px', borderRadius: '6px', color: lossMetrics.statusColor, fontSize: '0.74rem', fontWeight: 800 }}>
+                {lossMetrics.status}
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                Training Loss: <span style={{ color: '#0284c7' }}>{lossMetrics.train}</span> | Validation Error: <span style={{ color: lossMetrics.val <= 0.25 ? '#16a34a' : '#dc2626', fontWeight: 800 }}>{lossMetrics.val}</span>
+              </div>
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              left: '14px',
+              display: 'flex',
+              gap: '8px'
+            }}>
+              <button
+                onClick={() => {
+                  setCapacity(4);
+                  setRegularization(0.35);
+                }}
+                style={{
+                  background: '#16a34a',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(22,163,74,0.25)'
+                }}
+              >
+                Snap to Optimal Sweet Spot
+              </button>
+              <button
+                onClick={() => setAutoRotate(!autoRotate)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.94)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid #cbd5e1',
+                  padding: '5px 10px',
+                  borderRadius: '6px',
+                  color: '#475569',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                {autoRotate ? 'Pause Rotation' : 'Auto-Rotate'}
+              </button>
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 2px 8px rgba(0,31,84,0.06)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              color: '#475569',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              pointerEvents: 'none'
+            }}>
+              Amber Sphere = Current Hyperparameter Coordinates. Green basin = Minimum Validation Error.
+            </div>
+          </div>
+
+          {/* Explanation Callout */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            fontSize: '0.75rem',
+            color: '#475569',
+            fontWeight: 600,
+            lineHeight: 1.45
+          }}>
+            Adjust the sliders! The 3D surface shows the <strong>Validation Loss Landscape</strong>. At low capacity (Depth = 1), the model lands on the high blue ridge (<strong>Underfitting</strong>). At high capacity (Depth = 10) with zero regularization, it climbs the steep red ridge (<strong>Overfitting</strong>). The goal of hyperparameter tuning is sliding into the deep green basin: the <strong>Goldilocks Sweet Spot (Depth = 4, &lambda; = 0.35)</strong> where validation error reaches its absolute global minimum!
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: PARAMETERS VS HYPERPARAMETERS ────────────────────── */}
+      {activeTab === 'matrix' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Parameters vs. Hyperparameters Taxonomy
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Side-by-side comparative architectural matrix across major machine learning algorithms.
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', background: '#ffffff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+              <thead>
+                <tr style={{ background: '#001f54', color: '#ffffff', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 14px' }}>Algorithm</th>
+                  <th style={{ padding: '10px 14px' }}>Model Parameters (Learned)</th>
+                  <th style={{ padding: '10px 14px' }}>Hyperparameters (Human Set)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Linear / Ridge Regression</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Feature slopes (w1, w2) & Intercept (b)</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a' }}>Regularization strength (&alpha;, &lambda;), fit_intercept</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Logistic Regression</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Log-odds weights (w) & Bias (b)</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a' }}>Penalty (l1, l2), C (inverse regularization), solver</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Decision Trees</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Chosen split features & split thresholds</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a' }}>max_depth, min_samples_split, criterion (gini/entropy)</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>K-Nearest Neighbors</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>None (Non-parametric memory of training data)</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a' }}>n_neighbors (K), metric (euclidean/manhattan), weights</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Random Forest</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Split thresholds across all individual trees</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a' }}>n_estimators, max_depth, max_features, bootstrap</td>
+                </tr>
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Support Vector Machines</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Support vector coordinates & dual coefficients (&alpha;)</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a' }}>C, kernel (linear, rbf), gamma</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: THE GOLDEN TUNING PLAYBOOK ────────────────────────── */}
+      {activeTab === 'playbook' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Senior ML Engineer Tuning Playbook
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              How to diagnose model health and select the exact hyperparameter adjustments.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Underfitting Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #d97706', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#d97706', marginBottom: '8px' }}>
+                Diagnosis: Underfitting (High Bias)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.5 }}>
+                <strong>Symptoms:</strong> Both Training Error and Validation Error are high and close together.
+                <br /><br />
+                <strong>Corrective Actions:</strong>
+                <br />
+                - <strong>Increase Model Capacity:</strong> Raise <code>max_depth</code>, decrease <code>min_samples_leaf</code>.
+                <br />
+                - <strong>Reduce Regularization:</strong> Decrease penalty &lambda; or increase C in SVM.
+                <br />
+                - <strong>Decrease K in KNN:</strong> Allow the model to capture local boundaries instead of global averages.
+              </div>
+            </div>
+
+            {/* Overfitting Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #dc2626', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#dc2626', marginBottom: '8px' }}>
+                Diagnosis: Overfitting (High Variance)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.5 }}>
+                <strong>Symptoms:</strong> Training Error is near zero, but Validation Error is substantially higher (a huge generalization gap!).
+                <br /><br />
+                <strong>Corrective Actions:</strong>
+                <br />
+                - <strong>Constrain Model Capacity:</strong> Cap <code>max_depth</code>, raise <code>min_samples_split</code>.
+                <br />
+                - <strong>Increase Regularization:</strong> Increase &lambda; or decrease C in SVM/Logistic Regression.
+                <br />
+                - <strong>Increase K in KNN:</strong> Smooth the decision boundary.
+                <br />
+                - <strong>Add Ensembling:</strong> Increase <code>n_estimators</code> in Random Forest.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: DEFAULT SETTINGS TRAP ────────────────────────────── */}
+      {activeTab === 'default_trap' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Case Study: The Scikit-Learn Decision Tree Default Trap
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Why leaving hyperparameters at their default values can be catastrophic for production deployments.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#dc2626', marginBottom: '8px' }}>
+              Scikit-Learn Defaults for DecisionTreeClassifier:
+            </div>
+            <div style={{ background: '#fafaf9', padding: '12px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.74rem', color: '#001f54', marginBottom: '12px' }}>
+              DecisionTreeClassifier(max_depth=None, min_samples_split=2, min_samples_leaf=1)
+            </div>
+
+            <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: 1.55 }}>
+              When <code>max_depth=None</code> and <code>min_samples_split=2</code>, the decision tree algorithm splits every branch recursively until every single leaf node contains only 1 sample!
+              <br /><br />
+              - <strong>Training Accuracy:</strong> 100.0% (The model has memorized every single quirk, typo, and noise artifact in the training data).
+              <br />
+              - <strong>Test Accuracy:</strong> Collapses to 74.2% in production.
+              <br />
+              - <strong>The Fix:</strong> Capping <code>max_depth=4</code> reduces training accuracy slightly to 96.5%, but elevates test accuracy to <strong>92.8%</strong>!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production Validation Curve Pipeline in Scikit-Learn:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                'from sklearn.datasets import load_breast_cancer',
+                'from sklearn.tree import DecisionTreeClassifier',
+                'from sklearn.model_selection import validation_curve',
+                '',
+                '# 1. Load dataset',
+                'X, y = load_breast_cancer(return_X_y=True)',
+                '',
+                '# 2. Define hyperparameter search spectrum',
+                'param_range = np.arange(1, 12)',
+                '',
+                '# 3. Compute 5-Fold Validation Curve across max_depth',
+                'train_scores, val_scores = validation_curve(',
+                '    DecisionTreeClassifier(random_state=42),',
+                '    X, y,',
+                '    param_name="max_depth",',
+                '    param_range=param_range,',
+                '    cv=5,',
+                '    scoring="accuracy"',
+                ')',
+                '',
+                'mean_train = np.mean(train_scores, axis=1)',
+                'mean_val = np.mean(val_scores, axis=1)',
+                '',
+                '# 4. Extract optimal hyperparameter value',
+                'best_idx = np.argmax(mean_val)',
+                'print(f"Optimal max_depth: {param_range[best_idx]}")',
+                'print(f"Peak Validation Accuracy: {mean_val[best_idx]*100:.2f}%")',
+                'print(f"Training Accuracy at Sweet Spot: {mean_train[best_idx]*100:.2f}%")'
+              ].join('\n')}
+              title="validation_curve_tuning.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2'
 ];
 
 export default function MLLessonArticlePage() {
@@ -27633,6 +28332,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'cross_validation_interactive_studio' && (
               <CrossValidationInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'hyperparameters_interactive_studio' && (
+              <HyperparametersInteractiveStudio />
             )}
           </div>
         )}
