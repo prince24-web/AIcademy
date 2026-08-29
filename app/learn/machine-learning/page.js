@@ -219,8 +219,8 @@ const mlModules = [
       { id: 'ml-5-2', name: 'K-Means Clustering', nodeType: 'star', status: 'active' },
       { id: 'ml-5-3', name: 'Hierarchical Clustering', nodeType: 'concept', status: 'active' },
       { id: 'ml-5-4', name: 'DBSCAN', nodeType: 'lightbulb', status: 'active' },
-      { id: 'ml-5-5', name: 'Dimensionality Reduction', nodeType: 'concept', status: 'locked' },
-      { id: 'ml-5-6', name: 'Principal Component Analysis (PCA)', nodeType: 'star', status: 'locked' },
+      { id: 'ml-5-5', name: 'Dimensionality Reduction', nodeType: 'concept', status: 'active' },
+      { id: 'ml-5-6', name: 'Principal Component Analysis (PCA)', nodeType: 'star', status: 'active' },
       { id: 'ml-5-p1', name: 'Mini Project: Customer Segmentation', nodeType: 'project', status: 'locked', isProject: true },
     ]
   },

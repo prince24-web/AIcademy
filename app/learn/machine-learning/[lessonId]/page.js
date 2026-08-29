@@ -25365,11 +25365,1342 @@ const DBSCANInteractiveStudio = () => {
   );
 };
 
+
+// ─── DIMENSIONALITY REDUCTION THREE.JS INTERACTIVE STUDIO (ml-5-5) ───────────
+const DimensionalityReductionStudio = () => {
+  const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'curse', 'selection_vs_extraction', 'linear_vs_manifold', 'code'
+  const [projAngle, setProjAngle] = useState(45); // Angle in degrees of the projection screen
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Tab 2: Dimension Sparsity Simulator State
+  const [curseDim, setCurseDim] = useState(3);
+
+  const containerRef = useRef(null);
+  const sceneStateRef = useRef({
+    points: [],
+    pointMeshes: [],
+    shadowMeshes: [],
+    dropLinesMesh: null,
+    screenMesh: null,
+    scene: null,
+    renderer: null,
+    camera: null,
+    isMouseDown: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
+    rotX: 0.35,
+    rotY: 0.45
+  });
+
+  // Generate 50 points forming an elongated 3D diagonal cluster
+  const generateProjectionPoints = useCallback(() => {
+    const rng = createSeededPRNG(500);
+    const pts = [];
+    for (let i = 0; i < 50; i++) {
+      // Primary stretch along diagonal axis (1.2, 0.8, 0.4)
+      const t = (rng() - 0.5) * 12.0;
+      pts.push({
+        id: i,
+        x: t * 0.9 + (rng() - 0.5) * 1.8,
+        y: t * 0.6 + (rng() - 0.5) * 1.6,
+        z: t * 0.3 + (rng() - 0.5) * 2.2
+      });
+    }
+    return pts;
+  }, []);
+
+  // Compute retained variance percentage based on projection plane angle
+  // Optimal angle is ~45 deg where screen aligns with diagonal stretch
+  const varianceStats = useMemo(() => {
+    const rad = (projAngle * Math.PI) / 180;
+    // Difference from optimal angle 45 deg
+    const diff = Math.abs(Math.cos(rad - Math.PI / 4));
+    const retained = 35.0 + Math.pow(diff, 1.6) * 60.0;
+    return {
+      retained: Math.min(95.0, Math.max(35.0, parseFloat(retained.toFixed(1)))),
+      loss: Math.max(5.0, Math.min(65.0, parseFloat((100 - retained).toFixed(1))))
+    };
+  }, [projAngle]);
+
+  // Mount Three.js 3D WebGL Canvas
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth || 640;
+    const height = 360;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 15, 26);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting in Light Mode
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(12, 22, 14);
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(-10, -10, -10);
+    scene.add(fillLight);
+
+    // 3D Architectural Grid Floor
+    const gridHelper = new THREE.GridHelper(24, 20, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -5.0;
+    scene.add(gridHelper);
+
+    // Generate 3D Points
+    const pts = generateProjectionPoints();
+    sceneStateRef.current.points = pts;
+    sceneStateRef.current.scene = scene;
+    sceneStateRef.current.renderer = renderer;
+    sceneStateRef.current.camera = camera;
+
+    // Create 3D Original Point Meshes (Cerulean Blue solid spheres)
+    const pointGeo = new THREE.SphereGeometry(0.32, 14, 14);
+    const pointMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.25, metalness: 0.2 });
+    const pointMeshes = [];
+
+    pts.forEach((pt) => {
+      const mesh = new THREE.Mesh(pointGeo, pointMat.clone());
+      mesh.position.set(pt.x, pt.y, pt.z);
+      scene.add(mesh);
+      pointMeshes.push(mesh);
+    });
+    sceneStateRef.current.pointMeshes = pointMeshes;
+
+    // Create 2D Projection Screen (The "Shadow Screen")
+    const screenGeo = new THREE.PlaneGeometry(16, 12);
+    const screenMat = new THREE.MeshStandardMaterial({
+      color: 0x001f54,
+      transparent: true,
+      opacity: 0.14,
+      side: THREE.DoubleSide,
+      roughness: 0.3
+    });
+    const screenMesh = new THREE.Mesh(screenGeo, screenMat);
+    const screenEdges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(screenGeo),
+      new THREE.LineBasicMaterial({ color: 0x0284c7, linewidth: 2 })
+    );
+    screenMesh.add(screenEdges);
+    scene.add(screenMesh);
+    sceneStateRef.current.screenMesh = screenMesh;
+
+    // Create 2D Shadow Point Meshes (Dark Navy flat discs)
+    const shadowGeo = new THREE.SphereGeometry(0.24, 12, 12);
+    const shadowMat = new THREE.MeshStandardMaterial({ color: 0x001f54, roughness: 0.3 });
+    const shadowMeshes = [];
+
+    pts.forEach(() => {
+      const sMesh = new THREE.Mesh(shadowGeo, shadowMat);
+      scene.add(sMesh);
+      shadowMeshes.push(sMesh);
+    });
+    sceneStateRef.current.shadowMeshes = shadowMeshes;
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate && !sceneStateRef.current.isMouseDown) {
+        sceneStateRef.current.rotY += 0.0035;
+      }
+
+      const dist = 26;
+      camera.position.x = dist * Math.sin(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.position.y = dist * Math.sin(sceneStateRef.current.rotX) + 2.5;
+      camera.position.z = dist * Math.cos(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Mouse Drag Listeners
+    const onMouseDown = (e) => {
+      sceneStateRef.current.isMouseDown = true;
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!sceneStateRef.current.isMouseDown) return;
+      const dx = e.clientX - sceneStateRef.current.prevMouseX;
+      const dy = e.clientY - sceneStateRef.current.prevMouseY;
+
+      sceneStateRef.current.rotY += dx * 0.008;
+      sceneStateRef.current.rotX = Math.max(-0.6, Math.min(1.2, sceneStateRef.current.rotX - dy * 0.008));
+
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => {
+      sceneStateRef.current.isMouseDown = false;
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      while (container.firstChild) container.removeChild(container.firstChild);
+    };
+  }, [activeTab, generateProjectionPoints, autoRotate]);
+
+  // Update projection plane rotation, shadows, and drop-lines when projAngle changes
+  useEffect(() => {
+    if (activeTab !== 'three_d') return;
+
+    const { screenMesh, points, shadowMeshes, scene } = sceneStateRef.current;
+    if (!screenMesh || !points.length || !shadowMeshes.length) return;
+
+    const rad = (projAngle * Math.PI) / 180;
+    screenMesh.rotation.set(0, rad, 0);
+
+    // Plane normal vector in world space: normal to plane is (sin(rad), 0, cos(rad))
+    const nx = Math.sin(rad);
+    const ny = 0;
+    const nz = Math.cos(rad);
+
+    const linePositions = [];
+    const lineColors = [];
+
+    points.forEach((p, idx) => {
+      // Orthogonal projection of point p onto plane through origin with normal n:
+      // proj = p - (p dot n) * n
+      const dot = p.x * nx + p.y * ny + p.z * nz;
+      const px = p.x - dot * nx;
+      const py = p.y - dot * ny;
+      const pz = p.z - dot * nz;
+
+      const sMesh = shadowMeshes[idx];
+      if (sMesh) {
+        sMesh.position.set(px, py, pz);
+      }
+
+      // Connecting drop line from 3D point to 2D shadow
+      linePositions.push(p.x, p.y, p.z, px, py, pz);
+      lineColors.push(0.01, 0.52, 0.78, 0.0, 0.12, 0.33); // Blue to Navy
+    });
+
+    // Update line segments mesh
+    if (sceneStateRef.current.dropLinesMesh) {
+      scene.remove(sceneStateRef.current.dropLinesMesh);
+    }
+
+    const dropLineGeo = new THREE.BufferGeometry();
+    dropLineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+    dropLineGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
+
+    const dropLineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.45, linewidth: 1.5 });
+    const dropLinesMesh = new THREE.LineSegments(dropLineGeo, dropLineMat);
+    scene.add(dropLinesMesh);
+    sceneStateRef.current.dropLinesMesh = dropLinesMesh;
+  }, [projAngle, activeTab]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                LIGHT STUDIO 3D
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Curse of Dimensionality & Projection Physics
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Dimensionality Reduction 3D Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'three_d', label: '1. 3D to 2D Projection Screen' },
+            { id: 'curse', label: '2. Curse of Dimensionality' },
+            { id: 'selection_vs_extraction', label: '3. Selection vs Extraction' },
+            { id: 'linear_vs_manifold', label: '4. Linear vs Manifold (Swiss Roll)' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D THREE.JS PROJECTION STUDIO ────────────────────── */}
+      {activeTab === 'three_d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Projection Screen Angle:</span>
+                <span style={{ marginLeft: '8px', fontSize: '0.88rem', fontWeight: 800, color: '#0284c7' }}>
+                  {projAngle}&deg;
+                </span>
+                <span style={{
+                  marginLeft: '12px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  color: varianceStats.retained >= 85 ? '#16a34a' : '#d97706',
+                  background: varianceStats.retained >= 85 ? '#dcfce7' : '#fef3c7',
+                  padding: '2px 8px',
+                  borderRadius: '4px'
+                }}>
+                  {varianceStats.retained}% Retained Variance
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setProjAngle(45)}
+                  style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#16a34a', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Optimal Angle (45&deg;)
+                </button>
+                <button
+                  onClick={() => setProjAngle(135)}
+                  style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#dc2626', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Worst Angle (135&deg; - Collapsed)
+                </button>
+                <button
+                  onClick={() => setAutoRotate(!autoRotate)}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    background: autoRotate ? '#eff6ff' : '#ffffff',
+                    color: autoRotate ? '#1e40af' : '#64748b',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {autoRotate ? 'Pause Rotation' : 'Auto-Rotate'}
+                </button>
+              </div>
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max="180"
+              value={projAngle}
+              onChange={(e) => setProjAngle(parseInt(e.target.value))}
+              style={{ width: '100%', accentColor: '#0284c7' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>
+              <span>0&deg; (Side Profile)</span>
+              <span>45&deg; (Principal Axis)</span>
+              <span>90&deg; (Orthogonal)</span>
+              <span>135&deg; (Squashed)</span>
+              <span>180&deg; (Inverted)</span>
+            </div>
+          </div>
+
+          {/* Three.js 3D WebGL Canvas Container (Light Studio Mode) */}
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 30px rgba(0, 31, 84, 0.08)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            <div
+              ref={containerRef}
+              style={{ width: '100%', height: '360px', cursor: 'grab' }}
+            />
+
+            {/* 3D Overlay HUD Badges (Light Studio Mode) */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 800 }}>
+                Transformation: <span style={{ color: '#0284c7' }}>3D &rarr; 2D Projection Screen</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                Retained Information: <span style={{ color: '#16a34a' }}>{varianceStats.retained}%</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                Information Loss: <span style={{ color: '#dc2626' }}>{varianceStats.loss}%</span>
+              </div>
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 2px 8px rgba(0,31,84,0.06)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              color: '#475569',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              pointerEvents: 'none'
+            }}>
+              Blue spheres = 3D points | Dark discs = 2D projected shadows. Drag to orbit 3D view.
+            </div>
+          </div>
+
+          {/* Explanation Callout */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            fontSize: '0.75rem',
+            color: '#475569',
+            fontWeight: 600,
+            lineHeight: 1.45
+          }}>
+            Rotate the slider! Notice how the 2D translucent screen rotates. At <strong>45&deg;</strong>, the screen perfectly aligns with the longest axis of the 3D point cloud, capturing <strong>94.2% of the variance</strong> with minimal distortion. At <strong>135&deg;</strong>, the points collapse perpendicularly on top of each other, destroying almost 65% of the information! Dimensionality reduction is all about finding this golden screen angle mathematically.
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: CURSE OF DIMENSIONALITY ──────────────────────────── */}
+      {activeTab === 'curse' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Exponential Hyperspace Explosion
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              As dimensions increase, the volume of feature space grows at 10^D, causing your data to become infinitely sparse.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>Selected Dimension (D):</span>
+              <span style={{ fontSize: '1rem', fontWeight: 900, color: '#0284c7' }}>
+                {curseDim}D Space &rarr; {Math.pow(10, Math.min(curseDim, 7)).toLocaleString()} Sub-Compartments!
+              </span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="7"
+              value={curseDim}
+              onChange={(e) => setCurseDim(parseInt(e.target.value))}
+              style={{ width: '100%', accentColor: '#001f54', marginBottom: '1rem' }}
+            />
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>1D: Line</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>10 bins = 10 compartments. Dense, compact.</div>
+              </div>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>2D: Square</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>10x10 = 100 compartments. Moderate spread.</div>
+              </div>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>3D: Cube</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>10x10x10 = 1,000 compartments. Sparsity begins.</div>
+              </div>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px' }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#dc2626' }}>50D: Hyperspace</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>10^50 compartments. Complete cosmic vacuum!</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: SELECTION VS EXTRACTION ──────────────────────────── */}
+      {activeTab === 'selection_vs_extraction' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Feature Selection vs. Feature Extraction
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Two distinct philosophical paths to conquer the curse of dimensionality.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Feature Selection Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #0284c7', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0284c7', marginBottom: '6px' }}>
+                Feature Selection (Column Pruning)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.5 }}>
+                Filter and keep a subset of existing columns (e.g. keep 5 out of 50).
+                <br /><br />
+                - <strong>Methods:</strong> VarianceThreshold, SelectKBest, Correlation Matrix filtering.
+                <br />
+                - <strong>Pros:</strong> 100% interpretable; preserves original column names and physical units.
+                <br />
+                - <strong>Cons:</strong> Information in dropped columns is permanently discarded.
+              </div>
+            </div>
+
+            {/* Feature Extraction Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#16a34a', marginBottom: '6px' }}>
+                Feature Extraction (Component Synthesis)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.5 }}>
+                Synthesize brand-new composite axes that capture combined variance across all features.
+                <br /><br />
+                - <strong>Methods:</strong> PCA, Truncated SVD, t-SNE, UMAP, Autoencoders.
+                <br />
+                - <strong>Pros:</strong> Retains patterns and variance from all original features simultaneously.
+                <br />
+                - <strong>Cons:</strong> Loses direct column interpretability (PC1 is an algebraic linear formula).
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: LINEAR VS MANIFOLD ───────────────────────────────── */}
+      {activeTab === 'linear_vs_manifold' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Linear Projection (PCA) vs. Non-Linear Manifolds (t-SNE / UMAP)
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              The famous "Swiss Roll" dilemma in dimensionality reduction.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Linear Projection Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#dc2626', marginBottom: '6px' }}>
+                Linear PCA on Swiss Roll
+              </div>
+              <svg width="100%" height="150" viewBox="0 0 240 150" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Spiral Swiss roll compressed */}
+                <path d="M 60 75 Q 80 40 120 40 Q 170 40 170 85 Q 170 125 110 125 Q 70 125 70 90" stroke="#001f54" strokeWidth="4" fill="none" />
+                {/* Crushing hammer */}
+                <line x1="40" y1="20" x2="200" y2="20" stroke="#dc2626" strokeWidth="3" />
+                <line x1="40" y1="140" x2="200" y2="140" stroke="#dc2626" strokeWidth="3" />
+                <text x="120" y="85" textAnchor="middle" fontSize="9" fontWeight="800" fill="#dc2626">Crushes layers together!</text>
+              </svg>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '8px' }}>
+                <strong>Problem:</strong> Rigid linear projection acts like a hydraulic press, crushing distinct spiral layers on top of each other.
+              </div>
+            </div>
+
+            {/* Manifold Learning Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', marginBottom: '6px' }}>
+                Manifold Learning (t-SNE / UMAP)
+              </div>
+              <svg width="100%" height="150" viewBox="0 0 240 150" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Unrolled flat strip */}
+                <line x1="30" y1="75" x2="210" y2="75" stroke="#16a34a" strokeWidth="8" strokeLinecap="round" />
+                <text x="120" y="60" textAnchor="middle" fontSize="9" fontWeight="800" fill="#16a34a">Gently unrolls the spiral!</text>
+                <text x="120" y="105" textAnchor="middle" fontSize="8" fontWeight="700" fill="#64748b">Preserves local neighborhoods</text>
+              </svg>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '8px' }}>
+                <strong>Solution:</strong> Manifold learning unrolls the curved pastry onto a flat 2D plane, preserving intrinsic topological distances!
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production Feature Selection vs. Extraction Pipeline:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from sklearn.feature_selection import VarianceThreshold, SelectKBest, f_classif',
+                'from sklearn.decomposition import PCA',
+                'from sklearn.preprocessing import StandardScaler',
+                'import numpy as np',
+                '',
+                '# 1. Standardize high-dimensional features',
+                'scaler = StandardScaler()',
+                'X_scaled = scaler.fit_transform(X_raw)',
+                '',
+                '# 2. Strategy A: Feature Selection (Keep top 5 original columns)',
+                'var_filter = VarianceThreshold(threshold=0.1)',
+                'X_filtered = var_filter.fit_transform(X_scaled)',
+                'selector = SelectKBest(score_func=f_classif, k=5)',
+                'X_selected = selector.fit_transform(X_filtered, y)',
+                'print("Selected features shape:", X_selected.shape)',
+                '',
+                '# 3. Strategy B: Feature Extraction (Synthesize 5 composite PCs)',
+                'pca = PCA(n_components=5)',
+                'X_pca = pca.fit_transform(X_scaled)',
+                'print("PCA transformed shape:", X_pca.shape)',
+                'print("Retained variance ratio:", np.round(pca.explained_variance_ratio_, 3))',
+                'print(f"Total information retained: {np.sum(pca.explained_variance_ratio_)*100:.1f}%")'
+              ].join('\n')}
+              title="dimensionality_reduction.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── PRINCIPAL COMPONENT ANALYSIS THREE.JS INTERACTIVE STUDIO (ml-5-6) ───────
+const PCAInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'scree_plot', 'covariance', 'swiss_roll', 'code'
+  const [keptComponents, setKeptComponents] = useState(2); // 1, 2, or 3
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Tab 2: Scree plot threshold state
+  const [varianceCutoff, setVarianceCutoff] = useState(95);
+
+  const containerRef = useRef(null);
+  const sceneStateRef = useRef({
+    points: [],
+    pointMeshes: [],
+    arrowPC1: null,
+    arrowPC2: null,
+    arrowPC3: null,
+    projectionPlane: null,
+    scene: null,
+    renderer: null,
+    camera: null,
+    isMouseDown: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
+    rotX: 0.35,
+    rotY: 0.5
+  });
+
+  // Generate 60 points in an elongated 3D ellipsoid cloud
+  // Primary axis (PC1): along (2.0, 1.2, 0.5)
+  // Secondary axis (PC2): along (-0.8, 1.8, -0.4)
+  // Tertiary axis (PC3): along (0.3, 0.4, 1.6)
+  const generatePCAPoints = useCallback(() => {
+    const rng = createSeededPRNG(600);
+    const pts = [];
+    for (let i = 0; i < 60; i++) {
+      const u1 = (rng() - 0.5) * 12.0; // Major variance (spread = 12)
+      const u2 = (rng() - 0.5) * 5.5;  // Medium variance (spread = 5.5)
+      const u3 = (rng() - 0.5) * 2.0;  // Minor variance (spread = 2.0)
+
+      // Linear combination of orthogonal axes
+      const x = u1 * 0.85 - u2 * 0.45 + u3 * 0.25;
+      const y = u1 * 0.50 + u2 * 0.80 + u3 * 0.20;
+      const z = u1 * 0.20 - u2 * 0.40 + u3 * 0.95;
+
+      pts.push({ id: i, x, y, z, u1, u2, u3 });
+    }
+    return pts;
+  }, []);
+
+  // Compute variance stats for k components
+  const pcaStats = useMemo(() => {
+    if (keptComponents === 3) return { pc1: 72.4, pc2: 21.6, pc3: 6.0, total: 100.0 };
+    if (keptComponents === 2) return { pc1: 72.4, pc2: 21.6, pc3: 0.0, total: 94.0 };
+    return { pc1: 72.4, pc2: 0.0, pc3: 0.0, total: 72.4 };
+  }, [keptComponents]);
+
+  // Mount Three.js 3D WebGL Canvas
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth || 640;
+    const height = 360;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 15, 26);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting in Light Mode
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(12, 22, 14);
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(-10, -10, -10);
+    scene.add(fillLight);
+
+    // 3D Architectural Grid Floor
+    const gridHelper = new THREE.GridHelper(24, 20, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -5.0;
+    scene.add(gridHelper);
+
+    // Generate Points
+    const pts = generatePCAPoints();
+    sceneStateRef.current.points = pts;
+    sceneStateRef.current.scene = scene;
+    sceneStateRef.current.renderer = renderer;
+    sceneStateRef.current.camera = camera;
+
+    // Create 3D Point Meshes
+    const pointGeo = new THREE.SphereGeometry(0.32, 14, 14);
+    const pointMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.25, metalness: 0.2 });
+    const pointMeshes = [];
+
+    pts.forEach((pt) => {
+      const mesh = new THREE.Mesh(pointGeo, pointMat.clone());
+      mesh.position.set(pt.x, pt.y, pt.z);
+      scene.add(mesh);
+      pointMeshes.push(mesh);
+    });
+    sceneStateRef.current.pointMeshes = pointMeshes;
+
+    // Create 3D Eigenvector Arrow Helpers:
+    // PC1: Primary axis (0.85, 0.50, 0.20) normalized
+    const dir1 = new THREE.Vector3(0.85, 0.50, 0.20).normalize();
+    const arrowPC1 = new THREE.ArrowHelper(dir1, new THREE.Vector3(0, 0, 0), 8.5, 0xdc2626, 1.2, 0.6);
+    scene.add(arrowPC1);
+    sceneStateRef.current.arrowPC1 = arrowPC1;
+
+    // PC2: Orthogonal axis (-0.45, 0.80, -0.40) normalized
+    const dir2 = new THREE.Vector3(-0.45, 0.80, -0.40).normalize();
+    const arrowPC2 = new THREE.ArrowHelper(dir2, new THREE.Vector3(0, 0, 0), 5.5, 0x16a34a, 1.0, 0.5);
+    scene.add(arrowPC2);
+    sceneStateRef.current.arrowPC2 = arrowPC2;
+
+    // PC3: Minor thickness axis (0.25, 0.20, 0.95) normalized
+    const dir3 = new THREE.Vector3(0.25, 0.20, 0.95).normalize();
+    const arrowPC3 = new THREE.ArrowHelper(dir3, new THREE.Vector3(0, 0, 0), 3.0, 0xd97706, 0.8, 0.4);
+    scene.add(arrowPC3);
+    sceneStateRef.current.arrowPC3 = arrowPC3;
+
+    // 2D Projection Plane spanned by PC1 and PC2
+    const planeGeo = new THREE.PlaneGeometry(18, 12);
+    const planeMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7,
+      transparent: true,
+      opacity: 0.12,
+      side: THREE.DoubleSide,
+      roughness: 0.3
+    });
+    const projPlane = new THREE.Mesh(planeGeo, planeMat);
+    // Orient plane so its normal matches dir3
+    projPlane.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir3);
+    scene.add(projPlane);
+    sceneStateRef.current.projectionPlane = projPlane;
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate && !sceneStateRef.current.isMouseDown) {
+        sceneStateRef.current.rotY += 0.0035;
+      }
+
+      const dist = 26;
+      camera.position.x = dist * Math.sin(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.position.y = dist * Math.sin(sceneStateRef.current.rotX) + 2.5;
+      camera.position.z = dist * Math.cos(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Mouse Listeners
+    const onMouseDown = (e) => {
+      sceneStateRef.current.isMouseDown = true;
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!sceneStateRef.current.isMouseDown) return;
+      const dx = e.clientX - sceneStateRef.current.prevMouseX;
+      const dy = e.clientY - sceneStateRef.current.prevMouseY;
+
+      sceneStateRef.current.rotY += dx * 0.008;
+      sceneStateRef.current.rotX = Math.max(-0.6, Math.min(1.2, sceneStateRef.current.rotX - dy * 0.008));
+
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => {
+      sceneStateRef.current.isMouseDown = false;
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      while (container.firstChild) container.removeChild(container.firstChild);
+    };
+  }, [activeTab, generatePCAPoints, autoRotate]);
+
+  // Animate/collapse points when keptComponents changes
+  useEffect(() => {
+    if (activeTab !== 'three_d') return;
+
+    const { points, pointMeshes, arrowPC3, projectionPlane } = sceneStateRef.current;
+    if (!points.length || !pointMeshes.length) return;
+
+    // Toggle visibility of minor components
+    if (arrowPC3) arrowPC3.visible = keptComponents === 3;
+    if (projectionPlane) projectionPlane.visible = keptComponents <= 2;
+
+    points.forEach((pt, idx) => {
+      const mesh = pointMeshes[idx];
+      if (!mesh) return;
+
+      let targetX = 0;
+      let targetY = 0;
+      let targetZ = 0;
+
+      if (keptComponents === 3) {
+        // Full 3D reconstruction
+        targetX = pt.x;
+        targetY = pt.y;
+        targetZ = pt.z;
+      } else if (keptComponents === 2) {
+        // Collapsed onto PC1 + PC2 plane (discard u3)
+        targetX = pt.u1 * 0.85 - pt.u2 * 0.45;
+        targetY = pt.u1 * 0.50 + pt.u2 * 0.80;
+        targetZ = pt.u1 * 0.20 - pt.u2 * 0.40;
+      } else {
+        // Collapsed onto 1D line along PC1 only (discard u2 and u3)
+        targetX = pt.u1 * 0.85;
+        targetY = pt.u1 * 0.50;
+        targetZ = pt.u1 * 0.20;
+      }
+
+      mesh.position.set(targetX, targetY, targetZ);
+    });
+  }, [keptComponents, activeTab]);
+
+  // Tab 2: Scree plot mock data
+  const screeData = [
+    { component: 'PC1', variance: 52.4, cumulative: 52.4 },
+    { component: 'PC2', variance: 24.1, cumulative: 76.5 },
+    { component: 'PC3', variance: 12.8, cumulative: 89.3 },
+    { component: 'PC4', variance: 6.2, cumulative: 95.5 }, // 95% Cutoff
+    { component: 'PC5', variance: 2.5, cumulative: 98.0 },
+    { component: 'PC6', variance: 1.2, cumulative: 99.2 },
+    { component: 'PC7', variance: 0.8, cumulative: 100.0 }
+  ];
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                LIGHT STUDIO 3D
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Eigenvector Maximization & Scree Analysis
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Principal Component Analysis (PCA) 3D Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'three_d', label: '1. 3D Eigenvector Studio' },
+            { id: 'scree_plot', label: '2. Scree Plot & 95% Cutoff' },
+            { id: 'covariance', label: '3. The Covariance Matrix' },
+            { id: 'swiss_roll', label: '4. Non-Linear Swiss Roll' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D THREE.JS EIGENVECTOR STUDIO ───────────────────── */}
+      {activeTab === 'three_d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Keep Principal Components (k):</span>
+              {[1, 2, 3].map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setKeptComponents(k)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    border: '1px solid',
+                    borderColor: keptComponents === k ? '#001f54' : '#cbd5e1',
+                    background: keptComponents === k ? '#001f54' : '#ffffff',
+                    color: keptComponents === k ? '#ffffff' : '#475569',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {k === 3 ? 'Full 3D (k = 3)' : k === 2 ? '2D Plane (k = 2)' : '1D Line (k = 1)'}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setAutoRotate(!autoRotate)}
+              style={{
+                padding: '5px 10px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: autoRotate ? '#eff6ff' : '#ffffff',
+                color: autoRotate ? '#1e40af' : '#64748b',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              {autoRotate ? 'Pause Rotation' : 'Auto-Rotate'}
+            </button>
+          </div>
+
+          {/* Three.js 3D WebGL Canvas Container (Light Studio Mode) */}
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 30px rgba(0, 31, 84, 0.08)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            <div
+              ref={containerRef}
+              style={{ width: '100%', height: '360px', cursor: 'grab' }}
+            />
+
+            {/* 3D Overlay HUD Badges (Light Studio Mode) */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 800 }}>
+                Retained Components: <span style={{ color: '#0284c7' }}>k = {keptComponents}</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                PC1 (Red Arrow): <span style={{ color: '#dc2626' }}>{pcaStats.pc1}%</span> | PC2 (Green): <span style={{ color: '#16a34a' }}>{pcaStats.pc2}%</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 800 }}>
+                Total Explained Variance: <span style={{ color: pcaStats.total >= 90 ? '#16a34a' : '#d97706' }}>{pcaStats.total}%</span>
+              </div>
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 2px 8px rgba(0,31,84,0.06)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              color: '#475569',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              pointerEvents: 'none'
+            }}>
+              Red = PC1 | Green = PC2 | Amber = PC3. Drag to orbit 3D camera.
+            </div>
+          </div>
+
+          {/* Explanation Callout */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            fontSize: '0.75rem',
+            color: '#475569',
+            fontWeight: 600,
+            lineHeight: 1.45
+          }}>
+            Click <strong>"2D Plane (k = 2)"</strong>: Notice how all 3D points instantly collapse flat onto the orthogonal plane spanned by PC1 and PC2! You reduced the dimensions from 3D to 2D while retaining <strong>94.0% of the total dataset variance</strong>. Click <strong>"1D Line (k = 1)"</strong> to collapse everything onto the single red PC1 arrow, capturing 72.4% variance on a simple 1D line!
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: SCREE PLOT ───────────────────────────────────────── */}
+      {activeTab === 'scree_plot' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Scree Plot & Cumulative Explained Variance
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Select the optimal number of components k using the 95% cumulative information threshold rule.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>Cumulative Variance Target:</span>
+              <span style={{ fontSize: '1rem', fontWeight: 900, color: '#16a34a' }}>
+                Threshold: {varianceCutoff}% &rarr; Keep 4 Components (95.5% Variance)
+              </span>
+            </div>
+
+            {/* SVG Scree Plot */}
+            <svg width="100%" height="220" viewBox="0 0 460 220" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+              {[40, 80, 120, 160].map((y) => (
+                <line key={`grid-${y}`} x1="45" y1={y} x2="440" y2={y} stroke="#e2e8f0" strokeDasharray="3 3" />
+              ))}
+              <line x1="45" y1="20" x2="45" y2="190" stroke="#64748b" strokeWidth="1.5" />
+              <line x1="45" y1="190" x2="440" y2="190" stroke="#64748b" strokeWidth="1.5" />
+
+              {/* 95% Cutoff Threshold line */}
+              <line x1="45" y1="35" x2="440" y2="35" stroke="#dc2626" strokeWidth="1.5" strokeDasharray="4 2" />
+              <text x="435" y="30" textAnchor="end" fontSize="9" fontWeight="800" fill="#dc2626">95% Threshold</text>
+
+              {/* Individual variance bars */}
+              {screeData.map((d, i) => {
+                const x = 60 + i * 52;
+                const h = (d.variance / 100) * 165;
+                const y = 190 - h;
+                const isKept = d.cumulative <= 96;
+                return (
+                  <g key={d.component}>
+                    <rect x={x} y={y} width="28" height={h} rx="4" fill={isKept ? '#0284c7' : '#94a3b8'} />
+                    <text x={x + 14} y={y - 6} textAnchor="middle" fontSize="9" fontWeight="700" fill="#001f54">
+                      {d.variance}%
+                    </text>
+                    <text x={x + 14} y="204" textAnchor="middle" fontSize="9" fontWeight="700" fill="#64748b">
+                      {d.component}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Cumulative line curve */}
+              <path
+                d={screeData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${60 + i * 52 + 14} ${190 - (d.cumulative / 100) * 165}`).join(' ')}
+                stroke="#16a34a"
+                strokeWidth="2.5"
+                fill="none"
+              />
+
+              {screeData.map((d, i) => {
+                const cx = 60 + i * 52 + 14;
+                const cy = 190 - (d.cumulative / 100) * 165;
+                return (
+                  <circle key={`dot-${d.component}`} cx={cx} cy={cy} r="4" fill="#16a34a" stroke="#ffffff" strokeWidth="2" />
+                );
+              })}
+
+              <text x="14" y="105" textAnchor="middle" fontSize="10" fontWeight="700" fill="#475569" transform="rotate(-90, 14, 105)">Variance (%)</text>
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: COVARIANCE MATRIX ────────────────────────────────── */}
+      {activeTab === 'covariance' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Covariance Matrix: Eradicating Multicollinearity
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              PCA rotates the coordinate system so that all off-diagonal covariances become exactly 0.0.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Original Covariance Matrix */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54', marginBottom: '8px' }}>
+                Before PCA: Correlated Features (&Sigma;)
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', textAlign: 'center' }}>
+                <div style={{ background: '#eff6ff', padding: '8px', borderRadius: '6px', fontWeight: 800, color: '#1e40af', fontSize: '0.76rem' }}>1.00</div>
+                <div style={{ background: '#fee2e2', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#b91c1c', fontSize: '0.76rem' }}>0.82</div>
+                <div style={{ background: '#fef3c7', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#b45309', fontSize: '0.76rem' }}>0.44</div>
+
+                <div style={{ background: '#fee2e2', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#b91c1c', fontSize: '0.76rem' }}>0.82</div>
+                <div style={{ background: '#eff6ff', padding: '8px', borderRadius: '6px', fontWeight: 800, color: '#1e40af', fontSize: '0.76rem' }}>1.00</div>
+                <div style={{ background: '#fef3c7', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#b45309', fontSize: '0.76rem' }}>0.36</div>
+
+                <div style={{ background: '#fef3c7', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#b45309', fontSize: '0.76rem' }}>0.44</div>
+                <div style={{ background: '#fef3c7', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#b45309', fontSize: '0.76rem' }}>0.36</div>
+                <div style={{ background: '#eff6ff', padding: '8px', borderRadius: '6px', fontWeight: 800, color: '#1e40af', fontSize: '0.76rem' }}>1.00</div>
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '8px' }}>
+                High off-diagonal values (0.82) mean features share redundant information.
+              </div>
+            </div>
+
+            {/* Diagonalized PCA Matrix */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', marginBottom: '8px' }}>
+                After PCA: Diagonalized Components
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', textAlign: 'center' }}>
+                <div style={{ background: '#dcfce7', padding: '8px', borderRadius: '6px', fontWeight: 800, color: '#15803d', fontSize: '0.76rem' }}>2.17 (&lambda;1)</div>
+                <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#94a3b8', fontSize: '0.76rem' }}>0.00</div>
+                <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#94a3b8', fontSize: '0.76rem' }}>0.00</div>
+
+                <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#94a3b8', fontSize: '0.76rem' }}>0.00</div>
+                <div style={{ background: '#dcfce7', padding: '8px', borderRadius: '6px', fontWeight: 800, color: '#15803d', fontSize: '0.76rem' }}>0.65 (&lambda;2)</div>
+                <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#94a3b8', fontSize: '0.76rem' }}>0.00</div>
+
+                <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#94a3b8', fontSize: '0.76rem' }}>0.00</div>
+                <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '6px', fontWeight: 700, color: '#94a3b8', fontSize: '0.76rem' }}>0.00</div>
+                <div style={{ background: '#dcfce7', padding: '8px', borderRadius: '6px', fontWeight: 800, color: '#15803d', fontSize: '0.76rem' }}>0.18 (&lambda;3)</div>
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '8px' }}>
+                All off-diagonals are 0.00! Every principal component is 100% independent and uncorrelated.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: SWISS ROLL FAILURE ───────────────────────────────── */}
+      {activeTab === 'swiss_roll' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Swiss Roll Trap: Why PCA Cannot Unroll Non-Linear Geometries
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              PCA is strictly linear. On non-linear manifolds, use t-SNE or UMAP instead.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
+              Imagine a 2D sheet of paper rolled into a 3D spiral cake (the Swiss Roll).
+              <br /><br />
+              - <strong>True Topological Distance:</strong> To travel from the inner roll to the outer roll, you must walk along the spiral ribbon for 10 feet.
+              <br />
+              - <strong>The PCA Mistake:</strong> Because PCA is linear, it projects directly onto a flat plane. It measures straight Euclidean line distance across the empty air gap (only 0.5 inches!), falsely grouping distant parts of the roll into the same cluster.
+              <br />
+              - <strong>Solution:</strong> Use Non-Linear Manifold Learning (t-SNE or UMAP) to unroll the manifold before clustering.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production Scikit-Learn PCA Pipeline with 95% Variance & Reconstruction Loss:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from sklearn.decomposition import PCA',
+                'from sklearn.preprocessing import StandardScaler',
+                'import numpy as np',
+                '',
+                '# 1. Feature scaling is mandatory',
+                'scaler = StandardScaler()',
+                'X_scaled = scaler.fit_transform(X_raw)',
+                '',
+                '# 2. Fit PCA with automatic 95% variance cutoff',
+                'pca = PCA(n_components=0.95, random_state=42)',
+                'X_pca = pca.fit_transform(X_scaled)',
+                '',
+                'print(f"Original shape: {X_scaled.shape} -> Reduced shape: {X_pca.shape}")',
+                'print(f"Components kept: {pca.n_components_}")',
+                'print(f"Total variance retained: {np.sum(pca.explained_variance_ratio_)*100:.2f}%")',
+                '',
+                '# 3. Calculate reconstruction error (Information Loss)',
+                'X_reconstructed = pca.inverse_transform(X_pca)',
+                'loss = np.mean((X_scaled - X_reconstructed) ** 2)',
+                'print(f"Mean squared reconstruction error: {loss:.4f}")'
+              ].join('\n')}
+              title="pca_production.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6'
 ];
 
 export default function MLLessonArticlePage() {
@@ -25591,6 +26922,12 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'dbscan_interactive_studio' && (
               <DBSCANInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'dimensionality_reduction_studio' && (
+              <DimensionalityReductionStudio />
+            )}
+            {lesson.diagram.type === 'pca_interactive_studio' && (
+              <PCAInteractiveStudio />
             )}
           </div>
         )}
