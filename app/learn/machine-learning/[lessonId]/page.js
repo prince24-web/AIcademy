@@ -22262,11 +22262,562 @@ const ROCAUCInteractiveStudio = () => {
   );
 };
 
+
+// ─── CLUSTERING FOUNDATIONS INTERACTIVE STUDIO (ml-5-1) ──────────────────────
+const ClusteringFoundationsStudio = () => {
+  const [activeTab, setActiveTab] = useState('playground'); // 'playground', 'distance', 'scaling', 'silhouette', 'code'
+
+  // Tab 1: Playground State
+  const [showClusters, setShowClusters] = useState(false);
+  const [numClusters, setNumClusters] = useState(3);
+
+  // Tab 2: Distance Metrics State
+  const [pointA, setPointA] = useState({ x: 2, y: 3 });
+  const [pointB, setPointB] = useState({ x: 8, y: 7 });
+
+  // Tab 4: Silhouette State
+  const [clusterSeparation, setClusterSeparation] = useState(2.4); // Distance between clusters
+
+  // Synthetic Points for Tab 1 Playground (Fixed seed positions)
+  const rawPoints = useMemo(() => {
+    return [
+      // Cluster 1 (Top Left)
+      { id: 1, x: 50, y: 60, c3: 0, c4: 0 }, { id: 2, x: 70, y: 45, c3: 0, c4: 0 },
+      { id: 3, x: 80, y: 75, c3: 0, c4: 0 }, { id: 4, x: 60, y: 90, c3: 0, c4: 0 },
+      { id: 5, x: 95, y: 65, c3: 0, c4: 0 }, { id: 6, x: 40, y: 80, c3: 0, c4: 0 },
+      // Cluster 2 (Center Right)
+      { id: 7, x: 220, y: 80, c3: 1, c4: 1 }, { id: 8, x: 240, y: 60, c3: 1, c4: 1 },
+      { id: 9, x: 260, y: 95, c3: 1, c4: 1 }, { id: 10, x: 235, y: 110, c3: 1, c4: 1 },
+      { id: 11, x: 275, y: 75, c3: 1, c4: 1 }, { id: 12, x: 210, y: 95, c3: 1, c4: 1 },
+      // Cluster 3 (Bottom Center)
+      { id: 13, x: 140, y: 170, c3: 2, c4: 2 }, { id: 14, x: 160, y: 155, c3: 2, c4: 2 },
+      { id: 15, x: 175, y: 185, c3: 2, c4: 2 }, { id: 16, x: 135, y: 195, c3: 2, c4: 2 },
+      { id: 17, x: 180, y: 165, c3: 2, c4: 2 }, { id: 18, x: 150, y: 205, c3: 2, c4: 2 },
+      // Cluster 4 (Bottom Left - for K=4)
+      { id: 19, x: 45, y: 175, c3: 2, c4: 3 }, { id: 20, x: 65, y: 160, c3: 2, c4: 3 },
+      { id: 21, x: 75, y: 190, c3: 2, c4: 3 }, { id: 22, x: 55, y: 205, c3: 2, c4: 3 }
+    ];
+  }, []);
+
+  const clusterColors = ['#0284c7', '#16a34a', '#d97706', '#9333ea'];
+
+  // Calculations for Distance Metrics (Tab 2)
+  const dx = pointB.x - pointA.x;
+  const dy = pointB.y - pointA.y;
+  const euclideanDist = Math.sqrt(dx * dx + dy * dy);
+  const manhattanDist = Math.abs(dx) + Math.abs(dy);
+
+  // Calculations for Silhouette Visualizer (Tab 4)
+  // a = cohesion within cluster (~0.8), b = separation to neighbor (~0.8 + clusterSeparation)
+  const coh_a = 0.85;
+  const sep_b = 0.85 + clusterSeparation;
+  const sil_score = (sep_b - coh_a) / Math.max(coh_a, sep_b);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                UNSUPERVISED LAB
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Pattern Discovery & Geometric Affinity
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Clustering Foundations: Discovering Hidden Groups
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'playground', label: '1. Cluster Discovery Playground' },
+            { id: 'distance', label: '2. Distance Metrics (Euclidean vs Manhattan)' },
+            { id: 'scaling', label: '3. The Feature Scaling Trap' },
+            { id: 'silhouette', label: '4. Silhouette Score Visualizer' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: CLUSTER DISCOVERY PLAYGROUND ──────────────────────── */}
+      {activeTab === 'playground' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Unsupervised Detective: Turn Chaos into Clusters
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                Toggle below to reveal how an algorithm transforms unlabelled dots into structured groups!
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#001f54' }}>Clusters (K):</span>
+                <select
+                  value={numClusters}
+                  onChange={(e) => setNumClusters(parseInt(e.target.value))}
+                  style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.74rem', fontWeight: 700 }}
+                >
+                  <option value={3}>K = 3</option>
+                  <option value={4}>K = 4</option>
+                </select>
+              </div>
+
+              <button
+                onClick={() => setShowClusters(!showClusters)}
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: showClusters ? '#001f54' : '#0284c7',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.76rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,31,84,0.15)'
+                }}
+              >
+                {showClusters ? 'Show Raw Unlabelled Data' : 'Run Clustering (Discover Groups)'}
+              </button>
+            </div>
+          </div>
+
+          {/* Canvas SVG */}
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <svg width="100%" height="260" viewBox="0 0 320 240" style={{ background: '#fafaf9', borderRadius: '10px', display: 'block', margin: '0 auto' }}>
+              {/* Subtle Grid */}
+              {[40, 80, 120, 160, 200].map((y) => (
+                <line key={`y-${y}`} x1="10" y1={y} x2="310" y2={y} stroke="#f1f5f9" strokeWidth="1" />
+              ))}
+              {[60, 120, 180, 240, 300].map((x) => (
+                <line key={`x-${x}`} x1={x} y1="10" x2={x} y2="230" stroke="#f1f5f9" strokeWidth="1" />
+              ))}
+
+              {/* Data Points */}
+              {rawPoints.map((pt) => {
+                const assignedCluster = numClusters === 4 ? pt.c4 : pt.c3;
+                const pointColor = showClusters ? clusterColors[assignedCluster] : '#64748b';
+                return (
+                  <g key={pt.id}>
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={showClusters ? 6 : 5}
+                      fill={pointColor}
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
+                      style={{ transition: 'all 0.4s ease' }}
+                    />
+                  </g>
+                );
+              })}
+
+              {/* Centroid Crosshairs when clusters shown */}
+              {showClusters && (
+                <>
+                  {/* Centroid 1 */}
+                  <g transform="translate(65, 68)">
+                    <circle cx="0" cy="0" r="10" fill="none" stroke="#0284c7" strokeWidth="2" strokeDasharray="2 2" />
+                    <line x1="-8" y1="0" x2="8" y2="0" stroke="#0284c7" strokeWidth="2" />
+                    <line x1="0" y1="-8" x2="0" y2="8" stroke="#0284c7" strokeWidth="2" />
+                    <text x="12" y="4" fontSize="9" fontWeight="800" fill="#0284c7">C1</text>
+                  </g>
+
+                  {/* Centroid 2 */}
+                  <g transform="translate(240, 85)">
+                    <circle cx="0" cy="0" r="10" fill="none" stroke="#16a34a" strokeWidth="2" strokeDasharray="2 2" />
+                    <line x1="-8" y1="0" x2="8" y2="0" stroke="#16a34a" strokeWidth="2" />
+                    <line x1="0" y1="-8" x2="0" y2="8" stroke="#16a34a" strokeWidth="2" />
+                    <text x="12" y="4" fontSize="9" fontWeight="800" fill="#16a34a">C2</text>
+                  </g>
+
+                  {/* Centroid 3 */}
+                  <g transform="translate(155, 180)">
+                    <circle cx="0" cy="0" r="10" fill="none" stroke="#d97706" strokeWidth="2" strokeDasharray="2 2" />
+                    <line x1="-8" y1="0" x2="8" y2="0" stroke="#d97706" strokeWidth="2" />
+                    <line x1="0" y1="-8" x2="0" y2="8" stroke="#d97706" strokeWidth="2" />
+                    <text x="12" y="4" fontSize="9" fontWeight="800" fill="#d97706">C3</text>
+                  </g>
+
+                  {/* Centroid 4 if K=4 */}
+                  {numClusters === 4 && (
+                    <g transform="translate(60, 182)">
+                      <circle cx="0" cy="0" r="10" fill="none" stroke="#9333ea" strokeWidth="2" strokeDasharray="2 2" />
+                      <line x1="-8" y1="0" x2="8" y2="0" stroke="#9333ea" strokeWidth="2" />
+                      <line x1="0" y1="-8" x2="0" y2="8" stroke="#9333ea" strokeWidth="2" />
+                      <text x="12" y="4" fontSize="9" fontWeight="800" fill="#9333ea">C4</text>
+                    </g>
+                  )}
+                </>
+              )}
+            </svg>
+
+            {/* Explanation Banner */}
+            <div style={{
+              marginTop: '12px',
+              background: showClusters ? '#f0fdf4' : '#f8fafc',
+              border: `1px solid ${showClusters ? '#86efac' : '#e2e8f0'}`,
+              borderRadius: '10px',
+              padding: '10px 14px',
+              fontSize: '0.74rem',
+              color: showClusters ? '#166534' : '#475569',
+              fontWeight: 600
+            }}>
+              {showClusters
+                ? 'Clusters Discovered! Notice how points sharing high geometric affinity are bundled together around centroids. Points in the same group are close (high cohesion), while clusters are spaced far apart (high separation).'
+                : 'Raw Unlabelled Data: No answers, no tags, no categories. A human looks at this and immediately sees 3 or 4 natural groups. Clustering gives that exact visual instinct to computers!'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: DISTANCE METRICS EXPLORER ────────────────────────── */}
+      {activeTab === 'distance' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              How Computers Measure Similarity: Euclidean vs. Manhattan Distance
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Use the sliders below to move Point A and Point B on the grid and compare straight-line distance versus taxi-cab grid distance!
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Left: Coordinate Controls */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54', marginBottom: '10px' }}>
+                Adjust Coordinates on 10x10 Grid:
+              </div>
+
+              {/* Point A Controls */}
+              <div style={{ marginBottom: '14px', background: '#eff6ff', padding: '10px', borderRadius: '10px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#2563eb', marginBottom: '4px' }}>
+                  Point A: ({pointA.x}, {pointA.y})
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>X: {pointA.x}</span>
+                    <input type="range" min="0" max="10" value={pointA.x} onChange={(e) => setPointA({ ...pointA, x: parseInt(e.target.value) })} style={{ width: '100%', accentColor: '#2563eb' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Y: {pointA.y}</span>
+                    <input type="range" min="0" max="10" value={pointA.y} onChange={(e) => setPointA({ ...pointA, y: parseInt(e.target.value) })} style={{ width: '100%', accentColor: '#2563eb' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Point B Controls */}
+              <div style={{ background: '#fef2f2', padding: '10px', borderRadius: '10px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#dc2626', marginBottom: '4px' }}>
+                  Point B: ({pointB.x}, {pointB.y})
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>X: {pointB.x}</span>
+                    <input type="range" min="0" max="10" value={pointB.x} onChange={(e) => setPointB({ ...pointB, x: parseInt(e.target.value) })} style={{ width: '100%', accentColor: '#dc2626' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Y: {pointB.y}</span>
+                    <input type="range" min="0" max="10" value={pointB.y} onChange={(e) => setPointB({ ...pointB, y: parseInt(e.target.value) })} style={{ width: '100%', accentColor: '#dc2626' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Calculated Formulas */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Euclidean Card */}
+              <div style={{ background: '#ffffff', borderRadius: '12px', border: '1.5px solid #2563eb', padding: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#2563eb' }}>Euclidean Distance (L2 Norm)</div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Straight-line direct ruler: sqrt(dx^2 + dy^2)</div>
+                  </div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#2563eb' }}>
+                    {euclideanDist.toFixed(2)}
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#1e40af', marginTop: '6px', background: '#eff6ff', padding: '6px', borderRadius: '6px' }}>
+                  Math: sqrt(({dx})^2 + ({dy})^2) = sqrt({dx*dx + dy*dy}) = {euclideanDist.toFixed(2)}
+                </div>
+              </div>
+
+              {/* Manhattan Card */}
+              <div style={{ background: '#ffffff', borderRadius: '12px', border: '1.5px solid #d97706', padding: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#d97706' }}>Manhattan Distance (L1 Norm)</div>
+                    <div style={{ fontSize: '0.68rem', color: '#64748b' }}>City block taxicab path: |dx| + |dy|</div>
+                  </div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#d97706' }}>
+                    {manhattanDist.toFixed(2)}
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#92400e', marginTop: '6px', background: '#fffbeb', padding: '6px', borderRadius: '6px' }}>
+                  Math: |{dx}| + |{dy}| = {Math.abs(dx)} + {Math.abs(dy)} = {manhattanDist.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: THE FEATURE SCALING TRAP ─────────────────────────── */}
+      {activeTab === 'scaling' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Feature Scaling Trap: Unscaled vs. Standardized
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Suppose you cluster customers by Age (20 to 60) and Annual Income ($20,000 to $120,000). See what happens without scaling!
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+            {/* Left: Unscaled Data (Distorted) */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #ef4444', padding: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ef4444', marginBottom: '4px' }}>
+                Unscaled Data (The Trap)
+              </div>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: '8px' }}>
+                Income ($50,000) overpowers Age (40) by 10,000x
+              </div>
+
+              <svg width="100%" height="200" viewBox="0 0 300 200" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Horizontal Squashed Lines (Age variation completely flattened) */}
+                <line x1="30" y1="50" x2="270" y2="50" stroke="#fca5a5" strokeWidth="6" strokeLinecap="round" />
+                <line x1="30" y1="110" x2="270" y2="110" stroke="#93c5fd" strokeWidth="6" strokeLinecap="round" />
+                <line x1="30" y1="170" x2="270" y2="170" stroke="#86efac" strokeWidth="6" strokeLinecap="round" />
+
+                <text x="35" y="42" fontSize="9" fontWeight="700" fill="#991b1b">High Income ($100K) - Age ignored</text>
+                <text x="35" y="102" fontSize="9" fontWeight="700" fill="#1e40af">Mid Income ($60K) - Age ignored</text>
+                <text x="35" y="162" fontSize="9" fontWeight="700" fill="#166534">Low Income ($30K) - Age ignored</text>
+              </svg>
+              <div style={{ fontSize: '0.7rem', color: '#991b1b', marginTop: '6px', fontWeight: 600 }}>
+                Disaster: Clusters are flat pancake slices. 40 years of age difference has zero effect!
+              </div>
+            </div>
+
+            {/* Right: Standardized Data (Balanced) */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #16a34a', padding: '1rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', marginBottom: '4px' }}>
+                Standardized Data (StandardScaler)
+              </div>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginBottom: '8px' }}>
+                Both Age and Income have mean = 0, std = 1
+              </div>
+
+              <svg width="100%" height="200" viewBox="0 0 300 200" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Clean 2D Spherical Blobs */}
+                <circle cx="80" cy="70" r="32" fill="#dcfce7" stroke="#86efac" strokeWidth="1.5" />
+                <circle cx="210" cy="70" r="32" fill="#eff6ff" stroke="#bfdbfe" strokeWidth="1.5" />
+                <circle cx="145" cy="145" r="32" fill="#fef3c7" stroke="#fde68a" strokeWidth="1.5" />
+
+                <text x="80" y="74" textAnchor="middle" fontSize="9" fontWeight="800" fill="#166534">Young High-Earners</text>
+                <text x="210" y="74" textAnchor="middle" fontSize="9" fontWeight="800" fill="#1e40af">Senior High-Earners</text>
+                <text x="145" y="149" textAnchor="middle" fontSize="9" fontWeight="800" fill="#92400e">Mid-Age Savers</text>
+              </svg>
+              <div style={{ fontSize: '0.7rem', color: '#166534', marginTop: '6px', fontWeight: 600 }}>
+                Perfect: Balanced spherical clusters. Both Age and Income contribute equally to distance!
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: SILHOUETTE SCORE VISUALIZER ───────────────────────── */}
+      {activeTab === 'silhouette' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Silhouette Score: Grading Without an Answer Key
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Formula: s = (b - a) / max(a, b), where a is cohesion (distance within own cluster) and b is separation (distance to nearest other cluster).
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            {/* Separation Slider */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>
+                  Cluster Separation Distance (b - a):
+                </span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 900, color: sil_score > 0.6 ? '#16a34a' : sil_score > 0.3 ? '#d97706' : '#dc2626' }}>
+                  Silhouette Score: {sil_score.toFixed(3)}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.0"
+                max="5.0"
+                step="0.2"
+                value={clusterSeparation}
+                onChange={(e) => setClusterSeparation(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+                <span>0.0 (Overlapping / Indistinct)</span>
+                <span>2.5 (Moderate Separation)</span>
+                <span>5.0 (Islands Far Apart)</span>
+              </div>
+            </div>
+
+            {/* Score Interpretation Banner */}
+            <div style={{
+              background: sil_score > 0.6 ? '#f0fdf4' : sil_score > 0.3 ? '#fffbeb' : '#fef2f2',
+              border: `1.5px solid ${sil_score > 0.6 ? '#86efac' : sil_score > 0.3 ? '#fde68a' : '#fca5a5'}`,
+              borderRadius: '12px',
+              padding: '1rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: sil_score > 0.6 ? '#166534' : sil_score > 0.3 ? '#92400e' : '#991b1b' }}>
+                  {sil_score > 0.7 ? 'Strong, Well-Separated Clusters' : sil_score > 0.4 ? 'Reasonable Structure' : 'Weak or Overlapping Structure'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '2px' }}>
+                  Cohesion a (within cluster): {coh_a.toFixed(2)} | Separation b (nearest cluster): {sep_b.toFixed(2)}
+                </div>
+              </div>
+
+              <div style={{
+                background: '#ffffff',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontWeight: 900,
+                fontSize: '1rem',
+                color: sil_score > 0.6 ? '#16a34a' : sil_score > 0.3 ? '#d97706' : '#dc2626',
+                border: '1px solid #cbd5e1'
+              }}>
+                s = {sil_score.toFixed(2)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Scikit-Learn Clustering, Silhouette Evaluation & PCA 2D Plot:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from sklearn.cluster import KMeans',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.metrics import silhouette_score',
+                'from sklearn.decomposition import PCA',
+                'from sklearn.datasets import make_blobs',
+                '',
+                '# 1. Generate Raw Unlabelled Data',
+                'X_raw, _ = make_blobs(n_samples=500, n_features=6, centers=4, random_state=42)',
+                '',
+                '# 2. Mandatory Feature Standardization',
+                'scaler = StandardScaler()',
+                'X_scaled = scaler.fit_transform(X_raw)',
+                '',
+                '# 3. Fit K-Means Clustering (K=4)',
+                'kmeans = KMeans(n_clusters=4, init="k-means++", random_state=42)',
+                'labels = kmeans.fit_predict(X_scaled)',
+                '',
+                '# 4. Evaluate Cluster Quality Without Labels',
+                'print(f"Inertia (Within-Cluster Sum of Squares): {kmeans.inertia_:.2f}")',
+                'score = silhouette_score(X_scaled, labels)',
+                'print(f"Silhouette Score (-1 to +1): {score:.4f}")',
+                '',
+                '# 5. Project to 2D with PCA for Visualization',
+                'pca = PCA(n_components=2)',
+                'X_2d = pca.fit_transform(X_scaled)'
+              ].join('\n')}
+              title="clustering_foundations.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1'
 ];
 
 export default function MLLessonArticlePage() {
@@ -22476,6 +23027,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'roc_auc_interactive_studio' && (
               <ROCAUCInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'clustering_foundations_studio' && (
+              <ClusteringFoundationsStudio />
             )}
           </div>
         )}
