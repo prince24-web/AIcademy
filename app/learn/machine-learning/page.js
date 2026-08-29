@@ -232,7 +232,7 @@ const mlModules = [
       { id: 'ml-6-1', name: 'Cross-Validation', nodeType: 'concept', status: 'active' },
       { id: 'ml-6-2', name: 'Hyperparameters', nodeType: 'star', status: 'active' },
       { id: 'ml-6-3', name: 'Grid Search', nodeType: 'concept', status: 'active' },
-      { id: 'ml-6-4', name: 'Random Search', nodeType: 'lightbulb', status: 'locked' },
+      { id: 'ml-6-4', name: 'Random Search', nodeType: 'lightbulb', status: 'active' },
       { id: 'ml-6-5', name: 'Feature Selection', nodeType: 'concept', status: 'locked' },
       { id: 'ml-6-6', name: 'Feature Engineering', nodeType: 'star', status: 'locked' },
       { id: 'ml-6-7', name: 'Handling Imbalanced Datasets', nodeType: 'concept', status: 'locked' },

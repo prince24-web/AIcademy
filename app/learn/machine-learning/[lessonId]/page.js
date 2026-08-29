@@ -28845,11 +28845,748 @@ const GridSearchInteractiveStudio = () => {
   );
 };
 
+
+// ─── RANDOM SEARCH THREE.JS INTERACTIVE STUDIO (ml-6-4) ──────────────────────
+const RandomSearchInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'proof', 'distributions', 'shootout', 'code'
+  const [searchMode, setSearchMode] = useState('random'); // 'grid' or 'random'
+  const [nIter, setNIter] = useState(27); // Candidate Budget
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Tab 3: Distribution Inspector State
+  const [distType, setDistType] = useState('loguniform'); // 'uniform' or 'loguniform'
+
+  // Generate 3D Coordinates deterministically
+  const coordinatesData = useMemo(() => {
+    if (searchMode === 'grid') {
+      // 3x3x3 rigid grid = 27 points
+      const pts = [];
+      const steps = [-5, 0, 5];
+      let id = 0;
+      for (let x of steps) {
+        for (let y of steps) {
+          for (let z of steps) {
+            // Distance from hidden optimum at (2.4, -1.2, 0.8)
+            const d = Math.sqrt(Math.pow(x - 2.4, 2) + Math.pow(y + 1.2, 2) + Math.pow(z - 0.8, 2));
+            const score = parseFloat((97.2 - d * 1.8).toFixed(1));
+            pts.push({ id: id++, x, y, z, score });
+          }
+        }
+      }
+      const best = pts.reduce((max, p) => (p.score > max.score ? p : max), pts[0]);
+      return {
+        points: pts,
+        distinctX: 3,
+        totalPoints: pts.length,
+        bestScore: best.score,
+        efficiency: '11.1% (Only 3 distinct values along Important X-Axis)'
+      };
+    } else {
+      // Random Search: nIter points scattered continuously in [-6, 6]
+      const rng = createSeededPRNG(1000 + nIter);
+      const pts = [];
+      for (let i = 0; i < nIter; i++) {
+        const x = (rng() - 0.5) * 12;
+        const y = (rng() - 0.5) * 12;
+        const z = (rng() - 0.5) * 12;
+
+        const d = Math.sqrt(Math.pow(x - 2.4, 2) + Math.pow(y + 1.2, 2) + Math.pow(z - 0.8, 2));
+        const score = parseFloat((97.2 - d * 1.8).toFixed(1));
+        pts.push({ id: i, x, y, z, score });
+      }
+      const best = pts.reduce((max, p) => (p.score > max.score ? p : max), pts[0]);
+      return {
+        points: pts,
+        distinctX: nIter,
+        totalPoints: nIter,
+        bestScore: best.score,
+        efficiency: '100.0% (Every sample tests a unique value on X-Axis)'
+      };
+    }
+  }, [searchMode, nIter]);
+
+  const containerRef = useRef(null);
+  const sceneStateRef = useRef({
+    pointMeshes: [],
+    dropLinesMesh: null,
+    boxHelper: null,
+    scene: null,
+    renderer: null,
+    camera: null,
+    isMouseDown: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
+    rotX: 0.45,
+    rotY: 0.5
+  });
+
+  // Mount Three.js 3D WebGL Canvas
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth || 640;
+    const height = 360;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 16, 28);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting in Light Mode
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(12, 22, 14);
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(-10, -10, -10);
+    scene.add(fillLight);
+
+    // 3D Architectural Grid Floor
+    const gridHelper = new THREE.GridHelper(26, 22, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -6.5;
+    scene.add(gridHelper);
+
+    // 3D Bounding Search Box Wireframe
+    const boxGeo = new THREE.BoxGeometry(12, 12, 12);
+    const boxEdges = new THREE.EdgesGeometry(boxGeo);
+    const boxLines = new THREE.LineSegments(boxEdges, new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.4 }));
+    scene.add(boxLines);
+    sceneStateRef.current.boxHelper = boxLines;
+
+    sceneStateRef.current.scene = scene;
+    sceneStateRef.current.renderer = renderer;
+    sceneStateRef.current.camera = camera;
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate && !sceneStateRef.current.isMouseDown) {
+        sceneStateRef.current.rotY += 0.0035;
+      }
+
+      const dist = 28;
+      camera.position.x = dist * Math.sin(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.position.y = dist * Math.sin(sceneStateRef.current.rotX) + 4.0;
+      camera.position.z = dist * Math.cos(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Mouse Listeners
+    const onMouseDown = (e) => {
+      sceneStateRef.current.isMouseDown = true;
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!sceneStateRef.current.isMouseDown) return;
+      const dx = e.clientX - sceneStateRef.current.prevMouseX;
+      const dy = e.clientY - sceneStateRef.current.prevMouseY;
+
+      sceneStateRef.current.rotY += dx * 0.008;
+      sceneStateRef.current.rotX = Math.max(-0.2, Math.min(1.2, sceneStateRef.current.rotX - dy * 0.008));
+
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => {
+      sceneStateRef.current.isMouseDown = false;
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      while (container.firstChild) container.removeChild(container.firstChild);
+    };
+  }, [activeTab, autoRotate]);
+
+  // Update Points and Projection Drop-lines when coordinatesData changes
+  useEffect(() => {
+    if (activeTab !== 'three_d') return;
+
+    const { scene } = sceneStateRef.current;
+    if (!scene) return;
+
+    // Clear previous point meshes and drop-lines
+    if (sceneStateRef.current.pointMeshes.length) {
+      sceneStateRef.current.pointMeshes.forEach((mesh) => scene.remove(mesh));
+      sceneStateRef.current.pointMeshes = [];
+    }
+    if (sceneStateRef.current.dropLinesMesh) {
+      scene.remove(sceneStateRef.current.dropLinesMesh);
+      sceneStateRef.current.dropLinesMesh = null;
+    }
+
+    const { points, bestScore } = coordinatesData;
+    const isGrid = searchMode === 'grid';
+    const pointGeo = new THREE.SphereGeometry(0.38, 14, 14);
+    const pointMeshes = [];
+    const linePositions = [];
+    const lineColors = [];
+
+    points.forEach((pt) => {
+      const isBest = pt.score === bestScore;
+
+      // Color: Winner = Emerald Green, Grid = Cerulean Blue, Random = Violet/Amber
+      const colorHex = isBest ? 0x16a34a : isGrid ? 0x0284c7 : 0x7c3aed;
+
+      const mat = new THREE.MeshStandardMaterial({
+        color: colorHex,
+        roughness: 0.25,
+        metalness: 0.2,
+        emissive: isBest ? 0x15803d : 0x000000,
+        emissiveIntensity: isBest ? 0.4 : 0
+      });
+
+      const mesh = new THREE.Mesh(pointGeo, mat);
+      mesh.position.set(pt.x, pt.y, pt.z);
+      scene.add(mesh);
+      pointMeshes.push(mesh);
+
+      // Projection Drop-line down to floor plane (Y = -6.5) along Important X-Axis
+      linePositions.push(pt.x, pt.y, pt.z, pt.x, -6.5, pt.z);
+
+      if (isGrid) {
+        lineColors.push(0.01, 0.52, 0.78, 0.86, 0.15, 0.15); // Blue to Red drop
+      } else {
+        lineColors.push(0.48, 0.23, 0.93, 0.09, 0.64, 0.29); // Purple to Green drop
+      }
+    });
+
+    sceneStateRef.current.pointMeshes = pointMeshes;
+
+    // Build Drop-lines BufferGeometry
+    const dropLineGeo = new THREE.BufferGeometry();
+    dropLineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+    dropLineGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
+    const dropLineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.4, linewidth: 1.5 });
+    const dropLinesMesh = new THREE.LineSegments(dropLineGeo, dropLineMat);
+    scene.add(dropLinesMesh);
+    sceneStateRef.current.dropLinesMesh = dropLinesMesh;
+  }, [coordinatesData, searchMode, activeTab]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                LIGHT STUDIO 3D
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Bergstra & Bengio Dimensional Efficiency Proof
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Random Search 3D Exploration Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'three_d', label: '1. 3D Grid vs Random Search' },
+            { id: 'proof', label: '2. Bergstra & Bengio (2012) Proof' },
+            { id: 'distributions', label: '3. Probability Distributions' },
+            { id: 'shootout', label: '4. Grid vs Random Shootout' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D THREE.JS SEARCH VOLUME STUDIO ─────────────────── */}
+      {activeTab === 'three_d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Search Strategy:</span>
+              <button
+                onClick={() => setSearchMode('grid')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor: searchMode === 'grid' ? '#001f54' : '#cbd5e1',
+                  background: searchMode === 'grid' ? '#001f54' : '#ffffff',
+                  color: searchMode === 'grid' ? '#ffffff' : '#475569',
+                  cursor: 'pointer'
+                }}
+              >
+                Grid Search (3x3x3 = 27 Points)
+              </button>
+              <button
+                onClick={() => setSearchMode('random')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor: searchMode === 'random' ? '#7c3aed' : '#cbd5e1',
+                  background: searchMode === 'random' ? '#7c3aed' : '#ffffff',
+                  color: searchMode === 'random' ? '#ffffff' : '#475569',
+                  cursor: 'pointer'
+                }}
+              >
+                Random Search (N = {nIter} Points)
+              </button>
+            </div>
+
+            {searchMode === 'random' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569' }}>Budget (N_iter):</span>
+                <input
+                  type="range"
+                  min="10"
+                  max="60"
+                  value={nIter}
+                  onChange={(e) => setNIter(parseInt(e.target.value))}
+                  style={{ accentColor: '#7c3aed', width: '120px' }}
+                />
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#7c3aed' }}>{nIter}</span>
+              </div>
+            )}
+
+            <button
+              onClick={() => setAutoRotate(!autoRotate)}
+              style={{
+                padding: '5px 10px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: autoRotate ? '#eff6ff' : '#ffffff',
+                color: autoRotate ? '#1e40af' : '#64748b',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              {autoRotate ? 'Pause Rotation' : 'Auto-Rotate'}
+            </button>
+          </div>
+
+          {/* Three.js 3D WebGL Canvas Container (Light Studio Mode) */}
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 30px rgba(0, 31, 84, 0.08)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            <div
+              ref={containerRef}
+              style={{ width: '100%', height: '360px', cursor: 'grab' }}
+            />
+
+            {/* 3D Overlay HUD Badges (Light Studio Mode) */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 800 }}>
+                Evaluated Points: <span style={{ color: searchMode === 'grid' ? '#0284c7' : '#7c3aed' }}>{coordinatesData.totalPoints} candidates</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                Unique Values on Important X-Axis: <span style={{ color: searchMode === 'grid' ? '#dc2626' : '#16a34a', fontWeight: 900 }}>{coordinatesData.distinctX} distinct values</span>
+              </div>
+              <div style={{ background: '#dcfce7', border: '1.5px solid #86efac', padding: '4px 10px', borderRadius: '6px', color: '#166534', fontSize: '0.74rem', fontWeight: 900 }}>
+                Best Score Discovered: {coordinatesData.bestScore}% Accuracy
+              </div>
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 2px 8px rgba(0,31,84,0.06)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              color: '#475569',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              pointerEvents: 'none'
+            }}>
+              Green sphere = Best Found. Drop-lines show projections onto important X-axis. Drag to orbit 3D view.
+            </div>
+          </div>
+
+          {/* Explanation Callout */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            fontSize: '0.75rem',
+            color: '#475569',
+            fontWeight: 600,
+            lineHeight: 1.45
+          }}>
+            Toggle between <strong>Grid Search</strong> and <strong>Random Search</strong> above! Notice the drop-lines projecting onto the floor grid (the critical X-axis). In Grid Search with 27 points, <strong>only 3 unique X-values</strong> are tested (9 redundant points per line!). In Random Search with 27 points, <strong>27 completely distinct X-values</strong> are tested across the entire continuous interval, discovering the true global sweet spot with 300% higher resolution!
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: BERGSTRA & BENGIO PROOF ─────────────────────────── */}
+      {activeTab === 'proof' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Bergstra & Bengio (2012) 2D Projection Theorem
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Why Grid Search wastes compute along inactive dimensions while Random Search tests unique values on every trial.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Grid Search Projection */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#dc2626', marginBottom: '8px' }}>
+                Grid Search (3x3 = 9 Trials)
+              </div>
+              <svg width="100%" height="160" viewBox="0 0 240 160" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {[40, 100, 160].map((x) => (
+                  <line key={`x-${x}`} x1={x} y1="20" x2={x} y2="130" stroke="#cbd5e1" strokeDasharray="2 2" />
+                ))}
+                {[30, 75, 120].map((y) => (
+                  <line key={`y-${y}`} x1="30" y1={y} x2="170" y2={y} stroke="#cbd5e1" strokeDasharray="2 2" />
+                ))}
+                {[40, 100, 160].map((x) =>
+                  [30, 75, 120].map((y) => (
+                    <circle key={`${x}-${y}`} cx={x} cy={y} r="5" fill="#0284c7" />
+                  ))
+                )}
+                {/* Projections on bottom axis */}
+                {[40, 100, 160].map((x) => (
+                  <rect key={`proj-${x}`} x={x - 4} y="142" width="8" height="8" rx="2" fill="#dc2626" />
+                ))}
+                <text x="100" y="158" textAnchor="middle" fontSize="8" fontWeight="800" fill="#dc2626">Only 3 Distinct Points on Active Axis!</text>
+              </svg>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '8px' }}>
+                6 out of 9 trials are completely wasted re-testing the exact same 3 coordinates on the active axis.
+              </div>
+            </div>
+
+            {/* Random Search Projection */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', marginBottom: '8px' }}>
+                Random Search (9 Random Trials)
+              </div>
+              <svg width="100%" height="160" viewBox="0 0 240 160" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {[
+                  [38, 45], [52, 110], [68, 25], [88, 90], [105, 35],
+                  [122, 115], [138, 65], [155, 30], [172, 85]
+                ].map(([x, y], i) => (
+                  <g key={`rnd-${i}`}>
+                    <circle cx={x} cy={y} r="5" fill="#7c3aed" />
+                    <line x1={x} y1={y} x2={x} y2="142" stroke="#86efac" strokeDasharray="2 2" />
+                    <rect x={x - 3} y="142" width="6" height="8" rx="2" fill="#16a34a" />
+                  </g>
+                ))}
+                <text x="105" y="158" textAnchor="middle" fontSize="8" fontWeight="800" fill="#16a34a">9 Distinct Points on Active Axis!</text>
+              </svg>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '8px' }}>
+                Every single trial tests a brand new unique value on the active axis, tripling exploration resolution!
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: PROBABILITY DISTRIBUTIONS ─────────────────────────── */}
+      {activeTab === 'distributions' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Linear Uniform vs. Log-Uniform Sampling
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Why exponential hyperparameters (like learning rate or C) require log-uniform distributions.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '1rem' }}>
+              <button
+                onClick={() => setDistType('uniform')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor: distType === 'uniform' ? '#dc2626' : '#cbd5e1',
+                  background: distType === 'uniform' ? '#fee2e2' : '#ffffff',
+                  color: distType === 'uniform' ? '#dc2626' : '#64748b',
+                  cursor: 'pointer'
+                }}
+              >
+                Linear uniform(0.0001, 0.1) - BAD
+              </button>
+              <button
+                onClick={() => setDistType('loguniform')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor: distType === 'loguniform' ? '#16a34a' : '#cbd5e1',
+                  background: distType === 'loguniform' ? '#dcfce7' : '#ffffff',
+                  color: distType === 'loguniform' ? '#16a34a' : '#64748b',
+                  cursor: 'pointer'
+                }}
+              >
+                Log-Uniform loguniform(1e-4, 1e-1) - RECOMMENDED
+              </button>
+            </div>
+
+            {distType === 'uniform' ? (
+              <div style={{ background: '#fafaf9', borderRadius: '10px', padding: '1.25rem', border: '1px solid #fecaca' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#dc2626', marginBottom: '6px' }}>
+                  Linear Uniform Flaw on Learning Rates:
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: 1.55 }}>
+                  When sampling linearly between 0.0001 and 0.1:
+                  <br />
+                  - <strong>90% of samples</strong> fall between 0.01 and 0.1 (High values that cause divergence!).
+                  <br />
+                  - <strong>Only 1% of samples</strong> fall between 0.0001 and 0.001.
+                  <br />
+                  Small learning rates are virtually starved of search opportunities!
+                </div>
+              </div>
+            ) : (
+              <div style={{ background: '#fafaf9', borderRadius: '10px', padding: '1.25rem', border: '1px solid #86efac' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#16a34a', marginBottom: '6px' }}>
+                  Log-Uniform Power: Equal Exploration Across Scales:
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: 1.55 }}>
+                  <code>scipy.stats.loguniform(1e-4, 1e-1)</code> samples equally across orders of magnitude:
+                  <br />
+                  - <strong>25% of samples</strong> in [10^-4, 10^-3] (e.g. 0.0003)
+                  <br />
+                  - <strong>25% of samples</strong> in [10^-3, 10^-2] (e.g. 0.004)
+                  <br />
+                  - <strong>25% of samples</strong> in [10^-2, 10^-1] (e.g. 0.05)
+                  <br />
+                  Every scale gets equal opportunity to be discovered!
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: SHOOTOUT ─────────────────────────────────────────── */}
+      {activeTab === 'shootout' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Grid Search vs. Random Search Shootout
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Architectural comparison and selection rules.
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', background: '#ffffff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+              <thead>
+                <tr style={{ background: '#001f54', color: '#ffffff', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 14px' }}>Criteria</th>
+                  <th style={{ padding: '10px 14px' }}>GridSearchCV</th>
+                  <th style={{ padding: '10px 14px' }}>RandomizedSearchCV</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Search Space Dimension</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Small (1-2 parameters)</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>High (3+ parameters)</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Parameter Types</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Discrete lists & Categoricals</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Continuous distributions (scipy.stats)</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Time Budget Control</td>
+                  <td style={{ padding: '10px 14px', color: '#dc2626' }}>No (Explodes as M^P * K)</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Strict control via n_iter</td>
+                </tr>
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>High-Dim Efficiency</td>
+                  <td style={{ padding: '10px 14px', color: '#dc2626' }}>Poor (wastes trials on inactive axes)</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Optimal (Bergstra & Bengio proof)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production RandomizedSearchCV Pipeline in Scikit-Learn:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from scipy.stats import loguniform, randint, uniform',
+                'from sklearn.datasets import load_breast_cancer',
+                'from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.ensemble import RandomForestClassifier',
+                'from sklearn.pipeline import Pipeline',
+                '',
+                '# 1. Load dataset',
+                'X, y = load_breast_cancer(return_X_y=True)',
+                '',
+                '# 2. Encapsulate in Pipeline to prevent data leakage',
+                'pipeline = Pipeline([',
+                "    ('scaler', StandardScaler()),",
+                "    ('rf', RandomForestClassifier(random_state=42))",
+                '])',
+                '',
+                '# 3. Define probability distribution search space',
+                'param_distributions = {',
+                "    'rf__n_estimators': randint(50, 350),      # Discrete integers",
+                "    'rf__max_depth': randint(2, 14),           # Tree depth",
+                "    'rf__min_samples_split': randint(2, 8),    # Split criteria",
+                "    'rf__max_features': uniform(0.2, 0.8)      # Continuous float [0.2, 1.0]",
+                '}',
+                '',
+                '# 4. Execute budget-controlled Random Search',
+                'random_search = RandomizedSearchCV(',
+                '    estimator=pipeline,',
+                '    param_distributions=param_distributions,',
+                '    n_iter=50,    # Exactly 50 random combinations (50 * 5 = 250 fits)',
+                '    cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=42),',
+                "    scoring='accuracy',",
+                '    n_jobs=-1,    # Parallelize across all CPU cores',
+                '    random_state=42,',
+                '    refit=True',
+                ')',
+                'random_search.fit(X, y)',
+                '',
+                'print(f"Optimal Parameters: {random_search.best_params_}")',
+                'print(f"Best 5-Fold CV Accuracy: {random_search.best_score_*100:.2f}%")',
+                'winning_model = random_search.best_estimator_'
+              ].join('\n')}
+              title="random_search_production.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4'
 ];
 
 export default function MLLessonArticlePage() {
@@ -29086,6 +29823,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'grid_search_interactive_studio' && (
               <GridSearchInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'random_search_interactive_studio' && (
+              <RandomSearchInteractiveStudio />
             )}
           </div>
         )}

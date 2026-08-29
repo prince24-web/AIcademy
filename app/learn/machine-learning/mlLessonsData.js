@@ -6215,4 +6215,194 @@ print("\nTop 3 Candidate Configurations:\n", top_results)`
     }
   }
 
+,
+
+  'ml-6-4': {
+    id: 'ml-6-4',
+    title: 'Random Search: High-Dimensional Efficiency & Probability Distributions',
+    moduleTitle: 'MODULE 6: MODEL EVALUATION & IMPROVEMENT',
+    readTime: '28 min read',
+    difficulty: 'Intermediate',
+    badgeText: 'Probabilistic Optimization & Budget Control',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: 'https://www.geeksforgeeks.org/random-search-hyperparameter-tuning/',
+
+    learningObjectives: [
+      'Understand the mathematical proof by Bergstra & Bengio (2012) showing why Random Search vastly outperforms Grid Search in high dimensions.',
+      'Analyze the dimensional projection phenomenon: how Grid Search wastes evaluations on redundant coordinates along active axes.',
+      'Master continuous probability distributions in Scikit-Learn using scipy.stats (uniform, loguniform, randint).',
+      'Understand why Log-Uniform distributions are mandatory when searching across exponential orders of magnitude (e.g. learning rate and C).',
+      'Learn how to control computational budgets precisely using the n_iter parameter.',
+      'Explore an interactive 3D Three.js simulation in Light Studio Mode comparing 3D Grid Search vs. Random Search coordinate exploration.',
+      'Implement production-grade RandomizedSearchCV pipelines with Pipeline encapsulation and multi-core acceleration in Python.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Grid Search Blindspot: The Fishing Net with Holes',
+        paragraphs: [
+          'In the previous lesson, we saw how Grid Search systematically tests every coordinate on a grid. While intuitive, Grid Search suffers from a glaring weakness: it only evaluates the exact discrete numbers you manually wrote in your list.',
+          'The Mental Model: The Fishing Net with Fixed Holes:',
+          'Imagine fishing with a rigid wire net whose mesh squares are spaced 10 inches apart. If a massive school of valuable 6-inch fish swims through the water, every single fish slips right through the holes in your grid!',
+          'Grid Search does this exact same thing to hyperparameters: if you test $C = [0.1, 1.0, 10.0]$, and the true global optimum for your dataset happens to be $C = 3.8$, Grid Search will never discover it because $3.8$ falls directly between your rigid grid lines!',
+          'Random Search solves this blindspot by sampling continuous values freely across the entire numerical landscape, guaranteeing that no sweet spot is hidden between arbitrary grid cracks.'
+        ]
+      },
+      {
+        heading: '2. The Bergstra & Bengio Breakthrough: Why Random Search Wins',
+        paragraphs: [
+          'In a landmark 2012 paper published in the Journal of Machine Learning Research, researchers James Bergstra and Yoshua Bengio proved mathematically that Random Search is fundamentally superior to Grid Search for hyperparameter optimization.',
+          'The Core Insight: Low Effective Dimensionality:',
+          'In real-world machine learning models with 5 or 10 hyperparameters, not all parameters are equally important. Typically, 1 or 2 hyperparameters (such as learning rate or regularization) dominate $90\\%$ of model variance, while the other parameters have minimal impact.',
+          'The Dimensional Projection Comparison:',
+          '- In a 3x3 Grid Search (9 total model fits): You test 3 values of Parameter A across 3 values of Parameter B. When you project these points onto the important axis (Parameter A), you realize you only tested 3 distinct values! The other 6 model fits were wasted re-evaluating the exact same coordinates on the important axis.',
+          '- In a 9-Trial Random Search (9 total model fits): Every single trial samples a completely random coordinate. When projected onto the important axis, you have tested 9 completely unique values!',
+          'At the exact same computational cost (9 fits), Random Search provides $3\\times$ greater exploration resolution along the dimension that actually matters!'
+        ]
+      },
+      {
+        heading: '3. Continuous Probability Distributions with scipy.stats',
+        paragraphs: [
+          'Instead of passing static discrete lists like `[0.001, 0.01, 0.1]`, `RandomizedSearchCV` allows you to define continuous probability distributions using `scipy.stats`:',
+          '1. Linear Uniform (`scipy.stats.uniform(loc, scale)`):',
+          '- Samples numbers uniformly across a linear interval from `loc` to `loc + scale`.',
+          '- Example: `uniform(0.1, 0.4)` samples numbers uniformly between $0.1$ and $0.5$. Ideal for bounded linear metrics like dropout rate or momentum.',
+          '2. Log-Uniform / Reciprocal (`scipy.stats.loguniform(a, b)`):',
+          '- Samples numbers uniformly across logarithmic orders of magnitude ($10^{-4}, 10^{-3}, 10^{-2}, 10^{-1}$).',
+          '- Why is this critical? If you search learning rates linearly between $0.0001$ and $0.1$, $90\\%$ of your samples will fall between $0.01$ and $0.1$, and only $1\\%$ will fall near $0.0001$! `loguniform` ensures equal probability of testing $10^{-4}, 10^{-3}, 10^{-2},$ and $10^{-1}$. Mandatory for learning rate, SVM $C$, and Ridge $\\alpha$!',
+          '3. Discrete Integer Uniform (`scipy.stats.randint(low, high)`):',
+          '- Samples random integers between `low` and `high` (e.g. `randint(10, 300)` for `n_estimators` in Random Forest).'
+        ]
+      },
+      {
+        heading: '4. Budget-Controlled Optimization: The n_iter Parameter',
+        paragraphs: [
+          'The most powerful operational advantage of Random Search is total budget control via the `n_iter` parameter.',
+          '- In Grid Search, adding a 5th hyperparameter with 4 candidate values multiplies your training time by $4\\times$, often causing training to blow past deadlines.',
+          '- In Random Search, you specify the exact number of iterations: `n_iter=50`.',
+          'Whether you are tuning 2 hyperparameters or 20 hyperparameters, `RandomizedSearchCV` will run exactly $50 \\times K$ model fits, guaranteeing that your pipeline finishes within your exact time and hardware constraints!'
+        ]
+      },
+      {
+        heading: '5. Grid Search vs. Random Search: The Decision Framework',
+        paragraphs: [
+          'When should you use Grid Search versus Random Search?',
+          'Use Grid Search When:',
+          '- You only have 1 or 2 hyperparameters to tune.',
+          '- Hyperparameters are discrete categorical choices (e.g. `kernel: [\'linear\', \'rbf\']`, `criterion: [\'gini\', \'entropy\']`).',
+          '- You want an exhaustive scan over a very narrow, previously identified fine-tuning zone.',
+          'Use Random Search When:',
+          '- You have 3 or more hyperparameters (the standard in modern machine learning).',
+          '- Parameters are continuous numerical variables (learning rate, regularization, gamma).',
+          '- You have a strict time/compute budget (`n_iter=50` or `100`).'
+        ]
+      },
+      {
+        heading: '6. Production Implementation with Scikit-Learn',
+        paragraphs: [
+          'Below is a production Python script implementing `RandomizedSearchCV` with continuous log-uniform distributions, pipeline encapsulation, and multi-core acceleration.'
+        ],
+        codeBlockTitle: 'random_search_masterclass.py',
+        codeBlock: `import numpy as np
+import pandas as pd
+from scipy.stats import loguniform, randint, uniform
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold, train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
+
+# =====================================================================
+# 1. LOAD DATASET & TRAIN/TEST SPLIT
+# =====================================================================
+X, y = load_breast_cancer(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# =====================================================================
+# 2. DEFINE LEAK-FREE PIPELINE
+# =====================================================================
+pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('rf', RandomForestClassifier(random_state=42))
+])
+
+# =====================================================================
+# 3. DEFINE CONTINUOUS PROBABILITY DISTRIBUTIONS
+# =====================================================================
+param_distributions = {
+    'rf__n_estimators': randint(50, 400),           # Discrete integers [50, 400)
+    'rf__max_depth': randint(2, 16),                # Tree depth [2, 16)
+    'rf__min_samples_split': randint(2, 10),        # Min split samples
+    'rf__min_samples_leaf': randint(1, 6),          # Min leaf samples
+    'rf__max_features': uniform(0.2, 0.8)           # Fraction of features [0.2, 1.0]
+}
+
+# =====================================================================
+# 4. EXECUTE RANDOM SEARCH WITH STRICT BUDGET (n_iter=40)
+# =====================================================================
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+random_search = RandomizedSearchCV(
+    estimator=pipeline,
+    param_distributions=param_distributions,
+    n_iter=40,            # Exactly 40 random candidate combinations
+    cv=cv,                # 5-fold CV -> Total 40 * 5 = 200 model fits!
+    scoring='accuracy',
+    n_jobs=-1,            # Parallel execution on all CPU cores
+    random_state=42,
+    refit=True
+)
+
+random_search.fit(X_train, y_train)
+
+# =====================================================================
+# 5. INSPECT OPTIMAL HYPERPARAMETERS & EVALUATE
+# =====================================================================
+print("--- Random Search Results ---")
+print(f"Optimal Hyperparameters: {random_search.best_params_}")
+print(f"Best 5-Fold CV Accuracy:  {random_search.best_score_ * 100:.2f}%")
+
+test_acc = random_search.score(X_test, y_test)
+print(f"Hold-out Test Accuracy:   {test_acc * 100:.2f}%")
+
+# Top 3 Candidates DataFrame
+results_df = pd.DataFrame(random_search.cv_results_)
+top_3 = results_df[['params', 'mean_test_score', 'rank_test_score']].sort_values(by='rank_test_score').head(3)
+print("\nTop 3 Candidate Configurations:\n", top_3)`
+      }
+    ],
+
+    analogy: {
+      title: 'The Real-World Analogy: Searching for Gold in a Massive Mountain Range',
+      text: 'Imagine searching for gold in a 100-square-mile mountain range with an exploration budget of 20 core drillings. If you use Grid Search, you drill 4 holes along 5 rigid grid lines. If the gold vein runs horizontally between lines 2 and 3, you miss it completely and waste all 20 drills! If you use Random Search, you scatter your 20 drill sites randomly across the terrain. You explore 20 unique elevations, 20 unique longitudes, and 20 unique latitudes. You are far more likely to strike gold with identical drilling budget!'
+    },
+
+    diagram: {
+      type: 'random_search_interactive_studio',
+      caption: 'Interactive 3D Three.js Studio: Explore a 3D hyperparameter search volume in Light Studio Mode, compare rigid Grid Search vs. continuous Random Search coordinate projections, and adjust candidate sample budgets.'
+    },
+
+    takeaways: [
+      'Random Search samples hyperparameter candidates randomly from continuous probability distributions.',
+      'Bergstra & Bengio (2012) proved Random Search explores unique values along important dimensions far more efficiently than Grid Search.',
+      'Use scipy.stats.loguniform for parameters spanning multiple orders of magnitude (learning rate, C, alpha).',
+      'Use scipy.stats.uniform for linear continuous parameters and randint for discrete integers.',
+      'The n_iter parameter provides exact control over your computational budget and training time.',
+      'Random Search is the industry standard for tuning 3 or more hyperparameters simultaneously.'
+    ],
+
+    quiz: {
+      question: 'Why is scipy.stats.loguniform preferred over scipy.stats.uniform when tuning learning rates or SVM regularization parameter C?',
+      options: [
+        'Because learning rate and C operate across exponential orders of magnitude (e.g. 0.0001 to 0.1); loguniform gives equal probability to exploring each power of 10, whereas uniform would place 90% of samples between 0.01 and 0.1',
+        'Because Scikit-Learn throws an error if uniform is used with SVM',
+        'Because loguniform converts negative numbers into positive numbers',
+        'Because loguniform trains faster than uniform'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! When a hyperparameter spans multiple powers of 10 (such as 0.0001 to 0.1), a linear uniform distribution places 90% of all samples between 0.01 and 0.1, virtually ignoring values below 0.001! Log-uniform sampling ensures every order of magnitude (10^-4, 10^-3, 10^-2, 10^-1) gets equal exploration opportunity.'
+    }
+  }
+
 };
