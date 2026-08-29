@@ -22813,11 +22813,906 @@ const ClusteringFoundationsStudio = () => {
   );
 };
 
+
+// ─── K-MEANS CLUSTERING THREE.JS INTERACTIVE STUDIO (ml-5-2) ────────────────
+const KMeansInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'elbow', 'kmeans_plus', 'failure_modes', 'code'
+
+  // Tab 1: 3D Three.js State
+  const containerRef = useRef(null);
+  const [numClusters, setNumClusters] = useState(3);
+  const [phase, setPhase] = useState('init'); // 'init', 'assigned', 'updated', 'converged'
+  const [iteration, setIteration] = useState(0);
+  const [inertiaValue, setInertiaValue] = useState(0);
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Tab 2: Elbow Method State
+  const [elbowK, setElbowK] = useState(3);
+
+  // 3D Scene Reference State
+  const sceneStateRef = useRef({
+    points: [],
+    centroids: [],
+    pointMeshes: [],
+    centroidMeshes: [],
+    lineSegmentsMesh: null,
+    scene: null,
+    renderer: null,
+    camera: null,
+    isMouseDown: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
+    rotX: 0.3,
+    rotY: 0.4
+  });
+
+  const clusterPalette = useMemo(() => [
+    0x0284c7, // Sky Blue
+    0x16a34a, // Emerald Green
+    0xd97706, // Amber Gold
+    0x9333ea  // Purple
+  ], []);
+
+  // Initialize synthetic 3D dataset (60 points across 3 or 4 spatial clouds)
+  const generate3DPoints = useCallback((k) => {
+    const pts = [];
+    const centers = [
+      { x: -5, y: 3, z: -3 },
+      { x: 5, y: 2, z: 3 },
+      { x: -1, y: -4, z: 4 },
+      { x: 4, y: -3, z: -4 }
+    ];
+
+    const actualK = Math.min(k, centers.length);
+    const countPerCluster = Math.floor(60 / actualK);
+
+    for (let c = 0; c < actualK; c++) {
+      const center = centers[c];
+      for (let i = 0; i < countPerCluster; i++) {
+        pts.push({
+          id: `${c}-${i}`,
+          x: center.x + (Math.random() - 0.5) * 3.4,
+          y: center.y + (Math.random() - 0.5) * 3.4,
+          z: center.z + (Math.random() - 0.5) * 3.4,
+          cluster: -1,
+          trueCluster: c
+        });
+      }
+    }
+    return pts;
+  }, []);
+
+  // Initialize centroids (Random or K-Means++)
+  const initializeCentroids = useCallback((k, pts, isPlusPlus = true) => {
+    const cents = [];
+    if (!pts.length) return cents;
+
+    if (!isPlusPlus) {
+      // Pure Random Placement
+      for (let i = 0; i < k; i++) {
+        const randPt = pts[Math.floor(Math.random() * pts.length)];
+        cents.push({ x: randPt.x + (Math.random() - 0.5), y: randPt.y + (Math.random() - 0.5), z: randPt.z + (Math.random() - 0.5) });
+      }
+      return cents;
+    }
+
+    // K-Means++ Initialization
+    const firstIdx = Math.floor(Math.random() * pts.length);
+    cents.push({ x: pts[firstIdx].x, y: pts[firstIdx].y, z: pts[firstIdx].z });
+
+    for (let c = 1; c < k; c++) {
+      let maxDistSq = -1;
+      let bestPt = pts[0];
+
+      pts.forEach((p) => {
+        let minDistToAnyCentroid = Infinity;
+        cents.forEach((cent) => {
+          const dSq = (p.x - cent.x) ** 2 + (p.y - cent.y) ** 2 + (p.z - cent.z) ** 2;
+          if (dSq < minDistToAnyCentroid) minDistToAnyCentroid = dSq;
+        });
+        if (minDistToAnyCentroid > maxDistSq) {
+          maxDistSq = minDistToAnyCentroid;
+          bestPt = p;
+        }
+      });
+
+      cents.push({ x: bestPt.x, y: bestPt.y, z: bestPt.z });
+    }
+    return cents;
+  }, []);
+
+  // Mount Three.js 3D WebGL Canvas
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth || 640;
+    const height = 360;
+
+    // Create Scene, Camera, Renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 14, 24);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // Clear previous children
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(10, 20, 10);
+    scene.add(dirLight);
+
+    // 3D Grid Floor
+    const gridHelper = new THREE.GridHelper(22, 18, 0x001f54, 0xe2e8f0);
+    gridHelper.position.y = -6;
+    scene.add(gridHelper);
+
+    // Generate Points & Centroids
+    const initialPts = generate3DPoints(numClusters);
+    const initialCents = initializeCentroids(numClusters, initialPts, true);
+
+    sceneStateRef.current.points = initialPts;
+    sceneStateRef.current.centroids = initialCents;
+    sceneStateRef.current.scene = scene;
+    sceneStateRef.current.renderer = renderer;
+    sceneStateRef.current.camera = camera;
+
+    // Create Point Meshes
+    const pointGeo = new THREE.SphereGeometry(0.32, 14, 14);
+    const defaultPointMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.3, metalness: 0.1 });
+    const pointMeshes = [];
+
+    initialPts.forEach((pt) => {
+      const mesh = new THREE.Mesh(pointGeo, defaultPointMat.clone());
+      mesh.position.set(pt.x, pt.y, pt.z);
+      scene.add(mesh);
+      pointMeshes.push(mesh);
+    });
+    sceneStateRef.current.pointMeshes = pointMeshes;
+
+    // Create Centroid Meshes (Octahedrons with wireframe halo)
+    const centroidMeshes = [];
+    const centGeo = new THREE.OctahedronGeometry(0.9, 0);
+
+    initialCents.forEach((cent, idx) => {
+      const col = clusterPalette[idx % clusterPalette.length];
+      const centMat = new THREE.MeshStandardMaterial({
+        color: col,
+        emissive: col,
+        emissiveIntensity: 0.5,
+        roughness: 0.1
+      });
+      const mesh = new THREE.Mesh(centGeo, centMat);
+      mesh.position.set(cent.x, cent.y, cent.z);
+
+      // Add wireframe outer pulse ring
+      const ringGeo = new THREE.RingGeometry(1.2, 1.3, 16);
+      const ringMat = new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.rotation.x = Math.PI / 2;
+      mesh.add(ringMesh);
+
+      scene.add(mesh);
+      centroidMeshes.push(mesh);
+    });
+    sceneStateRef.current.centroidMeshes = centroidMeshes;
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate && !sceneStateRef.current.isMouseDown) {
+        sceneStateRef.current.rotY += 0.004;
+      }
+
+      const dist = 26;
+      camera.position.x = dist * Math.sin(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.position.y = dist * Math.sin(sceneStateRef.current.rotX) + 2;
+      camera.position.z = dist * Math.cos(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.lookAt(0, 0, 0);
+
+      // Rotate centroid gems
+      centroidMeshes.forEach((cm) => {
+        cm.rotation.y += 0.02;
+        cm.rotation.x += 0.01;
+      });
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Mouse Drag Listeners for Orbit Rotation
+    const onMouseDown = (e) => {
+      sceneStateRef.current.isMouseDown = true;
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!sceneStateRef.current.isMouseDown) return;
+      const dx = e.clientX - sceneStateRef.current.prevMouseX;
+      const dy = e.clientY - sceneStateRef.current.prevMouseY;
+
+      sceneStateRef.current.rotY += dx * 0.008;
+      sceneStateRef.current.rotX = Math.max(-0.6, Math.min(1.2, sceneStateRef.current.rotX - dy * 0.008));
+
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => {
+      sceneStateRef.current.isMouseDown = false;
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      while (container.firstChild) container.removeChild(container.firstChild);
+    };
+  }, [activeTab, numClusters, generate3DPoints, initializeCentroids, clusterPalette, autoRotate]);
+
+  // Execute Lloyd Step 1: Assign Points to Nearest 3D Centroid
+  const handleAssignStep = () => {
+    const { points, centroids, pointMeshes, scene } = sceneStateRef.current;
+    if (!points.length || !centroids.length) return;
+
+    let totalInertia = 0;
+    const linePositions = [];
+    const lineColors = [];
+
+    points.forEach((p, idx) => {
+      let minDistSq = Infinity;
+      let bestCentroidIdx = 0;
+
+      centroids.forEach((c, cIdx) => {
+        const dSq = (p.x - c.x) ** 2 + (p.y - c.y) ** 2 + (p.z - c.z) ** 2;
+        if (dSq < minDistSq) {
+          minDistSq = dSq;
+          bestCentroidIdx = cIdx;
+        }
+      });
+
+      p.cluster = bestCentroidIdx;
+      totalInertia += minDistSq;
+
+      // Color point mesh
+      const mesh = pointMeshes[idx];
+      if (mesh) {
+        mesh.material.color.setHex(clusterPalette[bestCentroidIdx % clusterPalette.length]);
+      }
+
+      // Add line segment to nearest centroid
+      const c = centroids[bestCentroidIdx];
+      linePositions.push(p.x, p.y, p.z, c.x, c.y, c.z);
+      const col = new THREE.Color(clusterPalette[bestCentroidIdx % clusterPalette.length]);
+      lineColors.push(col.r, col.g, col.b, col.r, col.g, col.b);
+    });
+
+    // Update connecting lines in Three.js
+    if (sceneStateRef.current.lineSegmentsMesh) {
+      scene.remove(sceneStateRef.current.lineSegmentsMesh);
+    }
+
+    const lineGeo = new THREE.BufferGeometry();
+    lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+    lineGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
+
+    const lineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.35 });
+    const lineMesh = new THREE.LineSegments(lineGeo, lineMat);
+    scene.add(lineMesh);
+    sceneStateRef.current.lineSegmentsMesh = lineMesh;
+
+    setInertiaValue(totalInertia);
+    setPhase('assigned');
+  };
+
+  // Execute Lloyd Step 2: Update Centroids to Cluster Means
+  const handleUpdateStep = () => {
+    const { points, centroids, centroidMeshes } = sceneStateRef.current;
+    if (!points.length || !centroids.length) return;
+
+    let maxShift = 0;
+
+    centroids.forEach((c, cIdx) => {
+      const assignedPoints = points.filter((p) => p.cluster === cIdx);
+      if (assignedPoints.length > 0) {
+        const meanX = assignedPoints.reduce((sum, p) => sum + p.x, 0) / assignedPoints.length;
+        const meanY = assignedPoints.reduce((sum, p) => sum + p.y, 0) / assignedPoints.length;
+        const meanZ = assignedPoints.reduce((sum, p) => sum + p.z, 0) / assignedPoints.length;
+
+        const shift = Math.sqrt((c.x - meanX) ** 2 + (c.y - meanY) ** 2 + (c.z - meanZ) ** 2);
+        if (shift > maxShift) maxShift = shift;
+
+        c.x = meanX;
+        c.y = meanY;
+        c.z = meanZ;
+
+        const cMesh = centroidMeshes[cIdx];
+        if (cMesh) {
+          cMesh.position.set(meanX, meanY, meanZ);
+        }
+      }
+    });
+
+    setIteration((prev) => prev + 1);
+
+    if (maxShift < 0.05) {
+      setPhase('converged');
+    } else {
+      setPhase('updated');
+    }
+  };
+
+  // Run full convergence loop
+  const handleRunToConvergence = () => {
+    handleAssignStep();
+    setTimeout(() => {
+      handleUpdateStep();
+      handleAssignStep();
+      setTimeout(() => {
+        handleUpdateStep();
+        handleAssignStep();
+        setPhase('converged');
+      }, 300);
+    }, 300);
+  };
+
+  // Reset centroids
+  const handleReset = (isPlusPlus) => {
+    const { points, centroidMeshes, pointMeshes, scene, lineSegmentsMesh } = sceneStateRef.current;
+    if (!points.length) return;
+
+    if (lineSegmentsMesh) {
+      scene.remove(lineSegmentsMesh);
+      sceneStateRef.current.lineSegmentsMesh = null;
+    }
+
+    // Reset point colors
+    pointMeshes.forEach((pm) => {
+      pm.material.color.setHex(0x64748b);
+    });
+
+    const newCents = initializeCentroids(numClusters, points, isPlusPlus);
+    sceneStateRef.current.centroids = newCents;
+
+    newCents.forEach((c, idx) => {
+      if (centroidMeshes[idx]) {
+        centroidMeshes[idx].position.set(c.x, c.y, c.z);
+      }
+    });
+
+    setPhase('init');
+    setIteration(0);
+    setInertiaValue(0);
+  };
+
+  // Tab 2: Elbow Curve Mock Data
+  const elbowData = [
+    { k: 1, inertia: 1850 },
+    { k: 2, inertia: 920 },
+    { k: 3, inertia: 340 }, // Elbow bend!
+    { k: 4, inertia: 260 },
+    { k: 5, inertia: 210 },
+    { k: 6, inertia: 175 },
+    { k: 7, inertia: 150 },
+    { k: 8, inertia: 130 }
+  ];
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                THREE.JS 3D LAB
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Interactive Lloyd Algorithm & Centroid Dynamics
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              K-Means 3D Clustering Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'three_d', label: '1. 3D Lloyd Algorithm Simulator' },
+            { id: 'elbow', label: '2. The Elbow Method' },
+            { id: 'kmeans_plus', label: '3. Random vs K-Means++' },
+            { id: 'failure_modes', label: '4. Non-Spherical Failure Modes' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D THREE.JS SIMULATOR ────────────────────────────── */}
+      {activeTab === 'three_d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '0.85rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54' }}>Clusters (K):</span>
+              <select
+                value={numClusters}
+                onChange={(e) => setNumClusters(parseInt(e.target.value))}
+                style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.74rem', fontWeight: 700 }}
+              >
+                <option value={2}>K = 2</option>
+                <option value={3}>K = 3</option>
+                <option value={4}>K = 4</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                onClick={handleAssignStep}
+                disabled={phase === 'converged'}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #0284c7',
+                  background: phase === 'init' || phase === 'updated' ? '#0284c7' : '#f0f9ff',
+                  color: phase === 'init' || phase === 'updated' ? '#ffffff' : '#0369a1',
+                  fontWeight: 700,
+                  fontSize: '0.74rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Step 1: Assign Points
+              </button>
+
+              <button
+                onClick={handleUpdateStep}
+                disabled={phase !== 'assigned'}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #16a34a',
+                  background: phase === 'assigned' ? '#16a34a' : '#f0fdf4',
+                  color: phase === 'assigned' ? '#ffffff' : '#15803d',
+                  fontWeight: 700,
+                  fontSize: '0.74rem',
+                  cursor: phase === 'assigned' ? 'pointer' : 'not-allowed',
+                  opacity: phase === 'assigned' ? 1 : 0.6
+                }}
+              >
+                Step 2: Move Centroids
+              </button>
+
+              <button
+                onClick={handleRunToConvergence}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#001f54',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.74rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Run to Convergence
+              </button>
+
+              <button
+                onClick={() => handleReset(true)}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#475569',
+                  fontWeight: 700,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Reset (K-Means++)
+              </button>
+
+              <button
+                onClick={() => setAutoRotate(!autoRotate)}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: autoRotate ? '#eff6ff' : '#ffffff',
+                  color: autoRotate ? '#1e40af' : '#64748b',
+                  fontWeight: 600,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {autoRotate ? 'Pause Rotation' : 'Auto-Rotate'}
+              </button>
+            </div>
+          </div>
+
+          {/* Three.js 3D WebGL Canvas Container */}
+          <div style={{
+            position: 'relative',
+            background: 'radial-gradient(circle at center, #0f172a, #020617)',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.18)',
+            border: '1.5px solid #1e293b'
+          }}>
+            <div
+              ref={containerRef}
+              style={{ width: '100%', height: '360px', cursor: 'grab' }}
+            />
+
+            {/* 3D Overlay HUD Badges */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '6px', color: '#ffffff', fontSize: '0.72rem', fontWeight: 800 }}>
+                Phase: <span style={{ color: phase === 'converged' ? '#86efac' : '#38bdf8' }}>{phase.toUpperCase()}</span>
+              </div>
+              <div style={{ background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '6px', color: '#ffffff', fontSize: '0.72rem', fontWeight: 700 }}>
+                Lloyd Iterations: <span style={{ color: '#fbbf24' }}>{iteration}</span>
+              </div>
+              {inertiaValue > 0 && (
+                <div style={{ background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '6px', color: '#ffffff', fontSize: '0.72rem', fontWeight: 700 }}>
+                  Inertia (WCSS): <span style={{ color: '#f472b6' }}>{inertiaValue.toFixed(1)}</span>
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '14px',
+              background: 'rgba(15, 23, 42, 0.85)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              color: '#94a3b8',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              pointerEvents: 'none'
+            }}>
+              Click and drag to orbit 3D camera
+            </div>
+          </div>
+
+          {/* Explanation Callout */}
+          <div style={{
+            background: phase === 'converged' ? '#f0fdf4' : '#f8fafc',
+            border: `1px solid ${phase === 'converged' ? '#86efac' : '#e2e8f0'}`,
+            borderRadius: '12px',
+            padding: '12px 16px',
+            fontSize: '0.75rem',
+            color: phase === 'converged' ? '#166534' : '#475569',
+            fontWeight: 600,
+            lineHeight: 1.45
+          }}>
+            {phase === 'init' && 'Step 0 (Initialization): Centroids (rotating 3D octahedrons) are placed in 3D space. Click "Step 1: Assign Points" to map each 3D point sphere to its nearest centroid!'}
+            {phase === 'assigned' && 'Step 1 (Assignment Phase): Every 3D data point has joined its closest centroid (illustrated by connecting rays and synchronized colors). Click "Step 2: Move Centroids" to watch centroids glide to the mean coordinates of their points!'}
+            {phase === 'updated' && `Step 2 (Update Phase): Centroids recalculated their 3D positions to the center of their clusters. Iteration ${iteration} complete! Click "Step 1: Assign Points" again to recheck boundary points.`}
+            {phase === 'converged' && 'Convergence Reached! Centroid movement is now zero (less than tolerance epsilon). The total 3D Inertia (WCSS) has stabilized at a local minimum!'}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: THE ELBOW METHOD ─────────────────────────────────── */}
+      {activeTab === 'elbow' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Finding the Golden Balance: The Elbow Method
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Inertia always decreases as K increases. The "Elbow" is the exact inflection point where adding another cluster yields diminishing returns.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>Select Candidate K:</span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 900, color: elbowK === 3 ? '#16a34a' : '#0284c7' }}>
+                K = {elbowK} {elbowK === 3 ? '(The Optimal Elbow Bend!)' : ''}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="8"
+              value={elbowK}
+              onChange={(e) => setElbowK(parseInt(e.target.value))}
+              style={{ width: '100%', accentColor: '#001f54', marginBottom: '1rem' }}
+            />
+
+            {/* SVG Plot for Elbow Curve */}
+            <svg width="100%" height="220" viewBox="0 0 460 220" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+              {/* Gridlines */}
+              {[40, 80, 120, 160].map((y) => (
+                <line key={`grid-${y}`} x1="45" y1={y} x2="440" y2={y} stroke="#e2e8f0" strokeDasharray="3 3" />
+              ))}
+              <line x1="45" y1="20" x2="45" y2="190" stroke="#64748b" strokeWidth="1.5" />
+              <line x1="45" y1="190" x2="440" y2="190" stroke="#64748b" strokeWidth="1.5" />
+
+              {/* Curve path */}
+              <path
+                d={elbowData.map((d, i) => `${i === 0 ? 'M' : 'L'} ${45 + (d.k - 1) * 52} ${190 - (d.inertia / 2000) * 165}`).join(' ')}
+                stroke="#001f54"
+                strokeWidth="3"
+                fill="none"
+              />
+
+              {/* Data points */}
+              {elbowData.map((d) => {
+                const cx = 45 + (d.k - 1) * 52;
+                const cy = 190 - (d.inertia / 2000) * 165;
+                const isSelected = d.k === elbowK;
+                const isElbow = d.k === 3;
+                return (
+                  <g key={d.k}>
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={isSelected ? 7 : 4.5}
+                      fill={isElbow ? '#16a34a' : isSelected ? '#0284c7' : '#001f54'}
+                      stroke="#ffffff"
+                      strokeWidth="2"
+                    />
+                    <text x={cx} y={cy - 10} textAnchor="middle" fontSize="9" fontWeight="700" fill="#475569">
+                      {d.inertia}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Elbow Callout Arrow */}
+              <g transform="translate(149, 130)">
+                <circle cx="0" cy="0" r="14" fill="none" stroke="#16a34a" strokeWidth="2" strokeDasharray="3 2" />
+                <text x="18" y="4" fontSize="10" fontWeight="800" fill="#16a34a">Elbow (K = 3)</text>
+              </g>
+
+              {/* Axis Labels */}
+              <text x="240" y="210" textAnchor="middle" fontSize="10" fontWeight="700" fill="#475569">Number of Clusters (K)</text>
+              <text x="14" y="105" textAnchor="middle" fontSize="10" fontWeight="700" fill="#475569" transform="rotate(-90, 14, 105)">Inertia (WCSS)</text>
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: RANDOM VS K-MEANS++ ─────────────────────────────── */}
+      {activeTab === 'kmeans_plus' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Initialization Shootout: Naive Random vs. K-Means++
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              K-Means++ uses distance-weighted probabilities P(x) &prop; D(x)&sup2; so that initial centroids spawn far apart from each other.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Random Init Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #ef4444', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#ef4444', marginBottom: '6px' }}>
+                Naive Random Initialization
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.45 }}>
+                Two centroids accidentally land in the same natural cluster.
+                <br /><br />
+                - <strong>Result:</strong> Cluster 1 is awkwardly split in half by two rival centroids, while Cluster 3 has no centroid at all!
+                <br />
+                - <strong>Consequence:</strong> Trapped in a high-error local minimum.
+              </div>
+            </div>
+
+            {/* K-Means++ Card */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', marginBottom: '6px' }}>
+                K-Means++ Probabilistic Seeding
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.45 }}>
+                Centroids are chosen sequentially with probability proportional to squared distance.
+                <br /><br />
+                - <strong>Result:</strong> Each centroid is virtually guaranteed to spawn in a separate natural cluster!
+                <br />
+                - <strong>Consequence:</strong> Converges twice as fast and avoids sub-optimal local traps.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: FAILURE MODES ────────────────────────────────────── */}
+      {activeTab === 'failure_modes' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Geometric Assumptions: Where K-Means Breaks Down
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              K-Means assumes spherical clusters of equal size. See where it fails on non-convex shapes!
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Concentric Circles Failure */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1rem' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#dc2626', marginBottom: '6px' }}>
+                Concentric Rings (Bullseye Target)
+              </div>
+              <svg width="100%" height="160" viewBox="0 0 240 160" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                <circle cx="120" cy="80" r="25" fill="none" stroke="#2563eb" strokeWidth="3" strokeDasharray="3 3" />
+                <circle cx="120" cy="80" r="60" fill="none" stroke="#ea580c" strokeWidth="3" strokeDasharray="3 3" />
+                {/* Voronoi slice cut */}
+                <line x1="120" y1="10" x2="120" y2="150" stroke="#001f54" strokeWidth="2" />
+                <text x="120" y="85" textAnchor="middle" fontSize="9" fontWeight="800" fill="#dc2626">Slices into wedges!</text>
+              </svg>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '6px' }}>
+                K-Means cuts the rings in half with a straight line instead of recognizing the inner and outer circles. (Solved by DBSCAN in lesson 5-4!).
+              </div>
+            </div>
+
+            {/* Outlier Sensitivity */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '1rem' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#d97706', marginBottom: '6px' }}>
+                Sensitivity to Outliers
+              </div>
+              <svg width="100%" height="160" viewBox="0 0 240 160" style={{ background: '#fafaf9', borderRadius: '8px' }}>
+                {/* Dense Cluster */}
+                <circle cx="70" cy="80" r="30" fill="#dcfce7" stroke="#86efac" strokeWidth="1" />
+                {/* Distant Outlier */}
+                <circle cx="210" cy="80" r="5" fill="#dc2626" />
+                {/* Centroid yanked */}
+                <line x1="70" y1="80" x2="120" y2="80" stroke="#d97706" strokeWidth="2" strokeDasharray="2 2" />
+                <circle cx="120" cy="80" r="8" fill="#001f54" />
+                <text x="210" y="70" textAnchor="middle" fontSize="8" fontWeight="700" fill="#dc2626">Outlier</text>
+                <text x="120" y="100" textAnchor="middle" fontSize="8" fontWeight="700" fill="#001f54">Centroid yanked away</text>
+              </svg>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '6px' }}>
+                Because squared Euclidean distances penalize outliers quadratically, a single distant point yanks the centroid off-center.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production Scikit-Learn K-Means Pipeline with Elbow & Silhouette Validation:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from sklearn.cluster import KMeans',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.metrics import silhouette_score',
+                'from sklearn.datasets import make_blobs',
+                'import numpy as np',
+                '',
+                '# 1. Generate multi-feature unlabelled data',
+                'X, _ = make_blobs(n_samples=1000, n_features=4, centers=3, random_state=42)',
+                'X_scaled = StandardScaler().fit_transform(X)',
+                '',
+                '# 2. Elbow Method Search (K = 1 to 8)',
+                'inertias = []',
+                'for k in range(1, 9):',
+                '    km = KMeans(n_clusters=k, init="k-means++", n_init=10, random_state=42)',
+                '    km.fit(X_scaled)',
+                '    inertias.append(km.inertia_)',
+                '    print(f"K={k}: Inertia={km.inertia_:.1f}")',
+                '',
+                '# 3. Train Final Model at Optimal K=3',
+                'kmeans = KMeans(n_clusters=3, init="k-means++", n_init=10, random_state=42)',
+                'labels = kmeans.fit_predict(X_scaled)',
+                'centroids = kmeans.cluster_centers_',
+                '',
+                'print(f"\nFinal Silhouette Score: {silhouette_score(X_scaled, labels):.4f}")',
+                'print("Discovered Centroids:\\n", np.round(centroids, 2))'
+              ].join('\n')}
+              title="kmeans_masterclass.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2'
 ];
 
 export default function MLLessonArticlePage() {
@@ -23030,6 +23925,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'clustering_foundations_studio' && (
               <ClusteringFoundationsStudio />
+            )}
+            {lesson.diagram.type === 'kmeans_interactive_studio' && (
+              <KMeansInteractiveStudio />
             )}
           </div>
         )}

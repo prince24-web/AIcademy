@@ -216,7 +216,7 @@ const mlModules = [
     subtitle: 'Goal: Discover hidden patterns in unlabelled data.',
     lessons: [
       { id: 'ml-5-1', name: 'What is Clustering?', nodeType: 'concept', status: 'active' },
-      { id: 'ml-5-2', name: 'K-Means Clustering', nodeType: 'star', status: 'locked' },
+      { id: 'ml-5-2', name: 'K-Means Clustering', nodeType: 'star', status: 'active' },
       { id: 'ml-5-3', name: 'Hierarchical Clustering', nodeType: 'concept', status: 'locked' },
       { id: 'ml-5-4', name: 'DBSCAN', nodeType: 'lightbulb', status: 'locked' },
       { id: 'ml-5-5', name: 'Dimensionality Reduction', nodeType: 'concept', status: 'locked' },
