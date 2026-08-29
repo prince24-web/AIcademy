@@ -6023,4 +6023,196 @@ print(f"Optimal 'max_depth': {best_depth} (Peak Validation Accuracy: {np.max(mea
     }
   }
 
+,
+
+  'ml-6-3': {
+    id: 'ml-6-3',
+    title: 'Grid Search: Exhaustive Hyperparameter Optimization & Combinatorial Search',
+    moduleTitle: 'MODULE 6: MODEL EVALUATION & IMPROVEMENT',
+    readTime: '30 min read',
+    difficulty: 'Intermediate',
+    badgeText: 'Automated Model Tuning & Parallel Search',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: 'https://www.geeksforgeeks.org/hyperparameter-tuning-using-gridsearchcv-and-kerasclassifier/',
+
+    learningObjectives: [
+      'Master the intuitive philosophy of Grid Search: exhaustive combinatorial evaluation across a discrete Cartesian parameter space.',
+      'Analyze the 4-step GridSearchCV pipeline: grid definition, Cartesian product generation, K-fold cross-validation, and best estimator refitting.',
+      'Understand the Curse of Combinatorial Explosion and calculate exact model fit requirements across parameter spaces (N_comb * K).',
+      'Learn how to parallelize hyperparameter searches across all available CPU cores using n_jobs=-1.',
+      'Master the pipeline syntax for GridSearchCV (e.g. model__param) to guarantee 100% leak-free cross-validation.',
+      'Explore an interactive 3D Three.js simulation in Light Studio Mode showing a 3D grid coordinate search space with dynamic evaluation beam traversal.',
+      'Implement production-ready GridSearchCV workflows in Python using Scikit-Learn and analyze cv_results_ DataFrames.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Core Intuition: The Master Combination Lock',
+        paragraphs: [
+          'In the previous lesson, we learned that tuning hyperparameters is the art of finding the sweet spot on our model\'s control dials. But testing values by hand one at a time is slow, tedious, and highly biased by human guesswork.',
+          'The Mental Model: Cracking a 3-Dial Combination Lock:',
+          'Imagine you are trying to open a high-security combination lock with 3 rotating dials. Dial A has 3 settings (1, 2, 3), Dial B has 3 settings (A, B, C), and Dial C has 3 settings (Red, Blue, Green).',
+          '- Rather than guessing randomly, you systematically test every possible permutation: (1, A, Red), (1, A, Blue), (1, A, Green), (1, B, Red) ... until all $3 \\times 3 \\times 3 = 27$ possibilities have been tried!',
+          'Grid Search (implemented in Scikit-Learn as `GridSearchCV`) is this exact exhaustive brute-force search! You provide a dictionary of candidate values for each hyperparameter, and the algorithm constructs an exhaustive Cartesian grid, evaluates every single intersection using Cross-Validation, and crowns the winning configuration.'
+        ]
+      },
+      {
+        heading: '2. How GridSearchCV Works: The 4-Step Pipeline',
+        paragraphs: [
+          'When you call `GridSearchCV(estimator, param_grid, cv=5)`, Scikit-Learn executes a four-step pipeline:',
+          'Step 1: Hyperparameter Grid Specification:',
+          'You specify a Python dictionary containing candidate lists for each hyperparameter:',
+          '`param_grid = {\'C\': [0.1, 1, 10], \'gamma\': [0.001, 0.01, 0.1], \'kernel\': [\'rbf\', \'linear\']}`',
+          'Step 2: Cartesian Product Matrix Computation:',
+          'GridSearchCV computes the Cartesian product of all lists. In this example: $3 \\times 3 \\times 2 = 18$ distinct hyperparameter candidates.',
+          'Step 3: Cross-Validation Multiplication:',
+          'Each candidate combination is evaluated using $K$-Fold Cross-Validation (e.g. $K = 5$ folds). The total number of model fits is:',
+          '$$\\text{Total Fits} = \\text{Candidates} \\times K = 18 \\times 5 = 90 \\text{ individual model fits!}$$',
+          'For each candidate, the mean validation score across the 5 folds is computed and recorded.',
+          'Step 4: Automatic Best Model Refitting (`refit=True`):',
+          'Once the winning combination with the highest mean score is identified, Scikit-Learn automatically retrains that winning model on 100% of the training dataset. You can immediately call `grid.predict(X_test)` or access `grid.best_estimator_`!'
+        ]
+      },
+      {
+        heading: '3. The Curse of Combinatorial Explosion',
+        paragraphs: [
+          'While Grid Search guarantees finding the best combination within your candidate grid, its fatal flaw is computational scalability.',
+          'The Combinatorial Math:',
+          'If you have $P$ hyperparameters and test $M$ candidate values for each with $K$-Fold Cross-Validation, the total training runs scale exponentially:',
+          '$$\\text{Total Fits} = M^P \\times K$$',
+          '- 2 parameters with 5 values each ($K = 5$): $5^2 \\times 5 = 125$ fits (Takes ~30 seconds).',
+          '- 4 parameters with 5 values each ($K = 5$): $5^4 \\times 5 = 3,125$ fits (Takes ~25 minutes).',
+          '- 6 parameters with 5 values each ($K = 5$): $5^6 \\times 5 = 78,125$ fits (Takes over 10 hours!).',
+          'When the search space contains more than 3 or 4 continuous hyperparameters, senior machine learning engineers transition to **Random Search** or **Bayesian Optimization**.'
+        ]
+      },
+      {
+        heading: '4. Embarrassingly Parallel: Multi-Core Acceleration (`n_jobs=-1`)',
+        paragraphs: [
+          'Because every hyperparameter combination and every cross-validation fold is completely independent of all others, Grid Search is what computer scientists call an "Embarrassingly Parallel" problem.',
+          'By setting `n_jobs=-1` in `GridSearchCV`, Scikit-Learn automatically spawns background worker processes across every available CPU core on your machine:',
+          '- On an 8-core CPU, 8 distinct fold evaluations run simultaneously, slashing total training time by nearly $8\\times$!',
+          '- Always set `n_jobs=-1` unless you are working on a shared production server with strict CPU core quotas.'
+        ]
+      },
+      {
+        heading: '5. Pipeline Integration & Anti-Leakage Syntax',
+        paragraphs: [
+          'When tuning hyperparameters for a model that requires preprocessing (like `StandardScaler`), you must wrap the entire pipeline inside `GridSearchCV` to prevent data leakage.',
+          'The Pipeline Prefix Syntax:',
+          'To tell GridSearchCV which hyperparameter belongs to which step in a `Pipeline`, prefix the parameter name with the step name followed by a double underscore `__`:',
+          '`param_grid = {\'scaler__with_mean\': [True, False], \'clf__C\': [0.1, 1, 10], \'clf__gamma\': [0.01, 0.1]}`',
+          'This guarantees that for every single fold evaluation, feature scaling is fit strictly on training folds and never leaks test information!'
+        ]
+      },
+      {
+        heading: '6. Production Implementation with Scikit-Learn',
+        paragraphs: [
+          'Below is a production Python script executing an exhaustive `GridSearchCV` with pipeline encapsulation, multi-core acceleration, and results DataFrame inspection.'
+        ],
+        codeBlockTitle: 'grid_search_masterclass.py',
+        codeBlock: `import numpy as np
+import pandas as pd
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import classification_report
+
+# =====================================================================
+# 1. LOAD DATASET & SPLIT
+# =====================================================================
+X, y = load_breast_cancer(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# =====================================================================
+# 2. DEFINE LEAK-FREE PIPELINE
+# =====================================================================
+pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('svc', SVC(random_state=42))
+])
+
+# =====================================================================
+# 3. DEFINE PARAMETER GRID (Pipeline Syntax: step__param)
+# =====================================================================
+param_grid = {
+    'svc__C': [0.1, 1.0, 10.0, 100.0],
+    'svc__gamma': [0.001, 0.01, 0.1, 'scale'],
+    'svc__kernel': ['rbf', 'linear']
+}
+
+# Total combinations = 4 * 4 * 2 = 32 candidates
+# With 5-fold CV = 32 * 5 = 160 model fits!
+
+# =====================================================================
+# 4. EXECUTE GRID SEARCH WITH MULTI-CORE ACCELERATION
+# =====================================================================
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+grid = GridSearchCV(
+    estimator=pipeline,
+    param_grid=param_grid,
+    cv=cv,
+    scoring='accuracy',
+    n_jobs=-1,        # Use all available CPU cores!
+    refit=True,       # Automatically retrain best model on full train data
+    return_train_score=True
+)
+
+grid.fit(X_train, y_train)
+
+# =====================================================================
+# 5. INSPECT OPTIMAL HYPERPARAMETERS & CV RESULTS
+# =====================================================================
+print("--- Grid Search Results ---")
+print(f"Optimal Hyperparameters: {grid.best_params_}")
+print(f"Best 5-Fold CV Accuracy:  {grid.best_score_ * 100:.2f}%")
+
+# Evaluate winning model on hold-out test set
+test_acc = grid.score(X_test, y_test)
+print(f"Hold-out Test Accuracy:   {test_acc * 100:.2f}%")
+
+# Inspect top 3 candidate combinations
+results_df = pd.DataFrame(grid.cv_results_)
+top_results = results_df[['params', 'mean_test_score', 'std_test_score', 'rank_test_score']]
+top_results = top_results.sort_values(by='rank_test_score').head(3)
+print("\nTop 3 Candidate Configurations:\n", top_results)`
+      }
+    ],
+
+    analogy: {
+      title: 'The Real-World Analogy: Searching for Gold on an Island Grid',
+      text: 'Imagine you are a treasure hunter searching for a buried chest on a 10x10 square island. If you walk around randomly, you might stumble on gold by luck or wander in circles for weeks. Grid Search is the systematic surveyor method: you divide the island into an exact grid of 100 coordinate squares. You send teams to drill test holes at every single intersection (A1, A2, ... J10) and record the metal detector readings. You are 100% guaranteed to find the exact square with the richest deposit of gold!'
+    },
+
+    diagram: {
+      type: 'grid_search_interactive_studio',
+      caption: 'Interactive 3D Three.js Studio: Explore a 3D grid coordinate search space in Light Studio Mode, watch the evaluation beam traverse hyperparameter intersections, and discover the optimal combination in real time.'
+    },
+
+    takeaways: [
+      'GridSearchCV exhaustively evaluates all permutations of a discrete hyperparameter candidate grid.',
+      'Total model fits equal Candidates * K-Folds (e.g. 32 combinations * 5 folds = 160 fits).',
+      'The Curse of Combinatorial Explosion causes training time to scale exponentially as parameters are added.',
+      'Always set n_jobs=-1 to parallelize fold evaluations across all available CPU cores.',
+      'Use the double underscore syntax (e.g. model__param) to tune hyperparameters inside a Pipeline without data leakage.',
+      'The winner is automatically refitted on 100% of the training dataset (accessible via best_estimator_).'
+    ],
+
+    quiz: {
+      question: 'If you use GridSearchCV with 3 hyperparameters having 4, 5, and 2 candidate values respectively, using 5-Fold Cross-Validation, how many total models will be trained during the search?',
+      options: [
+        '200 models (4 * 5 * 2 = 40 combinations, multiplied by 5 folds = 200 fits)',
+        '40 models',
+        '11 models (4 + 5 + 2)',
+        '55 models (11 * 5)'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! The Cartesian product of the candidate values is 4 * 5 * 2 = 40 unique hyperparameter combinations. Because 5-Fold Cross-Validation trains a separate model for each fold, the total number of fits is 40 * 5 = 200 individual model trainings!'
+    }
+  }
+
 };

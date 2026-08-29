@@ -28097,11 +28097,759 @@ const HyperparametersInteractiveStudio = () => {
   );
 };
 
+
+// ─── GRID SEARCH THREE.JS INTERACTIVE STUDIO (ml-6-3) ────────────────────────
+const GridSearchInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'explosion', 'vs_manual', 'heatmap', 'code'
+  const [currentStep, setCurrentStep] = useState(0); // 0 to 16 (0 = unstarted, 16 = all evaluated)
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Tab 2: Combinatorial Explosion State
+  const [numParams, setNumParams] = useState(3);
+  const [valsPerParam, setValsPerParam] = useState(4);
+  const [calcFolds, setCalcFolds] = useState(5);
+
+  // Define 4x4 Hyperparameter Grid: C x gamma
+  const cValues = [0.1, 1.0, 10.0, 100.0];
+  const gammaValues = [0.001, 0.01, 0.1, 1.0];
+
+  // Generate 16 grid scores deterministically
+  const gridCells = useMemo(() => {
+    const rng = createSeededPRNG(900);
+    const cells = [];
+    let idx = 0;
+
+    for (let i = 0; i < cValues.length; i++) {
+      for (let j = 0; j < gammaValues.length; j++) {
+        const c = cValues[i];
+        const g = gammaValues[j];
+
+        // Optimal peak at C = 10.0 (i=2), gamma = 0.1 (j=2)
+        const distC = Math.abs(i - 2);
+        const distG = Math.abs(j - 2);
+        const baseScore = 96.4 - distC * 3.8 - distG * 4.2 + (rng() - 0.5) * 1.2;
+
+        cells.push({
+          idx,
+          i,
+          j,
+          c,
+          gamma: g,
+          score: parseFloat(baseScore.toFixed(1)),
+          isBest: i === 2 && j === 2
+        });
+        idx++;
+      }
+    }
+    return cells;
+  }, []);
+
+  // Compute best found so far
+  const searchProgress = useMemo(() => {
+    const evaluated = gridCells.slice(0, currentStep);
+    if (!evaluated.length) {
+      return {
+        best: null,
+        fitsCompleted: 0,
+        totalFits: gridCells.length * 5,
+        currentCell: null
+      };
+    }
+
+    const bestCell = evaluated.reduce((max, c) => (c.score > max.score ? c : max), evaluated[0]);
+    const active = evaluated[evaluated.length - 1];
+
+    return {
+      best: bestCell,
+      fitsCompleted: currentStep * 5,
+      totalFits: gridCells.length * 5,
+      currentCell: active
+    };
+  }, [currentStep, gridCells]);
+
+  const containerRef = useRef(null);
+  const sceneStateRef = useRef({
+    pillarMeshes: [],
+    scannerBeam: null,
+    scene: null,
+    renderer: null,
+    camera: null,
+    isMouseDown: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
+    rotX: 0.45,
+    rotY: 0.5
+  });
+
+  // Mount Three.js 3D WebGL Canvas
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth || 640;
+    const height = 360;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 16, 26);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting in Light Mode
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(12, 22, 14);
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(-10, -10, -10);
+    scene.add(fillLight);
+
+    // 3D Architectural Grid Floor
+    const gridHelper = new THREE.GridHelper(24, 20, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -4.0;
+    scene.add(gridHelper);
+
+    sceneStateRef.current.scene = scene;
+    sceneStateRef.current.renderer = renderer;
+    sceneStateRef.current.camera = camera;
+
+    // Create 16 Pillar Meshes for 4x4 Grid
+    const pillarMeshes = [];
+    const spacing = 3.6;
+
+    gridCells.forEach((cell) => {
+      const x = (cell.i - 1.5) * spacing;
+      const z = (cell.j - 1.5) * spacing;
+
+      // Base Pillar Geometry
+      const baseGeo = new THREE.CylinderGeometry(0.85, 0.85, 0.6, 16);
+      const baseMat = new THREE.MeshStandardMaterial({
+        color: 0xe2e8f0,
+        roughness: 0.3
+      });
+      const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+      baseMesh.position.set(x, -3.7, z);
+      scene.add(baseMesh);
+
+      // Value Pillar (height proportional to score)
+      const maxH = 4.8;
+      const h = Math.max(0.6, ((cell.score - 75) / 25) * maxH);
+      const valGeo = new THREE.CylinderGeometry(0.7, 0.7, h, 16);
+      const valMat = new THREE.MeshStandardMaterial({
+        color: 0x94a3b8,
+        roughness: 0.25,
+        transparent: true,
+        opacity: 0.4
+      });
+      const valMesh = new THREE.Mesh(valGeo, valMat);
+      valMesh.position.set(x, -3.4 + h / 2, z);
+      scene.add(valMesh);
+
+      pillarMeshes.push({ baseMesh, valMesh, cell, height: h, x, z });
+    });
+    sceneStateRef.current.pillarMeshes = pillarMeshes;
+
+    // Vertical Scanner Beam
+    const beamGeo = new THREE.CylinderGeometry(0.12, 0.12, 12, 8);
+    const beamMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.8 });
+    const scannerBeam = new THREE.Mesh(beamGeo, beamMat);
+    scannerBeam.position.set(0, 2.0, 0);
+    scannerBeam.visible = false;
+    scene.add(scannerBeam);
+    sceneStateRef.current.scannerBeam = scannerBeam;
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+
+      if (autoRotate && !sceneStateRef.current.isMouseDown) {
+        sceneStateRef.current.rotY += 0.0035;
+      }
+
+      const dist = 26;
+      camera.position.x = dist * Math.sin(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.position.y = dist * Math.sin(sceneStateRef.current.rotX) + 4.0;
+      camera.position.z = dist * Math.cos(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.lookAt(0, -0.5, 0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // Mouse Listeners
+    const onMouseDown = (e) => {
+      sceneStateRef.current.isMouseDown = true;
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!sceneStateRef.current.isMouseDown) return;
+      const dx = e.clientX - sceneStateRef.current.prevMouseX;
+      const dy = e.clientY - sceneStateRef.current.prevMouseY;
+
+      sceneStateRef.current.rotY += dx * 0.008;
+      sceneStateRef.current.rotX = Math.max(-0.2, Math.min(1.2, sceneStateRef.current.rotX - dy * 0.008));
+
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => {
+      sceneStateRef.current.isMouseDown = false;
+    };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      while (container.firstChild) container.removeChild(container.firstChild);
+    };
+  }, [activeTab, gridCells, autoRotate]);
+
+  // Update visual state of pillars based on currentStep
+  useEffect(() => {
+    if (activeTab !== 'three_d') return;
+
+    const { pillarMeshes, scannerBeam } = sceneStateRef.current;
+    if (!pillarMeshes.length || !scannerBeam) return;
+
+    const bestScoreSoFar = currentStep > 0
+      ? Math.max(...gridCells.slice(0, currentStep).map((c) => c.score))
+      : 0;
+
+    pillarMeshes.forEach((item, idx) => {
+      const isEvaluated = idx < currentStep;
+      const isCurrent = idx === currentStep - 1;
+      const isBest = isEvaluated && item.cell.score === bestScoreSoFar;
+
+      if (isCurrent) {
+        scannerBeam.visible = true;
+        scannerBeam.position.set(item.x, 2.0, item.z);
+      }
+
+      if (isBest) {
+        item.valMesh.material.color.setHex(0x16a34a); // Emerald Green Winner
+        item.valMesh.material.opacity = 0.95;
+        item.valMesh.material.emissive = new THREE.Color(0x15803d);
+        item.valMesh.material.emissiveIntensity = 0.4;
+      } else if (isCurrent) {
+        item.valMesh.material.color.setHex(0xf59e0b); // Amber Current Scanning
+        item.valMesh.material.opacity = 0.9;
+        item.valMesh.material.emissive = new THREE.Color(0xd97706);
+        item.valMesh.material.emissiveIntensity = 0.3;
+      } else if (isEvaluated) {
+        item.valMesh.material.color.setHex(0x0284c7); // Cerulean Blue Evaluated
+        item.valMesh.material.opacity = 0.8;
+        item.valMesh.material.emissive = new THREE.Color(0x000000);
+      } else {
+        item.valMesh.material.color.setHex(0x94a3b8); // Slate Gray Pending
+        item.valMesh.material.opacity = 0.25;
+        item.valMesh.material.emissive = new THREE.Color(0x000000);
+      }
+    });
+
+    if (currentStep === 0) {
+      scannerBeam.visible = false;
+    }
+  }, [currentStep, gridCells, activeTab]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── STUDIO HEADER ─────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                LIGHT STUDIO 3D
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Exhaustive Cartesian Search & Multi-Core Acceleration
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Grid Search 3D Exploration Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'three_d', label: '1. 3D Grid Search Studio' },
+            { id: 'explosion', label: '2. Combinatorial Explosion Calc' },
+            { id: 'vs_manual', label: '3. GridSearchCV vs Manual Loops' },
+            { id: 'heatmap', label: '4. Validation Score Heatmap' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D THREE.JS GRID SEARCH STUDIO ───────────────────── */}
+      {activeTab === 'three_d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setCurrentStep((prev) => Math.min(16, prev + 1))}
+                disabled={currentStep >= 16}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: currentStep >= 16 ? '#cbd5e1' : '#0284c7',
+                  color: '#ffffff',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: currentStep >= 16 ? 'not-allowed' : 'pointer',
+                  boxShadow: currentStep < 16 ? '0 2px 8px rgba(2,132,199,0.25)' : 'none'
+                }}
+              >
+                Step & Evaluate Next Cell ({currentStep + 1}/16)
+              </button>
+              <button
+                onClick={() => setCurrentStep(16)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#001f54',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Run Full 16-Cell Grid Search
+              </button>
+              <button
+                onClick={() => setCurrentStep(0)}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#dc2626',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Reset
+              </button>
+            </div>
+
+            <button
+              onClick={() => setAutoRotate(!autoRotate)}
+              style={{
+                padding: '6px 10px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: autoRotate ? '#eff6ff' : '#ffffff',
+                color: autoRotate ? '#1e40af' : '#64748b',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              {autoRotate ? 'Pause Rotation' : 'Auto-Rotate'}
+            </button>
+          </div>
+
+          {/* Three.js 3D WebGL Canvas Container (Light Studio Mode) */}
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 30px rgba(0, 31, 84, 0.08)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            <div
+              ref={containerRef}
+              style={{ width: '100%', height: '360px', cursor: 'grab' }}
+            />
+
+            {/* 3D Overlay HUD Badges (Light Studio Mode) */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 800 }}>
+                Progress: <span style={{ color: '#0284c7' }}>{currentStep} / 16 Candidates ({searchProgress.fitsCompleted} / 80 Model Fits)</span>
+              </div>
+              {searchProgress.currentCell && (
+                <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                  Scanning Cell: <span style={{ color: '#001f54' }}>C = {searchProgress.currentCell.c}, &gamma; = {searchProgress.currentCell.gamma}</span> &rarr; Score: <span style={{ color: '#0284c7', fontWeight: 800 }}>{searchProgress.currentCell.score}%</span>
+                </div>
+              )}
+              {searchProgress.best && (
+                <div style={{ background: '#dcfce7', border: '1.5px solid #86efac', padding: '4px 10px', borderRadius: '6px', color: '#166534', fontSize: '0.74rem', fontWeight: 900 }}>
+                  Best Combination Found: C = {searchProgress.best.c}, &gamma; = {searchProgress.best.gamma} ({searchProgress.best.score}% CV Accuracy)
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 2px 8px rgba(0,31,84,0.06)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              color: '#475569',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              pointerEvents: 'none'
+            }}>
+              Green Pillar = Optimal Winner | Amber Beam = Current Inspection. Drag to orbit 3D view.
+            </div>
+          </div>
+
+          {/* Explanation Callout */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            fontSize: '0.75rem',
+            color: '#475569',
+            fontWeight: 600,
+            lineHeight: 1.45
+          }}>
+            Click <strong>"Step & Evaluate Next Cell"</strong>! Watch the amber scanner beam travel methodically across the 4x4 coordinate grid (C &times; &gamma;). For each candidate pillar, 5-Fold Cross-Validation is executed (5 fits per pillar). Notice how the tall green pillar at <strong>(C = 10.0, &gamma; = 0.1)</strong> delivers the highest accuracy (<strong>96.4%</strong>), crowning it as the ultimate winning configuration!
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: COMBINATORIAL EXPLOSION ──────────────────────────── */}
+      {activeTab === 'explosion' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Combinatorial Explosion Calculator
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Calculate the total model fits required for any arbitrary hyperparameter grid.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>
+                  Number of Hyperparameters (P): {numParams}
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="6"
+                  value={numParams}
+                  onChange={(e) => setNumParams(parseInt(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54' }}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>
+                  Values Per Hyperparameter (M): {valsPerParam}
+                </div>
+                <input
+                  type="range"
+                  min="2"
+                  max="8"
+                  value={valsPerParam}
+                  onChange={(e) => setValsPerParam(parseInt(e.target.value))}
+                  style={{ width: '100%', accentColor: '#0284c7' }}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>
+                  Cross-Validation Folds (K): {calcFolds}
+                </div>
+                <input
+                  type="range"
+                  min="3"
+                  max="10"
+                  value={calcFolds}
+                  onChange={(e) => setCalcFolds(parseInt(e.target.value))}
+                  style={{ width: '100%', accentColor: '#16a34a' }}
+                />
+              </div>
+            </div>
+
+            {/* Result Box */}
+            <div style={{ background: '#f8fafc', border: '1.5px solid #001f54', borderRadius: '12px', padding: '1.25rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>
+                Total Candidate Combinations = {valsPerParam}^{numParams} = {Math.pow(valsPerParam, numParams).toLocaleString()} candidates
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: Math.pow(valsPerParam, numParams) * calcFolds > 5000 ? '#dc2626' : '#001f54', margin: '8px 0' }}>
+                Total Required Model Fits = {(Math.pow(valsPerParam, numParams) * calcFolds).toLocaleString()} Fits!
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#475569', fontWeight: 600 }}>
+                Estimated Training Time (at 0.5s per fit): {((Math.pow(valsPerParam, numParams) * calcFolds * 0.5) / 60).toFixed(1)} minutes
+                {Math.pow(valsPerParam, numParams) * calcFolds > 5000 && (
+                  <span style={{ color: '#dc2626', display: 'block', fontWeight: 800, marginTop: '4px' }}>
+                    Warning: Combinatorial explosion detected! Consider Random Search or Bayesian Optimization.
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: GRIDSEARCHCV VS MANUAL LOOPS ─────────────────────── */}
+      {activeTab === 'vs_manual' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              GridSearchCV vs. Manual Nested For-Loops
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Why senior machine learning engineers rely on GridSearchCV instead of writing manual loops.
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', background: '#ffffff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+              <thead>
+                <tr style={{ background: '#001f54', color: '#ffffff', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 14px' }}>Feature</th>
+                  <th style={{ padding: '10px 14px' }}>Manual Nested For-Loops</th>
+                  <th style={{ padding: '10px 14px' }}>Scikit-Learn GridSearchCV</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Multi-Core Parallelism</td>
+                  <td style={{ padding: '10px 14px', color: '#dc2626' }}>Complex manual multiprocessing scripting</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Automatic via n_jobs=-1</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Data Leakage Prevention</td>
+                  <td style={{ padding: '10px 14px', color: '#dc2626' }}>Extremely prone to accidental pre-split scaling</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>100% leak-free when wrapped in Pipeline</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Automatic Refitting</td>
+                  <td style={{ padding: '10px 14px', color: '#dc2626' }}>Requires manual code to re-train winning model</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Automatic via refit=True (best_estimator_)</td>
+                </tr>
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Results Diagnostics</td>
+                  <td style={{ padding: '10px 14px', color: '#dc2626' }}>Manual dict logging and sorting</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Full cv_results_ DataFrame with ranks & std</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: VALIDATION SCORE HEATMAP ─────────────────────────── */}
+      {activeTab === 'heatmap' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Validation Accuracy Heatmap (C vs. Gamma)
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              2D cross-validation score matrix showing the sweet spot at (C = 10.0, &gamma; = 0.1).
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '0.78rem' }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '10px', background: '#001f54', color: '#ffffff', textAlign: 'left' }}>C \ &gamma;</th>
+                    {gammaValues.map((g) => (
+                      <th key={g} style={{ padding: '10px', background: '#001f54', color: '#ffffff' }}>&gamma; = {g}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {cValues.map((c, i) => (
+                    <tr key={c} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '10px', fontWeight: 800, background: '#f8fafc', textAlign: 'left', color: '#001f54' }}>C = {c}</td>
+                      {gammaValues.map((g, j) => {
+                        const cell = gridCells.find((cell) => cell.c === c && cell.gamma === g);
+                        const isWinner = cell && cell.isBest;
+                        return (
+                          <td
+                            key={g}
+                            style={{
+                              padding: '12px',
+                              fontWeight: 800,
+                              background: isWinner ? '#dcfce7' : cell.score >= 93 ? '#eff6ff' : '#f8fafc',
+                              color: isWinner ? '#166534' : cell.score >= 93 ? '#1e40af' : '#64748b',
+                              border: isWinner ? '2px solid #16a34a' : 'none'
+                            }}
+                          >
+                            {cell ? `${cell.score}%` : '-'}
+                            {isWinner && <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#16a34a' }}>WINNER</div>}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON IMPLEMENTATION ────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production GridSearchCV Pipeline in Scikit-Learn:
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import pandas as pd',
+                'from sklearn.datasets import load_breast_cancer',
+                'from sklearn.model_selection import GridSearchCV, StratifiedKFold',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.svm import SVC',
+                'from sklearn.pipeline import Pipeline',
+                '',
+                '# 1. Load dataset',
+                'X, y = load_breast_cancer(return_X_y=True)',
+                '',
+                '# 2. Encapsulate in Pipeline to prevent data leakage',
+                'pipeline = Pipeline([',
+                "    ('scaler', StandardScaler()),",
+                "    ('svc', SVC(random_state=42))",
+                '])',
+                '',
+                '# 3. Define parameter grid using pipeline prefix syntax (step__param)',
+                'param_grid = {',
+                "    'svc__C': [0.1, 1.0, 10.0, 100.0],",
+                "    'svc__gamma': [0.001, 0.01, 0.1, 'scale'],",
+                "    'svc__kernel': ['rbf', 'linear']",
+                '}',
+                '',
+                '# 4. Execute multi-core parallel Grid Search',
+                'grid = GridSearchCV(',
+                '    estimator=pipeline,',
+                '    param_grid=param_grid,',
+                '    cv=StratifiedKFold(n_splits=5, shuffle=True, random_state=42),',
+                "    scoring='accuracy',",
+                '    n_jobs=-1,    # Use all CPU cores',
+                '    refit=True    # Automatically retrain best model on 100% of data',
+                ')',
+                'grid.fit(X, y)',
+                '',
+                '# 5. Output winning parameters and peak score',
+                'print(f"Optimal Parameters: {grid.best_params_}")',
+                'print(f"Best 5-Fold CV Score: {grid.best_score_*100:.2f}%")',
+                'winning_model = grid.best_estimator_'
+              ].join('\n')}
+              title="grid_search_production.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3'
 ];
 
 export default function MLLessonArticlePage() {
@@ -28335,6 +29083,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'hyperparameters_interactive_studio' && (
               <HyperparametersInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'grid_search_interactive_studio' && (
+              <GridSearchInteractiveStudio />
             )}
           </div>
         )}
