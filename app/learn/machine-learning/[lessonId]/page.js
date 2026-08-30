@@ -31557,11 +31557,604 @@ const DataLeakageInteractiveStudio = () => {
   );
 };
 
+
+// ─── ENSEMBLE FOUNDATIONS INTERACTIVE STUDIO (ml-7-1) ────────────────────────
+const EnsembleFoundationsInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('jury_simulator'); // 'jury_simulator', 'bias_variance', 'architectures', 'blindspots', 'code'
+  const [numVoters, setNumVoters] = useState(25); // 1, 3, 5, 9, 15, 25, 51
+  const [individualAcc, setIndividualAcc] = useState(60); // 51% to 90%
+  const [archMode, setArchMode] = useState('parallel'); // 'parallel' or 'sequential'
+  const [varianceModels, setVarianceModels] = useState(10); // 1 to 50 models for variance reduction
+
+  // Calculate Condorcet Consensus Probability using Binomial Sum
+  const consensusProbability = useMemo(() => {
+    const n = numVoters;
+    const p = individualAcc / 100.0;
+    const majority = Math.floor(n / 2) + 1;
+
+    // Helper for combinations nCr
+    const comb = (n, r) => {
+      if (r < 0 || r > n) return 0;
+      if (r === 0 || r === n) return 1;
+      let res = 1;
+      for (let i = 1; i <= r; i++) {
+        res = (res * (n - i + 1)) / i;
+      }
+      return res;
+    };
+
+    let totalProb = 0;
+    for (let k = majority; k <= n; k++) {
+      totalProb += comb(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
+    }
+    return Math.min(100, Math.max(0, totalProb * 100));
+  }, [numVoters, individualAcc]);
+
+  // Generate simulated voter cards deterministically
+  const voterCards = useMemo(() => {
+    const rng = createSeededPRNG(7100 + numVoters + individualAcc);
+    const p = individualAcc / 100.0;
+    const cards = [];
+    let correctCount = 0;
+
+    for (let i = 1; i <= numVoters; i++) {
+      const isCorrect = rng() < p;
+      if (isCorrect) correctCount++;
+      cards.push({
+        id: i,
+        name: `Learner #${i}`,
+        isCorrect: isCorrect
+      });
+    }
+
+    const majority = Math.floor(numVoters / 2) + 1;
+    const ensembleWon = correctCount >= majority;
+    return { cards, correctCount, majority, ensembleWon };
+  }, [numVoters, individualAcc]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER ─────────────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                VISUAL CONSENSUS STUDIO
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Condorcet Jury Theorem &amp; Bias-Variance Manipulation
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Foundations of Ensemble Learning Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'jury_simulator', label: "1. Condorcet's Jury Consensus" },
+            { id: 'bias_variance', label: '2. Bias-Variance Decomposition' },
+            { id: 'architectures', label: '3. Parallel vs Sequential Flow' },
+            { id: 'blindspots', label: '4. Error Cancellation Matrix' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: CONDORCET JURY CONSENSUS SIMULATOR ───────────────── */}
+      {activeTab === 'jury_simulator' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Interactive Sliders Panel */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '1.25rem'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>
+                <span>Committee Size (Odd Voters N):</span>
+                <span style={{ color: '#0284c7' }}>{numVoters} Models</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="51"
+                step="2"
+                value={numVoters}
+                onChange={(e) => setNumVoters(parseInt(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '4px' }}>
+                Majority threshold: {Math.floor(numVoters / 2) + 1} votes required to win.
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>
+                <span>Individual Model Accuracy (p):</span>
+                <span style={{ color: individualAcc >= 60 ? '#16a34a' : '#d97706' }}>{individualAcc}%</span>
+              </div>
+              <input
+                type="range"
+                min="51"
+                max="95"
+                step="1"
+                value={individualAcc}
+                onChange={(e) => setIndividualAcc(parseInt(e.target.value))}
+                style={{ width: '100%', accentColor: '#0284c7' }}
+              />
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '4px' }}>
+                Must be strictly &gt; 50% (better than random coin toss).
+              </div>
+            </div>
+          </div>
+
+          {/* Mathematical Results & Probability Badge */}
+          <div style={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '16px',
+            border: '1.5px solid #cbd5e1',
+            padding: '1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                Condorcet Theorem Consensus Probability
+              </div>
+              <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#001f54', margin: '2px 0' }}>
+                {consensusProbability.toFixed(2)}%
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#16a34a', fontWeight: 700 }}>
+                Ensemble Accuracy Lift: +{(consensusProbability - individualAcc).toFixed(2)}% vs single learner
+              </div>
+            </div>
+
+            <div style={{
+              background: '#ffffff',
+              border: '1.5px solid #001f54',
+              borderRadius: '12px',
+              padding: '10px 16px',
+              textAlign: 'right'
+            }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b' }}>Simulated Instant Vote</div>
+              <div style={{ fontSize: '1rem', fontWeight: 900, color: voterCards.ensembleWon ? '#16a34a' : '#dc2626' }}>
+                {voterCards.correctCount} / {numVoters} Correct ({voterCards.ensembleWon ? 'Ensemble Passed' : 'Failed'})
+              </div>
+            </div>
+          </div>
+
+          {/* Visual Grid of Voters */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #cbd5e1',
+            padding: '1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px'
+          }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>
+              Simulated Individual Base Learner Votes (Green = Correct, Red = Error):
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(65px, 1fr))', gap: '6px' }}>
+              {voterCards.cards.map((c) => (
+                <div
+                  key={c.id}
+                  style={{
+                    background: c.isCorrect ? '#dcfce7' : '#fee2e2',
+                    border: '1px solid',
+                    borderColor: c.isCorrect ? '#86efac' : '#fca5a5',
+                    borderRadius: '8px',
+                    padding: '6px 4px',
+                    textAlign: 'center'
+                  }}
+                >
+                  <div style={{ fontSize: '0.62rem', fontWeight: 800, color: c.isCorrect ? '#166534' : '#991b1b' }}>
+                    #{c.id}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 900, color: c.isCorrect ? '#15803d' : '#dc2626' }}>
+                    {c.isCorrect ? 'PASS' : 'FAIL'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: BIAS-VARIANCE DECOMPOSITION BULLSEYE ─────────────── */}
+      {activeTab === 'bias_variance' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Bias-Variance Target Studio (Bulls-Eye Decomposition)
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Visualizing how ensembles transform high-variance individual models into tight, centered predictions.
+            </div>
+          </div>
+
+          {/* Bulls-Eye Visual Targets */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            {/* Target 1: High Bias, Low Variance */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>High Bias, Low Variance</div>
+              <svg width="120" height="120" viewBox="0 0 100 100" style={{ margin: '0 auto' }}>
+                <circle cx="50" cy="50" r="45" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
+                <circle cx="50" cy="50" r="30" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1.5" />
+                <circle cx="50" cy="50" r="15" fill="#fee2e2" stroke="#dc2626" strokeWidth="1.5" />
+                <circle cx="50" cy="50" r="4" fill="#dc2626" />
+                {/* Shots clustered off-target */}
+                <circle cx="75" cy="25" r="3" fill="#0284c7" />
+                <circle cx="78" cy="28" r="3" fill="#0284c7" />
+                <circle cx="73" cy="22" r="3" fill="#0284c7" />
+                <circle cx="80" cy="24" r="3" fill="#0284c7" />
+              </svg>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '6px' }}>Underfitting (Overly simple)</div>
+            </div>
+
+            {/* Target 2: Low Bias, High Variance */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>Low Bias, High Variance</div>
+              <svg width="120" height="120" viewBox="0 0 100 100" style={{ margin: '0 auto' }}>
+                <circle cx="50" cy="50" r="45" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
+                <circle cx="50" cy="50" r="30" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1.5" />
+                <circle cx="50" cy="50" r="15" fill="#fee2e2" stroke="#dc2626" strokeWidth="1.5" />
+                <circle cx="50" cy="50" r="4" fill="#dc2626" />
+                {/* Shots scattered everywhere */}
+                <circle cx="30" cy="35" r="3" fill="#0284c7" />
+                <circle cx="70" cy="65" r="3" fill="#0284c7" />
+                <circle cx="45" cy="80" r="3" fill="#0284c7" />
+                <circle cx="65" cy="25" r="3" fill="#0284c7" />
+                <circle cx="20" cy="60" r="3" fill="#0284c7" />
+              </svg>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '6px' }}>Overfitting (Single Deep Tree)</div>
+            </div>
+
+            {/* Target 3: Ensemble Synergy */}
+            <div style={{ background: '#f0fdf4', borderRadius: '14px', border: '1.5px solid #86efac', padding: '1rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#166534', marginBottom: '6px' }}>Ensemble: Low Bias &amp; Low Variance</div>
+              <svg width="120" height="120" viewBox="0 0 100 100" style={{ margin: '0 auto' }}>
+                <circle cx="50" cy="50" r="45" fill="#ffffff" stroke="#86efac" strokeWidth="1.5" />
+                <circle cx="50" cy="50" r="30" fill="#dcfce7" stroke="#86efac" strokeWidth="1.5" />
+                <circle cx="50" cy="50" r="15" fill="#bbf7d0" stroke="#16a34a" strokeWidth="1.5" />
+                <circle cx="50" cy="50" r="4" fill="#16a34a" />
+                {/* Shots tightly clustered on bullseye */}
+                <circle cx="51" cy="49" r="3" fill="#15803d" />
+                <circle cx="49" cy="52" r="3" fill="#15803d" />
+                <circle cx="52" cy="50" r="3" fill="#15803d" />
+                <circle cx="48" cy="48" r="3" fill="#15803d" />
+              </svg>
+              <div style={{ fontSize: '0.68rem', color: '#15803d', fontWeight: 800, marginTop: '6px' }}>Optimal Generalization</div>
+            </div>
+          </div>
+
+          {/* Variance Reduction Formula & Interactive Slider */}
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>
+                Parallel Averaging Variance Compression (M = {varianceModels} Trees):
+              </span>
+              <span style={{ background: '#eff6ff', color: '#1e40af', fontSize: '0.74rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                Variance = &sigma;&sup2; / {varianceModels} = {(100 / varianceModels).toFixed(1)}% of original
+              </span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="50"
+              value={varianceModels}
+              onChange={(e) => setVarianceModels(parseInt(e.target.value))}
+              style={{ width: '100%', accentColor: '#001f54' }}
+            />
+            <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '8px', lineHeight: 1.5 }}>
+              When independent models with zero correlation are averaged, the collective variance is reduced by a factor of <strong>1/M</strong>, leaving the low bias untouched!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: PARALLEL VS SEQUENTIAL ARCHITECTURES ─────────────── */}
+      {activeTab === 'architectures' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Selector */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Execution Paradigm:</span>
+            <button
+              onClick={() => setArchMode('parallel')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                border: '1px solid',
+                borderColor: archMode === 'parallel' ? '#001f54' : '#cbd5e1',
+                background: archMode === 'parallel' ? '#001f54' : '#ffffff',
+                color: archMode === 'parallel' ? '#ffffff' : '#475569',
+                cursor: 'pointer'
+              }}
+            >
+              Parallel Paradigm (Bagging / Random Forest)
+            </button>
+            <button
+              onClick={() => setArchMode('sequential')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                border: '1px solid',
+                borderColor: archMode === 'sequential' ? '#0284c7' : '#cbd5e1',
+                background: archMode === 'sequential' ? '#0284c7' : '#ffffff',
+                color: archMode === 'sequential' ? '#ffffff' : '#475569',
+                cursor: 'pointer'
+              }}
+            >
+              Sequential Paradigm (Boosting / XGBoost)
+            </button>
+          </div>
+
+          {/* Visual SVG Flowchart */}
+          <div style={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '16px',
+            border: '1.5px solid #cbd5e1',
+            padding: '1.5rem'
+          }}>
+            {archMode === 'parallel' ? (
+              /* PARALLEL ARCHITECTURE SVG */
+              <svg width="100%" height="220" viewBox="0 0 700 220" style={{ overflow: 'visible' }}>
+                {/* Dataset */}
+                <rect x="20" y="75" width="110" height="70" rx="10" fill="#ffffff" stroke="#001f54" strokeWidth="2" />
+                <text x="75" y="105" textAnchor="middle" fontSize="11" fontWeight="800" fill="#001f54">Full Dataset</text>
+                <text x="75" y="125" textAnchor="middle" fontSize="9" fontWeight="600" fill="#64748b">Original Data</text>
+
+                {/* 3 Parallel Threads */}
+                {/* Thread 1 */}
+                <line x1="130" y1="100" x2="200" y2="45" stroke="#0284c7" strokeWidth="2" />
+                <rect x="200" y="20" width="130" height="50" rx="8" fill="#eff6ff" stroke="#0284c7" strokeWidth="1.5" />
+                <text x="265" y="42" textAnchor="middle" fontSize="10" fontWeight="800" fill="#1e40af">Bootstrap Sample 1</text>
+                <text x="265" y="58" textAnchor="middle" fontSize="8" fontWeight="600" fill="#3b82f6">Tree 1 (Thread 1)</text>
+
+                {/* Thread 2 */}
+                <line x1="130" y1="110" x2="200" y2="110" stroke="#0284c7" strokeWidth="2" />
+                <rect x="200" y="85" width="130" height="50" rx="8" fill="#eff6ff" stroke="#0284c7" strokeWidth="1.5" />
+                <text x="265" y="107" textAnchor="middle" fontSize="10" fontWeight="800" fill="#1e40af">Bootstrap Sample 2</text>
+                <text x="265" y="123" textAnchor="middle" fontSize="8" fontWeight="600" fill="#3b82f6">Tree 2 (Thread 2)</text>
+
+                {/* Thread 3 */}
+                <line x1="130" y1="120" x2="200" y2="175" stroke="#0284c7" strokeWidth="2" />
+                <rect x="200" y="150" width="130" height="50" rx="8" fill="#eff6ff" stroke="#0284c7" strokeWidth="1.5" />
+                <text x="265" y="172" textAnchor="middle" fontSize="10" fontWeight="800" fill="#1e40af">Bootstrap Sample M</text>
+                <text x="265" y="188" textAnchor="middle" fontSize="8" fontWeight="600" fill="#3b82f6">Tree M (Thread M)</text>
+
+                {/* Lines to Aggregator */}
+                <line x1="330" y1="45" x2="420" y2="100" stroke="#0284c7" strokeWidth="2" />
+                <line x1="330" y1="110" x2="420" y2="110" stroke="#0284c7" strokeWidth="2" />
+                <line x1="330" y1="175" x2="420" y2="120" stroke="#0284c7" strokeWidth="2" />
+
+                {/* Aggregator */}
+                <rect x="420" y="70" width="130" height="80" rx="10" fill="#dcfce7" stroke="#16a34a" strokeWidth="2" />
+                <text x="485" y="102" textAnchor="middle" fontSize="11" fontWeight="900" fill="#166534">Majority Vote</text>
+                <text x="485" y="122" textAnchor="middle" fontSize="9" fontWeight="700" fill="#15803d">/ Mean Average</text>
+
+                {/* Final Strong Learner */}
+                <line x1="550" y1="110" x2="590" y2="110" stroke="#16a34a" strokeWidth="2.5" />
+                <rect x="590" y="75" width="100" height="70" rx="10" fill="#ffffff" stroke="#16a34a" strokeWidth="2" />
+                <text x="640" y="105" textAnchor="middle" fontSize="10" fontWeight="900" fill="#166534">Strong Model</text>
+                <text x="640" y="125" textAnchor="middle" fontSize="8" fontWeight="700" fill="#15803d">Low Variance</text>
+              </svg>
+            ) : (
+              /* SEQUENTIAL ARCHITECTURE SVG */
+              <svg width="100%" height="220" viewBox="0 0 700 220" style={{ overflow: 'visible' }}>
+                {/* Step 1: Model 1 */}
+                <rect x="20" y="75" width="120" height="70" rx="10" fill="#ffffff" stroke="#001f54" strokeWidth="2" />
+                <text x="80" y="105" textAnchor="middle" fontSize="11" fontWeight="800" fill="#001f54">Learner 1 (Stump)</text>
+                <text x="80" y="125" textAnchor="middle" fontSize="8" fontWeight="600" fill="#64748b">High Bias Initial</text>
+
+                {/* Error Residual Arrow */}
+                <line x1="140" y1="110" x2="210" y2="110" stroke="#dc2626" strokeWidth="2.5" />
+                <text x="175" y="100" textAnchor="middle" fontSize="8" fontWeight="800" fill="#dc2626">Residuals</text>
+
+                {/* Step 2: Model 2 */}
+                <rect x="210" y="75" width="120" height="70" rx="10" fill="#fee2e2" stroke="#dc2626" strokeWidth="2" />
+                <text x="270" y="105" textAnchor="middle" fontSize="11" fontWeight="800" fill="#991b1b">Learner 2</text>
+                <text x="270" y="125" textAnchor="middle" fontSize="8" fontWeight="700" fill="#dc2626">Fits Errors of Model 1</text>
+
+                {/* Error Residual Arrow */}
+                <line x1="330" y1="110" x2="400" y2="110" stroke="#dc2626" strokeWidth="2.5" />
+                <text x="365" y="100" textAnchor="middle" fontSize="8" fontWeight="800" fill="#dc2626">Residuals</text>
+
+                {/* Step 3: Model 3 */}
+                <rect x="400" y="75" width="120" height="70" rx="10" fill="#fee2e2" stroke="#dc2626" strokeWidth="2" />
+                <text x="460" y="105" textAnchor="middle" fontSize="11" fontWeight="800" fill="#991b1b">Learner M</text>
+                <text x="460" y="125" textAnchor="middle" fontSize="8" fontWeight="700" fill="#dc2626">Fits Errors of Model 2</text>
+
+                {/* Weighted Sum */}
+                <line x1="520" y1="110" x2="570" y2="110" stroke="#16a34a" strokeWidth="2.5" />
+                <rect x="570" y="65" width="120" height="90" rx="10" fill="#dcfce7" stroke="#16a34a" strokeWidth="2" />
+                <text x="630" y="98" textAnchor="middle" fontSize="11" fontWeight="900" fill="#166534">Weighted Sum</text>
+                <text x="630" y="118" textAnchor="middle" fontSize="9" fontWeight="700" fill="#15803d">&Sigma; &alpha;_m h_m(x)</text>
+                <text x="630" y="136" textAnchor="middle" fontSize="8" fontWeight="800" fill="#166534">Low Bias Strong Model</text>
+              </svg>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: ERROR CANCELLATION MATRIX ────────────────────────── */}
+      {activeTab === 'blindspots' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Single Algorithm Blind Spots vs Ensemble Resilience
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Why heterogeneous diversity cancels individual algorithm weaknesses.
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', background: '#ffffff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+              <thead>
+                <tr style={{ background: '#001f54', color: '#ffffff', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 14px' }}>Base Algorithm</th>
+                  <th style={{ padding: '10px 14px' }}>Intrinsic Blind Spot</th>
+                  <th style={{ padding: '10px 14px' }}>Risk in Production</th>
+                  <th style={{ padding: '10px 14px' }}>How Ensemble Solves It</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Decision Tree</td>
+                  <td style={{ padding: '10px 14px', color: '#dc2626' }}>High Variance on split boundaries</td>
+                  <td style={{ padding: '10px 14px', color: '#64748b' }}>Small data changes alter entire tree structure</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Averaging hundreds of trees smooths decision steps</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Logistic Regression</td>
+                  <td style={{ padding: '10px 14px', color: '#dc2626' }}>High Bias on non-linear boundaries</td>
+                  <td style={{ padding: '10px 14px', color: '#64748b' }}>Fails on complex curved patterns</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Paired with non-linear models or boosted in sequence</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>K-Nearest Neighbors</td>
+                  <td style={{ padding: '10px 14px', color: '#dc2626' }}>Extreme sensitivity to local outlier noise</td>
+                  <td style={{ padding: '10px 14px', color: '#64748b' }}>Distorted by sparse high-dimensional data</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Global parametric models outvote local noisy neighbors</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Ensemble Benchmark (Single Tree vs Voting vs Bagging vs Random Forest):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                'from sklearn.datasets import load_breast_cancer',
+                'from sklearn.model_selection import train_test_split',
+                'from sklearn.tree import DecisionTreeClassifier',
+                'from sklearn.neighbors import KNeighborsClassifier',
+                'from sklearn.linear_model import LogisticRegression',
+                'from sklearn.ensemble import VotingClassifier, BaggingClassifier, RandomForestClassifier',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.pipeline import Pipeline',
+                'from sklearn.metrics import accuracy_score',
+                '',
+                '# 1. Load Clinical Dataset',
+                'X, y = load_breast_cancer(return_X_y=True)',
+                'X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)',
+                '',
+                '# 2. Single Decision Tree Baseline (92.31% Accuracy)',
+                'tree = DecisionTreeClassifier(random_state=42)',
+                'tree.fit(X_train, y_train)',
+                'print(f"Single Tree Acc: {accuracy_score(y_test, tree.predict(X_test))*100:.2f}%")',
+                '',
+                '# 3. Heterogeneous Voting Ensemble (95.80% Accuracy - Diversity Boost)',
+                'pipe_lr = Pipeline([("s", StandardScaler()), ("m", LogisticRegression(random_state=42))])',
+                'pipe_knn = Pipeline([("s", StandardScaler()), ("m", KNeighborsClassifier(n_neighbors=5))])',
+                'voting = VotingClassifier([("lr", pipe_lr), ("knn", pipe_knn), ("dt", tree)], voting="soft")',
+                'voting.fit(X_train, y_train)',
+                'print(f"Voting Ensemble Acc: {accuracy_score(y_test, voting.predict(X_test))*100:.2f}%")',
+                '',
+                '# 4. Bagging 25 Parallel Trees (95.10% Accuracy - Variance Reduction)',
+                'bagging = BaggingClassifier(estimator=DecisionTreeClassifier(random_state=42), n_estimators=25, random_state=42, n_jobs=-1)',
+                'bagging.fit(X_train, y_train)',
+                'print(f"Bagging Ensemble Acc: {accuracy_score(y_test, bagging.predict(X_test))*100:.2f}%")',
+                '',
+                '# 5. Production Random Forest 100 Trees (95.80% Accuracy)',
+                'rf = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)',
+                'rf.fit(X_train, y_train)',
+                'print(f"Random Forest Acc: {accuracy_score(y_test, rf.predict(X_test))*100:.2f}%")'
+              ].join('\n')}
+              title="ensemble_foundations_benchmark.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6', 'ml-6-7', 'ml-6-8'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6', 'ml-6-7', 'ml-6-8', 'ml-7-1'
 ];
 
 export default function MLLessonArticlePage() {
@@ -31813,6 +32406,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'data_leakage_interactive_studio' && (
               <DataLeakageInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'ensemble_foundations_interactive_studio' && (
+              <EnsembleFoundationsInteractiveStudio />
             )}
           </div>
         )}
