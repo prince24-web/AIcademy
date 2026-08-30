@@ -246,8 +246,8 @@ const mlModules = [
     subtitle: 'Goal: Combine models for superior predictive performance.',
     lessons: [
       { id: 'ml-7-1', name: 'Foundations of Ensemble Learning', nodeType: 'concept', status: 'active' },
-      { id: 'ml-7-2', name: 'Simple Ensemble Techniques (Voting & Averaging)', nodeType: 'star', status: 'locked' },
-      { id: 'ml-7-3', name: 'Bagging (Bootstrap Aggregation)', nodeType: 'concept', status: 'locked' },
+      { id: 'ml-7-2', name: 'Simple Ensemble Techniques (Voting & Averaging)', nodeType: 'star', status: 'active' },
+      { id: 'ml-7-3', name: 'Bagging (Bootstrap Aggregation)', nodeType: 'concept', status: 'active' },
       { id: 'ml-7-4', name: 'Random Forest', nodeType: 'lightbulb', status: 'locked' },
       { id: 'ml-7-5', name: 'Boosting (Sequential Learning)', nodeType: 'star', status: 'locked' },
       { id: 'ml-7-6', name: 'Stacking (Stacked Generalization & Blending)', nodeType: 'concept', status: 'locked' },

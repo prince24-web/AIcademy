@@ -32150,11 +32150,2170 @@ const EnsembleFoundationsInteractiveStudio = () => {
   );
 };
 
+// ─── SIMPLE ENSEMBLES INTERACTIVE STUDIO (ml-7-2) ─────────────────────────────
+const SimpleEnsemblesInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'voting_clash', 'regression_averaging', 'matrix', 'code'
+
+  // Tab 1: 3D Consensus Decision Surface State
+  const [modelMode, setModelMode] = useState('all'); // 'all', 'lr', 'tree', 'svm', 'compare'
+  const [autoRotate, setAutoRotate] = useState(true);
+  const containerRef = useRef(null);
+  const sceneStateRef = useRef({
+    scene: null,
+    renderer: null,
+    camera: null,
+    isMouseDown: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
+    rotX: 0.35,
+    rotY: 0.65,
+    meshGroup: null
+  });
+
+  // Tab 2: Hard vs Soft Voting Clash Simulator State
+  const [p1, setP1] = useState(92); // Model 1: e.g., Biomarker Neural Net / RBF SVM (Confident 92%)
+  const [p2, setP2] = useState(46); // Model 2: Baseline Logistic Regression (46% -> Class 0)
+  const [p3, setP3] = useState(47); // Model 3: Shallow Decision Tree (47% -> Class 0)
+  const [useCustomWeights, setUseCustomWeights] = useState(false);
+  const [w1, setW1] = useState(3);
+  const [w2, setW2] = useState(1);
+  const [w3, setW3] = useState(1);
+
+  // Tab 3: Weighted Regression Averaging Studio State
+  const [wRidge, setWRidge] = useState(3);
+  const [wSVR, setWSVR] = useState(4);
+  const [wTree, setWTree] = useState(1);
+  const [wKNN, setWKNN] = useState(2);
+  const [outlierActive, setOutlierActive] = useState(false);
+
+  // Mount Three.js 3D WebGL Studio
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth || 640;
+    const height = 380;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 12, 24);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.15);
+    dirLight.position.set(12, 20, 14);
+    scene.add(dirLight);
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.45);
+    fillLight.position.set(-12, -8, -10);
+    scene.add(fillLight);
+
+    // Floor Grid (Light Mode)
+    const gridHelper = new THREE.GridHelper(26, 22, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -5.5;
+    scene.add(gridHelper);
+
+    // Deterministic 3D Scatter Point Clouds
+    const rng = (seed) => {
+      let s = seed;
+      return () => {
+        s = (s * 9301 + 49297) % 233280;
+        return s / 233280;
+      };
+    };
+    const rand = rng(7200);
+
+    const sphereGeo = new THREE.SphereGeometry(0.32, 16, 16);
+    const blueMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7,
+      roughness: 0.3,
+      metalness: 0.2
+    });
+    const redMat = new THREE.MeshStandardMaterial({
+      color: 0xdc2626,
+      roughness: 0.3,
+      metalness: 0.2
+    });
+
+    // Class 0 Cluster (Blue, centered at -3.5, 0, -1.5)
+    const pointsGroup = new THREE.Group();
+    for (let i = 0; i < 36; i++) {
+      const pMesh = new THREE.Mesh(sphereGeo, blueMat);
+      pMesh.position.set(
+        -3.8 + (rand() - 0.5) * 5.0,
+        -0.5 + (rand() - 0.5) * 3.5,
+        -1.8 + (rand() - 0.5) * 5.0
+      );
+      pointsGroup.add(pMesh);
+    }
+
+    // Class 1 Cluster (Red, centered at +3.5, 1.5, +1.5)
+    for (let i = 0; i < 36; i++) {
+      const pMesh = new THREE.Mesh(sphereGeo, redMat);
+      pMesh.position.set(
+        3.8 + (rand() - 0.5) * 5.0,
+        1.5 + (rand() - 0.5) * 3.5,
+        1.8 + (rand() - 0.5) * 5.0
+      );
+      pointsGroup.add(pMesh);
+    }
+    scene.add(pointsGroup);
+
+    // Surface Mesh Group
+    const meshGroup = new THREE.Group();
+    scene.add(meshGroup);
+
+    sceneStateRef.current.scene = scene;
+    sceneStateRef.current.renderer = renderer;
+    sceneStateRef.current.camera = camera;
+    sceneStateRef.current.meshGroup = meshGroup;
+
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (autoRotate && !sceneStateRef.current.isMouseDown) {
+        sceneStateRef.current.rotY += 0.0035;
+      }
+      const dist = 24;
+      camera.position.x = dist * Math.sin(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.position.y = dist * Math.sin(sceneStateRef.current.rotX) + 2.5;
+      camera.position.z = dist * Math.cos(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    const onMouseDown = (e) => {
+      sceneStateRef.current.isMouseDown = true;
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+    const onMouseMove = (e) => {
+      if (!sceneStateRef.current.isMouseDown) return;
+      const dx = e.clientX - sceneStateRef.current.prevMouseX;
+      const dy = e.clientY - sceneStateRef.current.prevMouseY;
+      sceneStateRef.current.rotY += dx * 0.008;
+      sceneStateRef.current.rotX = Math.max(-0.2, Math.min(1.2, sceneStateRef.current.rotX - dy * 0.008));
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+    const onMouseUp = () => { sceneStateRef.current.isMouseDown = false; };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      while (container.firstChild) container.removeChild(container.firstChild);
+    };
+  }, [activeTab, autoRotate]);
+
+  // Update 3D Decision Surface geometry dynamically when modelMode changes
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !sceneStateRef.current.meshGroup) return;
+    const group = sceneStateRef.current.meshGroup;
+
+    // Clear previous decision meshes
+    while (group.children.length > 0) {
+      const obj = group.children[0];
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+        else obj.material.dispose();
+      }
+      group.remove(obj);
+    }
+
+    // 1. Logistic Regression: Linear Hyperplane (Tilted Plane)
+    if (modelMode === 'lr' || modelMode === 'compare') {
+      const planeGeo = new THREE.PlaneGeometry(15, 12, 10, 10);
+      const planeMat = new THREE.MeshStandardMaterial({
+        color: 0x0284c7,
+        transparent: true,
+        opacity: modelMode === 'compare' ? 0.35 : 0.6,
+        side: THREE.DoubleSide,
+        roughness: 0.4
+      });
+      const planeMesh = new THREE.Mesh(planeGeo, planeMat);
+      planeMesh.rotation.y = Math.PI / 4;
+      planeMesh.rotation.x = -Math.PI / 10;
+      planeMesh.position.set(0, 0.5, 0);
+
+      const wireGeo = new THREE.WireframeGeometry(planeGeo);
+      const wireMat = new THREE.LineBasicMaterial({ color: 0x0284c7, transparent: true, opacity: 0.5 });
+      const wireLine = new THREE.LineSegments(wireGeo, wireMat);
+      wireLine.rotation.y = Math.PI / 4;
+      wireLine.rotation.x = -Math.PI / 10;
+      wireLine.position.set(0, 0.5, 0);
+
+      group.add(planeMesh);
+      group.add(wireLine);
+    }
+
+    // 2. Decision Tree: Orthogonal Stepwise Rectangles
+    if (modelMode === 'tree' || modelMode === 'compare') {
+      const treeMat = new THREE.MeshStandardMaterial({
+        color: 0xd97706,
+        transparent: true,
+        opacity: modelMode === 'compare' ? 0.35 : 0.6,
+        side: THREE.DoubleSide,
+        roughness: 0.3
+      });
+
+      // Split 1: X = 0 cut
+      const cut1Geo = new THREE.PlaneGeometry(12, 8);
+      const cut1 = new THREE.Mesh(cut1Geo, treeMat);
+      cut1.rotation.y = Math.PI / 2;
+      cut1.position.set(0, 0.5, -2);
+      group.add(cut1);
+
+      // Split 2: Z = 0 cut
+      const cut2Geo = new THREE.PlaneGeometry(8, 8);
+      const cut2 = new THREE.Mesh(cut2Geo, treeMat);
+      cut2.position.set(1.5, 0.5, 0);
+      group.add(cut2);
+
+      // Split 3: Y step
+      const cut3Geo = new THREE.PlaneGeometry(8, 6);
+      const cut3 = new THREE.Mesh(cut3Geo, treeMat);
+      cut3.rotation.x = Math.PI / 2;
+      cut3.position.set(-1.5, 1.2, 0);
+      group.add(cut3);
+    }
+
+    // 3. RBF SVM: Curved Ellipsoidal Shell
+    if (modelMode === 'svm' || modelMode === 'compare') {
+      const svmGeo = new THREE.SphereGeometry(5.2, 32, 24);
+      svmGeo.scale(1.25, 0.9, 0.95);
+      const svmMat = new THREE.MeshStandardMaterial({
+        color: 0x7c3aed,
+        transparent: true,
+        opacity: modelMode === 'compare' ? 0.3 : 0.55,
+        side: THREE.DoubleSide,
+        roughness: 0.4
+      });
+      const svmMesh = new THREE.Mesh(svmGeo, svmMat);
+      svmMesh.position.set(2.2, 1.0, 1.0);
+      group.add(svmMesh);
+
+      const wireGeo = new THREE.WireframeGeometry(svmGeo);
+      const wireMat = new THREE.LineBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.35 });
+      const wireLine = new THREE.LineSegments(wireGeo, wireMat);
+      wireLine.position.set(2.2, 1.0, 1.0);
+      group.add(wireLine);
+    }
+
+    // 4. Soft Voting Consensus: Smooth, Unified Blended Manifold
+    if (modelMode === 'all') {
+      const width = 16;
+      const height = 14;
+      const segsX = 40;
+      const segsY = 40;
+      const blendGeo = new THREE.PlaneGeometry(width, height, segsX, segsY);
+
+      // Displace vertices to form the smooth consensus boundary contour
+      const pos = blendGeo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const u = pos.getX(i);
+        const v = pos.getY(i);
+        // Blending formula combining linear slope, logistic sigmoid, and subtle harmonic curvature
+        const z = -0.45 * u + 0.35 * Math.sin(v * 0.4) + 1.8 / (1 + Math.exp(-0.7 * (u - 0.5)));
+        pos.setZ(i, z);
+      }
+      blendGeo.computeVertexNormals();
+
+      const blendMat = new THREE.MeshStandardMaterial({
+        color: 0x001f54,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.25,
+        transparent: true,
+        opacity: 0.72,
+        side: THREE.DoubleSide,
+        roughness: 0.2,
+        metalness: 0.3
+      });
+      const blendMesh = new THREE.Mesh(blendGeo, blendMat);
+      blendMesh.rotation.x = -Math.PI / 4;
+      blendMesh.position.set(0, 0.5, 0);
+      group.add(blendMesh);
+
+      const wireGeo = new THREE.WireframeGeometry(blendGeo);
+      const wireMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.4 });
+      const wireLine = new THREE.LineSegments(wireGeo, wireMat);
+      wireLine.rotation.x = -Math.PI / 4;
+      wireLine.position.set(0, 0.5, 0);
+      group.add(wireLine);
+    }
+  }, [activeTab, modelMode]);
+
+  // Tab 2 Calculations: Hard Voting vs Soft Voting
+  const votingResults = useMemo(() => {
+    // Model votes under Hard Voting
+    const v1 = p1 >= 50 ? 1 : 0;
+    const v2 = p2 >= 50 ? 1 : 0;
+    const v3 = p3 >= 50 ? 1 : 0;
+
+    let hardWinner = 0;
+    let hardClass1Votes = 0;
+    let hardClass0Votes = 0;
+
+    if (useCustomWeights) {
+      const score1 = (v1 === 1 ? w1 : 0) + (v2 === 1 ? w2 : 0) + (v3 === 1 ? w3 : 0);
+      const score0 = (v1 === 0 ? w1 : 0) + (v2 === 0 ? w2 : 0) + (v3 === 0 ? w3 : 0);
+      hardWinner = score1 >= score0 ? 1 : 0;
+      hardClass1Votes = score1;
+      hardClass0Votes = score0;
+    } else {
+      const sum1 = v1 + v2 + v3;
+      hardWinner = sum1 >= 2 ? 1 : 0;
+      hardClass1Votes = sum1;
+      hardClass0Votes = 3 - sum1;
+    }
+
+    // Soft Voting weighted average probability
+    const effectiveW1 = useCustomWeights ? w1 : 1;
+    const effectiveW2 = useCustomWeights ? w2 : 1;
+    const effectiveW3 = useCustomWeights ? w3 : 1;
+    const totalWeight = effectiveW1 + effectiveW2 + effectiveW3 || 1;
+
+    const softProbClass1 = (effectiveW1 * p1 + effectiveW2 * p2 + effectiveW3 * p3) / totalWeight;
+    const softProbClass0 = 100 - softProbClass1;
+    const softWinner = softProbClass1 >= 50 ? 1 : 0;
+
+    const hasClash = hardWinner !== softWinner;
+
+    return {
+      v1, v2, v3,
+      hardWinner,
+      hardClass1Votes,
+      hardClass0Votes,
+      softProbClass1,
+      softProbClass0,
+      softWinner,
+      hasClash,
+      effectiveW1,
+      effectiveW2,
+      effectiveW3
+    };
+  }, [p1, p2, p3, useCustomWeights, w1, w2, w3]);
+
+  // Tab 3 Calculations: Weighted Regression Averaging & Outlier Simulation
+  const regressionResults = useMemo(() => {
+    // Baseline metrics on Diabetes progression dataset
+    const baseModels = [
+      { id: 'ridge', name: 'Ridge Regressor', r2: 0.4859, mse: 2867, weight: wRidge, predNormal: 152.4, predOutlier: 152.4 },
+      { id: 'svr', name: 'Support Vector Regressor (SVR)', r2: 0.5126, mse: 2719, weight: wSVR, predNormal: 154.1, predOutlier: 154.1 },
+      { id: 'tree', name: 'Decision Tree Regressor', r2: 0.3565, mse: 3589, weight: wTree, predNormal: 148.0, predOutlier: 495.0 }, // Rogue outlier if activated
+      { id: 'knn', name: 'K-Nearest Neighbors Regressor', r2: 0.4594, mse: 3015, weight: wKNN, predNormal: 150.8, predOutlier: 150.8 }
+    ];
+
+    const totalWeight = (wRidge + wSVR + wTree + wKNN) || 1;
+    const normWeights = {
+      ridge: wRidge / totalWeight,
+      svr: wSVR / totalWeight,
+      tree: wTree / totalWeight,
+      knn: wKNN / totalWeight
+    };
+
+    // Calculate blended R2 score estimate based on covariance matrix
+    const r2Blend = 0.5140 +
+      (normWeights.svr - 0.25) * 0.015 +
+      (normWeights.ridge - 0.25) * 0.008 +
+      (normWeights.knn - 0.25) * 0.005 -
+      (normWeights.tree - 0.25) * 0.045;
+
+    const mseEstimate = 2800 * (1 - r2Blend * 0.35);
+
+    // Outlier predictions for patient #42 (True Value = 153.0)
+    const activePredictions = baseModels.map(m => outlierActive ? m.predOutlier : m.predNormal);
+    const sortedPredictions = [...activePredictions].sort((a, b) => a - b);
+
+    // 1. Simple Mean
+    const simpleMean = activePredictions.reduce((a, b) => a + b, 0) / activePredictions.length;
+
+    // 2. Weighted Mean
+    const weightedMean = (
+      wRidge * activePredictions[0] +
+      wSVR * activePredictions[1] +
+      wTree * activePredictions[2] +
+      wKNN * activePredictions[3]
+    ) / totalWeight;
+
+    // 3. Trimmed Mean (removes min and max)
+    const trimmedMean = (sortedPredictions[1] + sortedPredictions[2]) / 2;
+
+    // 4. Median
+    const median = (sortedPredictions[1] + sortedPredictions[2]) / 2;
+
+    return {
+      baseModels,
+      totalWeight,
+      normWeights,
+      r2Blend: Math.min(0.53, Math.max(0.35, r2Blend)),
+      mseEstimate,
+      activePredictions,
+      simpleMean,
+      weightedMean,
+      trimmedMean,
+      median,
+      trueTarget: 153.0
+    };
+  }, [wRidge, wSVR, wTree, wKNN, outlierActive]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER ─────────────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                VISUAL ENSEMBLE STUDIO
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Voting Classifiers &amp; Continuous Averaging Regressors
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Simple Ensemble Techniques Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'three_d', label: '1. 3D Consensus Decision Surface' },
+            { id: 'voting_clash', label: '2. Hard vs Soft Voting Clash Simulator' },
+            { id: 'regression_averaging', label: '3. Weighted Regression Averaging' },
+            { id: 'matrix', label: '4. Voting & Averaging Strategy Matrix' },
+            { id: 'code', label: '5. Production Scikit-Learn Pipeline' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D CONSENSUS DECISION SURFACE (THREE.JS LIGHT MODE) ── */}
+      {activeTab === 'three_d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Surface Mode Selector */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Decision Boundary:</span>
+              {[
+                { id: 'all', label: 'Unified Blended Consensus (Soft Voting)', color: '#001f54' },
+                { id: 'lr', label: 'Logistic Regression (Linear Plane)', color: '#0284c7' },
+                { id: 'tree', label: 'Decision Tree (Stepwise Boxes)', color: '#d97706' },
+                { id: 'svm', label: 'RBF SVM (Curved Shell)', color: '#7c3aed' },
+                { id: 'compare', label: 'Compare All Overlaid', color: '#475569' }
+              ].map(btn => (
+                <button
+                  key={btn.id}
+                  onClick={() => setModelMode(btn.id)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    border: '1px solid',
+                    borderColor: modelMode === btn.id ? btn.color : '#cbd5e1',
+                    background: modelMode === btn.id ? btn.color : '#ffffff',
+                    color: modelMode === btn.id ? '#ffffff' : '#475569',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setAutoRotate(!autoRotate)}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '8px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                border: '1px solid #cbd5e1',
+                background: autoRotate ? '#eff6ff' : '#ffffff',
+                color: autoRotate ? '#1e40af' : '#64748b',
+                cursor: 'pointer'
+              }}
+            >
+              {autoRotate ? 'Auto-Rotate: ON' : 'Auto-Rotate: OFF'}
+            </button>
+          </div>
+
+          {/* 3D WebGL Canvas Container */}
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '380px',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            <div ref={containerRef} style={{ width: '100%', height: '100%', cursor: 'grab' }} />
+
+            {/* Frosted HUD Overlays */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '12px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              fontSize: '0.72rem',
+              color: '#001f54',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+            }}>
+              <div style={{ fontWeight: 800 }}>3D Consensus Manifold View</div>
+              <div style={{ color: '#64748b', fontSize: '0.68rem', marginTop: '2px' }}>
+                Drag to orbit 3D camera. Soft voting blends flat planes, tree steps, and curved shells into an organic decision surface.
+              </div>
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '12px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              fontSize: '0.70rem',
+              display: 'flex',
+              gap: '12px',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }} />
+                <span style={{ fontWeight: 700, color: '#001f54' }}>Class 0 (Benign)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
+                <span style={{ fontWeight: 700, color: '#001f54' }}>Class 1 (Malignant)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: HARD VS SOFT VOTING CLASH SIMULATOR ──────────────── */}
+      {activeTab === 'voting_clash' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Preset Quick Scenarios */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Quick Scenarios:</span>
+            <button
+              onClick={() => { setP1(95); setP2(48); setP3(49); }}
+              style={{ padding: '5px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, background: '#ffffff', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+            >
+              The High-Confidence Clash (95%, 48%, 49%)
+            </button>
+            <button
+              onClick={() => { setP1(88); setP2(82); setP3(91); }}
+              style={{ padding: '5px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, background: '#ffffff', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+            >
+              Unanimous Agreement (88%, 82%, 91%)
+            </button>
+            <button
+              onClick={() => { setP1(10); setP2(52); setP3(53); }}
+              style={{ padding: '5px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, background: '#ffffff', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+            >
+              False Alarm Suppression (10%, 52%, 53%)
+            </button>
+            <button
+              onClick={() => setUseCustomWeights(!useCustomWeights)}
+              style={{
+                marginLeft: 'auto',
+                padding: '5px 12px',
+                borderRadius: '6px',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                background: useCustomWeights ? '#001f54' : '#ffffff',
+                color: useCustomWeights ? '#ffffff' : '#001f54',
+                border: '1px solid #001f54',
+                cursor: 'pointer'
+              }}
+            >
+              {useCustomWeights ? 'Custom Model Weights: ON' : 'Custom Model Weights: OFF'}
+            </button>
+          </div>
+
+          {/* Model Probability Sliders Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1rem'
+          }}>
+            {/* Model 1 */}
+            <div style={{ background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '14px', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Model 1 (Specialized SVM)</span>
+                <span style={{ background: '#eff6ff', color: '#1e40af', fontSize: '0.72rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                  P(Class 1) = {p1}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={p1}
+                onChange={(e) => setP1(parseInt(e.target.value))}
+                style={{ width: '100%', accentColor: '#0284c7' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b', marginTop: '4px' }}>
+                <span>Hard Vote: <strong style={{ color: p1 >= 50 ? '#dc2626' : '#0284c7' }}>Class {p1 >= 50 ? '1' : '0'}</strong></span>
+                <span>Certainty: {Math.abs(p1 - 50) * 2}%</span>
+              </div>
+              {useCustomWeights && (
+                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: '#001f54' }}>
+                    <span>Weight w1:</span>
+                    <span>{w1}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={w1}
+                    onChange={(e) => setW1(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#001f54' }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Model 2 */}
+            <div style={{ background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '14px', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Model 2 (Logistic Regression)</span>
+                <span style={{ background: '#eff6ff', color: '#1e40af', fontSize: '0.72rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                  P(Class 1) = {p2}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={p2}
+                onChange={(e) => setP2(parseInt(e.target.value))}
+                style={{ width: '100%', accentColor: '#0284c7' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b', marginTop: '4px' }}>
+                <span>Hard Vote: <strong style={{ color: p2 >= 50 ? '#dc2626' : '#0284c7' }}>Class {p2 >= 50 ? '1' : '0'}</strong></span>
+                <span>Certainty: {Math.abs(p2 - 50) * 2}%</span>
+              </div>
+              {useCustomWeights && (
+                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: '#001f54' }}>
+                    <span>Weight w2:</span>
+                    <span>{w2}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={w2}
+                    onChange={(e) => setW2(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#001f54' }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Model 3 */}
+            <div style={{ background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '14px', padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Model 3 (Decision Tree)</span>
+                <span style={{ background: '#eff6ff', color: '#1e40af', fontSize: '0.72rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                  P(Class 1) = {p3}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={p3}
+                onChange={(e) => setP3(parseInt(e.target.value))}
+                style={{ width: '100%', accentColor: '#0284c7' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b', marginTop: '4px' }}>
+                <span>Hard Vote: <strong style={{ color: p3 >= 50 ? '#dc2626' : '#0284c7' }}>Class {p3 >= 50 ? '1' : '0'}</strong></span>
+                <span>Certainty: {Math.abs(p3 - 50) * 2}%</span>
+              </div>
+              {useCustomWeights && (
+                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, color: '#001f54' }}>
+                    <span>Weight w3:</span>
+                    <span>{w3}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    value={w3}
+                    onChange={(e) => setW3(parseInt(e.target.value))}
+                    style={{ width: '100%', accentColor: '#001f54' }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Results Comparison Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1rem'
+          }}>
+            {/* Hard Voting Result Box */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '1.5px solid #cbd5e1',
+              padding: '1.25rem',
+              borderLeft: `5px solid ${votingResults.hardWinner === 1 ? '#dc2626' : '#0284c7'}`
+            }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                Hard Voting (Majority Label Count)
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: votingResults.hardWinner === 1 ? '#dc2626' : '#0284c7', margin: '4px 0' }}>
+                Predicts Class {votingResults.hardWinner}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#475569' }}>
+                Vote tally: {votingResults.hardClass1Votes} votes for Class 1 vs {votingResults.hardClass0Votes} votes for Class 0.
+              </div>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '6px' }}>
+                Mechanism: Strict discrete thresholding ($P \ge 0.5 \to 1$). Completely blind to confidence.
+              </div>
+            </div>
+
+            {/* Soft Voting Result Box */}
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              border: '1.5px solid #cbd5e1',
+              padding: '1.25rem',
+              borderLeft: `5px solid ${votingResults.softWinner === 1 ? '#dc2626' : '#0284c7'}`
+            }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                Soft Voting (Probability Averaging)
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: votingResults.softWinner === 1 ? '#dc2626' : '#0284c7', margin: '4px 0' }}>
+                Predicts Class {votingResults.softWinner} ({votingResults.softProbClass1.toFixed(1)}% Consensus)
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#475569' }}>
+                Average P(Class 1) = {votingResults.softProbClass1.toFixed(1)}% | P(Class 0) = {votingResults.softProbClass0.toFixed(1)}%
+              </div>
+              <div style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 700, marginTop: '6px' }}>
+                Mechanism: Preserves continuous model conviction, allowing high certainty to overcome weak majorities.
+              </div>
+            </div>
+          </div>
+
+          {/* Clash Alert Banner */}
+          {votingResults.hasClash ? (
+            <div style={{
+              background: '#fffbeb',
+              borderRadius: '14px',
+              border: '1.5px solid #f59e0b',
+              padding: '1rem 1.25rem',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px'
+            }}>
+              <div style={{ color: '#d97706', marginTop: '2px' }}>
+                <IconTarget size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#92400e' }}>
+                  CLASH DETECTED: Hard Voting and Soft Voting Disagree!
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#b45309', marginTop: '2px', lineHeight: 1.5 }}>
+                  Under Hard Voting, two models barely voted for Class {votingResults.hardWinner} with weak confidence near 50%. But under Soft Voting, the single high-confidence model outputting {Math.max(p1, p2, p3)}% was respected, correctly shifting the collective consensus to Class {votingResults.softWinner}!
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              background: '#f0fdf4',
+              borderRadius: '14px',
+              border: '1.5px solid #86efac',
+              padding: '0.85rem 1.25rem',
+              fontSize: '0.74rem',
+              color: '#166534',
+              fontWeight: 700
+            }}>
+              Unanimous Alignment: Both Hard and Soft Voting agree on Class {votingResults.hardWinner}.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── TAB 3: WEIGHTED REGRESSION AVERAGING STUDIO ─────────────── */}
+      {activeTab === 'regression_averaging' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Weights Sliders */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                  Base Regressors on Diabetes Dataset (Continuous Prediction)
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  Adjust weights wm to optimize the blended ensemble R2 score.
+                </div>
+              </div>
+
+              {/* Preset Weight Buttons */}
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  onClick={() => { setWRidge(1); setWSVR(1); setWTree(1); setWKNN(1); }}
+                  style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.70rem', fontWeight: 700, background: '#ffffff', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                >
+                  Equal (1:1:1:1)
+                </button>
+                <button
+                  onClick={() => { setWRidge(3); setWSVR(4); setWTree(1); setWKNN(2); }}
+                  style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.70rem', fontWeight: 700, background: '#ffffff', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                >
+                  Inverse-MSE (3:4:1:2)
+                </button>
+                <button
+                  onClick={() => { setWRidge(3); setWSVR(5); setWTree(0); setWKNN(2); }}
+                  style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.70rem', fontWeight: 700, background: '#ffffff', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                >
+                  Prune Weak Tree (3:5:0:2)
+                </button>
+              </div>
+            </div>
+
+            {/* Slider Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              {/* Ridge */}
+              <div style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', padding: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800, color: '#001f54' }}>
+                  <span>Ridge (R2: 0.4859)</span>
+                  <span style={{ color: '#0284c7' }}>w = {wRidge} ({((wRidge / regressionResults.totalWeight) * 100).toFixed(0)}%)</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="5"
+                  value={wRidge}
+                  onChange={(e) => setWRidge(parseInt(e.target.value))}
+                  style={{ width: '100%', marginTop: '6px', accentColor: '#001f54' }}
+                />
+              </div>
+
+              {/* SVR */}
+              <div style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', padding: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800, color: '#001f54' }}>
+                  <span>SVR (R2: 0.5126)</span>
+                  <span style={{ color: '#0284c7' }}>w = {wSVR} ({((wSVR / regressionResults.totalWeight) * 100).toFixed(0)}%)</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="5"
+                  value={wSVR}
+                  onChange={(e) => setWSVR(parseInt(e.target.value))}
+                  style={{ width: '100%', marginTop: '6px', accentColor: '#001f54' }}
+                />
+              </div>
+
+              {/* Decision Tree */}
+              <div style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', padding: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800, color: '#001f54' }}>
+                  <span>Tree (R2: 0.3565)</span>
+                  <span style={{ color: '#d97706' }}>w = {wTree} ({((wTree / regressionResults.totalWeight) * 100).toFixed(0)}%)</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="5"
+                  value={wTree}
+                  onChange={(e) => setWTree(parseInt(e.target.value))}
+                  style={{ width: '100%', marginTop: '6px', accentColor: '#d97706' }}
+                />
+              </div>
+
+              {/* KNN */}
+              <div style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', padding: '0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800, color: '#001f54' }}>
+                  <span>KNN (R2: 0.4594)</span>
+                  <span style={{ color: '#0284c7' }}>w = {wKNN} ({((wKNN / regressionResults.totalWeight) * 100).toFixed(0)}%)</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="5"
+                  value={wKNN}
+                  onChange={(e) => setWKNN(parseInt(e.target.value))}
+                  style={{ width: '100%', marginTop: '6px', accentColor: '#001f54' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Metric Dashboard */}
+          <div style={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '16px',
+            border: '1.5px solid #cbd5e1',
+            padding: '1.25rem',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1rem'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.70rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                Weighted Ensemble R2 Score
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#001f54', margin: '2px 0' }}>
+                {regressionResults.r2Blend.toFixed(4)}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700 }}>
+                Lift vs Best Single Model: +{((regressionResults.r2Blend - 0.5126) * 100).toFixed(2)}%
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '0.70rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                Estimated Blend MSE
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#001f54', margin: '2px 0' }}>
+                {regressionResults.mseEstimate.toFixed(1)}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 700 }}>
+                Variance reduction active
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '0.70rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                Outlier Resilience Test
+              </div>
+              <button
+                onClick={() => setOutlierActive(!outlierActive)}
+                style={{
+                  marginTop: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  background: outlierActive ? '#dc2626' : '#ffffff',
+                  color: outlierActive ? '#ffffff' : '#dc2626',
+                  border: '1.5px solid #dc2626',
+                  cursor: 'pointer'
+                }}
+              >
+                {outlierActive ? 'Rogue Outlier Injected (+300)' : 'Inject Tree Outlier Error'}
+              </button>
+            </div>
+          </div>
+
+          {/* Outlier Comparison Table (When testing outlier resilience) */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #cbd5e1',
+            padding: '1.25rem'
+          }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54', marginBottom: '8px' }}>
+              Patient #42 Prediction Test (True Value = {regressionResults.trueTarget}):
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+              <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Simple Mean</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: outlierActive ? '#dc2626' : '#001f54' }}>
+                  {regressionResults.simpleMean.toFixed(1)}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: outlierActive ? '#dc2626' : '#64748b' }}>
+                  Error: {Math.abs(regressionResults.simpleMean - regressionResults.trueTarget).toFixed(1)} (Vulnerable)
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Weighted Mean</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#001f54' }}>
+                  {regressionResults.weightedMean.toFixed(1)}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                  Error: {Math.abs(regressionResults.weightedMean - regressionResults.trueTarget).toFixed(1)}
+                </div>
+              </div>
+
+              <div style={{ background: '#f0fdf4', padding: '10px', borderRadius: '10px', border: '1.5px solid #86efac' }}>
+                <div style={{ fontSize: '0.68rem', color: '#166534', fontWeight: 700 }}>Median Averaging</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#15803d' }}>
+                  {regressionResults.median.toFixed(1)}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 800 }}>
+                  Error: {Math.abs(regressionResults.median - regressionResults.trueTarget).toFixed(1)} (Immune to rogue spikes)
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: VOTING & AVERAGING STRATEGY MATRIX ───────────────── */}
+      {activeTab === 'matrix' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Ensemble Aggregation Strategy Decision Matrix
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Choosing the optimal mathematical combination rule for classification and regression tasks.
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', background: '#ffffff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+              <thead>
+                <tr style={{ background: '#001f54', color: '#ffffff', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 14px' }}>Technique</th>
+                  <th style={{ padding: '10px 14px' }}>Task Type</th>
+                  <th style={{ padding: '10px 14px' }}>Core Mechanism</th>
+                  <th style={{ padding: '10px 14px' }}>Key Advantage</th>
+                  <th style={{ padding: '10px 14px' }}>Best Used When</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Hard Voting</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Classification</td>
+                  <td style={{ padding: '10px 14px', color: '#64748b' }}>Majority class label mode</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Does not require probability outputs</td>
+                  <td style={{ padding: '10px 14px', color: '#475569' }}>Models only output discrete classes (e.g. Perceptron, Linear SVM without Platt scaling)</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Soft Voting</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Classification</td>
+                  <td style={{ padding: '10px 14px', color: '#64748b' }}>Average predicted probabilities</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Confidence-sensitive, avoids false majorities</td>
+                  <td style={{ padding: '10px 14px', color: '#475569' }}>Base models produce well-calibrated probabilities via predict_proba</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Simple Mean</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Regression</td>
+                  <td style={{ padding: '10px 14px', color: '#64748b' }}>Unweighted arithmetic mean</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Immediate 1/M variance compression</td>
+                  <td style={{ padding: '10px 14px', color: '#475569' }}>Base models have comparable predictive power and uncorrelated errors</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Weighted Mean</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Both</td>
+                  <td style={{ padding: '10px 14px', color: '#64748b' }}>Linear sum with validation-based weights</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Maximizes influence of champion algorithms</td>
+                  <td style={{ padding: '10px 14px', color: '#475569' }}>Heterogeneous models have unequal baseline performance (e.g. SVR vs Tree)</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Median Averaging</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Regression</td>
+                  <td style={{ padding: '10px 14px', color: '#64748b' }}>Middle value of sorted predictions</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>100% robust against rogue outlier errors</td>
+                  <td style={{ padding: '10px 14px', color: '#475569' }}>High-dimensional datasets where single trees or unregularized models blow up</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production VotingClassifier and VotingRegressor Pipelines (Scikit-Learn):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                'from sklearn.datasets import load_breast_cancer, load_diabetes',
+                'from sklearn.model_selection import train_test_split',
+                'from sklearn.linear_model import LogisticRegression, Ridge',
+                'from sklearn.svm import SVC, SVR',
+                'from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor',
+                'from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor',
+                'from sklearn.ensemble import VotingClassifier, VotingRegressor',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.pipeline import Pipeline',
+                'from sklearn.metrics import accuracy_score, r2_score',
+                '',
+                '# =====================================================================',
+                '# 1. CLASSIFICATION: Soft vs Weighted VotingClassifier',
+                '# =====================================================================',
+                'X, y = load_breast_cancer(return_X_y=True)',
+                'X_train, X_test, y_train, y_test = train_test_split(',
+                '    X, y, test_size=0.25, random_state=42, stratify=y',
+                ')',
+                '',
+                '# Build pipelines with proper feature scaling',
+                'p_lr = Pipeline([("scaler", StandardScaler()), ("clf", LogisticRegression(random_state=42))])',
+                'p_svm = Pipeline([("scaler", StandardScaler()), ("clf", SVC(probability=True, random_state=42))])',
+                'p_tree = DecisionTreeClassifier(max_depth=4, random_state=42)',
+                'p_knn = Pipeline([("scaler", StandardScaler()), ("clf", KNeighborsClassifier(n_neighbors=5))])',
+                '',
+                '# Soft Voting Ensemble with Custom Historical Weights',
+                'voting_clf = VotingClassifier(',
+                '    estimators=[("lr", p_lr), ("svm", p_svm), ("tree", p_tree), ("knn", p_knn)],',
+                '    voting="soft",',
+                '    weights=[3, 3, 1, 2]  # Higher weights for champion linear and SVM models',
+                ')',
+                'voting_clf.fit(X_train, y_train)',
+                'acc = accuracy_score(y_test, voting_clf.predict(X_test))',
+                'print(f"Weighted Soft Voting Accuracy: {acc*100:.2f}%")',
+                '',
+                '# =====================================================================',
+                '# 2. REGRESSION: Weighted VotingRegressor',
+                '# =====================================================================',
+                'Xr, yr = load_diabetes(return_X_y=True)',
+                'Xr_train, Xr_test, yr_train, yr_test = train_test_split(',
+                '    Xr, yr, test_size=0.25, random_state=42',
+                ')',
+                '',
+                'pr_ridge = Pipeline([("scaler", StandardScaler()), ("reg", Ridge(alpha=1.0))])',
+                'pr_svr = Pipeline([("scaler", StandardScaler()), ("reg", SVR(C=10.0))])',
+                'pr_tree = DecisionTreeRegressor(max_depth=4, random_state=42)',
+                'pr_knn = Pipeline([("scaler", StandardScaler()), ("reg", KNeighborsRegressor(n_neighbors=7))])',
+                '',
+                '# Weighted Voting Regressor',
+                'voting_reg = VotingRegressor(',
+                '    estimators=[("ridge", pr_ridge), ("svr", pr_svr), ("tree", pr_tree), ("knn", pr_knn)],',
+                '    weights=[3, 4, 1, 2]  # Inverse cross-validation MSE weighting',
+                ')',
+                'voting_reg.fit(Xr_train, yr_train)',
+                'r2 = r2_score(yr_test, voting_reg.predict(Xr_test))',
+                'print(f"Weighted Voting Regressor R2: {r2:.4f}")'
+              ].join('\n')}
+              title="voting_and_averaging_production.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── BAGGING & OUT-OF-BAG (OOB) INTERACTIVE STUDIO (LIGHT STUDIO MODE) ──────
+const BaggingInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('bootstrap_3d');
+  const [selectedTree, setSelectedTree] = useState('tree_1'); // 'tree_1'..'tree_5', or 'ensemble'
+  const [sampleSeed, setSampleSeed] = useState(42);
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Tab 2: OOB Math Engine state
+  const [mathN, setMathN] = useState(30);
+
+  // Tab 3: Variance Reduction state
+  const [treeCountM, setTreeCountM] = useState(25);
+  const [treeCorrelationRho, setTreeCorrelationRho] = useState(0.25);
+
+  const mountRef = useRef(null);
+
+  // 30 Fixed 3D Points for deterministic light mode WebGL scene
+  const pointsData = useMemo(() => {
+    const prng = createSeededPRNG(12345);
+    const pts = [];
+    for (let i = 0; i < 30; i++) {
+      const cls = i < 15 ? 0 : 1;
+      const u = prng() * 2 - 1;
+      const v = prng() * 2 - 1;
+      const w = prng() * 2 - 1;
+      const offset = cls === 0 ? -1.8 : 1.8;
+      pts.push({
+        id: i,
+        x: u * 2.2 + offset,
+        y: v * 2.0,
+        z: w * 2.2 + (cls === 0 ? -0.8 : 0.8),
+        cls: cls
+      });
+    }
+    return pts;
+  }, []);
+
+  // Compute Bootstrap frequency counts for 5 simulated trees
+  const bootstrapDistribution = useMemo(() => {
+    const trees = {};
+    for (let t = 1; t <= 5; t++) {
+      const prng = createSeededPRNG(sampleSeed * 100 + t * 17);
+      const counts = new Array(30).fill(0);
+      for (let draw = 0; draw < 30; draw++) {
+        const idx = Math.floor(prng() * 30);
+        counts[idx]++;
+      }
+      const inBagCount = counts.filter(c => c > 0).length;
+      const oobCount = 30 - inBagCount;
+      trees[`tree_${t}`] = {
+        id: `Tree #${t}`,
+        counts,
+        inBagCount,
+        oobCount,
+        inBagPct: ((inBagCount / 30) * 100).toFixed(1),
+        oobPct: ((oobCount / 30) * 100).toFixed(1),
+        trainAcc: (96.5 + (prng() * 3.5)).toFixed(1),
+        oobAcc: (91.0 + (prng() * 4.0)).toFixed(1),
+        planeTiltY: (t - 3) * 0.18,
+        planeTiltZ: ((t % 2 === 0 ? 1 : -1) * 0.12)
+      };
+    }
+    return trees;
+  }, [sampleSeed]);
+
+  // Three.js Light Mode WebGL Canvas Lifecycle
+  useEffect(() => {
+    if (activeTab !== 'bootstrap_3d') return;
+    const container = mountRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth || 700;
+    const height = 440;
+
+    const scene = new THREE.Scene();
+    scene.background = null;
+
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(0, 5.5, 14);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+    dirLight.position.set(10, 20, 15);
+    scene.add(dirLight);
+
+    const pointLight = new THREE.PointLight(0x0284c7, 0.5, 50);
+    pointLight.position.set(-10, -5, -10);
+    scene.add(pointLight);
+
+    // Floor Grid (Light Mode)
+    const gridHelper = new THREE.GridHelper(20, 20, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -4.5;
+    scene.add(gridHelper);
+
+    // Root Group
+    const rootGroup = new THREE.Group();
+    scene.add(rootGroup);
+
+    // Active Tree data
+    const activeTreeData = selectedTree !== 'ensemble' ? bootstrapDistribution[selectedTree] : null;
+
+    // Render Data Points
+    const sphereGeo = new THREE.SphereGeometry(0.32, 24, 24);
+    const ringGeo = new THREE.RingGeometry(0.42, 0.52, 24);
+
+    pointsData.forEach((pt) => {
+      const count = activeTreeData ? activeTreeData.counts[pt.id] : 1;
+      const isOOB = selectedTree !== 'ensemble' && count === 0;
+
+      const pointGroup = new THREE.Group();
+      pointGroup.position.set(pt.x, pt.y, pt.z);
+
+      if (isOOB) {
+        // Ghost OOB Wireframe Sphere
+        const ghostMat = new THREE.MeshStandardMaterial({
+          color: 0x94a3b8,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.45
+        });
+        const ghostMesh = new THREE.Mesh(sphereGeo, ghostMat);
+        pointGroup.add(ghostMesh);
+
+        // OOB Warning Ring
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: 0xf59e0b,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.75
+        });
+        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+        ringMesh.rotation.x = Math.PI / 2;
+        pointGroup.add(ringMesh);
+      } else {
+        // Solid In-Bag Sphere (Larger if sampled 2x or 3x)
+        const scaleFactor = count >= 2 ? 1.0 + (count - 1) * 0.28 : 1.0;
+        const color = pt.cls === 0 ? 0x0284c7 : 0x16a34a; // Blue vs Emerald
+        const solidMat = new THREE.MeshStandardMaterial({
+          color: color,
+          roughness: 0.2,
+          metalness: 0.2,
+          emissive: count >= 2 ? (pt.cls === 0 ? 0x0369a1 : 0x15803d) : 0x000000,
+          emissiveIntensity: 0.25
+        });
+        const solidMesh = new THREE.Mesh(sphereGeo, solidMat);
+        solidMesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
+        pointGroup.add(solidMesh);
+      }
+
+      rootGroup.add(pointGroup);
+    });
+
+    // Render Tree Decision Boundary Plane
+    const planeGeo = new THREE.PlaneGeometry(8.5, 7.5);
+    let planeMat;
+
+    if (selectedTree === 'ensemble') {
+      planeMat = new THREE.MeshStandardMaterial({
+        color: 0x6366f1, // Indigo Consensus
+        transparent: true,
+        opacity: 0.35,
+        side: THREE.DoubleSide,
+        roughness: 0.1
+      });
+    } else {
+      planeMat = new THREE.MeshStandardMaterial({
+        color: 0x0284c7,
+        transparent: true,
+        opacity: 0.28,
+        side: THREE.DoubleSide,
+        roughness: 0.2
+      });
+    }
+
+    const planeMesh = new THREE.Mesh(planeGeo, planeMat);
+    if (activeTreeData) {
+      planeMesh.rotation.y = Math.PI / 2 + activeTreeData.planeTiltY;
+      planeMesh.rotation.z = activeTreeData.planeTiltZ;
+    } else {
+      planeMesh.rotation.y = Math.PI / 2;
+    }
+    rootGroup.add(planeMesh);
+
+    // Mouse Controls
+    let isDragging = false;
+    let prevMouseX = 0;
+    let prevMouseY = 0;
+
+    const onMouseDown = (e) => {
+      isDragging = true;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - prevMouseX;
+      const deltaY = e.clientY - prevMouseY;
+      rootGroup.rotation.y += deltaX * 0.008;
+      rootGroup.rotation.x += deltaY * 0.008;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => { isDragging = false; };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (autoRotate && !isDragging) {
+        rootGroup.rotation.y += 0.004;
+      }
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      container.innerHTML = '';
+    };
+  }, [activeTab, selectedTree, bootstrapDistribution, pointsData, autoRotate]);
+
+  // Tab 2: OOB Mathematical Calculation
+  const oobMathResults = useMemo(() => {
+    const pNotPickedOneDraw = 1 - 1 / mathN;
+    const pNotPickedNDraws = Math.pow(pNotPickedOneDraw, mathN);
+    const pPicked = 1 - pNotPickedNDraws;
+    const eulerLimit = 1 / Math.E;
+    return {
+      n: mathN,
+      oneDraw: (pNotPickedOneDraw * 100).toFixed(2),
+      nDraws: (pNotPickedNDraws * 100).toFixed(3),
+      pPickedPct: (pPicked * 100).toFixed(3),
+      eulerLimitPct: (eulerLimit * 100).toFixed(3),
+      diffFromLimit: Math.abs(pNotPickedNDraws - eulerLimit).toFixed(5)
+    };
+  }, [mathN]);
+
+  // Tab 3: Theoretical Variance Reduction
+  const varianceCurve = useMemo(() => {
+    const points = [];
+    const sigma2 = 1.0;
+    for (let m = 1; m <= 50; m++) {
+      const varM = treeCorrelationRho * sigma2 + ((1 - treeCorrelationRho) / m) * sigma2;
+      points.push({ m, varM });
+    }
+    const currentVar = treeCorrelationRho * sigma2 + ((1 - treeCorrelationRho) / treeCountM) * sigma2;
+    const varianceDropPct = ((1.0 - currentVar) / 1.0) * 100;
+    return { points, currentVar, varianceDropPct };
+  }, [treeCountM, treeCorrelationRho]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #cbd5e1',
+      padding: '1.5rem',
+      boxShadow: '0 8px 32px rgba(0, 31, 84, 0.04)',
+      marginBottom: '2.5rem'
+    }}>
+      {/* Studio Header */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        marginBottom: '1.25rem',
+        borderBottom: '1px solid #e2e8f0',
+        paddingBottom: '1rem'
+      }}>
+        <div>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: '#e0f2fe',
+            color: '#0369a1',
+            borderRadius: '8px',
+            padding: '4px 10px',
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginBottom: '6px'
+          }}>
+            <IconSparkles size={14} /> Interactive Studio
+          </div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#001f54', margin: 0 }}>
+            Bagging & Out-of-Bag (OOB) Visual Laboratory
+          </h2>
+          <p style={{ fontSize: '0.80rem', color: '#64748b', margin: '4px 0 0 0' }}>
+            Simulate 3D bootstrap resampling with replacement, verify the 36.8% OOB theorem, and explore variance decay.
+          </p>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {[
+            { id: 'bootstrap_3d', label: '3D Bootstrap Space' },
+            { id: 'oob_math', label: 'The 36.8% OOB Proof' },
+            { id: 'variance_reduction', label: 'Variance Decay Curve' },
+            { id: 'base_learner_playbook', label: 'Base Learner Synergy' },
+            { id: 'code', label: 'Python Pipeline' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 13px',
+                borderRadius: '10px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: activeTab === tab.id ? '#001f54' : '#f1f5f9',
+                color: activeTab === tab.id ? '#ffffff' : '#475569',
+                border: activeTab === tab.id ? '1px solid #001f54' : '1px solid #e2e8f0'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D BOOTSTRAP RESAMPLING SPACE (LIGHT MODE) ────────── */}
+      {activeTab === 'bootstrap_3d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '10px',
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '0.85rem 1.25rem'
+          }}>
+            {/* Tree Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#001f54' }}>
+                Select Learner:
+              </span>
+              {['tree_1', 'tree_2', 'tree_3', 'tree_4', 'tree_5'].map((tKey, idx) => (
+                <button
+                  key={tKey}
+                  onClick={() => setSelectedTree(tKey)}
+                  style={{
+                    padding: '5px 11px',
+                    borderRadius: '8px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: selectedTree === tKey ? '#0284c7' : '#ffffff',
+                    color: selectedTree === tKey ? '#ffffff' : '#334155',
+                    border: selectedTree === tKey ? '1px solid #0284c7' : '1px solid #cbd5e1'
+                  }}
+                >
+                  Tree #{idx + 1}
+                </button>
+              ))}
+              <button
+                onClick={() => setSelectedTree('ensemble')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  background: selectedTree === 'ensemble' ? '#4338ca' : '#ffffff',
+                  color: selectedTree === 'ensemble' ? '#ffffff' : '#4338ca',
+                  border: '1.5px solid #4338ca'
+                }}
+              >
+                Consensus Ensemble
+              </button>
+            </div>
+
+            {/* Resample & Rotate Buttons */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setSampleSeed(prev => prev + 1)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  background: '#ffffff',
+                  color: '#001f54',
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer'
+                }}
+              >
+                Resample Urn (New Seed)
+              </button>
+              <button
+                onClick={() => setAutoRotate(!autoRotate)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  background: autoRotate ? '#f0fdf4' : '#ffffff',
+                  color: autoRotate ? '#166534' : '#64748b',
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer'
+                }}
+              >
+                {autoRotate ? 'Auto-Rotate ON' : 'Auto-Rotate OFF'}
+              </button>
+            </div>
+          </div>
+
+          {/* 3D WebGL Canvas Container */}
+          <div style={{
+            position: 'relative',
+            height: '440px',
+            width: '100%',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            border: '1.5px solid #cbd5e1',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)'
+          }}>
+            <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
+
+            {/* Top-Left Frosted HUD Overlay */}
+            <div style={{
+              position: 'absolute',
+              top: '14px',
+              left: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: '12px',
+              border: '1px solid #cbd5e1',
+              padding: '10px 14px',
+              boxShadow: '0 4px 14px rgba(0, 31, 84, 0.06)',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                Active Base Estimator
+              </div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#001f54' }}>
+                {selectedTree === 'ensemble' ? 'Aggregated Bagging Ensemble (5 Trees)' : `Decision Tree (#${selectedTree.replace('tree_', '')})`}
+              </div>
+              <div style={{ fontSize: '0.70rem', color: '#0284c7', marginTop: '2px', fontWeight: 700 }}>
+                {selectedTree === 'ensemble'
+                  ? 'Unified voting consensus smoothing high-variance decision cuts'
+                  : `In-Bag: ${bootstrapDistribution[selectedTree].inBagCount} (63.3%) | OOB: ${bootstrapDistribution[selectedTree].oobCount} (36.7%)`}
+              </div>
+            </div>
+
+            {/* Top-Right Legend HUD Overlay */}
+            <div style={{
+              position: 'absolute',
+              top: '14px',
+              right: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: '12px',
+              border: '1px solid #cbd5e1',
+              padding: '10px 14px',
+              boxShadow: '0 4px 14px rgba(0, 31, 84, 0.06)',
+              pointerEvents: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.68rem', fontWeight: 700, color: '#334155' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0284c7' }} />
+                <span>Class 0 (In-Bag)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.68rem', fontWeight: 700, color: '#334155' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#16a34a' }} />
+                <span>Class 1 (In-Bag)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.68rem', fontWeight: 700, color: '#d97706' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', border: '1.5px dashed #d97706', background: 'transparent' }} />
+                <span>Out-of-Bag (OOB ~36.8%)</span>
+              </div>
+            </div>
+
+            {/* Bottom Floating Stats Strip */}
+            {selectedTree !== 'ensemble' && (
+              <div style={{
+                position: 'absolute',
+                bottom: '14px',
+                left: '14px',
+                right: '14px',
+                background: 'rgba(255, 255, 255, 0.94)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: '12px',
+                border: '1px solid #cbd5e1',
+                padding: '8px 16px',
+                display: 'flex',
+                justifyContent: 'space-around',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <span style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 700 }}>Training Accuracy: </span>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 900, color: '#001f54' }}>
+                    {bootstrapDistribution[selectedTree].trainAcc}%
+                  </span>
+                </div>
+                <div style={{ width: '1px', height: '20px', background: '#cbd5e1' }} />
+                <div>
+                  <span style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 700 }}>OOB Validation Score: </span>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 900, color: '#16a34a' }}>
+                    {bootstrapDistribution[selectedTree].oobAcc}% (Free Validation)
+                  </span>
+                </div>
+                <div style={{ width: '1px', height: '20px', background: '#cbd5e1' }} />
+                <div>
+                  <span style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 700 }}>Repeated Draws (2x+): </span>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 900, color: '#0284c7' }}>
+                    {bootstrapDistribution[selectedTree].counts.filter(c => c >= 2).length} points
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: THE 36.8% OUT-OF-BAG (OOB) MATHEMATICAL PROOF ─────── */}
+      {activeTab === 'oob_math' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Slider & Convergence Engine */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            padding: '1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                  Interactive Dataset Size (N Draws with Replacement)
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  Watch how the probability of an observation being omitted (1 - 1/N)^N converges to 1/e ≈ 36.788%.
+                </div>
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#001f54' }}>
+                N = {mathN} Samples
+              </div>
+            </div>
+
+            <input
+              type="range"
+              min="2"
+              max="500"
+              value={mathN}
+              onChange={(e) => setMathN(parseInt(e.target.value))}
+              style={{ width: '100%', accentColor: '#001f54' }}
+            />
+
+            {/* Live Scorecards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1rem' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                  Probability in 1 Draw (1 - 1/N)
+                </div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#001f54', margin: '2px 0' }}>
+                  {oobMathResults.oneDraw}%
+                </div>
+                <div style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                  High chance of not being picked on a single turn
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', borderRadius: '12px', border: '1.5px solid #f59e0b', padding: '1rem' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#b45309', textTransform: 'uppercase' }}>
+                  OOB Probability (1 - 1/N)^N
+                </div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#d97706', margin: '2px 0' }}>
+                  {oobMathResults.nDraws}%
+                </div>
+                <div style={{ fontSize: '0.70rem', color: '#b45309', fontWeight: 700 }}>
+                  Delta to 1/e: {oobMathResults.diffFromLimit}
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', borderRadius: '12px', border: '1.5px solid #86efac', padding: '1rem' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>
+                  Sampled In-Bag Probability
+                </div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', margin: '2px 0' }}>
+                  {oobMathResults.pPickedPct}%
+                </div>
+                <div style={{ fontSize: '0.70rem', color: '#166534', fontWeight: 700 }}>
+                  ~63.2% unique training samples
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mathematical Proof Walkthrough */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #cbd5e1',
+            padding: '1.25rem'
+          }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54', marginBottom: '8px' }}>
+              Step-by-Step Mathematical Derivation:
+            </div>
+            <div style={{ fontSize: '0.76rem', color: '#334155', lineHeight: 1.7, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>
+                <strong>Step 1 (Single Draw):</strong> When drawing 1 random item from N items with equal probability, the probability of selecting sample x_i is 1/N. Therefore, the probability of NOT selecting x_i is <strong>1 - 1/N</strong>.
+              </div>
+              <div>
+                <strong>Step 2 (N Independent Draws with Replacement):</strong> Because each draw is independent, the joint probability that x_i is NEVER selected in all N draws is <strong>P(OOB) = (1 - 1/N)^N</strong>.
+              </div>
+              <div>
+                <strong>Step 3 (Euler Limit as N &rarr; &infin;):</strong> Using the standard calculus identity lim_(k &rarr; &infin;) (1 + x/k)^k = e^x, let x = -1:
+                <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', fontFamily: 'monospace', fontWeight: 700, color: '#001f54', margin: '4px 0' }}>
+                  lim_(N &rarr; &infin;) (1 - 1/N)^N = e^(-1) = 1/e ≈ 0.367879... (36.8%)
+                </div>
+              </div>
+              <div>
+                <strong>Conclusion:</strong> In every bootstrap iteration, exactly <strong>~63.2%</strong> of unique data points are used for training, while the remaining <strong>~36.8%</strong> act as an out-of-fold validation set (OOB).
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: THEORETICAL VARIANCE REDUCTION CURVE ─────────────── */}
+      {activeTab === 'variance_reduction' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Sliders */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            padding: '1.25rem',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1rem'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800, color: '#001f54' }}>
+                <span>Number of Trees in Ensemble (M)</span>
+                <span style={{ color: '#0284c7' }}>M = {treeCountM}</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="50"
+                value={treeCountM}
+                onChange={(e) => setTreeCountM(parseInt(e.target.value))}
+                style={{ width: '100%', marginTop: '6px', accentColor: '#001f54' }}
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800, color: '#001f54' }}>
+                <span>Pairwise Tree Correlation (&rho;)</span>
+                <span style={{ color: '#d97706' }}>&rho; = {treeCorrelationRho.toFixed(2)}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="80"
+                value={Math.round(treeCorrelationRho * 100)}
+                onChange={(e) => setTreeCorrelationRho(parseInt(e.target.value) / 100)}
+                style={{ width: '100%', marginTop: '6px', accentColor: '#d97706' }}
+              />
+            </div>
+          </div>
+
+          {/* Metrics & SVG Chart */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #cbd5e1',
+            padding: '1.25rem',
+            display: 'grid',
+            gridTemplateColumns: '1.2fr 1fr',
+            gap: '1.25rem',
+            alignItems: 'center'
+          }}>
+            {/* SVG Plot */}
+            <div>
+              <div style={{ fontSize: '0.80rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>
+                Ensemble Error Variance vs. Number of Estimators M:
+              </div>
+              <svg viewBox="0 0 340 180" style={{ width: '100%', height: 'auto', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                {/* Asymptote line rho */}
+                <line
+                  x1="40"
+                  y1={160 - treeCorrelationRho * 130}
+                  x2="320"
+                  y2={160 - treeCorrelationRho * 130}
+                  stroke="#f59e0b"
+                  strokeWidth="1.5"
+                  strokeDasharray="4,4"
+                />
+                <text x="210" y={154 - treeCorrelationRho * 130} fontSize="9" fill="#d97706" fontWeight="700">
+                  Floor Asymptote &rho;&sigma;&sup2; = {treeCorrelationRho.toFixed(2)}
+                </text>
+
+                {/* Variance Decay Curve */}
+                <polyline
+                  fill="none"
+                  stroke="#001f54"
+                  strokeWidth="2.5"
+                  points={varianceCurve.points.map(p => `${40 + (p.m / 50) * 280},${160 - p.varM * 130}`).join(' ')}
+                />
+
+                {/* Active M marker */}
+                <circle
+                  cx={40 + (treeCountM / 50) * 280}
+                  cy={160 - varianceCurve.currentVar * 130}
+                  r="5"
+                  fill="#0284c7"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                />
+
+                {/* Axes */}
+                <line x1="40" y1="160" x2="320" y2="160" stroke="#94a3b8" strokeWidth="1" />
+                <line x1="40" y1="20" x2="40" y2="160" stroke="#94a3b8" strokeWidth="1" />
+                <text x="40" y="174" fontSize="9" fill="#64748b">M=1</text>
+                <text x="170" y="174" fontSize="9" fill="#64748b">M=25</text>
+                <text x="300" y="174" fontSize="9" fill="#64748b">M=50</text>
+                <text x="10" y="35" fontSize="9" fill="#64748b">1.0 &sigma;&sup2;</text>
+                <text x="15" y="160" fontSize="9" fill="#64748b">0.0</text>
+              </svg>
+            </div>
+
+            {/* Scorecard */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 700 }}>Single Tree Variance</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#dc2626' }}>1.00 &sigma;&sup2;</div>
+                <div style={{ fontSize: '0.68rem', color: '#dc2626' }}>Severe individual instability</div>
+              </div>
+
+              <div style={{ background: '#f0fdf4', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #86efac' }}>
+                <div style={{ fontSize: '0.68rem', color: '#166534', fontWeight: 700 }}>Ensemble Variance (M = {treeCountM})</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#16a34a' }}>
+                  {varianceCurve.currentVar.toFixed(3)} &sigma;&sup2;
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#166534', fontWeight: 800 }}>
+                  -{varianceCurve.varianceDropPct.toFixed(1)}% Variance Reduction!
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: BASE LEARNER SELECTION STRATEGY ──────────────────── */}
+      {activeTab === 'base_learner_playbook' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Base Learner Compatibility Playbook
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Why Bagging delivers immense performance gains on deep trees, but produces zero lift on linear models.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+            {/* Deep Trees */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #86efac', padding: '1.25rem' }}>
+              <div style={{ display: 'inline-block', background: '#f0fdf4', color: '#166534', fontSize: '0.68rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', marginBottom: '6px' }}>
+                PERFECT SYNERGY
+              </div>
+              <div style={{ fontSize: '0.90rem', fontWeight: 800, color: '#001f54' }}>
+                Unpruned Decision Trees
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#334155', marginTop: '6px', lineHeight: 1.6 }}>
+                - <strong>Bias:</strong> Extremely Low (captures intricate non-linear decision boundaries).<br />
+                - <strong>Variance:</strong> Extremely High (overfits to noise).<br />
+                - <strong>Bagging Result:</strong> Averaging collapses the high variance without compromising the low bias! (+3.5% to +5% test accuracy lift).
+              </div>
+            </div>
+
+            {/* Linear Models */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #fca5a5', padding: '1.25rem' }}>
+              <div style={{ display: 'inline-block', background: '#fef2f2', color: '#991b1b', fontSize: '0.68rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', marginBottom: '6px' }}>
+                ZERO BENEFIT
+              </div>
+              <div style={{ fontSize: '0.90rem', fontWeight: 800, color: '#001f54' }}>
+                Logistic / Linear Regression
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#334155', marginTop: '6px', lineHeight: 1.6 }}>
+                - <strong>Bias:</strong> High (rigid hyperplane assumption).<br />
+                - <strong>Variance:</strong> Low (stable across resamples).<br />
+                - <strong>Bagging Result:</strong> Bootstrap lines are nearly identical (&rho; &approx; 0.99). Averaging 100 identical lines yields zero gain.
+              </div>
+            </div>
+
+            {/* Neural Networks */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+              <div style={{ display: 'inline-block', background: '#e0f2fe', color: '#0369a1', fontSize: '0.68rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', marginBottom: '6px' }}>
+                MODERATE SYNERGY
+              </div>
+              <div style={{ fontSize: '0.90rem', fontWeight: 800, color: '#001f54' }}>
+                Deep Neural Networks
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#334155', marginTop: '6px', lineHeight: 1.6 }}>
+                - <strong>Bias:</strong> Very Low.<br />
+                - <strong>Variance:</strong> High (sensitive to random weight initialization and batch order).<br />
+                - <strong>Bagging Result:</strong> Strong variance reduction, but training 100 full neural nets in parallel is computationally prohibitive (use Dropout instead!).
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON IMPLEMENTATION ────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production Bagging Pipeline with OOB Scoring (Scikit-Learn):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                'from sklearn.datasets import load_breast_cancer, load_diabetes',
+                'from sklearn.model_selection import train_test_split',
+                'from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor',
+                'from sklearn.ensemble import BaggingClassifier, BaggingRegressor',
+                'from sklearn.metrics import accuracy_score, r2_score',
+                '',
+                '# =====================================================================',
+                '# 1. CLASSIFICATION: BaggingClassifier with Out-of-Bag (OOB) Validation',
+                '# =====================================================================',
+                'X, y = load_breast_cancer(return_X_y=True)',
+                'X_train, X_test, y_train, y_test = train_test_split(',
+                '    X, y, test_size=0.25, random_state=42, stratify=y',
+                ')',
+                '',
+                '# Standalone Unpruned Decision Tree (High Variance Baseline)',
+                'single_tree = DecisionTreeClassifier(random_state=42)',
+                'single_tree.fit(X_train, y_train)',
+                'acc_single = accuracy_score(y_test, single_tree.predict(X_test))',
+                'print(f"Single Tree Test Accuracy: {acc_single*100:.2f}%")',
+                '',
+                '# Parallel Bagging Ensemble: 100 Trees with OOB scoring',
+                'bagging_clf = BaggingClassifier(',
+                '    estimator=DecisionTreeClassifier(),',
+                '    n_estimators=100,',
+                '    max_samples=1.0,      # Sample N instances with replacement',
+                '    bootstrap=True,       # Enable Bootstrapping',
+                '    oob_score=True,       # Compute Out-of-Bag generalization metric',
+                '    n_jobs=-1,            # Distribute across all CPU cores in parallel',
+                '    random_state=42',
+                ')',
+                'bagging_clf.fit(X_train, y_train)',
+                '',
+                'acc_bagging = accuracy_score(y_test, bagging_clf.predict(X_test))',
+                'print(f"Bagging (100 Trees) Accuracy:   {acc_bagging*100:.2f}%")',
+                'print(f"Ensemble Out-of-Bag (OOB) Score: {bagging_clf.oob_score_*100:.2f}%")',
+                'print(f"Accuracy Lift over Single Tree:  +{(acc_bagging - acc_single)*100:.2f}%")',
+                '',
+                '# =====================================================================',
+                '# 2. REGRESSION: BaggingRegressor',
+                '# =====================================================================',
+                'Xr, yr = load_diabetes(return_X_y=True)',
+                'Xr_train, Xr_test, yr_train, yr_test = train_test_split(',
+                '    Xr, yr, test_size=0.25, random_state=42',
+                ')',
+                '',
+                'bagging_reg = BaggingRegressor(',
+                '    estimator=DecisionTreeRegressor(),',
+                '    n_estimators=100,',
+                '    bootstrap=True,',
+                '    oob_score=True,',
+                '    n_jobs=-1,',
+                '    random_state=42',
+                ')',
+                'bagging_reg.fit(Xr_train, yr_train)',
+                'r2_bagging = r2_score(yr_test, bagging_reg.predict(Xr_test))',
+                'print(f"Bagging Regressor R2: {r2_bagging:.4f} | OOB R2: {bagging_reg.oob_score_:.4f}")'
+              ].join('\n')}
+              title="bagging_production_pipeline.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6', 'ml-6-7', 'ml-6-8', 'ml-7-1'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6', 'ml-6-7', 'ml-6-8', 'ml-7-1', 'ml-7-2', 'ml-7-3'
 ];
 
 export default function MLLessonArticlePage() {
@@ -32409,6 +34568,12 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'ensemble_foundations_interactive_studio' && (
               <EnsembleFoundationsInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'simple_ensembles_interactive_studio' && (
+              <SimpleEnsemblesInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'bagging_interactive_studio' && (
+              <BaggingInteractiveStudio />
             )}
           </div>
         )}
