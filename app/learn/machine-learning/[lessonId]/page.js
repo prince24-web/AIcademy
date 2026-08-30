@@ -30440,11 +30440,915 @@ const FeatureEngineeringInteractiveStudio = () => {
   );
 };
 
+
+// ─── IMBALANCED DATASETS THREE.JS INTERACTIVE STUDIO (ml-6-7) ────────────────
+const ImbalancedDatasetsInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('three_d'); // 'three_d', 'confusion', 'curves', 'strategies', 'code'
+  const [samplingMode, setSamplingMode] = useState('smote'); // 'imbalanced' or 'smote'
+  const [kNeighbors, setKNeighbors] = useState(5);
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Generate 3D point data deterministically
+  const scatterData = useMemo(() => {
+    const rng = createSeededPRNG(4200);
+    const majority = []; // Legitimate (Blue/Green)
+    for (let i = 0; i < 90; i++) {
+      majority.push({
+        x: (rng() - 0.5) * 16 - 2,
+        y: (rng() - 0.5) * 14,
+        z: (rng() - 0.5) * 16,
+        type: 'majority'
+      });
+    }
+
+    const minority = [ // Real Fraud (Red)
+      { x: 3.5, y: 2.0, z: 2.5, type: 'minority' },
+      { x: 4.8, y: 1.2, z: 3.8, type: 'minority' },
+      { x: 3.0, y: 3.5, z: 4.2, type: 'minority' },
+      { x: 5.5, y: 2.8, z: 2.0, type: 'minority' },
+      { x: 4.2, y: 4.0, z: 3.0, type: 'minority' }
+    ];
+
+    const synthetic = []; // SMOTE Interpolated (Amber)
+    if (samplingMode === 'smote') {
+      const synRng = createSeededPRNG(8800 + kNeighbors);
+      for (let i = 0; i < minority.length; i++) {
+        for (let j = i + 1; j < minority.length; j++) {
+          const numInterp = 4;
+          for (let k = 1; k <= numInterp; k++) {
+            const lambda = k / (numInterp + 1) + (synRng() - 0.5) * 0.1;
+            synthetic.push({
+              x: minority[i].x + lambda * (minority[j].x - minority[i].x),
+              y: minority[i].y + lambda * (minority[j].y - minority[i].y),
+              z: minority[i].z + lambda * (minority[j].z - minority[i].z),
+              type: 'synthetic',
+              p1: minority[i],
+              p2: minority[j]
+            });
+          }
+        }
+      }
+    }
+
+    return { majority, minority, synthetic };
+  }, [samplingMode, kNeighbors]);
+
+  const containerRef = useRef(null);
+  const sceneStateRef = useRef({
+    pointMeshes: [],
+    lineSegmentsMesh: null,
+    scene: null,
+    renderer: null,
+    camera: null,
+    isMouseDown: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
+    rotX: 0.35,
+    rotY: 0.6
+  });
+
+  // Mount Three.js Canvas
+  useEffect(() => {
+    if (activeTab !== 'three_d' || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth || 640;
+    const height = 360;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 14, 26);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    dirLight.position.set(12, 20, 14);
+    scene.add(dirLight);
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.35);
+    fillLight.position.set(-10, -10, -10);
+    scene.add(fillLight);
+
+    // Floor Grid
+    const gridHelper = new THREE.GridHelper(26, 22, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -6.5;
+    scene.add(gridHelper);
+
+    sceneStateRef.current.scene = scene;
+    sceneStateRef.current.renderer = renderer;
+    sceneStateRef.current.camera = camera;
+
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (autoRotate && !sceneStateRef.current.isMouseDown) {
+        sceneStateRef.current.rotY += 0.0035;
+      }
+      const dist = 26;
+      camera.position.x = dist * Math.sin(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.position.y = dist * Math.sin(sceneStateRef.current.rotX) + 3.5;
+      camera.position.z = dist * Math.cos(sceneStateRef.current.rotY) * Math.cos(sceneStateRef.current.rotX);
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    const onMouseDown = (e) => {
+      sceneStateRef.current.isMouseDown = true;
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+    const onMouseMove = (e) => {
+      if (!sceneStateRef.current.isMouseDown) return;
+      const dx = e.clientX - sceneStateRef.current.prevMouseX;
+      const dy = e.clientY - sceneStateRef.current.prevMouseY;
+      sceneStateRef.current.rotY += dx * 0.008;
+      sceneStateRef.current.rotX = Math.max(-0.2, Math.min(1.2, sceneStateRef.current.rotX - dy * 0.008));
+      sceneStateRef.current.prevMouseX = e.clientX;
+      sceneStateRef.current.prevMouseY = e.clientY;
+    };
+    const onMouseUp = () => { sceneStateRef.current.isMouseDown = false; };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      while (container.firstChild) container.removeChild(container.firstChild);
+    };
+  }, [activeTab, autoRotate]);
+
+  // Update Points & KNN Interpolation lines
+  useEffect(() => {
+    if (activeTab !== 'three_d') return;
+    const { scene } = sceneStateRef.current;
+    if (!scene) return;
+
+    if (sceneStateRef.current.pointMeshes.length) {
+      sceneStateRef.current.pointMeshes.forEach((mesh) => scene.remove(mesh));
+      sceneStateRef.current.pointMeshes = [];
+    }
+    if (sceneStateRef.current.lineSegmentsMesh) {
+      scene.remove(sceneStateRef.current.lineSegmentsMesh);
+      sceneStateRef.current.lineSegmentsMesh = null;
+    }
+
+    const { majority, minority, synthetic } = scatterData;
+    const meshes = [];
+
+    // Majority (Cerulean Blue)
+    const majGeo = new THREE.SphereGeometry(0.32, 10, 10);
+    const majMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3 });
+    majority.forEach((p) => {
+      const mesh = new THREE.Mesh(majGeo, majMat);
+      mesh.position.set(p.x, p.y, p.z);
+      scene.add(mesh);
+      meshes.push(mesh);
+    });
+
+    // Minority (Crimson Red)
+    const minGeo = new THREE.SphereGeometry(0.55, 14, 14);
+    const minMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, emissive: 0x991b1b, emissiveIntensity: 0.35, roughness: 0.2 });
+    minority.forEach((p) => {
+      const mesh = new THREE.Mesh(minGeo, minMat);
+      mesh.position.set(p.x, p.y, p.z);
+      scene.add(mesh);
+      meshes.push(mesh);
+    });
+
+    // Synthetic SMOTE (Glowing Amber)
+    if (synthetic.length) {
+      const synGeo = new THREE.SphereGeometry(0.38, 12, 12);
+      const synMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xd97706, emissiveIntensity: 0.4, roughness: 0.25 });
+      synthetic.forEach((p) => {
+        const mesh = new THREE.Mesh(synGeo, synMat);
+        mesh.position.set(p.x, p.y, p.z);
+        scene.add(mesh);
+        meshes.push(mesh);
+      });
+
+      // Draw k-NN connecting line segments between minority points
+      const linePositions = [];
+      for (let i = 0; i < minority.length; i++) {
+        for (let j = i + 1; j < minority.length; j++) {
+          linePositions.push(minority[i].x, minority[i].y, minority[i].z, minority[j].x, minority[j].y, minority[j].z);
+        }
+      }
+      const lineGeo = new THREE.BufferGeometry();
+      lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+      const lineMat = new THREE.LineBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.5, linewidth: 2 });
+      const lineMesh = new THREE.LineSegments(lineGeo, lineMat);
+      scene.add(lineMesh);
+      sceneStateRef.current.lineSegmentsMesh = lineMesh;
+    }
+
+    sceneStateRef.current.pointMeshes = meshes;
+  }, [scatterData, activeTab]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER ─────────────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                LIGHT STUDIO 3D
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                SMOTE k-NN Synthetic Interpolation
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Imbalanced Datasets Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'three_d', label: '1. 3D SMOTE Resampling Space' },
+            { id: 'confusion', label: '2. The Accuracy Paradox' },
+            { id: 'curves', label: '3. PR-AUC vs ROC-AUC' },
+            { id: 'strategies', label: '4. Resampling Decision Matrix' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D SMOTE VISUAL STUDIO ───────────────────────────── */}
+      {activeTab === 'three_d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Sampling State:</span>
+              <button
+                onClick={() => setSamplingMode('imbalanced')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor: samplingMode === 'imbalanced' ? '#dc2626' : '#cbd5e1',
+                  background: samplingMode === 'imbalanced' ? '#dc2626' : '#ffffff',
+                  color: samplingMode === 'imbalanced' ? '#ffffff' : '#475569',
+                  cursor: 'pointer'
+                }}
+              >
+                Raw Imbalanced (99:1 Ratio)
+              </button>
+              <button
+                onClick={() => setSamplingMode('smote')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor: samplingMode === 'smote' ? '#16a34a' : '#cbd5e1',
+                  background: samplingMode === 'smote' ? '#16a34a' : '#ffffff',
+                  color: samplingMode === 'smote' ? '#ffffff' : '#475569',
+                  cursor: 'pointer'
+                }}
+              >
+                SMOTE Resampled (k-NN Interpolated)
+              </button>
+            </div>
+
+            <button
+              onClick={() => setAutoRotate(!autoRotate)}
+              style={{
+                padding: '5px 10px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                background: autoRotate ? '#eff6ff' : '#ffffff',
+                color: autoRotate ? '#1e40af' : '#64748b',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              {autoRotate ? 'Pause Rotation' : 'Auto-Rotate'}
+            </button>
+          </div>
+
+          {/* Three.js 3D WebGL Canvas Container */}
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 30px rgba(0, 31, 84, 0.08)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            <div
+              ref={containerRef}
+              style={{ width: '100%', height: '360px', cursor: 'grab' }}
+            />
+
+            {/* 3D Overlay HUD Badges */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              pointerEvents: 'none'
+            }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 800 }}>
+                Class Balance: <span style={{ color: samplingMode === 'imbalanced' ? '#dc2626' : '#16a34a' }}>{samplingMode === 'imbalanced' ? '99% Majority / 1% Minority' : '50% Majority / 50% Minority'}</span>
+              </div>
+              <div style={{ background: 'rgba(255, 255, 255, 0.94)', backdropFilter: 'blur(8px)', border: '1px solid #cbd5e1', boxShadow: '0 2px 8px rgba(0,31,84,0.06)', padding: '4px 10px', borderRadius: '6px', color: '#0f172a', fontSize: '0.72rem', fontWeight: 700 }}>
+                Minority Fraud Recall: <span style={{ color: samplingMode === 'imbalanced' ? '#dc2626' : '#16a34a', fontWeight: 900 }}>{samplingMode === 'imbalanced' ? '13.3% (86.7% Escapes!)' : '66.7% - 70.0% (Caught)'}</span>
+              </div>
+              {samplingMode === 'smote' && (
+                <div style={{ background: '#fef3c7', border: '1.5px solid #fcd34d', padding: '4px 10px', borderRadius: '6px', color: '#92400e', fontSize: '0.74rem', fontWeight: 900 }}>
+                  SMOTE Synthesized 40 New Points Along k-NN Vectors
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '14px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 2px 8px rgba(0,31,84,0.06)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              color: '#475569',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              pointerEvents: 'none'
+            }}>
+              Blue = Legitimate, Red = Real Fraud, Amber = SMOTE Interpolated. Drag to orbit 3D space.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: ACCURACY PARADOX ─────────────────────────────────── */}
+      {activeTab === 'confusion' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Accuracy Paradox: Experimental Proof
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Why a model scoring 98.7% accuracy is an absolute failure in fraud detection.
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Baseline Model */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #dc2626', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#dc2626', marginBottom: '8px' }}>
+                1. Baseline Naive Model (Unweighted)
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.5, marginBottom: '10px' }}>
+                - <strong>Accuracy: 98.70%</strong> (Looks amazing!)
+                <br />
+                - <strong>Fraud Recall: 13.3%</strong> (Caught only 4 out of 30 frauds!).
+                <br />
+                - <strong>26 Fraudulent Transactions Escaped</strong> because the model prioritized maximizing accuracy on majority legitimate rows.
+              </div>
+            </div>
+
+            {/* SMOTE Resampled Model */}
+            <div style={{ background: '#ffffff', borderRadius: '14px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a', marginBottom: '8px' }}>
+                2. SMOTE / Balanced Model
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.5, marginBottom: '10px' }}>
+                - <strong>Accuracy: 74.70%</strong> (Lower naive accuracy)
+                <br />
+                - <strong>Fraud Recall: 66.7% - 70.0%</strong> (Caught 20+ out of 30 frauds!).
+                <br />
+                - <strong>Saves the business millions in fraud loss</strong> by accepting a small number of legitimate verification alerts.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: PR-AUC VS ROC-AUC ────────────────────────────────── */}
+      {activeTab === 'curves' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Why Precision-Recall AUC is Mandatory for Imbalanced Data
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              ROC-AUC is artificially inflated by massive True Negatives; PR-AUC reveals the truth.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ fontSize: '0.75rem', color: '#475569', lineHeight: 1.55 }}>
+              In a dataset with 9,900 Legitimate and 100 Fraud cases:
+              <br />
+              - <strong>ROC-AUC (0.820)</strong> uses False Positive Rate = FP / (TN + FP). Because TN is 9,900, FPR remains tiny even with dozens of false alarms, inflating the ROC curve.
+              <br />
+              - <strong>PR-AUC (0.378)</strong> plots Precision vs Recall, completely ignoring TN. It forces the model to prove it can identify rare fraud without drowning the fraud team in false alarms.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: STRATEGIES MATRIX ────────────────────────────────── */}
+      {activeTab === 'strategies' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Imbalanced Learning Strategy Matrix
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              When to use Class Weighting vs SMOTE vs Random Under-Sampling.
+            </div>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', background: '#ffffff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+              <thead>
+                <tr style={{ background: '#001f54', color: '#ffffff', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 14px' }}>Technique</th>
+                  <th style={{ padding: '10px 14px' }}>Mechanism</th>
+                  <th style={{ padding: '10px 14px' }}>Advantages</th>
+                  <th style={{ padding: '10px 14px' }}>Risks & Limitations</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Class Weighting</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Modifies loss function penalty</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Zero synthetic noise, instant execution</td>
+                  <td style={{ padding: '10px 14px', color: '#64748b' }}>Cannot generate new decision boundaries</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>SMOTE Over-sampling</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Interpolates synthetic points via k-NN</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Expands minority decision region</td>
+                  <td style={{ padding: '10px 14px', color: '#dc2626' }}>Can interpolate across noisy borderlines</td>
+                </tr>
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '10px 14px', fontWeight: 800, color: '#001f54' }}>Random Under-Sampling</td>
+                  <td style={{ padding: '10px 14px', color: '#0284c7' }}>Randomly deletes majority samples</td>
+                  <td style={{ padding: '10px 14px', color: '#16a34a', fontWeight: 700 }}>Ultra fast training speed</td>
+                  <td style={{ padding: '10px 14px', color: '#dc2626' }}>Discards valuable majority information</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production Leak-Free SMOTE Pipeline (imblearn):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from imblearn.over_sampling import SMOTE',
+                'from imblearn.pipeline import Pipeline as ImbPipeline',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.linear_model import LogisticRegression',
+                'from sklearn.model_selection import train_test_split',
+                'from sklearn.metrics import classification_report, average_precision_score',
+                '',
+                '# 1. Train/Test Split on RAW data first',
+                'X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)',
+                '',
+                '# 2. Encapsulate in imblearn Pipeline',
+                '# SMOTE will be applied STRICTLY to training folds, leaving test data pristine!',
+                'pipeline = ImbPipeline([',
+                "    ('scaler', StandardScaler()),",
+                "    ('smote', SMOTE(random_state=42, k_neighbors=5)),",
+                "    ('clf', LogisticRegression(random_state=42))",
+                '])',
+                '',
+                'pipeline.fit(X_train, y_train)',
+                'y_pred = pipeline.predict(X_test)',
+                'print(classification_report(y_test, y_pred, target_names=["Legitimate", "Fraud"]))',
+                'print(f"PR-AUC Score: {average_precision_score(y_test, pipeline.predict_proba(X_test)[:, 1]):.4f}")'
+              ].join('\n')}
+              title="imbalanced_pipeline_production.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── DATA LEAKAGE INTERACTIVE STUDIO (ml-6-8) ────────────────────────────────
+const DataLeakageInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('simulator'); // 'simulator', 'group_kfold', 'checklist', 'timeline', 'code'
+  const [leakMode, setLeakMode] = useState('leaky'); // 'leaky' or 'clean'
+  const [scenario, setScenario] = useState('preprocessing'); // 'preprocessing', 'target', 'group', 'temporal'
+
+  const scenarioData = useMemo(() => {
+    switch (scenario) {
+      case 'preprocessing':
+        return {
+          title: 'Preprocessing & Global Scaling Leakage',
+          leakyValScore: '98.67% (Artificially Inflated)',
+          cleanValScore: '84.20% (Realistic Generalization)',
+          description: 'Fitting StandardScaler on the full dataset before splitting leaks the test set mean and standard deviation into the training pipeline.',
+          fix: 'Fit StandardScaler strictly on X_train using Pipeline.'
+        };
+      case 'target':
+        return {
+          title: 'Target Leakage (Post-Event Features)',
+          leakyValScore: '99.90% (Memorized Answer Key)',
+          cleanValScore: '78.50% (True Predictive Power)',
+          description: 'Including "prescribed_medication" when predicting whether a patient has a disease leaks the diagnosis decision into the inputs.',
+          fix: 'Drop all features that are created after the prediction timestamp.'
+        };
+      case 'group':
+        return {
+          title: 'Group & Patient Identity Contamination',
+          leakyValScore: '99.20% (Patient Overlap)',
+          cleanValScore: '79.40% (Unseen Patients)',
+          description: 'Multiple X-rays of the same patient present in both train and test folds allows the model to memorize patient anatomy rather than disease patterns.',
+          fix: 'Use GroupKFold(groups=patient_id) to isolate individuals strictly.'
+        };
+      case 'temporal':
+      default:
+        return {
+          title: 'Temporal Lookahead Leakage',
+          leakyValScore: '96.50% (Future Peeking)',
+          cleanValScore: '71.20% (Walk-Forward Validation)',
+          description: 'Using random K-Fold on stock market prices uses tomorrow\'s price to predict yesterday\'s trend.',
+          fix: 'Use TimeSeriesSplit (Walk-Forward validation) strictly.'
+        };
+    }
+  }, [scenario]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #e2e8f0',
+      padding: '1.75rem',
+      color: '#0f172a',
+      boxShadow: '0 8px 30px rgba(0,31,84,0.06)',
+      margin: '2rem 0'
+    }}>
+      {/* ─── HEADER ─────────────────────────────────────────────────── */}
+      <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            width: '46px',
+            height: '46px',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+          }}>
+            <IconSparkles size={24} style={{ color: '#ffffff' }} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                CONTAMINATION AUDIT STUDIO
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
+                Data Leakage Prevention & Group Validation
+              </span>
+            </div>
+            <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
+              Data Leakage Studio
+            </h3>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          marginTop: '1.25rem',
+          background: '#f8fafc',
+          padding: '4px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { id: 'simulator', label: '1. Leakage Failure-Mode Simulator' },
+            { id: 'group_kfold', label: '2. GroupKFold Patient Isolation' },
+            { id: 'checklist', label: '3. Leak Prevention Checklist' },
+            { id: 'timeline', label: '4. The Timeline Rule' },
+            { id: 'code', label: '5. Python Implementation' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#64748b',
+                boxShadow: activeTab === tab.id ? '0 2px 8px rgba(0,31,84,0.15)' : 'none'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: SIMULATOR ────────────────────────────────────────── */}
+      {activeTab === 'simulator' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Scenario Selector */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'wrap'
+          }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Leakage Scenario:</span>
+            {[
+              { id: 'preprocessing', label: '1. Preprocessing Scaling Leak' },
+              { id: 'target', label: '2. Target Post-Event Leak' },
+              { id: 'group', label: '3. Group / Patient Leak' },
+              { id: 'temporal', label: '4. Temporal Lookahead Leak' }
+            ].map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setScenario(s.id)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor: scenario === s.id ? '#001f54' : '#cbd5e1',
+                  background: scenario === s.id ? '#001f54' : '#ffffff',
+                  color: scenario === s.id ? '#ffffff' : '#475569',
+                  cursor: 'pointer'
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Architecture Comparison Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* Leaky Card */}
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #dc2626', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#dc2626' }}>
+                  Leaky Architecture (Flawed)
+                </span>
+                <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                  PRODUCTION COLLAPSE
+                </span>
+              </div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#dc2626', margin: '6px 0' }}>
+                {scenarioData.leakyValScore}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.5 }}>
+                {scenarioData.description}
+              </div>
+            </div>
+
+            {/* Clean Pipeline Card */}
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a' }}>
+                  Clean Pipeline Architecture (Robust)
+                </span>
+                <span style={{ background: '#dcfce7', color: '#166534', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                  LEAK-PROOF
+                </span>
+              </div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#16a34a', margin: '6px 0' }}>
+                {scenarioData.cleanValScore}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 700, lineHeight: 1.5 }}>
+                Solution: {scenarioData.fix}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: GROUPKFOLD ───────────────────────────────────────── */}
+      {activeTab === 'group_kfold' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              GroupKFold: Eliminating Subject Contamination
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Ensuring zero patient, user, or device overlap between training and validation folds.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
+            <div style={{ fontSize: '0.75rem', color: '#475569', lineHeight: 1.55 }}>
+              If Patient #42 has 20 medical scan records:
+              <br />
+              - <strong>Standard K-Fold (BAD):</strong> Puts 16 scans of Patient #42 in Train and 4 scans in Test. The model memorizes Patient #42\'s bone anatomy and achieves fake 99% accuracy!
+              <br />
+              - <strong>GroupKFold (CORRECT):</strong> Puts all 20 scans of Patient #42 strictly into either the training set OR the test set. The model is forced to generalize to completely unseen humans!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: CHECKLIST ────────────────────────────────────────── */}
+      {activeTab === 'checklist' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The 4-Step Production Leak-Prevention Checklist
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Mandatory audit checklist before shipping ML models to production.
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {[
+              '1. Always split dataset into Train/Test BEFORE executing any scaling, imputation, or feature engineering.',
+              '2. Always encapsulate all transformers and estimators inside a Scikit-Learn Pipeline.',
+              '3. Ask the Timeline Question: Will this feature exist at the exact second of inference in production?',
+              '4. Use GroupKFold for multi-row entities (patients, customers) and TimeSeriesSplit for sequential data.'
+            ].map((item, idx) => (
+              <div key={idx} style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', padding: '12px 14px', fontSize: '0.75rem', fontWeight: 700, color: '#001f54' }}>
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: TIMELINE RULE ────────────────────────────────────── */}
+      {activeTab === 'timeline' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              The Golden Timeline Rule
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              The definitive mental test to prevent Target Leakage.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.5rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '1rem', fontWeight: 900, color: '#001f54', marginBottom: '8px' }}>
+              "At the exact millisecond this model makes a prediction in production, will this feature exist in real time?"
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 700 }}>
+              If the answer is NO, DROP THE FEATURE IMMEDIATELY!
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON CODE ──────────────────────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production Leak-Proof Architecture (Scikit-Learn):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'from sklearn.model_selection import GroupKFold, cross_val_score',
+                'from sklearn.preprocessing import StandardScaler',
+                'from sklearn.impute import SimpleImputer',
+                'from sklearn.ensemble import RandomForestClassifier',
+                'from sklearn.pipeline import Pipeline',
+                '',
+                '# 1. Leak-Free Pipeline (Scaler and Imputer fit strictly inside train folds)',
+                'pipeline = Pipeline([',
+                "    ('imputer', SimpleImputer(strategy='median')),",
+                "    ('scaler', StandardScaler()),",
+                "    ('model', RandomForestClassifier(random_state=42))",
+                '])',
+                '',
+                '# 2. GroupKFold prevents patient/user identity contamination',
+                'gkf = GroupKFold(n_splits=5)',
+                'scores = cross_val_score(',
+                '    pipeline,',
+                '    X,',
+                '    y,',
+                '    cv=gkf,',
+                '    groups=patient_ids,    # Guarantees zero patient overlap',
+                "    scoring='accuracy'",
+                ')',
+                'print(f"Unbiased GroupKFold Accuracy: {scores.mean()*100:.2f}%")'
+              ].join('\n')}
+              title="leak_free_pipeline.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6', 'ml-6-7', 'ml-6-8'
 ];
 
 export default function MLLessonArticlePage() {
@@ -30690,6 +31594,12 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'feature_engineering_interactive_studio' && (
               <FeatureEngineeringInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'imbalanced_datasets_interactive_studio' && (
+              <ImbalancedDatasetsInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'data_leakage_interactive_studio' && (
+              <DataLeakageInteractiveStudio />
             )}
           </div>
         )}

@@ -6729,4 +6729,300 @@ print(f"RMSE on Test Set:     {np.sqrt(mean_squared_error(y_test, y_pred)):.2f}"
     }
   }
 
+,
+
+  'ml-6-7': {
+    id: 'ml-6-7',
+    title: 'Handling Imbalanced Datasets: SMOTE, Class Weighting & PR Curves',
+    moduleTitle: 'MODULE 6: MODEL EVALUATION & IMPROVEMENT',
+    readTime: '29 min read',
+    difficulty: 'Intermediate',
+    badgeText: 'Cost-Sensitive Learning & Synthetic Sampling',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: 'https://www.geeksforgeeks.org/handling-imbalanced-data-machine-learning/',
+
+    learningObjectives: [
+      'Understand the Accuracy Paradox: why a 99% accurate model can be completely useless in fraud and medical diagnosis.',
+      'Master Synthetic Minority Over-sampling Technique (SMOTE) and how it interpolates synthetic points along k-nearest neighbors lines.',
+      'Learn cost-sensitive learning via class_weight="balanced" in Scikit-Learn.',
+      'Understand Random Under-Sampling (RUS) and Random Over-Sampling (ROS) tradeoffs.',
+      'Learn why Precision-Recall AUC (PR-AUC) is vastly superior to ROC-AUC when evaluating severe class imbalance.',
+      'Explore an interactive 3D SMOTE decision studio in Light Studio Mode demonstrating synthetic neighbor interpolation.',
+      'Implement production-grade imblearn pipelines with cross-validation without data leakage.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Accuracy Paradox: The Broken Smoke Alarm',
+        paragraphs: [
+          'In standard classification, models assume all classes occur with roughly equal frequency. But in real-world applications—such as credit card fraud ($0.1\\%$ fraud), cancer screening ($1\\%$ positive), or factory defect detection ($0.05\\%$ defective)—the negative class dwarfs the positive class.',
+          'The Mental Model: The Broken Smoke Alarm:',
+          'Imagine a smoke alarm that has no sensor and simply does nothing all year round. Out of 365 days, it is "accurate" on 364 days because the house did not catch fire. It boasts a $99.7\\%$ accuracy rate! But on the one day a fire breaks out, it fails completely and burns down the house.',
+          'This is the Accuracy Paradox: a naive machine learning model that always predicts "Legitimate" for every transaction achieves $99\\%$ accuracy while catching $0\\%$ of criminals!',
+          'To solve this, we must shift our evaluation from naive accuracy to Precision, Recall, F1-Score, and Precision-Recall AUC.'
+        ]
+      },
+      {
+        heading: '2. The Four Solutions to Class Imbalance',
+        paragraphs: [
+          'Data scientists address class imbalance through four proven strategies:',
+          '1. Cost-Sensitive Class Weighting (`class_weight="balanced"`):',
+          '- Rather than altering the data, we modify the loss function. The algorithm is penalized $100\\times$ more severely for misclassifying a minority instance than a majority instance.',
+          '- Weight formula: $w_j = \\frac{N}{2 \\times N_j}$. Ideal first baseline: zero synthetic artifacts, zero training time overhead.',
+          '2. SMOTE (Synthetic Minority Over-sampling Technique):',
+          '- Instead of duplicating existing minority points (which causes overfitting), SMOTE selects a minority point, finds its $k$-nearest minority neighbors, and synthesizes brand-new interpolated points along the connecting line segments in feature space: $x_{\\text{new}} = x_i + \\lambda (x_{zi} - x_i)$ where $\\lambda \\in [0, 1]$.',
+          '3. Random Under-Sampling (RUS):',
+          '- Randomly deletes majority instances until classes are balanced (e.g. dropping 9,800 legitimate transactions). Very fast, but discards valuable data.',
+          '4. Threshold Moving & Focal Loss:',
+          '- Shifting the decision threshold from $p=0.50$ down to $p=0.15$ to maximize recall on minority fraud.'
+        ]
+      },
+      {
+        heading: '3. PR-AUC vs. ROC-AUC: The True Metric of Truth',
+        paragraphs: [
+          'Why does ROC-AUC create a false sense of security in imbalanced datasets?',
+          '- The ROC curve plots True Positive Rate vs. False Positive Rate ($\\text{FPR} = \\frac{\\text{FP}}{\\text{TN} + \\text{FP}}$). When True Negatives (TN) is huge (e.g. 99,000 legitimate transactions), even $500$ false alarms result in an FPR of only $0.005$, making the ROC-AUC look stellar ($0.95+$)!',
+          '- The Precision-Recall (PR) curve plots Precision ($\\frac{\\text{TP}}{\\text{TP} + \\text{FP}}$) vs. Recall. It ignores True Negatives entirely and focuses exclusively on the minority class.',
+          'Always use PR-AUC (Average Precision) when the positive class represents less than $5\\%$ of the dataset!'
+        ]
+      },
+      {
+        heading: '4. The Cardinal Rule of Resampling: Never Resample Test Sets!',
+        paragraphs: [
+          'The most catastrophic mistake in imbalanced learning is applying SMOTE to the entire dataset before train/test splitting:',
+          '- If you resample the full dataset, synthetic points derived from test set records will leak into the training fold, producing fraudulent $99.9\\%$ validation scores.',
+          '- Rule: Apply SMOTE strictly to the training fold inside cross-validation. The validation and test sets must remain untouched to reflect real-world imbalanced distributions!'
+        ]
+      },
+      {
+        heading: '5. Production Implementation with imblearn',
+        paragraphs: [
+          'Below is a production Python script implementing `SMOTE` within a leak-free `imblearn.pipeline.Pipeline` evaluated via PR-AUC and Confusion Matrix.'
+        ],
+        codeBlockTitle: 'imbalanced_learning_masterclass.py',
+        codeBlock: `import numpy as np
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, average_precision_score, confusion_matrix
+from imblearn.over_sampling import SMOTE
+from imblearn.pipeline import Pipeline as ImbPipeline
+
+# 1. GENERATE SEVERELY IMBALANCED FRAUD DATASET (99% Legitimate, 1% Fraud)
+X, y = make_classification(
+    n_samples=10000,
+    n_features=10,
+    n_informative=6,
+    weights=[0.99, 0.01],
+    random_state=42
+)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# =====================================================================
+# 2. LEAK-FREE SMOTE PIPELINE (Resampling happens ONLY in train folds)
+# =====================================================================
+pipeline = ImbPipeline([
+    ('scaler', StandardScaler()),
+    ('smote', SMOTE(random_state=42, k_neighbors=5)),
+    ('clf', LogisticRegression(random_state=42))
+])
+
+pipeline.fit(X_train, y_train)
+y_pred = pipeline.predict(X_test)
+y_prob = pipeline.predict_proba(X_test)[:, 1]
+
+print("--- Classification Report ---")
+print(classification_report(y_test, y_pred, target_names=['Legitimate', 'Fraud']))
+print(f"Precision-Recall AUC (PR-AUC): {average_precision_score(y_test, y_prob):.4f}")
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))`
+      }
+    ],
+
+    analogy: {
+      title: 'The Real-World Analogy: The Broken Smoke Alarm',
+      text: 'A smoke alarm that never sounds is "accurate" 99.7% of the time simply because fires are rare. But its job is not to be right on quiet days; its sole purpose is to sound the alarm on the 1 day there is smoke. Evaluating models on naive accuracy in fraud detection or medical diagnosis is like celebrating a smoke alarm that has no battery.'
+    },
+
+    diagram: {
+      type: 'imbalanced_datasets_interactive_studio',
+      caption: 'Interactive 3D SMOTE Studio: Explore 3D feature space in Light Studio Mode, visualize synthetic minority interpolation along k-nearest neighbor vectors, toggle class weighting, and inspect Precision-Recall curves.'
+    },
+
+    takeaways: [
+      'Naive accuracy is deceptive in imbalanced domains due to the Accuracy Paradox.',
+      'Evaluate imbalanced classification with Recall, F1-score, and Precision-Recall AUC (PR-AUC).',
+      'Use class_weight="balanced" as your first lightweight cost-sensitive baseline.',
+      'SMOTE synthesizes continuous interpolation points along k-nearest neighbor vectors.',
+      'Never apply SMOTE to validation or test sets; resample strictly within training folds using imblearn.pipeline.',
+      'Threshold moving allows fine-tuning precision/recall trade-offs to business costs.'
+    ],
+
+    quiz: {
+      question: 'Why must SMOTE resampling be applied strictly inside training folds rather than on the full dataset before splitting?',
+      options: [
+        'To prevent data leakage: if SMOTE resamples the entire dataset, synthetic training points will interpolate information from test samples, causing artificially inflated evaluation scores',
+        'Because SMOTE cannot run on more than 1,000 samples',
+        'Because Scikit-Learn will delete the target variable',
+        'Because SMOTE only works with Decision Trees'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! If SMOTE is applied prior to train/test splitting, synthetic points created in the training set will interpolate between features of records that end up in the test set. This severe data leakage produces falsely optimistic test scores that collapse in production.'
+    }
+  },
+
+  'ml-6-8': {
+    id: 'ml-6-8',
+    title: 'Data Leakage: The Silent Killer of Machine Learning Models',
+    moduleTitle: 'MODULE 6: MODEL EVALUATION & IMPROVEMENT',
+    readTime: '30 min read',
+    difficulty: 'Intermediate',
+    badgeText: 'Contamination Prevention & Group Validation',
+    badgeColor: '#001f54',
+    videoUrl: null,
+    gfgUrl: 'https://www.geeksforgeeks.org/data-leakage-machine-learning/',
+
+    learningObjectives: [
+      'Understand what Data Leakage is and why it is called the silent killer of ML models.',
+      'Identify the 4 major leakage types: Preprocessing Leakage, Target Leakage, Group/Identity Contamination, and Temporal Lookahead Leakage.',
+      'Learn how global feature scaling or imputation before train_test_split contaminates cross-validation.',
+      'Master GroupKFold for multi-record patient, customer, or document datasets.',
+      'Understand TimeSeriesSplit to prevent temporal lookahead leakage in financial and forecasting data.',
+      'Explore an interactive Data Leakage Studio in Light Studio Mode with live failure-mode simulators.',
+      'Implement strict leak-proof Scikit-Learn Pipeline architectures.'
+    ],
+
+    sections: [
+      {
+        heading: '1. The Silent Killer: The Open-Book Exam Trap',
+        paragraphs: [
+          'Data Leakage occurs when information from outside the training dataset (specifically from the target or test set) is inadvertently used to build or transform the model. It is called the "silent killer" because your model will boast incredible $99.8\\%$ validation scores during development, but fail catastrophically the moment it is deployed to production.',
+          'The Mental Model: The Open-Book Exam Trap:',
+          'Imagine a medical student who accidentally gets a copy of the exact final exam questions with the answer key printed on the back. They score $100\\%$ on the exam! But the first time they step into a hospital emergency room to treat a real patient, they have no idea what to do because they memorized the answer key instead of learning real medicine.',
+          'Data leakage gives your algorithm the "answer key" during training. It creates an illusion of perfection that vanishes in production.'
+        ]
+      },
+      {
+        heading: '2. The Four Deadly Forms of Data Leakage',
+        paragraphs: [
+          '1. Preprocessing & Transformation Leakage:',
+          '- Occurs when transformers (StandardScaler, SimpleImputer, PCA, SelectKBest) are fit on the full dataset before splitting into train/test.',
+          '- Consequence: The scaler calculates the global mean and standard deviation of the test set, contaminating the training features.',
+          '- The Fix: Fit scalers and imputers strictly on `X_train` using `Pipeline`.',
+          '2. Target Leakage (Post-Event Features):',
+          '- Occurs when an input feature includes information that would only exist AFTER the prediction target has already occurred.',
+          '- Example: Predicting whether a hospital patient has pneumonia using the feature `prescribed_pneumonia_antibiotics`. In production, you must predict pneumonia BEFORE the doctor prescribes antibiotics!',
+          '3. Group & Identity Contamination:',
+          '- Occurs when multiple rows belong to the same patient, user, or entity (e.g. 20 X-ray images per patient). If split randomly, images of Patient A appear in both train and test sets. The model memorizes Patient A\'s bone structure rather than disease patterns.',
+          '- The Fix: Use `GroupKFold` or `GroupShuffleSplit` so all records of an entity stay strictly in one fold.',
+          '4. Temporal Lookahead Leakage:',
+          '- Occurs in time-series and financial forecasting when future data points are used to predict past events.',
+          '- The Fix: Use `TimeSeriesSplit` (Walk-Forward validation).'
+        ]
+      },
+      {
+        heading: '3. Real Experimental Proof: Group Contamination',
+        paragraphs: [
+          'In our local experimental benchmark on multi-record biometric data:',
+          '- Random K-Fold Split (Leaky): Achieves an apparent validation accuracy because patient-specific noise traits are present in both train and test folds.',
+          '- GroupKFold (Clean): Groups all recordings by patient identity, testing strictly on completely unseen individuals. It reveals the true, unbiased generalization ability!',
+          'Whenever your dataset has grouped structures (patients, students, stores, devices), standard random splitting will always leak identity signals.'
+        ]
+      },
+      {
+        heading: '4. The Leakage Prevention Checklist',
+        paragraphs: [
+          'To ensure zero data leakage in production systems:',
+          '1. Always split your dataset into Train/Validation/Test BEFORE performing any cleaning, imputation, scaling, or feature selection.',
+          '2. Always encapsulate all transformations and models inside `sklearn.pipeline.Pipeline`.',
+          '3. Ask the Timeline Question: "At the exact second this model runs in production, will this feature be available in real time?" If the answer is no, drop the feature immediately.',
+          '4. Use `GroupKFold` for multi-row entities and `TimeSeriesSplit` for temporal datasets.'
+        ]
+      },
+      {
+        heading: '5. Production Implementation in Scikit-Learn',
+        paragraphs: [
+          'Below is a complete production Python script demonstrating leak-free pipeline encapsulation, GroupKFold grouping, and time-series validation.'
+        ],
+        codeBlockTitle: 'leak_free_production_architecture.py',
+        codeBlock: `import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GroupKFold, TimeSeriesSplit, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
+
+# =====================================================================
+# 1. PREPROCESSING LEAKAGE FIX: Encapsulate in Pipeline
+# =====================================================================
+X_raw = np.random.randn(1000, 10)
+y = np.random.randint(0, 2, 1000)
+
+# Clean Pipeline: Scaler and Imputer are fit STRICTLY on train fold
+clean_pipeline = Pipeline([
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler()),
+    ('clf', RandomForestClassifier(random_state=42))
+])
+
+# =====================================================================
+# 2. GROUP LEAKAGE FIX: GroupKFold by Patient / Entity ID
+# =====================================================================
+patient_ids = np.repeat(np.arange(50), 20) # 50 patients, 20 scans each
+gkf = GroupKFold(n_splits=5)
+
+scores_group = cross_val_score(
+    clean_pipeline, 
+    X_raw, 
+    y, 
+    cv=gkf, 
+    groups=patient_ids, 
+    scoring='accuracy'
+)
+print(f"GroupKFold Unbiased Accuracy (Zero Patient Overlap): {np.mean(scores_group)*100:.2f}%")
+
+# =====================================================================
+# 3. TEMPORAL LEAKAGE FIX: TimeSeriesSplit (Walk-Forward)
+# =====================================================================
+tscv = TimeSeriesSplit(n_splits=5)
+scores_time = cross_val_score(clean_pipeline, X_raw, y, cv=tscv, scoring='accuracy')
+print(f"TimeSeriesSplit Walk-Forward Accuracy:              {np.mean(scores_time)*100:.2f}%")`
+      }
+    ],
+
+    analogy: {
+      title: 'The Real-World Analogy: The Stolen Answer Key',
+      text: 'A student who steals the exam answer key before test day will get an A+ on their transcript. But on their first day on the job when real problems arise, they will fail completely because they memorized the answers instead of learning the skill. Data leakage is your model stealing the test answers during training.'
+    },
+
+    diagram: {
+      type: 'data_leakage_interactive_studio',
+      caption: 'Interactive Data Leakage Studio: Explore interactive failure-mode simulators in Light Studio Mode, compare Leaky vs. Clean pipeline architectures, inspect GroupKFold patient isolation, and review the production leak-prevention checklist.'
+    },
+
+    takeaways: [
+      'Data Leakage creates an illusion of high accuracy in development that collapses in production.',
+      'Preprocessing Leakage: Never fit scalers, imputers, or encoders before train/test splitting.',
+      'Target Leakage: Never include features generated after the prediction event occurs.',
+      'Group Leakage: Always use GroupKFold when entities (patients, users) have multiple rows.',
+      'Temporal Leakage: Always use TimeSeriesSplit for sequential and time-series data.',
+      'Encapsulate all preprocessing and model steps inside a Scikit-Learn Pipeline to eliminate leakage by design.'
+    ],
+
+    quiz: {
+      question: 'Which of the following is a classic example of Target Leakage?',
+      options: [
+        'Including a "repaired_parts_list" feature when building a model to predict whether a machine will break down next week',
+        'Standardizing features with StandardScaler inside a cross-validation fold',
+        'Splitting data into 80% train and 20% test',
+        'Using GroupKFold with patient IDs'
+      ],
+      correctIndex: 0,
+      explanation: 'Correct! The "repaired_parts_list" is created AFTER the machine has already broken down and been repaired. In production, when predicting if a machine will break down next week, this feature does not yet exist. Including it causes massive Target Leakage.'
+    }
+  }
+
 };
