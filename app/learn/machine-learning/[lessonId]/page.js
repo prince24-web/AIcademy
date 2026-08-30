@@ -31024,47 +31024,11 @@ const ImbalancedDatasetsInteractiveStudio = () => {
 
 // ─── DATA LEAKAGE INTERACTIVE STUDIO (ml-6-8) ────────────────────────────────
 const DataLeakageInteractiveStudio = () => {
-  const [activeTab, setActiveTab] = useState('simulator'); // 'simulator', 'group_kfold', 'checklist', 'timeline', 'code'
-  const [leakMode, setLeakMode] = useState('leaky'); // 'leaky' or 'clean'
-  const [scenario, setScenario] = useState('preprocessing'); // 'preprocessing', 'target', 'group', 'temporal'
-
-  const scenarioData = useMemo(() => {
-    switch (scenario) {
-      case 'preprocessing':
-        return {
-          title: 'Preprocessing & Global Scaling Leakage',
-          leakyValScore: '98.67% (Artificially Inflated)',
-          cleanValScore: '84.20% (Realistic Generalization)',
-          description: 'Fitting StandardScaler on the full dataset before splitting leaks the test set mean and standard deviation into the training pipeline.',
-          fix: 'Fit StandardScaler strictly on X_train using Pipeline.'
-        };
-      case 'target':
-        return {
-          title: 'Target Leakage (Post-Event Features)',
-          leakyValScore: '99.90% (Memorized Answer Key)',
-          cleanValScore: '78.50% (True Predictive Power)',
-          description: 'Including "prescribed_medication" when predicting whether a patient has a disease leaks the diagnosis decision into the inputs.',
-          fix: 'Drop all features that are created after the prediction timestamp.'
-        };
-      case 'group':
-        return {
-          title: 'Group & Patient Identity Contamination',
-          leakyValScore: '99.20% (Patient Overlap)',
-          cleanValScore: '79.40% (Unseen Patients)',
-          description: 'Multiple X-rays of the same patient present in both train and test folds allows the model to memorize patient anatomy rather than disease patterns.',
-          fix: 'Use GroupKFold(groups=patient_id) to isolate individuals strictly.'
-        };
-      case 'temporal':
-      default:
-        return {
-          title: 'Temporal Lookahead Leakage',
-          leakyValScore: '96.50% (Future Peeking)',
-          cleanValScore: '71.20% (Walk-Forward Validation)',
-          description: 'Using random K-Fold on stock market prices uses tomorrow\'s price to predict yesterday\'s trend.',
-          fix: 'Use TimeSeriesSplit (Walk-Forward validation) strictly.'
-        };
-    }
-  }, [scenario]);
+  const [activeTab, setActiveTab] = useState('pipeline_flow'); // 'pipeline_flow', 'group_isolation', 'timeline_target', 'temporal_walk', 'code'
+  const [pipelineMode, setPipelineMode] = useState('leaky'); // 'leaky' or 'clean'
+  const [groupMode, setGroupMode] = useState('random'); // 'random' or 'group_kfold'
+  const [targetTimeStep, setTargetTimeStep] = useState(1); // 0 (t0), 1 (t1: prediction), 2 (t2: doctor action), 3 (t3: billing)
+  const [temporalStep, setTemporalStep] = useState(2); // Walk-forward folds 1, 2, 3, 4
 
   return (
     <div style={{
@@ -31080,28 +31044,28 @@ const DataLeakageInteractiveStudio = () => {
       <div style={{ borderBottom: '1.5px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div style={{
-            background: 'linear-gradient(135deg, #001f54, #0284c7)',
+            background: 'linear-gradient(135deg, #001f54, #dc2626)',
             width: '46px',
             height: '46px',
             borderRadius: '14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(2,132,199,0.25)'
+            boxShadow: '0 4px 14px rgba(220,38,38,0.25)'
           }}>
             <IconSparkles size={24} style={{ color: '#ffffff' }} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ background: '#001f54', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
-                CONTAMINATION AUDIT STUDIO
+                VISUAL ARCHITECTURE STUDIO
               </span>
-              <span style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700 }}>
-                Data Leakage Prevention & Group Validation
+              <span style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 700 }}>
+                4 Deadly Data Leakage Failure-Modes & Visual Proofs
               </span>
             </div>
             <h3 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#001f54' }}>
-              Data Leakage Studio
+              Data Leakage Visual Architecture Studio
             </h3>
           </div>
         </div>
@@ -31118,11 +31082,11 @@ const DataLeakageInteractiveStudio = () => {
           border: '1px solid #e2e8f0'
         }}>
           {[
-            { id: 'simulator', label: '1. Leakage Failure-Mode Simulator' },
-            { id: 'group_kfold', label: '2. GroupKFold Patient Isolation' },
-            { id: 'checklist', label: '3. Leak Prevention Checklist' },
-            { id: 'timeline', label: '4. The Timeline Rule' },
-            { id: 'code', label: '5. Python Implementation' }
+            { id: 'pipeline_flow', label: '1. Preprocessing Leakage Flow' },
+            { id: 'group_isolation', label: '2. Group / Patient Contamination' },
+            { id: 'timeline_target', label: '3. Target Leakage Timeline' },
+            { id: 'temporal_walk', label: '4. Temporal Walk-Forward Split' },
+            { id: 'code', label: '5. Leak-Proof Python Pipeline' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -31145,157 +31109,401 @@ const DataLeakageInteractiveStudio = () => {
         </div>
       </div>
 
-      {/* ─── TAB 1: SIMULATOR ────────────────────────────────────────── */}
-      {activeTab === 'simulator' && (
+      {/* ─── TAB 1: PREPROCESSING LEAKAGE FLOW ───────────────────────── */}
+      {activeTab === 'pipeline_flow' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Scenario Selector */}
+          {/* Controls Bar */}
           <div style={{
             background: '#f8fafc',
             borderRadius: '14px',
             border: '1px solid #e2e8f0',
             padding: '1rem 1.25rem',
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '8px',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            gap: '12px'
           }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Leakage Scenario:</span>
-            {[
-              { id: 'preprocessing', label: '1. Preprocessing Scaling Leak' },
-              { id: 'target', label: '2. Target Post-Event Leak' },
-              { id: 'group', label: '3. Group / Patient Leak' },
-              { id: 'temporal', label: '4. Temporal Lookahead Leak' }
-            ].map((s) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Pipeline Architecture:</span>
               <button
-                key={s.id}
-                onClick={() => setScenario(s.id)}
+                onClick={() => setPipelineMode('leaky')}
                 style={{
-                  padding: '5px 12px',
+                  padding: '6px 14px',
                   borderRadius: '8px',
                   fontSize: '0.74rem',
                   fontWeight: 700,
                   border: '1px solid',
-                  borderColor: scenario === s.id ? '#001f54' : '#cbd5e1',
-                  background: scenario === s.id ? '#001f54' : '#ffffff',
-                  color: scenario === s.id ? '#ffffff' : '#475569',
+                  borderColor: pipelineMode === 'leaky' ? '#dc2626' : '#cbd5e1',
+                  background: pipelineMode === 'leaky' ? '#dc2626' : '#ffffff',
+                  color: pipelineMode === 'leaky' ? '#ffffff' : '#475569',
                   cursor: 'pointer'
                 }}
               >
-                {s.label}
+                Flawed Global Scaling (Leaky)
               </button>
-            ))}
-          </div>
-
-          {/* Architecture Comparison Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            {/* Leaky Card */}
-            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #dc2626', padding: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#dc2626' }}>
-                  Leaky Architecture (Flawed)
-                </span>
-                <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
-                  PRODUCTION COLLAPSE
-                </span>
-              </div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#dc2626', margin: '6px 0' }}>
-                {scenarioData.leakyValScore}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.5 }}>
-                {scenarioData.description}
-              </div>
+              <button
+                onClick={() => setPipelineMode('clean')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor: pipelineMode === 'clean' ? '#16a34a' : '#cbd5e1',
+                  background: pipelineMode === 'clean' ? '#16a34a' : '#ffffff',
+                  color: pipelineMode === 'clean' ? '#ffffff' : '#475569',
+                  cursor: 'pointer'
+                }}
+              >
+                Airtight Pipeline Encapsulation (Clean)
+              </button>
             </div>
 
-            {/* Clean Pipeline Card */}
-            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #16a34a', padding: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a' }}>
-                  Clean Pipeline Architecture (Robust)
+            <div style={{
+              background: pipelineMode === 'leaky' ? '#fee2e2' : '#dcfce7',
+              color: pipelineMode === 'leaky' ? '#dc2626' : '#166534',
+              padding: '4px 12px',
+              borderRadius: '8px',
+              fontSize: '0.74rem',
+              fontWeight: 800
+            }}>
+              {pipelineMode === 'leaky' ? 'Status: Test Data Contamination Active!' : 'Status: 100% Leak-Proof Isolation'}
+            </div>
+          </div>
+
+          {/* Visual SVG Flowchart */}
+          <div style={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            borderRadius: '16px',
+            border: '1.5px solid',
+            borderColor: pipelineMode === 'leaky' ? '#fca5a5' : '#86efac',
+            padding: '1.5rem',
+            position: 'relative'
+          }}>
+            {pipelineMode === 'leaky' ? (
+              /* FLAWED LEAKY PIPELINE SVG */
+              <svg width="100%" height="240" viewBox="0 0 700 240" style={{ overflow: 'visible' }}>
+                {/* Step 1: Full Dataset */}
+                <rect x="20" y="80" width="130" height="70" rx="10" fill="#ffffff" stroke="#001f54" strokeWidth="2" />
+                <text x="85" y="112" textAnchor="middle" fontSize="12" fontWeight="800" fill="#001f54">Full Dataset (X)</text>
+                <text x="85" y="130" textAnchor="middle" fontSize="9" fontWeight="600" fill="#64748b">10,000 Rows Total</text>
+
+                {/* Arrow to Scaler */}
+                <line x1="150" y1="115" x2="200" y2="115" stroke="#dc2626" strokeWidth="2.5" markerEnd="url(#arrow-red)" />
+
+                {/* Step 2: Global Scaler FIT ON EVERYTHING */}
+                <rect x="200" y="65" width="160" height="100" rx="10" fill="#fee2e2" stroke="#dc2626" strokeWidth="2.5" strokeDasharray="4 4" />
+                <text x="280" y="95" textAnchor="middle" fontSize="11" fontWeight="800" fill="#991b1b">Global StandardScaler</text>
+                <text x="280" y="115" textAnchor="middle" fontSize="10" fontWeight="700" fill="#dc2626">.fit_transform(Full X)</text>
+                <text x="280" y="135" textAnchor="middle" fontSize="8" fontWeight="700" fill="#b91c1c">Computes &mu; &amp; &sigma; using Test Rows!</text>
+
+                {/* Arrow to Train Test Split */}
+                <line x1="360" y1="115" x2="410" y2="115" stroke="#dc2626" strokeWidth="2.5" />
+
+                {/* Step 3: Delayed Split */}
+                <rect x="410" y="80" width="120" height="70" rx="10" fill="#ffffff" stroke="#001f54" strokeWidth="2" />
+                <text x="470" y="110" textAnchor="middle" fontSize="11" fontWeight="800" fill="#001f54">train_test_split</text>
+                <text x="470" y="130" textAnchor="middle" fontSize="9" fontWeight="700" fill="#dc2626">TOO LATE!</text>
+
+                {/* Arrow to Model */}
+                <line x1="530" y1="115" x2="570" y2="115" stroke="#dc2626" strokeWidth="2.5" />
+
+                {/* Step 4: Model Results */}
+                <rect x="570" y="65" width="120" height="100" rx="10" fill="#ffffff" stroke="#dc2626" strokeWidth="2" />
+                <text x="630" y="92" textAnchor="middle" fontSize="10" fontWeight="800" fill="#dc2626">Fake Dev Score:</text>
+                <text x="630" y="115" textAnchor="middle" fontSize="16" fontWeight="900" fill="#dc2626">98.67%</text>
+                <text x="630" y="135" textAnchor="middle" fontSize="8" fontWeight="800" fill="#b91c1c">Collapses in Production!</text>
+
+                {/* Animated Leak Stream Arrow */}
+                <path d="M 470 80 C 470 20, 280 20, 280 65" fill="none" stroke="#dc2626" strokeWidth="2" strokeDasharray="4 4" />
+                <text x="375" y="25" textAnchor="middle" fontSize="9" fontWeight="900" fill="#dc2626">LEAKAGE STREAM: Test Mean &amp; Std Injected into Training!</text>
+              </svg>
+            ) : (
+              /* CLEAN LEAK-PROOF PIPELINE SVG */
+              <svg width="100%" height="240" viewBox="0 0 700 240" style={{ overflow: 'visible' }}>
+                {/* Step 1: Full Dataset */}
+                <rect x="20" y="80" width="120" height="70" rx="10" fill="#ffffff" stroke="#001f54" strokeWidth="2" />
+                <text x="80" y="112" textAnchor="middle" fontSize="12" fontWeight="800" fill="#001f54">Raw Dataset (X)</text>
+                <text x="80" y="130" textAnchor="middle" fontSize="9" fontWeight="600" fill="#64748b">10,000 Rows</text>
+
+                {/* Arrow to Strict Split FIRST */}
+                <line x1="140" y1="115" x2="190" y2="115" stroke="#16a34a" strokeWidth="2.5" />
+
+                {/* Step 2: Split FIRST (Air-Tight Barrier) */}
+                <rect x="190" y="65" width="130" height="100" rx="10" fill="#dcfce7" stroke="#16a34a" strokeWidth="2.5" />
+                <text x="255" y="95" textAnchor="middle" fontSize="11" fontWeight="900" fill="#166534">1. Split FIRST</text>
+                <text x="255" y="115" textAnchor="middle" fontSize="9" fontWeight="700" fill="#15803d">X_train (8,000 Rows)</text>
+                <text x="255" y="135" textAnchor="middle" fontSize="9" fontWeight="700" fill="#15803d">X_test (2,000 Rows)</text>
+                <rect x="250" y="145" width="10" height="10" fill="#16a34a" rx="2" />
+
+                {/* Split branching arrows */}
+                <line x1="320" y1="100" x2="370" y2="80" stroke="#16a34a" strokeWidth="2" />
+                <line x1="320" y1="130" x2="370" y2="150" stroke="#64748b" strokeWidth="2" strokeDasharray="3 3" />
+
+                {/* Step 3: Pipeline Training (Fit ONLY on X_train) */}
+                <rect x="370" y="45" width="160" height="70" rx="10" fill="#ffffff" stroke="#16a34a" strokeWidth="2" />
+                <text x="450" y="72" textAnchor="middle" fontSize="10" fontWeight="800" fill="#001f54">Scaler.fit(X_train)</text>
+                <text x="450" y="92" textAnchor="middle" fontSize="9" fontWeight="700" fill="#16a34a">Model.fit(X_train_scaled)</text>
+
+                {/* Step 3b: Pristine Test Set */}
+                <rect x="370" y="130" width="160" height="60" rx="10" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" />
+                <text x="450" y="155" textAnchor="middle" fontSize="9" fontWeight="700" fill="#475569">Scaler.transform(X_test)</text>
+                <text x="450" y="172" textAnchor="middle" fontSize="8" fontWeight="600" fill="#64748b">Strictly Pristine Unseen Data</text>
+
+                {/* Arrow to Evaluation */}
+                <line x1="530" y1="115" x2="570" y2="115" stroke="#16a34a" strokeWidth="2.5" />
+
+                {/* Step 4: True Generalization */}
+                <rect x="570" y="65" width="120" height="100" rx="10" fill="#ffffff" stroke="#16a34a" strokeWidth="2" />
+                <text x="630" y="92" textAnchor="middle" fontSize="10" fontWeight="800" fill="#166534">True Generalization:</text>
+                <text x="630" y="115" textAnchor="middle" fontSize="16" fontWeight="900" fill="#16a34a">84.20%</text>
+                <text x="630" y="135" textAnchor="middle" fontSize="8" fontWeight="800" fill="#15803d">100% Reliable in Production!</text>
+              </svg>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: GROUPKFOLD PATIENT ISOLATION ─────────────────────── */}
+      {activeTab === 'group_isolation' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls Bar */}
+          <div style={{
+            background: '#f8fafc',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>Validation Strategy:</span>
+              <button
+                onClick={() => setGroupMode('random')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor: groupMode === 'random' ? '#dc2626' : '#cbd5e1',
+                  background: groupMode === 'random' ? '#dc2626' : '#ffffff',
+                  color: groupMode === 'random' ? '#ffffff' : '#475569',
+                  cursor: 'pointer'
+                }}
+              >
+                Standard K-Fold (Patient Contaminated)
+              </button>
+              <button
+                onClick={() => setGroupMode('group_kfold')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor: groupMode === 'group_kfold' ? '#16a34a' : '#cbd5e1',
+                  background: groupMode === 'group_kfold' ? '#16a34a' : '#ffffff',
+                  color: groupMode === 'group_kfold' ? '#ffffff' : '#475569',
+                  cursor: 'pointer'
+                }}
+              >
+                GroupKFold (Zero Patient Overlap)
+              </button>
+            </div>
+
+            <div style={{
+              background: groupMode === 'random' ? '#fee2e2' : '#dcfce7',
+              color: groupMode === 'random' ? '#dc2626' : '#166534',
+              padding: '4px 12px',
+              borderRadius: '8px',
+              fontSize: '0.74rem',
+              fontWeight: 800
+            }}>
+              {groupMode === 'random' ? 'Patient Overlap: Active (Identity Leakage!)' : 'Patient Overlap: ZERO (Isolated)'}
+            </div>
+          </div>
+
+          {/* Visual Matrix of Patient Scans */}
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1.5px solid #cbd5e1',
+            padding: '1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>
+              Multi-Scan Patient Dataset (4 Patients, 4 Scans Each = 16 Total Scans):
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+              {[
+                { patient: 'Patient A', scans: groupMode === 'random' ? ['Train', 'Train', 'Test', 'Train'] : ['Train', 'Train', 'Train', 'Train'] },
+                { patient: 'Patient B', scans: groupMode === 'random' ? ['Train', 'Test', 'Train', 'Train'] : ['Train', 'Train', 'Train', 'Train'] },
+                { patient: 'Patient C', scans: groupMode === 'random' ? ['Test', 'Train', 'Test', 'Train'] : ['Test', 'Test', 'Test', 'Test'] },
+                { patient: 'Patient D', scans: groupMode === 'random' ? ['Train', 'Train', 'Test', 'Test'] : ['Test', 'Test', 'Test', 'Test'] }
+              ].map((pGroup) => (
+                <div key={pGroup.patient} style={{ background: '#f8fafc', borderRadius: '12px', padding: '10px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', marginBottom: '6px' }}>{pGroup.patient}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {pGroup.scans.map((split, sIdx) => (
+                      <div
+                        key={sIdx}
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          background: split === 'Train' ? '#eff6ff' : '#fee2e2',
+                          color: split === 'Train' ? '#1e40af' : '#dc2626',
+                          border: '1px solid',
+                          borderColor: split === 'Train' ? '#bfdbfe' : '#fecaca',
+                          display: 'flex',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <span>Scan #{sIdx + 1}</span>
+                        <span>{split}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{
+              background: groupMode === 'random' ? '#fef2f2' : '#f0fdf4',
+              border: '1px solid',
+              borderColor: groupMode === 'random' ? '#fecaca' : '#bbf7d0',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              fontSize: '0.74rem',
+              color: groupMode === 'random' ? '#991b1b' : '#166534',
+              lineHeight: 1.45
+            }}>
+              {groupMode === 'random' ? (
+                <span><strong>Flaw:</strong> Notice how Patient A, B, C, and D all appear in BOTH Train and Test sets! The model simply memorizes Patient A\'s bone structure in training and recognizes it on test day. Apparent score: <strong>99.2%</strong> (Fictitious!).</span>
+              ) : (
+                <span><strong>GroupKFold:</strong> Patient A &amp; B are 100% in Train. Patient C &amp; D are 100% in Test. The model has never seen Patient C or D before, testing true diagnostic generalization. True score: <strong>79.4%</strong>.</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: TIMELINE TARGET LEAKAGE ─────────────────────────── */}
+      {activeTab === 'timeline_target' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+              Target Leakage Timeline Simulator
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Slide through the chronological hospital event timeline to see why future features corrupt models.
+            </div>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.5rem' }}>
+            {/* Timeline Slider */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 800, color: '#001f54', marginBottom: '8px' }}>
+                <span>08:00 AM (Patient Arrives)</span>
+                <span style={{ color: '#0284c7' }}>08:30 AM (Model Prediction Moment)</span>
+                <span style={{ color: '#dc2626' }}>10:00 AM (Doctor Prescription)</span>
+                <span style={{ color: '#dc2626' }}>02:00 PM (Billing Code)</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="3"
+                value={targetTimeStep}
+                onChange={(e) => setTargetTimeStep(parseInt(e.target.value))}
+                style={{ width: '100%', accentColor: targetTimeStep <= 1 ? '#0284c7' : '#dc2626' }}
+              />
+            </div>
+
+            {/* Current Selected Stage Card */}
+            <div style={{
+              background: targetTimeStep <= 1 ? '#f0fdf4' : '#fef2f2',
+              border: '1.5px solid',
+              borderColor: targetTimeStep <= 1 ? '#86efac' : '#fca5a5',
+              borderRadius: '12px',
+              padding: '1.25rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: targetTimeStep <= 1 ? '#166534' : '#991b1b' }}>
+                  {targetTimeStep === 0 && 'Time t0 (08:00 AM): Patient Check-in Symptoms'}
+                  {targetTimeStep === 1 && 'Time t1 (08:30 AM): ML MODEL PREDICTION MOMENT'}
+                  {targetTimeStep === 2 && 'Time t2 (10:00 AM): Doctor Prescribes Azithromycin Antibiotic'}
+                  {targetTimeStep === 3 && 'Time t3 (02:00 PM): Billing Logs Pneumonia ICD-10 Code'}
                 </span>
-                <span style={{ background: '#dcfce7', color: '#166534', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
-                  LEAK-PROOF
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  background: targetTimeStep <= 1 ? '#dcfce7' : '#fee2e2',
+                  color: targetTimeStep <= 1 ? '#166534' : '#dc2626'
+                }}>
+                  {targetTimeStep <= 1 ? 'SAFE FOR TRAINING' : 'LETHAL TARGET LEAKAGE!'}
                 </span>
               </div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#16a34a', margin: '6px 0' }}>
-                {scenarioData.cleanValScore}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#166534', fontWeight: 700, lineHeight: 1.5 }}>
-                Solution: {scenarioData.fix}
+
+              <div style={{ fontSize: '0.74rem', color: '#475569', lineHeight: 1.5 }}>
+                {targetTimeStep === 0 && 'Features available: Age, Body Temp, Blood Pressure, Cough Duration. These are legitimate pre-prediction inputs.'}
+                {targetTimeStep === 1 && 'This is the EXACT millisecond the ML model executes in production. Only data recorded prior to 08:30 AM exists in the real world.'}
+                {targetTimeStep === 2 && 'If you train with "prescribed_antibiotic", your model memorizes that antibiotics = pneumonia. But in production at 08:30 AM, the doctor has not prescribed antibiotics yet! Model collapses.'}
+                {targetTimeStep === 3 && 'If you include billing ICD-10 codes in features, you are feeding the final answer into the model inputs. Instant 100% fake training accuracy.'}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── TAB 2: GROUPKFOLD ───────────────────────────────────────── */}
-      {activeTab === 'group_kfold' && (
+      {/* ─── TAB 4: TEMPORAL WALK-FORWARD SPLIT ──────────────────────── */}
+      {activeTab === 'temporal_walk' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
             <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
-              GroupKFold: Eliminating Subject Contamination
+              TimeSeriesSplit: Walk-Forward Chronological Validation
             </div>
             <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-              Ensuring zero patient, user, or device overlap between training and validation folds.
+              Preventing future lookahead leakage in financial and time-series forecasting.
             </div>
           </div>
 
-          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem' }}>
-            <div style={{ fontSize: '0.75rem', color: '#475569', lineHeight: 1.55 }}>
-              If Patient #42 has 20 medical scan records:
-              <br />
-              - <strong>Standard K-Fold (BAD):</strong> Puts 16 scans of Patient #42 in Train and 4 scans in Test. The model memorizes Patient #42\'s bone anatomy and achieves fake 99% accuracy!
-              <br />
-              - <strong>GroupKFold (CORRECT):</strong> Puts all 20 scans of Patient #42 strictly into either the training set OR the test set. The model is forced to generalize to completely unseen humans!
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>
+              Walk-Forward Folds (Training window expands forward in time strictly):
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ─── TAB 3: CHECKLIST ────────────────────────────────────────── */}
-      {activeTab === 'checklist' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
-            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
-              The 4-Step Production Leak-Prevention Checklist
-            </div>
-            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-              Mandatory audit checklist before shipping ML models to production.
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {[
-              '1. Always split dataset into Train/Test BEFORE executing any scaling, imputation, or feature engineering.',
-              '2. Always encapsulate all transformers and estimators inside a Scikit-Learn Pipeline.',
-              '3. Ask the Timeline Question: Will this feature exist at the exact second of inference in production?',
-              '4. Use GroupKFold for multi-row entities (patients, customers) and TimeSeriesSplit for sequential data.'
-            ].map((item, idx) => (
-              <div key={idx} style={{ background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0', padding: '12px 14px', fontSize: '0.75rem', fontWeight: 700, color: '#001f54' }}>
-                {item}
+              { fold: 'Fold 1', train: 'Jan - Mar (Past)', test: 'April (Future)', trainWidth: '30%', testWidth: '15%' },
+              { fold: 'Fold 2', train: 'Jan - April (Past)', test: 'May (Future)', trainWidth: '45%', testWidth: '15%' },
+              { fold: 'Fold 3', train: 'Jan - May (Past)', test: 'June (Future)', trainWidth: '60%', testWidth: '15%' },
+              { fold: 'Fold 4', train: 'Jan - June (Past)', test: 'July (Future)', trainWidth: '75%', testWidth: '15%' }
+            ].map((f) => (
+              <div key={f.fold} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ width: '60px', fontSize: '0.72rem', fontWeight: 800, color: '#001f54' }}>{f.fold}</span>
+                <div style={{ flex: 1, height: '24px', background: '#f1f5f9', borderRadius: '6px', overflow: 'hidden', display: 'flex', border: '1px solid #e2e8f0' }}>
+                  <div style={{ width: f.trainWidth, background: '#0284c7', color: '#ffffff', fontSize: '0.65rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Train (Past)
+                  </div>
+                  <div style={{ width: f.testWidth, background: '#16a34a', color: '#ffffff', fontSize: '0.65rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    Test (Next)
+                  </div>
+                </div>
               </div>
             ))}
-          </div>
-        </div>
-      )}
 
-      {/* ─── TAB 4: TIMELINE RULE ────────────────────────────────────── */}
-      {activeTab === 'timeline' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '1rem 1.25rem' }}>
-            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
-              The Golden Timeline Rule
-            </div>
-            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-              The definitive mental test to prevent Target Leakage.
-            </div>
-          </div>
-
-          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1.5px solid #cbd5e1', padding: '1.5rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '1rem', fontWeight: 900, color: '#001f54', marginBottom: '8px' }}>
-              "At the exact millisecond this model makes a prediction in production, will this feature exist in real time?"
-            </div>
-            <div style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 700 }}>
-              If the answer is NO, DROP THE FEATURE IMMEDIATELY!
+            <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '6px', lineHeight: 1.45 }}>
+              Never shuffle time-series data! Standard K-Fold uses Friday\'s stock price to predict Wednesday, causing lethal lookahead leakage.
             </div>
           </div>
         </div>
@@ -31310,7 +31518,7 @@ const DataLeakageInteractiveStudio = () => {
             </div>
             <SyntaxCodeBlock
               code={[
-                'from sklearn.model_selection import GroupKFold, cross_val_score',
+                'from sklearn.model_selection import GroupKFold, TimeSeriesSplit, cross_val_score',
                 'from sklearn.preprocessing import StandardScaler',
                 'from sklearn.impute import SimpleImputer',
                 'from sklearn.ensemble import RandomForestClassifier',
@@ -31325,15 +31533,20 @@ const DataLeakageInteractiveStudio = () => {
                 '',
                 '# 2. GroupKFold prevents patient/user identity contamination',
                 'gkf = GroupKFold(n_splits=5)',
-                'scores = cross_val_score(',
+                'scores_group = cross_val_score(',
                 '    pipeline,',
                 '    X,',
                 '    y,',
                 '    cv=gkf,',
-                '    groups=patient_ids,    # Guarantees zero patient overlap',
+                '    groups=patient_ids,    # Guarantees zero patient overlap between folds',
                 "    scoring='accuracy'",
                 ')',
-                'print(f"Unbiased GroupKFold Accuracy: {scores.mean()*100:.2f}%")'
+                'print(f"Unbiased GroupKFold Accuracy: {scores_group.mean()*100:.2f}%")',
+                '',
+                '# 3. TimeSeriesSplit prevents lookahead future contamination',
+                'tscv = TimeSeriesSplit(n_splits=5)',
+                'scores_time = cross_val_score(pipeline, X, y, cv=tscv, scoring="accuracy")',
+                'print(f"Walk-Forward Time Series Accuracy: {scores_time.mean()*100:.2f}%")'
               ].join('\n')}
               title="leak_free_pipeline.py"
             />
