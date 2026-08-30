@@ -243,15 +243,16 @@ const mlModules = [
   {
     id: 7,
     title: 'Module 7: Ensemble Learning',
-    subtitle: 'Goal: Combine models for superior performance.',
+    subtitle: 'Goal: Combine models for superior predictive performance.',
     lessons: [
-      { id: 'ml-7-1', name: 'Bagging', nodeType: 'concept', status: 'locked' },
-      { id: 'ml-7-2', name: 'Boosting', nodeType: 'star', status: 'locked' },
-      { id: 'ml-7-3', name: 'Random Forest (Deep Dive)', nodeType: 'concept', status: 'locked' },
-      { id: 'ml-7-4', name: 'XGBoost', nodeType: 'lightbulb', status: 'locked' },
-      { id: 'ml-7-5', name: 'LightGBM', nodeType: 'star', status: 'locked' },
-      { id: 'ml-7-6', name: 'Ensemble Methods & Stacking', nodeType: 'concept', status: 'locked' },
-      { id: 'ml-7-p1', name: 'Mini Project: High-Performance Tabular Model', nodeType: 'project', status: 'locked', isProject: true },
+      { id: 'ml-7-1', name: 'Foundations of Ensemble Learning', nodeType: 'concept', status: 'locked' },
+      { id: 'ml-7-2', name: 'Simple Ensemble Techniques (Voting & Averaging)', nodeType: 'star', status: 'locked' },
+      { id: 'ml-7-3', name: 'Bagging (Bootstrap Aggregation)', nodeType: 'concept', status: 'locked' },
+      { id: 'ml-7-4', name: 'Random Forest', nodeType: 'lightbulb', status: 'locked' },
+      { id: 'ml-7-5', name: 'Boosting (Sequential Learning)', nodeType: 'star', status: 'locked' },
+      { id: 'ml-7-6', name: 'Stacking (Stacked Generalization & Blending)', nodeType: 'concept', status: 'locked' },
+      { id: 'ml-7-7', name: 'Comparative Strategy & Model Evaluation', nodeType: 'concept', status: 'locked' },
+      { id: 'ml-7-p1', name: 'Mini Project: High-Performance Ensemble Model', nodeType: 'project', status: 'locked', isProject: true },
     ]
   },
   {
