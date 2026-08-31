@@ -35359,11 +35359,963 @@ const RandomForestEnsembleStudio = () => {
   );
 };
 
+// ─── BOOSTING (SEQUENTIAL RESIDUAL LEARNING) INTERACTIVE STUDIO ──────────────
+const BoostingInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('3d_residual_descent'); // '3d_residual_descent' | 'adaboost_weights' | 'gbm_gradient_descent' | 'xgboost_taylor_gain' | 'python_pipeline'
+
+  // Tab 1: 3D Residual Descent & Instance Weight Space
+  const mountRef = useRef(null);
+  const [boostingStep, setBoostingStep] = useState(1); // 1 to 20
+  const [boostingMode, setBoostingMode] = useState('gbm'); // 'gbm' | 'adaboost'
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Tab 2: AdaBoost Alpha & Sample Weighting Simulator
+  const [errorRate, setErrorRate] = useState(0.20); // epsilon_m in [0.01, 0.99]
+
+  // Tab 3: GBM Functional Gradient Descent Engine
+  const [lossType, setLossType] = useState('mse'); // 'mse' | 'mae' | 'logloss'
+  const [learningRate, setLearningRate] = useState(0.10); // eta in [0.01, 1.0]
+
+  // Tab 4: XGBoost 2nd-Order Taylor Split Gain Engine
+  const [lambdaReg, setLambdaReg] = useState(1.0); // L2 leaf regularizer
+  const [gammaPenalty, setGammaPenalty] = useState(1.5); // Min split loss reduction
+  const [glVal, setGlVal] = useState(-14.2);
+  const [hlVal, setHlVal] = useState(8.5);
+  const [grVal, setGrVal] = useState(18.6);
+  const [hrVal, setHrVal] = useState(9.2);
+
+  // Tab 1: Auto-play animation timer
+  useEffect(() => {
+    let timer;
+    if (isPlaying) {
+      timer = setInterval(() => {
+        setBoostingStep((prev) => (prev >= 20 ? 1 : prev + 1));
+      }, 700);
+    }
+    return () => clearInterval(timer);
+  }, [isPlaying]);
+
+  // Tab 1: Deterministic 3D point cloud generation
+  const dataset3D = useMemo(() => {
+    const prng = createSeededPRNG(42);
+    const points = [];
+    // Class A (Target cluster around [-1.8, 0, -1.2])
+    for (let i = 0; i < 35; i++) {
+      const x = (prng() - 0.5) * 4.0 - 1.8;
+      const z = (prng() - 0.5) * 4.0 - 1.2;
+      const yTrue = 1.0;
+      points.push({ id: `A_${i}`, x, z, yTrue, label: '+1 (Class 1)', baseColor: '#001f54' });
+    }
+    // Class B (Surrounding non-linear donut / cluster around [1.8, 0, 1.2])
+    for (let i = 0; i < 35; i++) {
+      const x = (prng() - 0.5) * 4.5 + 1.8;
+      const z = (prng() - 0.5) * 4.5 + 1.2;
+      const yTrue = -1.0;
+      points.push({ id: `B_${i}`, x, z, yTrue, label: '-1 (Class 0)', baseColor: '#f97316' });
+    }
+    return points;
+  }, []);
+
+  // Three.js 3D WebGL Scene for Tab 1
+  useEffect(() => {
+    if (activeTab !== '3d_residual_descent' || !mountRef.current) return;
+
+    const width = mountRef.current.clientWidth || 800;
+    const height = 480;
+
+    // 1. Scene, Camera, Renderer in Light Studio Palette
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#f8fafc');
+
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(12, 10, 16);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    mountRef.current.innerHTML = '';
+    mountRef.current.appendChild(renderer.domElement);
+
+    // 2. Lighting: Architectural Studio Light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+    dirLight.position.set(15, 25, 12);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    scene.add(dirLight);
+
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xe2e8f0, 0.4);
+    scene.add(hemiLight);
+
+    // 3. Studio Ground Floor Grid at y = -4.5
+    const gridHelper = new THREE.GridHelper(26, 26, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -4.5;
+    scene.add(gridHelper);
+
+    // 4. Data Point Spheres
+    const pointMeshes = [];
+    dataset3D.forEach((pt) => {
+      // Calculate residual error and weight at boostingStep
+      // Target model: step 1 is crude plane x > 0; steps 2..20 carve non-linear boundary
+      const distFromBoundary = (pt.x + pt.z) / 2.0;
+      let rawPredStep1 = distFromBoundary > 0 ? -1.0 : 1.0;
+      // Refined ensemble prediction as step increases
+      let ensemblePred = rawPredStep1 * (1.0 / boostingStep) + (pt.yTrue) * (1.0 - 1.0 / boostingStep);
+      let error = Math.abs(pt.yTrue - ensemblePred);
+
+      // Sphere radius scaled by weight or residual
+      let radius = 0.22;
+      let pointColor = pt.yTrue === 1.0 ? '#001f54' : '#f97316';
+
+      if (boostingMode === 'adaboost') {
+        // In AdaBoost: misclassified points inflate in size
+        const isMisclassified = Math.sign(ensemblePred) !== Math.sign(pt.yTrue);
+        const weightMultiplier = isMisclassified ? (1.0 + (20 - boostingStep) * 0.12) : 0.8;
+        radius = Math.max(0.18, Math.min(0.65, 0.22 * weightMultiplier));
+      } else {
+        // In GBM: point radius is proportional to residual error
+        radius = Math.max(0.16, Math.min(0.6, 0.18 + error * 0.35));
+      }
+
+      const sphereGeo = new THREE.SphereGeometry(radius, 24, 24);
+      const sphereMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(pointColor),
+        roughness: 0.25,
+        metalness: 0.15
+      });
+      const mesh = new THREE.Mesh(sphereGeo, sphereMat);
+      mesh.position.set(pt.x, (pt.yTrue === 1.0 ? 1.4 : -1.4), pt.z);
+      mesh.castShadow = true;
+      scene.add(mesh);
+      pointMeshes.push(mesh);
+
+      // Residual stem line to ground plane
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(pt.x, mesh.position.y, pt.z),
+        new THREE.Vector3(pt.x, -4.5, pt.z)
+      ]);
+      const lineMat = new THREE.LineBasicMaterial({
+        color: new THREE.Color(pt.yTrue === 1.0 ? '#93c5fd' : '#fdba74'),
+        transparent: true,
+        opacity: 0.45
+      });
+      const stem = new THREE.Line(lineGeo, lineMat);
+      scene.add(stem);
+    });
+
+    // 5. Deformable Decision Surface showing Sequential Convergence
+    const surfSize = 14;
+    const surfRes = 36;
+    const surfGeo = new THREE.PlaneGeometry(surfSize, surfSize, surfRes, surfRes);
+    surfGeo.rotateX(-Math.PI / 2);
+
+    const posAttr = surfGeo.attributes.position;
+    for (let i = 0; i < posAttr.count; i++) {
+      const vx = posAttr.getX(i);
+      const vz = posAttr.getZ(i);
+      // Continuous function: converges from crude plane (step 1) to non-linear saddle (step 20)
+      const crudePlane = -0.4 * vx - 0.3 * vz;
+      const trueNonLinear = 1.8 * Math.tanh(-0.6 * (vx + vz) + 0.15 * (vx * vz));
+      const blend = (boostingStep - 1) / 19.0;
+      const currentHeight = (1 - blend) * crudePlane + blend * trueNonLinear;
+      posAttr.setY(i, currentHeight);
+    }
+    surfGeo.computeVertexNormals();
+
+    const surfMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#38bdf8'),
+      transparent: true,
+      opacity: 0.42,
+      roughness: 0.2,
+      metalness: 0.1,
+      side: THREE.DoubleSide
+    });
+    const surfMesh = new THREE.Mesh(surfGeo, surfMat);
+    surfMesh.receiveShadow = true;
+    scene.add(surfMesh);
+
+    // 6. Interactive Mouse Orbit Controls
+    let isDragging = false;
+    let prevMousePos = { x: 0, y: 0 };
+    let cameraAngle = { theta: 0.8, phi: 0.55, radius: 22 };
+
+    const updateCameraPos = () => {
+      camera.position.x = cameraAngle.radius * Math.sin(cameraAngle.theta) * Math.cos(cameraAngle.phi);
+      camera.position.y = cameraAngle.radius * Math.sin(cameraAngle.phi);
+      camera.position.z = cameraAngle.radius * Math.cos(cameraAngle.theta) * Math.cos(cameraAngle.phi);
+      camera.lookAt(0, 0, 0);
+    };
+    updateCameraPos();
+
+    const onMouseDown = (e) => {
+      isDragging = true;
+      prevMousePos = { x: e.clientX, y: e.clientY };
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevMousePos.x;
+      const dy = e.clientY - prevMousePos.y;
+      cameraAngle.theta -= dx * 0.008;
+      cameraAngle.phi = Math.max(0.15, Math.min(1.4, cameraAngle.phi + dy * 0.008));
+      prevMousePos = { x: e.clientX, y: e.clientY };
+      updateCameraPos();
+    };
+
+    const onMouseUp = () => { isDragging = false; };
+    const onWheel = (e) => {
+      e.preventDefault();
+      cameraAngle.radius = Math.max(10, Math.min(36, cameraAngle.radius + e.deltaY * 0.02));
+      updateCameraPos();
+    };
+
+    const dom = renderer.domElement;
+    dom.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    dom.addEventListener('wheel', onWheel, { passive: false });
+
+    // 7. Render Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (!isDragging) {
+        cameraAngle.theta += 0.0018;
+        updateCameraPos();
+      }
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    const handleResize = () => {
+      if (!mountRef.current) return;
+      const newW = mountRef.current.clientWidth || 800;
+      camera.aspect = newW / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(newW, height);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      dom.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      dom.removeEventListener('wheel', onWheel);
+      window.removeEventListener('resize', handleResize);
+      renderer.dispose();
+    };
+  }, [activeTab, boostingStep, boostingMode, dataset3D]);
+
+  // Tab 2: AdaBoost Alpha Calculations
+  const adaAlpha = useMemo(() => {
+    if (errorRate <= 0.001) return 5.0;
+    if (errorRate >= 0.999) return -5.0;
+    return 0.5 * Math.log((1 - errorRate) / errorRate);
+  }, [errorRate]);
+
+  // Tab 2: 5 Real Sample points reweighting simulation
+  const sampleTableData = useMemo(() => {
+    const priorW = 0.20; // 1 / 5 uniform initial weight
+    const samples = [
+      { id: 1, x: '2.4', y: '+1', pred: '+1', isCorrect: true },
+      { id: 2, x: '1.8', y: '+1', pred: '+1', isCorrect: true },
+      { id: 3, x: '-0.5', y: '+1', pred: '-1', isCorrect: false }, // misclassified!
+      { id: 4, x: '-1.9', y: '-1', pred: '-1', isCorrect: true },
+      { id: 5, x: '0.2', y: '-1', pred: '+1', isCorrect: false }   // misclassified!
+    ];
+
+    // Compute raw unnormalized weights: w * exp(-alpha * y * pred)
+    const rawWeights = samples.map((s) => {
+      const expTerm = Math.exp(s.isCorrect ? -adaAlpha : +adaAlpha);
+      const rawW = priorW * expTerm;
+      return { ...s, expTerm, rawW };
+    });
+
+    const sumRaw = rawWeights.reduce((acc, s) => acc + s.rawW, 0);
+
+    return rawWeights.map((s) => ({
+      ...s,
+      finalW: s.rawW / sumRaw,
+      multiplier: Math.exp(s.isCorrect ? -adaAlpha : +adaAlpha)
+    }));
+  }, [adaAlpha]);
+
+  // Tab 4: XGBoost Gain Calculation
+  const xgbGain = useMemo(() => {
+    const leftScore = (glVal * glVal) / (hlVal + lambdaReg);
+    const rightScore = (grVal * grVal) / (hrVal + lambdaReg);
+    const gParent = glVal + grVal;
+    const hParent = hlVal + hrVal;
+    const parentScore = (gParent * gParent) / (hParent + lambdaReg);
+    const rawGain = 0.5 * (leftScore + rightScore - parentScore) - gammaPenalty;
+
+    const optWeightLeft = -glVal / (hlVal + lambdaReg);
+    const optWeightRight = -grVal / (hrVal + lambdaReg);
+
+    return {
+      leftScore,
+      rightScore,
+      parentScore,
+      rawGain,
+      optWeightLeft,
+      optWeightRight,
+      isSplitAccepted: rawGain > 0
+    };
+  }, [glVal, hlVal, grVal, hrVal, lambdaReg, gammaPenalty]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #cbd5e1',
+      borderRadius: '24px',
+      padding: '2rem',
+      margin: '2.5rem 0',
+      boxShadow: '0 8px 32px rgba(0, 31, 84, 0.04)',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
+    }}>
+      {/* Studio Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <span style={{
+            background: '#001f54',
+            color: '#ffffff',
+            padding: '4px 12px',
+            borderRadius: '12px',
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            letterSpacing: '0.05em'
+          }}>
+            INTERACTIVE BOOSTING STUDIO
+          </span>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#001f54', margin: '0.5rem 0 0.25rem 0' }}>
+            Sequential Residual Learning & Gradient Descent
+          </h2>
+          <p style={{ fontSize: '0.9rem', color: '#475569', margin: 0 }}>
+            Explore 3D residual decay in Light Studio Mode, interactively compute AdaBoost voting weight <MathFormula math="\alpha_m" />, and simulate XGBoost 2nd-order split gain.
+          </p>
+        </div>
+      </div>
+
+      {/* Navigation Tab Bar */}
+      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '1.75rem', overflowX: 'auto' }}>
+        {[
+          { id: '3d_residual_descent', label: '1. 3D Sequential Residual Space' },
+          { id: 'adaboost_weights', label: '2. AdaBoost Alpha & Weighting' },
+          { id: 'gbm_gradient_descent', label: '3. GBM Functional Gradients' },
+          { id: 'xgboost_taylor_gain', label: '4. XGBoost Split Gain & Regularization' },
+          { id: 'python_pipeline', label: '5. Production Python Pipeline' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              background: activeTab === tab.id ? '#001f54' : '#f1f5f9',
+              color: activeTab === tab.id ? '#ffffff' : '#334155',
+              border: 'none',
+              padding: '0.6rem 1.1rem',
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ─── TAB 1: 3D SEQUENTIAL RESIDUAL DESCENT (WEBGL LIGHT STUDIO) ─── */}
+      {activeTab === '3d_residual_descent' && (
+        <div>
+          {/* Controls Bar */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: '#f8fafc',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '16px',
+            padding: '1rem 1.25rem',
+            marginBottom: '1.25rem',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                style={{
+                  background: isPlaying ? '#ef4444' : '#001f54',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {isPlaying ? 'Pause Animation' : 'Auto Step Loop'}
+              </button>
+              <button
+                onClick={() => setBoostingStep(1)}
+                style={{
+                  background: '#e2e8f0',
+                  color: '#1e293b',
+                  border: 'none',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Reset to Step 1
+              </button>
+            </div>
+
+            {/* Mode Switcher */}
+            <div style={{ display: 'flex', gap: '0.5rem', background: '#e2e8f0', padding: '3px', borderRadius: '10px' }}>
+              <button
+                onClick={() => setBoostingMode('gbm')}
+                style={{
+                  background: boostingMode === 'gbm' ? '#ffffff' : 'transparent',
+                  color: boostingMode === 'gbm' ? '#001f54' : '#475569',
+                  border: 'none',
+                  padding: '0.4rem 0.9rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  boxShadow: boostingMode === 'gbm' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
+                }}
+              >
+                GBM Residual Error Mode
+              </button>
+              <button
+                onClick={() => setBoostingMode('adaboost')}
+                style={{
+                  background: boostingMode === 'adaboost' ? '#ffffff' : 'transparent',
+                  color: boostingMode === 'adaboost' ? '#001f54' : '#475569',
+                  border: 'none',
+                  padding: '0.4rem 0.9rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  boxShadow: boostingMode === 'adaboost' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
+                }}
+              >
+                AdaBoost Weight Inflation Mode
+              </button>
+            </div>
+
+            {/* Step Slider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '240px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#001f54' }}>
+                Iteration M: {boostingStep} / 20
+              </span>
+              <input
+                type="range"
+                min="1"
+                max="20"
+                value={boostingStep}
+                onChange={(e) => setBoostingStep(parseInt(e.target.value))}
+                style={{ flex: 1, accentColor: '#001f54', cursor: 'pointer' }}
+              />
+            </div>
+          </div>
+
+          {/* 3D WebGL Canvas Container */}
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '480px',
+            borderRadius: '20px',
+            overflow: 'hidden',
+            border: '1.5px solid #cbd5e1',
+            boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.02)'
+          }}>
+            <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
+
+            {/* Top-Right HUD Badge */}
+            <div style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '16px',
+              padding: '0.85rem 1.1rem',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+              fontSize: '0.8rem',
+              color: '#0f172a',
+              minWidth: '200px'
+            }}>
+              <div style={{ fontWeight: 800, color: '#001f54', marginBottom: '0.4rem' }}>
+                Ensemble Convergence State
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <span>Active Base Stumps:</span>
+                <strong>{boostingStep}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <span>Ensemble Residual:</span>
+                <strong style={{ color: '#0284c7' }}>{(1.0 / boostingStep).toFixed(3)}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Ensemble Accuracy:</span>
+                <strong style={{ color: '#16a34a' }}>{(92.31 + (boostingStep / 20) * 4.89).toFixed(2)}%</strong>
+              </div>
+            </div>
+
+            {/* Bottom-Left Instruction Badge */}
+            <div style={{
+              position: 'absolute',
+              bottom: '1rem',
+              left: '1rem',
+              background: 'rgba(255, 255, 255, 0.92)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid #cbd5e1',
+              borderRadius: '12px',
+              padding: '0.5rem 0.9rem',
+              fontSize: '0.75rem',
+              color: '#64748b'
+            }}>
+              Left Click + Drag to rotate 3D view | Scroll to zoom | Watch surface curve non-linearly
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: ADABOOST ALPHA & WEIGHTING SIMULATOR ─── */}
+      {activeTab === 'adaboost_weights' && (
+        <div>
+          {/* Error Rate Slider & Math Formula */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '1.5rem',
+            background: '#f8fafc',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '20px',
+            padding: '1.5rem',
+            marginBottom: '1.75rem'
+          }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#001f54', marginBottom: '0.5rem' }}>
+                Stump Error Rate <MathFormula math="\epsilon_m" />: {(errorRate * 100).toFixed(1)}%
+              </label>
+              <input
+                type="range"
+                min="0.01"
+                max="0.99"
+                step="0.01"
+                value={errorRate}
+                onChange={(e) => setErrorRate(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer', marginBottom: '0.75rem' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b' }}>
+                <span>0% (Perfect Stump)</span>
+                <span>50% (Coin Flip)</span>
+                <span>100% (Worst Possible)</span>
+              </div>
+            </div>
+
+            {/* Voting Power Result Card */}
+            <div style={{
+              background: '#ffffff',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '16px',
+              padding: '1rem 1.25rem',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
+            }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700 }}>
+                CALCULATED VOTING WEIGHT <MathFormula math="\alpha_m" />
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: adaAlpha > 0 ? '#001f54' : '#ef4444', margin: '0.25rem 0' }}>
+                {adaAlpha.toFixed(4)}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#475569' }}>
+                Formula: <MathFormula math="\alpha_m = \frac{1}{2} \ln \left( \frac{1 - \epsilon_m}{\epsilon_m} \right)" />
+              </div>
+            </div>
+          </div>
+
+          {/* Sample Re-weighting Demonstration Table */}
+          <div style={{
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '20px',
+            overflow: 'hidden',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{ padding: '1rem 1.25rem', background: '#001f54', color: '#ffffff', fontWeight: 800, fontSize: '0.9rem' }}>
+              Instance Re-weighting & Normalization Step Trace (5 Sample Data Points)
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0', color: '#475569' }}>
+                    <th style={{ padding: '0.75rem 1rem' }}>Sample ID</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>True Label <MathFormula math="y_i" /></th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Stump Prediction <MathFormula math="h_m(x_i)" /></th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Classification Status</th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Prior Weight <MathFormula math="w_i^{(m)}" /></th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Weight Multiplier <MathFormula math="e^{\mp \alpha_m}" /></th>
+                    <th style={{ padding: '0.75rem 1rem' }}>Updated Weight <MathFormula math="w_i^{(m+1)}" /></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sampleTableData.map((row) => (
+                    <tr key={row.id} style={{ borderBottom: '1px solid #f1f5f9', background: row.isCorrect ? '#ffffff' : '#fff7ed' }}>
+                      <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>#{row.id}</td>
+                      <td style={{ padding: '0.75rem 1rem' }}>{row.y}</td>
+                      <td style={{ padding: '0.75rem 1rem' }}>{row.pred}</td>
+                      <td style={{ padding: '0.75rem 1rem' }}>
+                        <span style={{
+                          background: row.isCorrect ? '#dcfce7' : '#fee2e2',
+                          color: row.isCorrect ? '#166534' : '#991b1b',
+                          padding: '3px 8px',
+                          borderRadius: '8px',
+                          fontWeight: 700,
+                          fontSize: '0.75rem'
+                        }}>
+                          {row.isCorrect ? 'Correct (+1)' : 'Misclassified (-1)'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem', color: '#64748b' }}>0.2000</td>
+                      <td style={{ padding: '0.75rem 1rem', fontWeight: 700, color: row.isCorrect ? '#0284c7' : '#ea580c' }}>
+                        {row.multiplier.toFixed(4)}x
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem', fontWeight: 800, color: row.isCorrect ? '#001f54' : '#dc2626' }}>
+                        {(row.finalW * 100).toFixed(2)}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: GBM FUNCTIONAL GRADIENT DESCENT ENGINE ─── */}
+      {activeTab === 'gbm_gradient_descent' && (
+        <div>
+          {/* Controls: Loss Type & Learning Rate */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1.25rem',
+            background: '#f8fafc',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '20px',
+            padding: '1.5rem',
+            marginBottom: '1.75rem'
+          }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#001f54', marginBottom: '0.5rem' }}>
+                Loss Function <MathFormula math="L(y, F)" />
+              </label>
+              <select
+                value={lossType}
+                onChange={(e) => setLossType(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.9rem',
+                  borderRadius: '12px',
+                  border: '1.5px solid #cbd5e1',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  color: '#0f172a',
+                  background: '#ffffff'
+                }}
+              >
+                <option value="mse">Squared Error (MSE Regression): r = y - F</option>
+                <option value="mae">Absolute Error (MAE Regression): r = sign(y - F)</option>
+                <option value="logloss">Binary Log-Loss (Classification): r = y - p</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#001f54', marginBottom: '0.5rem' }}>
+                Shrinkage / Learning Rate <MathFormula math="\eta" />: {learningRate.toFixed(2)}
+              </label>
+              <input
+                type="range"
+                min="0.01"
+                max="1.00"
+                step="0.01"
+                value={learningRate}
+                onChange={(e) => setLearningRate(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
+                <span>0.01 (High Generalization)</span>
+                <span>0.10 (Standard Default)</span>
+                <span>1.00 (No Shrinkage)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Step-by-Step Gradient Trace */}
+          <div style={{
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '20px',
+            padding: '1.5rem',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.02)'
+          }}>
+            <h4 style={{ margin: '0 0 1rem 0', color: '#001f54', fontSize: '1rem', fontWeight: 800 }}>
+              Pseudo-Residual & Additive Update Step Calculation
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              {[
+                { title: '1. True Target y', val: lossType === 'logloss' ? '1.0 (Positive)' : '150.0 mg/dL', desc: 'Ground truth label' },
+                { title: '2. Ensemble Baseline F0', val: lossType === 'logloss' ? 'p0 = 0.35' : '110.0 mg/dL', desc: 'Initial guess' },
+                { title: '3. Negative Gradient r1', val: lossType === 'logloss' ? '+0.65' : '+40.0', desc: 'Pseudo-residual to fit' },
+                { title: '4. Shrunk Step eta * h1', val: lossType === 'logloss' ? `+${(0.65 * learningRate).toFixed(3)}` : `+${(40.0 * learningRate).toFixed(1)}`, desc: `eta = ${learningRate.toFixed(2)}` },
+                { title: '5. New Prediction F1', val: lossType === 'logloss' ? `p1 = ${(0.35 + 0.65 * learningRate).toFixed(3)}` : `${(110.0 + 40.0 * learningRate).toFixed(1)} mg/dL`, desc: 'Updated ensemble' }
+              ].map((step, sIdx) => (
+                <div key={sIdx} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '14px', padding: '1rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>{step.title}</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#001f54', margin: '0.4rem 0' }}>{step.val}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#475569' }}>{step.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: XGBOOST 2ND-ORDER TAYLOR SPLIT GAIN & REGULARIZATION ─── */}
+      {activeTab === 'xgboost_taylor_gain' && (
+        <div>
+          {/* Sliders: Lambda L2 and Gamma Complexity */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '1.25rem',
+            background: '#f8fafc',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '20px',
+            padding: '1.5rem',
+            marginBottom: '1.75rem'
+          }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#001f54', marginBottom: '0.5rem' }}>
+                <MathFormula math="L_2" /> Leaf Regularizer <MathFormula math="\lambda" />: {lambdaReg.toFixed(1)}
+              </label>
+              <input
+                type="range"
+                min="0.0"
+                max="10.0"
+                step="0.5"
+                value={lambdaReg}
+                onChange={(e) => setLambdaReg(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Shrinks extreme leaf weights <MathFormula math="w_j^* = -G / (H + \lambda)" /></span>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: '#001f54', marginBottom: '0.5rem' }}>
+                Minimum Loss Reduction <MathFormula math="\gamma" />: {gammaPenalty.toFixed(1)}
+              </label>
+              <input
+                type="range"
+                min="0.0"
+                max="8.0"
+                step="0.5"
+                value={gammaPenalty}
+                onChange={(e) => setGammaPenalty(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Tree complexity penalty (auto-pruning threshold)</span>
+            </div>
+          </div>
+
+          {/* Split Gain Computation Card */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '1.5rem',
+            background: '#ffffff',
+            border: '1.5px solid #cbd5e1',
+            borderRadius: '20px',
+            padding: '1.5rem'
+          }}>
+            {/* Visual Node Diagram */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{
+                background: '#001f54',
+                color: '#ffffff',
+                padding: '0.6rem 1.2rem',
+                borderRadius: '12px',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                textAlign: 'center',
+                marginBottom: '1rem'
+              }}>
+                Parent Node: <MathFormula math={`G = ${(glVal + grVal).toFixed(1)}, H = ${(hlVal + hrVal).toFixed(1)}`} />
+              </div>
+              <div style={{ display: 'flex', gap: '2rem' }}>
+                <div style={{
+                  background: '#f1f5f9',
+                  border: '1.5px solid #94a3b8',
+                  borderRadius: '12px',
+                  padding: '0.75rem 1rem',
+                  textAlign: 'center',
+                  fontSize: '0.8rem'
+                }}>
+                  <strong style={{ color: '#001f54' }}>Left Child (L)</strong>
+                  <div><MathFormula math={`G_L = ${glVal.toFixed(1)}`} /></div>
+                  <div><MathFormula math={`H_L = ${hlVal.toFixed(1)}`} /></div>
+                  <div style={{ marginTop: '0.35rem', fontWeight: 800, color: '#0284c7' }}>
+                    <MathFormula math={`w_L^* = ${xgbGain.optWeightLeft.toFixed(3)}`} />
+                  </div>
+                </div>
+
+                <div style={{
+                  background: '#f1f5f9',
+                  border: '1.5px solid #94a3b8',
+                  borderRadius: '12px',
+                  padding: '0.75rem 1rem',
+                  textAlign: 'center',
+                  fontSize: '0.8rem'
+                }}>
+                  <strong style={{ color: '#001f54' }}>Right Child (R)</strong>
+                  <div><MathFormula math={`G_R = ${grVal.toFixed(1)}`} /></div>
+                  <div><MathFormula math={`H_R = ${hrVal.toFixed(1)}`} /></div>
+                  <div style={{ marginTop: '0.35rem', fontWeight: 800, color: '#0284c7' }}>
+                    <MathFormula math={`w_R^* = ${xgbGain.optWeightRight.toFixed(3)}`} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Gain Outcome */}
+            <div style={{
+              background: xgbGain.isSplitAccepted ? '#f0fdf4' : '#fef2f2',
+              border: `1.5px solid ${xgbGain.isSplitAccepted ? '#86efac' : '#fca5a5'}`,
+              borderRadius: '16px',
+              padding: '1.25rem',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
+            }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: xgbGain.isSplitAccepted ? '#166534' : '#991b1b' }}>
+                XGBOOST EXACT SPLIT GAIN
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 900, color: xgbGain.isSplitAccepted ? '#15803d' : '#b91c1c', margin: '0.25rem 0' }}>
+                {xgbGain.rawGain.toFixed(3)}
+              </div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: xgbGain.isSplitAccepted ? '#166534' : '#991b1b', marginBottom: '0.5rem' }}>
+                {xgbGain.isSplitAccepted ? 'Split Accepted (Gain > 0)' : 'Split Pruned Back by Regularizer (Gain <= 0)'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#475569' }}>
+                Formula: <MathFormula math="\text{Gain} = \frac{1}{2} \left[ \frac{G_L^2}{H_L + \lambda} + \frac{G_R^2}{H_R + \lambda} - \frac{(G_L+G_R)^2}{H_L+H_R+\lambda} \right] - \gamma" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PRODUCTION PYTHON PIPELINE ─── */}
+      {activeTab === 'python_pipeline' && (
+        <div>
+          <SyntaxCodeBlock
+            code={[
+              'import numpy as np',
+              'from sklearn.datasets import load_breast_cancer, load_diabetes',
+              'from sklearn.model_selection import train_test_split',
+              'from sklearn.tree import DecisionTreeClassifier',
+              'from sklearn.ensemble import (',
+              '    AdaBoostClassifier,',
+              '    GradientBoostingClassifier,',
+              '    HistGradientBoostingClassifier,',
+              '    GradientBoostingRegressor',
+              ')',
+              'from sklearn.metrics import accuracy_score, r2_score',
+              '',
+              '# =====================================================================',
+              '# 1. CLASSIFICATION BENCHMARK: AdaBoost vs GBM vs HistGradientBoosting',
+              '# =====================================================================',
+              'X, y = load_breast_cancer(return_X_y=True)',
+              'X_train, X_test, y_train, y_test = train_test_split(',
+              '    X, y, test_size=0.25, random_state=42, stratify=y',
+              ')',
+              '',
+              '# 1. AdaBoost: 50 Decision Stumps (depth=1)',
+              'ada = AdaBoostClassifier(',
+              '    estimator=DecisionTreeClassifier(max_depth=1),',
+              '    n_estimators=50,',
+              '    learning_rate=1.0,',
+              '    random_state=42',
+              ').fit(X_train, y_train)',
+              'print(f"1. AdaBoost Accuracy:            {accuracy_score(y_test, ada.predict(X_test))*100:.2f}%")',
+              '',
+              '# 2. Gradient Boosting: 100 Trees on Negative Gradients',
+              'gbm = GradientBoostingClassifier(',
+              '    n_estimators=100,',
+              '    learning_rate=0.1,',
+              '    max_depth=3,',
+              '    subsample=0.8,       # Stochastic row subsampling',
+              '    random_state=42',
+              ').fit(X_train, y_train)',
+              'print(f"2. Gradient Boosting Accuracy:   {accuracy_score(y_test, gbm.predict(X_test))*100:.2f}%")',
+              '',
+              '# 3. Modern HistGradientBoosting (LightGBM/XGBoost-style binning)',
+              'hgbm = HistGradientBoostingClassifier(',
+              '    max_iter=100,',
+              '    learning_rate=0.1,',
+              '    max_depth=4,',
+              '    l2_regularization=1.0, # Equivalent to XGBoost lambda',
+              '    random_state=42',
+              ').fit(X_train, y_train)',
+              'print(f"3. HistGradientBoosting Accuracy:{accuracy_score(y_test, hgbm.predict(X_test))*100:.2f}%")',
+              '',
+              '# =====================================================================',
+              '# 2. REGRESSION: GradientBoostingRegressor',
+              '# =====================================================================',
+              'Xr, yr = load_diabetes(return_X_y=True)',
+              'Xr_train, Xr_test, yr_train, yr_test = train_test_split(Xr, yr, test_size=0.25, random_state=42)',
+              '',
+              'gbr = GradientBoostingRegressor(',
+              '    n_estimators=100,',
+              '    learning_rate=0.05,',
+              '    max_depth=3,',
+              '    subsample=0.8,',
+              '    random_state=42',
+              ').fit(Xr_train, yr_train)',
+              'print(f"\\nGBM Regressor R2 Score:          {r2_score(yr_test, gbr.predict(Xr_test)):.4f}")'
+            ].join('\n')}
+            title="boosting_production_pipeline.py"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6', 'ml-6-7', 'ml-6-8', 'ml-7-1', 'ml-7-2', 'ml-7-3', 'ml-7-4'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6', 'ml-6-7', 'ml-6-8', 'ml-7-1', 'ml-7-2', 'ml-7-3', 'ml-7-4', 'ml-7-5'
 ];
 
 export default function MLLessonArticlePage() {
@@ -35627,6 +36579,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'random_forest_ensemble_studio' && (
               <RandomForestEnsembleStudio />
+            )}
+            {lesson.diagram.type === 'boosting_interactive_studio' && (
+              <BoostingInteractiveStudio />
             )}
           </div>
         )}
