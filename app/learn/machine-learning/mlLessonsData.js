@@ -7390,6 +7390,11 @@ print(f"Weighted Voting Regressor R2 Score: {r2_reg:.4f}")`
       'Analyze the mathematical proof of variance reduction: how averaging M base learners reduces error variance by up to 1/M without inflating bias.',
       'Implement production BaggingClassifier and BaggingRegressor pipelines using Scikit-Learn with OOB scoring.'
     ],
+    overviewImage: {
+      src: '/bagging-overview.png',
+      alt: 'Bagging (Bootstrap Aggregation) Architecture: Original Data to Bootstrap Samples to Parallel Model Training to Ensemble Aggregation',
+      caption: 'Figure 7.3: The 3 Core Stages of Bagging — 1. Bootstrapping (Sampling with replacement) -> 2. Parallel Model Training (Decision Trees, SVM, Logistic) -> 3. Consensus Aggregation (Majority voting or Mean averaging).'
+    },
     sections: [
       {
         heading: '1. What is Bagging? The Bootstrap Aggregation Paradigm',

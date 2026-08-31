@@ -36453,6 +36453,52 @@ export default function MLLessonArticlePage() {
           </div>
         )}
 
+        {/* OVERVIEW / INFOGRAPHIC DIAGRAM */}
+        {lesson.overviewImage && (
+          <div style={{
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            border: '1.5px solid #c2d4f2',
+            borderRadius: '20px',
+            padding: '1.5rem',
+            marginBottom: '2.5rem',
+            boxShadow: '0 8px 24px rgba(0, 31, 84, 0.04)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '14px',
+              padding: '1rem',
+              border: '1px solid #e2e8f0',
+              boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.02)',
+              overflow: 'hidden'
+            }}>
+              <img
+                src={lesson.overviewImage.src}
+                alt={lesson.overviewImage.alt || 'Lesson Architectural Overview'}
+                style={{
+                  maxWidth: '100%',
+                  height: 'auto',
+                  borderRadius: '8px',
+                  display: 'block',
+                  margin: '0 auto',
+                  objectFit: 'contain'
+                }}
+              />
+            </div>
+            {lesson.overviewImage.caption && (
+              <p style={{
+                margin: '0.9rem 0 0 0',
+                fontSize: '0.84rem',
+                color: '#475569',
+                fontWeight: 500,
+                lineHeight: '1.6'
+              }}>
+                {lesson.overviewImage.caption}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* MAIN TEXT SECTIONS */}
         {lesson.sections &&
           lesson.sections.map((sec, idx) => (
