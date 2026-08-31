@@ -35379,6 +35379,7 @@ const BoostingInteractiveStudio = () => {
   const [boostingStep, setBoostingStep] = useState(1); // 1 to 20
   const [boostingMode, setBoostingMode] = useState('gbm'); // 'gbm' | 'adaboost'
   const [isPlaying, setIsPlaying] = useState(false);
+  const [autoRotate, setAutoRotate] = useState(true);
 
   // Tab 2: AdaBoost Alpha & Sample Weighting Simulator
   const [errorRate, setErrorRate] = useState(0.20); // epsilon_m in [0.01, 0.99]
@@ -35406,21 +35407,21 @@ const BoostingInteractiveStudio = () => {
     return () => clearInterval(timer);
   }, [isPlaying]);
 
-  // Tab 1: Deterministic 3D point cloud generation
+  // Tab 1: Deterministic 3D point cloud generation perfectly centered around origin
   const dataset3D = useMemo(() => {
     const prng = createSeededPRNG(42);
     const points = [];
-    // Class A (Target cluster around [-1.8, 0, -1.2])
+    // Class A (Target cluster around [-1.9, 0, -1.2])
     for (let i = 0; i < 35; i++) {
-      const x = (prng() - 0.5) * 4.0 - 1.8;
-      const z = (prng() - 0.5) * 4.0 - 1.2;
+      const x = (prng() - 0.5) * 3.8 - 1.9;
+      const z = (prng() - 0.5) * 3.8 - 1.2;
       const yTrue = 1.0;
       points.push({ id: `A_${i}`, x, z, yTrue, label: '+1 (Class 1)', baseColor: '#001f54' });
     }
-    // Class B (Surrounding non-linear donut / cluster around [1.8, 0, 1.2])
+    // Class B (Surrounding cluster around [1.9, 0, 1.2])
     for (let i = 0; i < 35; i++) {
-      const x = (prng() - 0.5) * 4.5 + 1.8;
-      const z = (prng() - 0.5) * 4.5 + 1.2;
+      const x = (prng() - 0.5) * 3.8 + 1.9;
+      const z = (prng() - 0.5) * 3.8 + 1.2;
       const yTrue = -1.0;
       points.push({ id: `B_${i}`, x, z, yTrue, label: '-1 (Class 0)', baseColor: '#f97316' });
     }
@@ -35431,53 +35432,61 @@ const BoostingInteractiveStudio = () => {
   useEffect(() => {
     if (activeTab !== '3d_residual_descent' || !mountRef.current) return;
 
-    const width = mountRef.current.clientWidth || 800;
+    const container = mountRef.current;
+    const width = container.clientWidth || 800;
     const height = 480;
 
     // 1. Scene, Camera, Renderer in Light Studio Palette
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#f8fafc');
 
+    const sceneCenter = new THREE.Vector3(0, -0.6, 0);
+
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(12, 10, 16);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(0, 5, 20);
+    camera.lookAt(sceneCenter);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.style.display = 'block';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
 
-    mountRef.current.innerHTML = '';
-    mountRef.current.appendChild(renderer.domElement);
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
 
     // 2. Lighting: Architectural Studio Light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.90);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
-    dirLight.position.set(15, 25, 12);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.80);
+    dirLight.position.set(15, 25, 15);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.45);
+    fillLight.position.set(-15, -10, -12);
+    scene.add(fillLight);
+
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0xe2e8f0, 0.4);
     scene.add(hemiLight);
 
-    // 3. Studio Ground Floor Grid at y = -4.5
-    const gridHelper = new THREE.GridHelper(26, 26, 0x94a3b8, 0xe2e8f0);
-    gridHelper.position.y = -4.5;
+    // 3. Studio Ground Floor Grid at y = -4.2
+    const gridHelper = new THREE.GridHelper(24, 24, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -4.2;
     scene.add(gridHelper);
 
     // 4. Data Point Spheres
     const pointMeshes = [];
     dataset3D.forEach((pt) => {
       // Calculate residual error and weight at boostingStep
-      // Target model: step 1 is crude plane x > 0; steps 2..20 carve non-linear boundary
       const distFromBoundary = (pt.x + pt.z) / 2.0;
       let rawPredStep1 = distFromBoundary > 0 ? -1.0 : 1.0;
-      // Refined ensemble prediction as step increases
       let ensemblePred = rawPredStep1 * (1.0 / boostingStep) + (pt.yTrue) * (1.0 - 1.0 / boostingStep);
       let error = Math.abs(pt.yTrue - ensemblePred);
 
@@ -35486,12 +35495,10 @@ const BoostingInteractiveStudio = () => {
       let pointColor = pt.yTrue === 1.0 ? '#001f54' : '#f97316';
 
       if (boostingMode === 'adaboost') {
-        // In AdaBoost: misclassified points inflate in size
         const isMisclassified = Math.sign(ensemblePred) !== Math.sign(pt.yTrue);
         const weightMultiplier = isMisclassified ? (1.0 + (20 - boostingStep) * 0.12) : 0.8;
         radius = Math.max(0.18, Math.min(0.65, 0.22 * weightMultiplier));
       } else {
-        // In GBM: point radius is proportional to residual error
         radius = Math.max(0.16, Math.min(0.6, 0.18 + error * 0.35));
       }
 
@@ -35510,7 +35517,7 @@ const BoostingInteractiveStudio = () => {
       // Residual stem line to ground plane
       const lineGeo = new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(pt.x, mesh.position.y, pt.z),
-        new THREE.Vector3(pt.x, -4.5, pt.z)
+        new THREE.Vector3(pt.x, -4.2, pt.z)
       ]);
       const lineMat = new THREE.LineBasicMaterial({
         color: new THREE.Color(pt.yTrue === 1.0 ? '#93c5fd' : '#fdba74'),
@@ -35522,7 +35529,7 @@ const BoostingInteractiveStudio = () => {
     });
 
     // 5. Deformable Decision Surface showing Sequential Convergence
-    const surfSize = 14;
+    const surfSize = 13;
     const surfRes = 36;
     const surfGeo = new THREE.PlaneGeometry(surfSize, surfSize, surfRes, surfRes);
     surfGeo.rotateX(-Math.PI / 2);
@@ -35531,7 +35538,6 @@ const BoostingInteractiveStudio = () => {
     for (let i = 0; i < posAttr.count; i++) {
       const vx = posAttr.getX(i);
       const vz = posAttr.getZ(i);
-      // Continuous function: converges from crude plane (step 1) to non-linear saddle (step 20)
       const crudePlane = -0.4 * vx - 0.3 * vz;
       const trueNonLinear = 1.8 * Math.tanh(-0.6 * (vx + vz) + 0.15 * (vx * vz));
       const blend = (boostingStep - 1) / 19.0;
@@ -35555,19 +35561,20 @@ const BoostingInteractiveStudio = () => {
     // 6. Interactive Mouse Orbit Controls
     let isDragging = false;
     let prevMousePos = { x: 0, y: 0 };
-    let cameraAngle = { theta: 0.8, phi: 0.55, radius: 22 };
+    let cameraAngle = { theta: 0.65, phi: 0.32, radius: 20 };
 
     const updateCameraPos = () => {
-      camera.position.x = cameraAngle.radius * Math.sin(cameraAngle.theta) * Math.cos(cameraAngle.phi);
-      camera.position.y = cameraAngle.radius * Math.sin(cameraAngle.phi);
-      camera.position.z = cameraAngle.radius * Math.cos(cameraAngle.theta) * Math.cos(cameraAngle.phi);
-      camera.lookAt(0, 0, 0);
+      camera.position.x = sceneCenter.x + cameraAngle.radius * Math.sin(cameraAngle.theta) * Math.cos(cameraAngle.phi);
+      camera.position.y = sceneCenter.y + cameraAngle.radius * Math.sin(cameraAngle.phi);
+      camera.position.z = sceneCenter.z + cameraAngle.radius * Math.cos(cameraAngle.theta) * Math.cos(cameraAngle.phi);
+      camera.lookAt(sceneCenter);
     };
     updateCameraPos();
 
     const onMouseDown = (e) => {
       isDragging = true;
       prevMousePos = { x: e.clientX, y: e.clientY };
+      container.style.cursor = 'grabbing';
     };
 
     const onMouseMove = (e) => {
@@ -35575,15 +35582,19 @@ const BoostingInteractiveStudio = () => {
       const dx = e.clientX - prevMousePos.x;
       const dy = e.clientY - prevMousePos.y;
       cameraAngle.theta -= dx * 0.008;
-      cameraAngle.phi = Math.max(0.15, Math.min(1.4, cameraAngle.phi + dy * 0.008));
+      cameraAngle.phi = Math.max(0.12, Math.min(1.25, cameraAngle.phi + dy * 0.008));
       prevMousePos = { x: e.clientX, y: e.clientY };
       updateCameraPos();
     };
 
-    const onMouseUp = () => { isDragging = false; };
+    const onMouseUp = () => {
+      isDragging = false;
+      container.style.cursor = 'grab';
+    };
+
     const onWheel = (e) => {
       e.preventDefault();
-      cameraAngle.radius = Math.max(10, Math.min(36, cameraAngle.radius + e.deltaY * 0.02));
+      cameraAngle.radius = Math.max(10, Math.min(34, cameraAngle.radius + e.deltaY * 0.02));
       updateCameraPos();
     };
 
@@ -35597,8 +35608,8 @@ const BoostingInteractiveStudio = () => {
     let animId;
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      if (!isDragging) {
-        cameraAngle.theta += 0.0018;
+      if (autoRotate && !isDragging) {
+        cameraAngle.theta += 0.0022;
         updateCameraPos();
       }
       renderer.render(scene, camera);
@@ -35623,7 +35634,7 @@ const BoostingInteractiveStudio = () => {
       window.removeEventListener('resize', handleResize);
       renderer.dispose();
     };
-  }, [activeTab, boostingStep, boostingMode, dataset3D]);
+  }, [activeTab, boostingStep, boostingMode, autoRotate, dataset3D]);
 
   // Tab 2: AdaBoost Alpha Calculations
   const adaAlpha = useMemo(() => {
@@ -35761,21 +35772,36 @@ const BoostingInteractiveStudio = () => {
             flexWrap: 'wrap',
             gap: '1rem'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
                 style={{
                   background: isPlaying ? '#ef4444' : '#001f54',
                   color: '#ffffff',
                   border: 'none',
-                  padding: '0.5rem 1.25rem',
+                  padding: '0.5rem 1.1rem',
                   borderRadius: '10px',
                   fontWeight: 700,
-                  fontSize: '0.85rem',
+                  fontSize: '0.82rem',
                   cursor: 'pointer'
                 }}
               >
                 {isPlaying ? 'Pause Animation' : 'Auto Step Loop'}
+              </button>
+              <button
+                onClick={() => setAutoRotate(!autoRotate)}
+                style={{
+                  background: autoRotate ? '#001f54' : '#ffffff',
+                  color: autoRotate ? '#ffffff' : '#475569',
+                  border: '1px solid #cbd5e1',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {autoRotate ? 'Auto-Rotate ON' : 'Auto-Rotate OFF'}
               </button>
               <button
                 onClick={() => setBoostingStep(1)}
@@ -35783,14 +35809,14 @@ const BoostingInteractiveStudio = () => {
                   background: '#e2e8f0',
                   color: '#1e293b',
                   border: 'none',
-                  padding: '0.5rem 1rem',
+                  padding: '0.5rem 0.9rem',
                   borderRadius: '10px',
                   fontWeight: 700,
-                  fontSize: '0.85rem',
+                  fontSize: '0.82rem',
                   cursor: 'pointer'
                 }}
               >
-                Reset to Step 1
+                Reset Step 1
               </button>
             </div>
 
@@ -35853,10 +35879,11 @@ const BoostingInteractiveStudio = () => {
             height: '480px',
             borderRadius: '20px',
             overflow: 'hidden',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
             border: '1.5px solid #cbd5e1',
             boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.02)'
           }}>
-            <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
+            <div ref={mountRef} style={{ width: '100%', height: '100%', cursor: 'grab' }} />
 
             {/* Top-Right HUD Badge */}
             <div style={{
