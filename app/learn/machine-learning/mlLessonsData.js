@@ -7054,27 +7054,33 @@ print(f"TimeSeriesSplit Walk-Forward Accuracy:              {np.mean(scores_time
         heading: '2. Why Use Ensembles? Condorcet Jury Theorem & Error Correction',
         paragraphs: [
           'Why does combining imperfect models produce superior results? The mathematical proof originates in political science and probability theory through the Condorcet Jury Theorem (1785).',
-          'Suppose a committee of N independent voters must decide on a binary question (True/False). If each individual voter has an independent probability p > 0.50 (better than a random coin toss) of making the correct decision, then:',
-          '1. The probability that the majority vote is correct is strictly greater than the individual probability p.',
-          '2. As the number of independent voters N approaches infinity, the probability that the majority vote is correct approaches 100% (1.0)!',
-          'Let us compute the exact consensus accuracy for a simple 3-model ensemble where each individual model has an accuracy of only 70% (p = 0.70):',
-          '- All 3 models are correct: (0.70)^3 = 0.343',
-          '- Exactly 2 models are correct and 1 is wrong: 3 * (0.70)^2 * (0.30)^1 = 3 * 0.49 * 0.30 = 0.441',
-          'Total Majority Correct Probability = 0.343 + 0.441 = 0.784 = 78.4%.',
-          'By simply pooling 3 models with 70% accuracy, our ensemble accuracy immediately jumps to 78.4%—an immediate +8.4% performance boost with zero algorithmic changes! When scaled to N = 25 models with p = 0.60, consensus probability surges to 84.62%!'
+          'Suppose a committee of $N$ independent voters must decide on a binary question (True/False). If each individual voter has an independent probability $p > 0.50$ (better than a random coin toss) of making the correct decision, the probability that the majority vote is correct is given by the binomial sum:',
+          '$$P(\\text{Majority Correct}) = \\sum_{k=\\lfloor N/2 \\rfloor + 1}^N \\binom{N}{k} p^k (1 - p)^{N - k}$$',
+          'This mathematical formulation yields two profound theorems:',
+          '1. The probability that the majority vote is correct is strictly greater than the individual probability $p$.',
+          '2. As the number of independent voters $N \\to \\infty$, the probability that the majority vote is correct approaches $100\\%$ ($1.0$):',
+          '$$\\lim_{N \\to \\infty} P(\\text{Majority Correct}) = 1.0$$',
+          'Let us compute the exact consensus accuracy for a simple 3-model ensemble ($N = 3$) where each individual model has an accuracy of only $70\\%$ ($p = 0.70$):',
+          '- All 3 models are correct ($k = 3$):',
+          '$$P(3) = (0.70)^3 = 0.343$$',
+          '- Exactly 2 models are correct and 1 is wrong ($k = 2$):',
+          '$$P(2) = \\binom{3}{2} (0.70)^2 (0.30)^1 = 3 \\times 0.49 \\times 0.30 = 0.441$$',
+          '- Total Majority Correct Probability:',
+          '$$P(\\text{Majority}) = P(3) + P(2) = 0.343 + 0.441 = 0.784 = 78.4\\%$$',
+          'By simply pooling 3 models with $70\\%$ accuracy, our ensemble accuracy immediately jumps to $78.4\\%$—an immediate $+8.4\\%$ performance boost with zero algorithmic changes! When scaled to $N = 25$ models with $p = 0.60$, consensus probability surges to $84.62\\%$!'
         ]
       },
       {
         heading: '3. The Bias-Variance Trade-Off: How Ensembles Minimize Error',
         paragraphs: [
           'To understand the engineering mechanics of ensemble algorithms, we must examine the fundamental equation governing all supervised machine learning errors: the Bias-Variance Decomposition.',
-          'Expected Total Error = Bias^2 + Variance + Irreducible Error (sigma^2).',
-          '- Bias^2 (Underfitting): The error introduced by approximating a complex real-world phenomenon with an overly simplistic model.',
-          '- Variance (Overfitting): The sensitivity of the model to random statistical fluctuations and noise in the training dataset.',
-          '- Irreducible Error: The noise inherent in the measurement system that cannot be eliminated.',
-          'Different ensemble architectures target different sides of the equation:',
-          '1. Bagging (Bootstrap Aggregation & Random Forests) -> Variance Reduction: Starts with complex, high-variance, low-bias models (such as deep decision trees). Averages predictions across parallel bootstrap samples, cutting variance by 1/M while preserving low bias.',
-          '2. Boosting (AdaBoost, Gradient Boosting, XGBoost) -> Bias Reduction: Starts with simple, high-bias, low-variance models (such as 1-split decision stumps). Trains sequentially, forcing each new learner to correct the residual errors made by earlier models until bias is eliminated.'
+          '$$\\mathbb{E}[\\text{Total Prediction Error}] = \\text{Bias}^2(\\hat{f}) + \\text{Var}(\\hat{f}) + \\sigma^2$$',
+          '- $\\text{Bias}^2(\\hat{f})$ (Underfitting): The systematic error introduced by approximating a complex real-world phenomenon with an overly simplistic model.',
+          '- $\\text{Var}(\\hat{f})$ (Overfitting): The sensitivity of the model to random statistical fluctuations and noise in the training dataset.',
+          '- $\\sigma^2$ (Irreducible Error): The inherent noise in the measurement system that cannot be eliminated by any algorithm.',
+          'Different ensemble architectures target different sides of this fundamental equation:',
+          '1. Bagging (Bootstrap Aggregation & Random Forests) $\\to$ Variance Reduction: Starts with complex, high-variance, low-bias models (such as deep decision trees). Averages predictions across parallel bootstrap samples, cutting variance by $\\frac{1}{M}$ while preserving low bias.',
+          '2. Boosting (AdaBoost, Gradient Boosting, XGBoost) $\\to$ Bias Reduction: Starts with simple, high-bias, low-variance models (such as 1-split decision stumps). Trains sequentially, forcing each new learner to correct the residual errors made by earlier models until bias is eliminated.'
         ]
       },
       {
@@ -7088,8 +7094,9 @@ print(f"TimeSeriesSplit Walk-Forward Accuracy:              {np.mean(scores_time
           '- Primary Examples: Bagging, Random Forest, Extra-Trees.',
           'Paradigm B: Sequential Ensembles (Error-Correcting Chains):',
           '- Core Strategy: Base models are trained in a strict sequential chain where each model depends on the performance of its predecessor.',
-          '- Data Mechanism: Samples misclassified by Model t are assigned higher weights or converted into residual targets for Model t+1.',
-          '- Aggregation: Predictions are combined via weighted summation, where more accurate models receive higher voting influence (alpha_t).',
+          '- Data Mechanism: Samples misclassified by Model $t$ are assigned higher weights or converted into residual targets for Model $t+1$.',
+          '- Aggregation: Predictions are combined via weighted summation, where more accurate models receive higher voting influence ($\\alpha_t$):',
+          '$$\\hat{F}(x) = \\sum_{t=1}^T \\alpha_t h_t(x)$$',
           '- Primary Examples: AdaBoost, Gradient Boosted Decision Trees (GBDT), XGBoost, LightGBM, CatBoost.'
         ]
       },
@@ -7209,45 +7216,59 @@ print(f"Random Forest (100 Trees) Accuracy: {acc_rf*100:.2f}%")`
       {
         heading: '1. Majority Voting in Classification: Hard vs Soft Voting',
         paragraphs: [
-          'When building classification ensembles from diverse base models (e.g. a Logistic Regression, a Support Vector Machine, a Decision Tree, and a K-Nearest Neighbors classifier), we must decide how to aggregate their individual predictions.',
+          'When building classification ensembles from diverse base models (such as Logistic Regression, Support Vector Machines, Decision Trees, and K-Nearest Neighbors), we must decide how to aggregate their individual predictions.',
           'There are two primary mathematical aggregation mechanisms:',
-          '1. Hard Voting (Majority Rule): Each individual model casts a single discrete vote for a predicted class label. The ensemble outputs the class that receives the strict majority of votes: y_hat = mode{C_1(x), C_2(x), ..., C_M(x)}.',
-          '2. Soft Voting (Probability Averaging): Each individual model outputs its continuous class probability vector P(y=k | x). The ensemble averages these predicted probabilities across all models and selects the class with the highest average probability: y_hat = argmax_k (1/M) * sum_{m=1}^M P_m(y=k | x).',
-          'Soft Voting is generally superior to Hard Voting because it gives more weight to highly confident predictions, whereas Hard Voting treats a razor-thin 50.1% guess identically to a 99.9% certainty.'
+          '1. Hard Voting (Majority Rule): Each individual model $C_m(x)$ casts a single discrete vote for its predicted class label. The ensemble outputs the mode of all votes:',
+          '$$\\hat{y} = \\text{mode}\\{C_1(x), C_2(x), \\dots, C_M(x)\\}$$',
+          '2. Soft Voting (Probability Averaging): Each individual model outputs a continuous class probability vector $P_m(y = k \\mid x)$. The ensemble averages these predicted probabilities across all $M$ models and selects the class with the highest average score:',
+          '$$\\hat{y} = \\arg\\max_k \\left( \\frac{1}{M} \\sum_{m=1}^M P_m(y = k \\mid x) \\right)$$',
+          'Soft Voting is generally superior to Hard Voting because it incorporates prediction confidence, whereas Hard Voting treats a borderline $50.1\\%$ guess identically to a $99.9\\%$ certainty.'
         ]
       },
       {
         heading: '2. Step-by-Step Arithmetic: The Hard vs Soft Voting Clash',
         paragraphs: [
           'Let us examine a real diagnostic scenario where Hard Voting and Soft Voting disagree, demonstrating why Soft Voting makes the smarter decision.',
-          'Suppose 3 independent diagnostic models evaluate a patient for high cardiac risk (Class 1) vs low risk (Class 0):',
-          '- Model 1 (Specialized Biomarker NN): P(Class 1) = 0.95 -> Extremely confident! Predicts Class 1.',
-          '- Model 2 (Baseline Logistic Regression): P(Class 1) = 0.48 -> Highly uncertain. Predicts Class 0.',
-          '- Model 3 (Shallow Decision Tree): P(Class 1) = 0.49 -> Highly uncertain. Predicts Class 0.',
-          'Let us compute the ensemble outcome under both rules:',
-          'A. Under Hard Voting: Model 1 votes 1; Model 2 votes 0; Model 3 votes 0. Result: Two votes for 0 vs one vote for 1 -> Ensemble outputs Class 0 (Low Risk). The high-confidence warning from Model 1 is completely ignored!',
-          'B. Under Soft Voting: Average P(Class 1) = (0.95 + 0.48 + 0.49) / 3 = 1.92 / 3 = 0.64 = 64%. Average P(Class 0) = (0.05 + 0.52 + 0.51) / 3 = 1.08 / 3 = 0.36 = 36%. Result: Ensemble outputs Class 1 (High Risk) with 64% consensus probability!',
-          'Soft Voting correctly identified that two models were essentially guessing near 50%, while one model had overwhelming certainty. This confidence sensitivity prevents disastrous false negatives in mission-critical applications.'
+          'Suppose 3 independent diagnostic models ($M = 3$) evaluate a patient for high cardiac risk (Class 1) vs low risk (Class 0):',
+          '- Model 1 (Specialized Biomarker NN): $P_1(\\text{Class 1}) = 0.95 \\to$ Extremely confident! Predicts Class 1.',
+          '- Model 2 (Baseline Logistic Regression): $P_2(\\text{Class 1}) = 0.48 \\to$ Highly uncertain. Predicts Class 0.',
+          '- Model 3 (Shallow Decision Tree): $P_3(\\text{Class 1}) = 0.49 \\to$ Highly uncertain. Predicts Class 0.',
+          'Let us compute the ensemble outcome under both mathematical rules:',
+          'A. Under Hard Voting: Model 1 votes 1; Model 2 votes 0; Model 3 votes 0:',
+          '$$\\hat{y}_{\\text{Hard}} = \\text{mode}\\{1, 0, 0\\} = 0 \\quad (\\text{Low Risk})$$',
+          'The high-confidence medical alarm from Model 1 is completely silenced by two uncertain borderline votes!',
+          'B. Under Soft Voting: We compute the ensemble consensus probabilities for each class:',
+          '$$P_{\\text{ens}}(\\text{Class 1}) = \\frac{0.95 + 0.48 + 0.49}{3} = \\frac{1.92}{3} = 0.64 = 64\\%$$',
+          '$$P_{\\text{ens}}(\\text{Class 0}) = \\frac{0.05 + 0.52 + 0.51}{3} = \\frac{1.08}{3} = 0.36 = 36\\%$$',
+          '$$\\hat{y}_{\\text{Soft}} = \\arg\\max \\{P(\\text{Class 0}) = 0.36, P(\\text{Class 1}) = 0.64\\} = 1 \\quad (\\text{High Risk})$$',
+          'Soft Voting correctly identified that two models were essentially flipping coins near $50\\%$, while one specialist model had overwhelming conviction. This confidence sensitivity prevents catastrophic false negatives in mission-critical applications.'
         ]
       },
       {
         heading: '3. Continuous Averaging in Regression Tasks',
         paragraphs: [
-          'For continuous regression problems (such as predicting house prices, hospital length of stay, or stock returns), individual models output continuous real numbers y_hat_m.',
+          'For continuous regression problems (such as predicting house prices, hospital length of stay, or stock returns), individual models output continuous real numbers $\\hat{y}_m$.',
           'The three core regression aggregation strategies are:',
-          '1. Simple Mean Averaging: Takes the unweighted arithmetic mean of all model outputs: y_hat = (1/M) * sum_{m=1}^M y_hat_m. This simple technique immediately smooths out high-frequency individual variance and reduces mean squared error.',
-          '2. Weighted Mean Averaging: Assigns higher weights w_m to models that demonstrate superior validation performance: y_hat = sum_{m=1}^M w_m * y_hat_m, where sum w_m = 1.0.',
-          '3. Median / Trimmed Averaging: Computes the median or discards the highest and lowest predictions before averaging. This provides extreme resilience against rogue outlier models that occasionally make catastrophic multi-million-dollar prediction errors.'
+          '1. Simple Mean Averaging: Takes the unweighted arithmetic mean of all model outputs:',
+          '$$\\hat{y}_{\\text{ens}} = \\frac{1}{M} \\sum_{m=1}^M \\hat{y}_m$$',
+          'This simple technique immediately smooths out high-frequency individual model variance and reduces mean squared error.',
+          '2. Weighted Mean Averaging: Assigns higher weights $w_m$ to models that demonstrate superior validation performance:',
+          '$$\\hat{y}_{\\text{weighted}} = \\sum_{m=1}^M w_m \\hat{y}_m \\quad \\text{subject to} \\quad \\sum_{m=1}^M w_m = 1.0, \\quad w_m \\ge 0$$',
+          '3. Median / Trimmed Averaging: Computes the median or discards the highest and lowest predictions before averaging:',
+          '$$\\hat{y}_{\\text{median}} = \\text{median}\\{\\hat{y}_1, \\hat{y}_2, \\dots, \\hat{y}_M\\}$$',
+          'This provides extreme resilience against rogue outlier models that occasionally make catastrophic multi-million-dollar prediction errors.'
         ]
       },
       {
         heading: '4. Weighting Strategies: How to Assign Model Influence',
         paragraphs: [
-          'How should data scientists determine the weights w_m in a weighted ensemble?',
-          'Strategy A: Historical Validation Accuracy / R2 Weighting:',
-          '- Weight each model directly proportionally to its validation metric: w_m = Score_m / sum_{j=1}^M Score_j.',
+          'How should data scientists determine the weights $w_m$ in a weighted ensemble?',
+          'Strategy A: Historical Validation Accuracy / $R^2$ Weighting:',
+          '- Weight each model directly proportionally to its validation metric:',
+          '$$w_m = \\frac{\\text{Score}_m}{\\sum_{j=1}^M \\text{Score}_j}$$',
           'Strategy B: Inverse-Loss / Inverse-Variance Weighting:',
-          '- Models with lower Mean Squared Error receive exponentially higher influence: w_m = (1 / MSE_m) / sum_{j=1}^M (1 / MSE_j).',
+          '- Models with lower Mean Squared Error receive exponentially higher influence:',
+          '$$w_m = \\frac{\\frac{1}{\\text{MSE}_m}}{\\sum_{j=1}^M \\frac{1}{\\text{MSE}_j}}$$',
           'Strategy C: Constrained Optimization / Stacking Preview:',
           '- Using a simple non-negative linear regression (Ridge or Lasso with positive weights) on out-of-fold predictions to find the optimal mathematical blending coefficients.'
         ]
@@ -7374,39 +7395,43 @@ print(f"Weighted Voting Regressor R2 Score: {r2_reg:.4f}")`
         heading: '1. What is Bagging? The Bootstrap Aggregation Paradigm',
         paragraphs: [
           'Bagging, short for Bootstrap Aggregation, is one of the most powerful and intuitive ensemble algorithms in machine learning. Introduced by statistician Leo Breiman in 1996, Bagging transforms unstable, high-variance base algorithms into dependable, highly accurate predictors.',
-          'The core insight of Bagging is simple: single machine learning models (particularly unpruned Decision Trees) are notoriously sensitive to the specific training data they see. If you train a tree on one subset of data, it might split on feature X1; if you perturb just 5% of the data points, the tree structure changes completely! This instability is the textbook definition of High Variance.',
-          'Instead of fighting this instability in a single model, Bagging embraces it. It creates M different random variations of the dataset through Bootstrapping, fits M separate models in parallel, and then aggregates their outputs through voting or averaging.'
+          'The core insight of Bagging is simple: single machine learning models (particularly unpruned Decision Trees) are notoriously sensitive to the specific training data they see. If you train a tree on one subset of data, it might split on feature $X_1$; if you perturb just $5\\%$ of the data points, the tree structure changes completely! This instability is the textbook definition of High Variance.',
+          'Instead of fighting this instability in a single model, Bagging embraces it. It creates $M$ different random variations of the dataset through Bootstrapping, fits $M$ separate models in parallel, and then aggregates their outputs through voting or averaging.'
         ]
       },
       {
         heading: '2. The Bootstrapping Mechanism & The 63.2% Mathematical Proof',
         paragraphs: [
-          'How does Bagging create distinct training datasets from a single original dataset of size N?',
+          'How does Bagging create distinct training datasets from a single original dataset of size $N$?',
           'The answer is Bootstrapping (sampling with replacement):',
-          'Imagine placing all N data points into an urn. To create a bootstrap dataset D_m:',
-          '1. Draw a random data point from the urn and record it in D_m.',
+          'Imagine placing all $N$ data points into an urn. To create a bootstrap dataset $\\mathcal{D}_m$:',
+          '1. Draw a random data point from the urn and record it in $\\mathcal{D}_m$.',
           '2. Put the data point BACK into the urn (replacement).',
-          '3. Repeat this process exactly N times.',
+          '3. Repeat this process exactly $N$ times.',
           'Because points are replaced after each draw, some points will be picked multiple times (e.g. 2x, 3x), while other points will never be drawn at all!',
           'What fraction of points are picked, and what fraction are left out?',
-          'Let us calculate the exact probability that a specific observation x_i is NOT chosen in a single draw:',
-          '- The probability of NOT being picked in 1 draw is: P(not picked in 1 draw) = 1 - 1/N.',
-          '- The probability of NOT being picked across all N independent draws is: P(not picked in N draws) = (1 - 1/N)^N.',
-          '- In the limit as dataset size N grows large (N -> infinity), this expression converges to Euler constant inverse: lim_{N -> infinity} (1 - 1/N)^N = 1/e ≈ 0.367879... ≈ 36.8%.',
+          'Let us derive the exact probability that a specific observation $x_i$ is omitted:',
+          '- The probability of $x_i$ NOT being selected in a single random draw is:',
+          '$$P(\\text{Not Chosen in 1 Draw}) = 1 - \\frac{1}{N}$$',
+          '- Because each of the $N$ draws is independent with replacement, the probability of NOT being chosen across all $N$ draws is:',
+          '$$P(\\text{OOB in } N \\text{ Draws}) = \\left( 1 - \\frac{1}{N} \\right)^N$$',
+          '- In the limit as dataset size $N \\to \\infty$, this expression converges to the inverse of Euler\'s constant $e$:',
+          '$$\\lim_{N \\to \\infty} \\left( 1 - \\frac{1}{N} \\right)^N = \\frac{1}{e} = e^{-1} \\approx 0.367879 \\approx 36.8\\%$$',
           'Therefore, in every bootstrap training set:',
-          '- Exactly ~63.2% of the unique observations are included (some repeated).',
-          '- Exactly ~36.8% of the observations are completely omitted. These omitted samples are called Out-of-Bag (OOB) samples!'
+          '- Exactly $1 - \\frac{1}{e} \\approx 63.2\\%$ of the unique observations are selected for training (some with duplicate instances).',
+          '- Exactly $\\frac{1}{e} \\approx 36.8\\%$ of the observations are completely omitted. These omitted samples are called Out-of-Bag (OOB) samples!'
         ]
       },
       {
         heading: '3. Out-of-Bag (OOB) Error: Free Validation Without Cross-Validation',
         paragraphs: [
-          'The 36.8% of samples left Out-of-Bag (OOB) in each bootstrap iteration represent an extraordinary computational gift.',
-          'Because model h_m was never trained on its corresponding OOB samples, those OOB samples act as a pristine, independent test set specifically for model h_m!',
+          'The $36.8\\%$ of samples left Out-of-Bag (OOB) in each bootstrap iteration represent an extraordinary computational gift.',
+          'Because model $h_m$ was never trained on its corresponding OOB samples, those OOB samples act as a pristine, independent test set specifically for model $h_m$!',
           'How OOB Evaluation Works:',
-          '1. For each original training sample (x_i, y_i), identify all base learners that DID NOT have x_i in their bootstrap training set.',
-          '2. Average the predictions of only those specific base learners to produce an ensemble OOB prediction for x_i.',
-          '3. Compare all OOB predictions against the true labels y_i to calculate the OOB Error Score.',
+          '1. For each original training sample $(x_i, y_i)$, identify all base learners that DID NOT have $x_i$ in their bootstrap training set.',
+          '2. Average the predictions of only those specific base learners to produce an ensemble OOB prediction for $x_i$:',
+          '$$\\hat{y}_i^{\\text{OOB}} = \\arg\\max_k \\left( \\frac{1}{|\\mathcal{M}_i|} \\sum_{m \\in \\mathcal{M}_i} P_m(y = k \\mid x_i) \\right) \\quad \\text{where} \\quad \\mathcal{M}_i = \\{m : (x_i, y_i) \\notin \\mathcal{D}_m\\}$$',
+          '3. Compare all OOB predictions against the true labels $y_i$ to calculate the OOB Error Score.',
           'Why OOB Scoring is a Superpower:',
           '- Zero Data Wasted: You do not need to set aside a separate 20% validation split. 100% of your data participates in training across the ensemble.',
           '- Zero Extra Compute: You get an unbiased estimate of generalization error without having to run 5-Fold Cross-Validation (saving 5x training time!).',
@@ -7417,18 +7442,18 @@ print(f"Weighted Voting Regressor R2 Score: {r2_reg:.4f}")`
         heading: '4. Mathematical Proof of Variance Reduction',
         paragraphs: [
           'Why does aggregating parallel base models improve generalization? Let us analyze the error variance:',
-          'Assume we train M identical-distribution base estimators h_1(x), h_2(x), ..., h_M(x), each with individual prediction variance Var(h_m(x)) = sigma^2, and pairwise correlation between models rho = Corr(h_i, h_j).',
-          'The ensemble prediction is the arithmetic average: h_{ens}(x) = (1/M) sum_{m=1}^M h_m(x).',
+          'Assume we train $M$ identically distributed base estimators $h_1(x), h_2(x), \\dots, h_M(x)$, each with individual prediction variance $\\text{Var}(h_m(x)) = \\sigma^2$, and pairwise correlation between models $\\rho = \\text{Corr}(h_i, h_j)$.',
+          'The ensemble prediction is the arithmetic average: $\\hat{h}_{\\text{ens}}(x) = \\frac{1}{M} \\sum_{m=1}^M h_m(x)$.',
           'The total variance of this ensemble average is given by:',
-          'Var(h_{ens}(x)) = rho * sigma^2 + ((1 - rho) / M) * sigma^2.',
-          'Let us inspect what this formula tells us:',
-          'Case 1: Fully Independent Models (rho = 0):',
-          '- Var(h_{ens}(x)) = sigma^2 / M.',
-          '- If you train 100 independent models, the error variance drops by 99% (divided by 100)!',
-          'Case 2: Correlated Models (0 < rho < 1):',
-          '- As M grows large (M -> infinity), the term ((1 - rho) / M) * sigma^2 approaches 0.0.',
-          '- The ensemble variance asymptotes to rho * sigma^2.',
-          'Key Takeaway: Bagging drives down the sample variance term ((1-rho)/M)*sigma^2 toward zero without increasing the bias of the underlying models! However, because all bootstrap sets come from the same original dataset, rho > 0. (In the next lesson, Random Forests will show us how to drive rho even lower!).'
+          '$$\\text{Var}(\\hat{h}_{\\text{ens}}(x)) = \\rho \\sigma^2 + \\frac{1 - \\rho}{M} \\sigma^2$$',
+          'Let us inspect what this fundamental formula tells us:',
+          'Case 1: Fully Independent Models ($\\rho = 0$):',
+          '$$\\text{Var}(\\hat{h}_{\\text{ens}}(x)) = \\frac{\\sigma^2}{M}$$',
+          'If you train 100 independent models, the error variance drops by $99\\%$ (divided by 100)!',
+          'Case 2: Correlated Models ($0 < \\rho < 1$):',
+          'As $M \\to \\infty$, the term $\\frac{1 - \\rho}{M} \\sigma^2 \\to 0$. The ensemble variance asymptotes to:',
+          '$$\\lim_{M \\to \\infty} \\text{Var}(\\hat{h}_{\\text{ens}}(x)) = \\rho \\sigma^2$$',
+          'Key Takeaway: Bagging drives down the sample variance term $\\frac{1-\\rho}{M}\\sigma^2$ toward zero without increasing the bias of the underlying models! However, because all bootstrap sets come from the same original dataset, $\\rho > 0$. (In the next lesson, Random Forests will show us how to drive $\\rho$ even lower!).'
         ]
       },
       {
@@ -7437,9 +7462,9 @@ print(f"Weighted Voting Regressor R2 Score: {r2_reg:.4f}")`
           'A crucial rule in ensemble design is matching the aggregation mechanism to the right base algorithm:',
           'Rule: Bagging should always be used with High-Variance, Low-Bias base learners (such as fully grown, unpruned Decision Trees).',
           'Why not use Bagging on Linear Regression or Logistic Regression?',
-          '- Linear models are already extremely stable (Low Variance, High Bias). If you train 100 linear models on bootstrap subsets, all 100 lines will be almost identical (rho ≈ 1.0). Averaging 100 nearly identical lines provides almost zero variance reduction.',
+          '- Linear models are already extremely stable (Low Variance, High Bias). If you train 100 linear models on bootstrap subsets, all 100 lines will be almost identical ($\\rho \\approx 1.0$). Averaging 100 nearly identical lines provides almost zero variance reduction.',
           'Why Deep Decision Trees are the Perfect Match:',
-          '- A fully grown tree (max_depth=None) has virtually ZERO bias (it can fit complex non-linear boundaries perfectly), but HIGH variance.',
+          '- A fully grown tree (`max_depth=None`) has virtually ZERO bias (it can fit complex non-linear boundaries perfectly), but HIGH variance.',
           '- Bagging takes these zero-bias trees and eliminates their high variance through parallel consensus, achieving the theoretical Goldilocks sweet spot!'
         ]
       },
@@ -7564,39 +7589,42 @@ print(f"Bagging Regressor Test R2 Score: {r2_bagging:.4f} | OOB R2: {bagging_reg
       {
         heading: '1. The Fatal Flaw of Standard Bagging: Tree Correlation',
         paragraphs: [
-          'In Lesson 7.3, we proved that Bagging reduces prediction variance by averaging M independent base learners. The theoretical formula for ensemble variance is:',
-          'Var(Ensemble) = rho * sigma^2 + ((1 - rho) / M) * sigma^2',
-          'where sigma^2 is the variance of a single tree, M is the number of trees, and rho is the average pairwise correlation between trees.',
-          'Notice what happens as M grows infinitely large (M -> infinity): the second term ((1 - rho) / M) * sigma^2 drops to zero, but the first term rho * sigma^2 remains completely untouched!',
-          'If the trees in your ensemble are highly correlated (for instance, rho = 0.75), your ensemble variance can NEVER drop below 75% of a single tree variance, regardless of whether you train 100, 1,000, or 100,000 trees!',
+          'In Lesson 7.3, we proved that Bagging reduces prediction variance by averaging $M$ base learners. The exact formula for ensemble variance is:',
+          '$$\\text{Var}(\\bar{T}(x)) = \\rho \\sigma^2 + \\frac{1 - \\rho}{M} \\sigma^2$$',
+          'where $\\sigma^2$ is the variance of a single tree, $M$ is the number of trees, and $\\rho$ is the average pairwise correlation between trees.',
+          'Notice what happens as $M$ grows infinitely large ($M \\to \\infty$): the second term $\\frac{1 - \\rho}{M} \\sigma^2 \\to 0$, but the first term $\\rho \\sigma^2$ remains completely untouched:',
+          '$$\\lim_{M \\to \\infty} \\text{Var}(\\bar{T}(x)) = \\rho \\sigma^2$$',
+          'If the trees in your ensemble are highly correlated (for instance, $\\rho = 0.75$), your ensemble variance can NEVER drop below $75\\%$ of a single tree\'s variance, regardless of whether you train 100, 1,000, or 100,000 trees!',
           'Why do standard bagged decision trees correlate so heavily?',
-          'Because real-world datasets often contain one or two "dominant" features with overwhelming predictive signal (e.g. Tumor Size in cancer detection, or Income in credit default). When standard Bagging generates 100 bootstrap datasets, every single tree greedily chooses that same dominant feature for its root node split. Consequently, all 100 trees look almost identical in structure, make identical mistakes on borderline instances, and produce highly correlated predictions (rho approx 0.70 - 0.85).'
+          'Because real-world datasets often contain one or two "dominant" features with overwhelming predictive signal (e.g. Tumor Radius in cancer detection, or Income in credit scoring). When standard Bagging generates 100 bootstrap datasets, every single tree greedily chooses that same dominant feature for its root node split. Consequently, all 100 trees look almost identical in structure, make identical mistakes on borderline instances, and produce highly correlated predictions ($\\rho \\approx 0.70 - 0.85$).'
         ]
       },
       {
         heading: '2. Leo Breiman\'s Solution: Feature Sub-sampling (Random Subspace)',
         paragraphs: [
           'In 2001, statistician Leo Breiman introduced Random Forests to solve the tree correlation dilemma once and for all.',
-          'Breiman\'s breakthrough was delightfully simple yet mathematically profound: at every single split in every single decision tree, do NOT allow the tree to search across all p available features. Instead, force the tree to choose from a randomly selected subset of m features (where m < p)!',
-          'Standard heuristic rules for feature subset size m:',
-          '- Classification tasks: m = floor(sqrt(p)) (e.g., if a dataset has p = 64 features, each split considers only m = sqrt(64) = 8 random features).',
-          '- Regression tasks: m = floor(p / 3) (e.g., for p = 30 features, each split evaluates m = 10 features).',
-          'By hiding (1 - m/p) of the features at every split (e.g. hiding 87.5% of features when p=64, m=8):',
-          '1. In roughly (1 - m/p) of the trees, the dominant feature is completely absent from the candidate pool at the root node.',
-          '2. The tree is forced to explore secondary, tertiary, and subtle latent features (like cell texture, symmetry, or concavity) that would otherwise have been overshadowed.',
-          '3. Trees develop completely different branch topologies, discovering diverse decision paths through the feature space.'
+          'Breiman\'s breakthrough was delightfully simple yet mathematically profound: at every single split in every single decision tree, do NOT allow the tree to search across all $p$ available features. Instead, force the tree to choose from a randomly selected subset of $m$ features (where $m < p$)!',
+          'Standard heuristic rules for feature subset size $m$:',
+          '- Classification tasks:',
+          '$$m = \\lfloor \\sqrt{p} \\rfloor \\quad (\\text{e.g., for } p = 64 \\text{ features}, \\quad m = \\sqrt{64} = 8 \\text{ candidate features/split})$$',
+          '- Regression tasks:',
+          '$$m = \\left\\lfloor \\frac{p}{3} \\right\\rfloor \\quad (\\text{e.g., for } p = 30 \\text{ features}, \\quad m = 10 \\text{ candidate features/split})$$',
+          'By hiding a fraction of $1 - \\frac{m}{p}$ features at every split (e.g. hiding $87.5\\%$ of features when $p=64, m=8$):',
+          '1. In roughly $1 - \\frac{m}{p}$ of the trees, the dominant feature is completely absent from the candidate pool at the root node.',
+          '2. The tree is forced to explore secondary, tertiary, and subtle latent features (such as cell texture, perimeter, or concavity) that would otherwise have been overshadowed.',
+          '3. Trees develop completely distinct branch topologies, discovering diverse decision paths across the feature space.'
         ]
       },
       {
         heading: '3. Double Randomization: The Engine of Tree Decorrelation',
         paragraphs: [
           'A Random Forest combines two distinct layers of stochastic randomization:',
-          '1. Row Randomization (Bootstrapping): Each tree trains on a distinct bootstrap sample of N instances drawn with replacement from the training set (~63.2% unique rows, ~36.8% Out-of-Bag).',
-          '2. Column Randomization (Feature Sub-sampling): At every split within every node, a fresh random subset of m features is drawn without replacement from the p features.',
+          '1. Row Randomization (Bootstrapping): Each tree trains on a distinct bootstrap sample of $N$ instances drawn with replacement from the training set ($\\sim 63.2\\%$ unique rows, $\\sim 36.8\\%$ Out-of-Bag).',
+          '2. Column Randomization (Feature Sub-sampling): At every split within every node, a fresh random subset of $m$ features is drawn without replacement from the $p$ features.',
           'What is the mathematical consequence of Double Randomization?',
-          '- Individual Tree Strength (sigma^2): Because each tree is restricted to only m features at each split, individual trees become slightly weaker (their individual error sigma^2 increases marginally).',
-          '- Pairwise Correlation (rho): Crucially, the correlation rho between trees plummets dramatically (often dropping from rho = 0.80 down to rho = 0.15 - 0.25!).',
-          'Because the reduction in correlation rho far outweighs the minor increase in individual tree error, the overall ensemble error Var(Ensemble) = rho * sigma^2 + ((1 - rho) / M) * sigma^2 reaches dramatic new performance highs.'
+          '- Individual Tree Strength ($\\sigma^2$): Because each tree is restricted to only $m$ features at each split, individual trees become slightly weaker (their individual error $\\sigma^2$ increases marginally).',
+          '- Pairwise Correlation ($\\rho$): Crucially, the correlation $\\rho$ between trees plummets dramatically (often dropping from $\\rho = 0.80$ down to $\\rho = 0.15 - 0.25$!).',
+          'Because the reduction in correlation $\\rho$ far outweighs the minor increase in individual tree error, the overall ensemble error $\\text{Var}(\\bar{T}) = \\rho \\sigma^2 + \\frac{1 - \\rho}{M} \\sigma^2$ reaches dramatic new performance highs.'
         ]
       },
       {
@@ -7605,13 +7633,15 @@ print(f"Bagging Regressor Test R2 Score: {r2_bagging:.4f} | OOB R2: {bagging_reg
           'While a single decision tree provides easily readable IF-THEN rules, an ensemble of 500 trees is an impenetrable "black box." How can practitioners determine which features are driving the forest\'s predictions?',
           'Random Forests provide two primary mechanisms for measuring feature importance:',
           'A. Mean Decrease in Impurity (MDI / Gini Importance):',
-          '- For every feature X_j, sum the total reduction in impurity (Gini or Entropy for classification, MSE for regression) across all nodes in all trees where X_j was used as the split feature, weighted by the fraction of samples reaching those nodes.',
+          '- For every feature $X_j$, sum the total reduction in impurity (Gini or Entropy for classification, MSE for regression) across all nodes $n$ in all $M$ trees where $X_j$ was used as the split feature:',
+          '$$\\text{MDI}(X_j) = \\frac{\\sum_{m=1}^M \\sum_{n \\in \\text{splits}(X_j)} \\Delta I(n, X_j)}{\\sum_{m=1}^M \\sum_{n \\in \\text{all splits}} \\Delta I(n)}$$',
           '- Fast and computed during training (`forest.feature_importances_`).',
           '- Warning / Pitfall: MDI has a known bias towards high-cardinality features (e.g. continuous features or IDs with many unique numerical values), which can artificially inflate their importance.',
           'B. Mean Decrease in Accuracy (MDA / Permutation Feature Importance):',
           '- For each tree, pass its Out-of-Bag (OOB) samples through and record baseline accuracy.',
-          '- Randomly shuffle (permute) the values of feature X_j in the OOB set, breaking the relationship between X_j and the target y, and pass the permuted data through the tree.',
-          '- The drop in accuracy after shuffling is the Permutation Importance for X_j.',
+          '- Randomly shuffle (permute) the values of feature $X_j$ in the OOB set, breaking the relationship between $X_j$ and the target $y$, and pass the permuted data through the tree:',
+          '$$\\text{MDA}(X_j) = \\text{Score}_{\\text{OOB}}(\\mathcal{D}_{\\text{OOB}}) - \\text{Score}_{\\text{OOB}}(\\mathcal{D}_{\\text{OOB}}^{\\text{permuted}(X_j)})$$',
+          '- The drop in accuracy after shuffling is the Permutation Importance for $X_j$.',
           '- Golden standard: MDA is completely unbiased across numerical and categorical features and directly reflects how much the model depends on the feature for generalization.'
         ]
       },
@@ -7619,8 +7649,8 @@ print(f"Bagging Regressor Test R2 Score: {r2_bagging:.4f} | OOB R2: {bagging_reg
         heading: '5. Key Hyperparameters & Practical Tuning Strategy',
         paragraphs: [
           'Random Forest is famous for having outstanding out-of-the-box defaults, but mastering its hyperparameters allows squeezing maximum predictive performance:',
-          '1. `n_estimators` (Number of Trees, default 100): More trees are ALWAYS better for stability. Unlike boosting or neural nets, increasing n_estimators does NOT cause overfitting in Random Forests because averaging decreases variance asymptotically. Set to 100-500 until computation time plateaus.',
-          '2. `max_features` (Subset Size m, default "sqrt"): Controls the diversity-strength tradeoff. Smaller max_features -> lower correlation rho but weaker individual trees; larger max_features -> stronger individual trees but higher correlation rho.',
+          '1. `n_estimators` (Number of Trees, default 100): More trees are ALWAYS better for stability. Unlike boosting or neural nets, increasing `n_estimators` does NOT cause overfitting in Random Forests because averaging decreases variance asymptotically. Set to 100-500 until computation time plateaus.',
+          '2. `max_features` (Subset Size $m$, default "sqrt"): Controls the diversity-strength tradeoff. Smaller `max_features` $\\to$ lower correlation $\\rho$ but weaker individual trees; larger `max_features` $\\to$ stronger individual trees but higher correlation $\\rho$.',
           '3. `max_depth` & `min_samples_split` / `min_samples_leaf`: Controls tree complexity. While individual trees in Random Forest are usually left unpruned (to maintain very low bias), setting `min_samples_leaf=2` or `min_samples_leaf=5` significantly reduces memory footprint and speeds up inference on massive datasets.',
           '4. `oob_score=True`: Always enable OOB scoring during prototyping for instantaneous cross-validation validation without dedicating a separate validation fold.',
           '5. `n_jobs=-1`: Parallelizes tree construction across all CPU cores.'
@@ -7749,4 +7779,5 @@ print(f"\\nRandom Forest Regressor R2: {r2_rf:.4f} | OOB R2: {rf_reg.oob_score_:
     }
   }
 };
+
 
