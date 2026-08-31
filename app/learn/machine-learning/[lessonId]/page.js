@@ -34309,11 +34309,1057 @@ const BaggingInteractiveStudio = () => {
   );
 };
 
+// ─── RANDOM FOREST DECORRELATION & SUBSPACE STUDIO (LIGHT STUDIO MODE) ───────
+const RandomForestEnsembleStudio = () => {
+  const [activeTab, setActiveTab] = useState('subspace_3d'); // 'subspace_3d', 'subsampling_math', 'importance_studio', 'variance_lab', 'code'
+
+  // Tab 1: 3D Subspace & Decorrelation State
+  const [treeMode, setTreeMode] = useState('ensemble'); // 'bagging', 'rf_tree1', 'rf_tree2', 'rf_tree3', 'ensemble'
+  const [autoRotate, setAutoRotate] = useState(true);
+  const mountRef = useRef(null);
+
+  // Tab 2: Feature Sub-sampling Simulator State
+  const [totalFeaturesP, setTotalFeaturesP] = useState(30);
+  const [taskType, setTaskType] = useState('classification'); // 'classification' (sqrt), 'regression' (p/3), 'custom'
+  const [customM, setCustomM] = useState(5);
+  const [drawnFeatures, setDrawnFeatures] = useState([1, 4, 7, 12, 19]);
+  const [drawCount, setDrawCount] = useState(1);
+
+  // Tab 3: Feature Importance MDI vs Permutation State
+  const [injectNoise, setInjectNoise] = useState(true);
+
+  // Tab 4: Variance Decay Lab State
+  const [estimatorCountM, setEstimatorCountM] = useState(25);
+  const [baggingRho, setBaggingRho] = useState(0.75);
+  const [rfRho, setRfRho] = useState(0.20);
+
+  // 30 Fixed 3D Points for deterministic light mode WebGL scene
+  const pointsData = useMemo(() => {
+    const prng = createSeededPRNG(98765);
+    const pts = [];
+    for (let i = 0; i < 30; i++) {
+      const cls = i < 15 ? 0 : 1;
+      const u = prng() * 2 - 1;
+      const v = prng() * 2 - 1;
+      const w = prng() * 2 - 1;
+      const offset = cls === 0 ? -1.7 : 1.7;
+      pts.push({
+        id: i,
+        x: u * 2.2 + offset,
+        y: v * 2.0,
+        z: w * 2.2 + (cls === 0 ? -0.7 : 0.7),
+        cls: cls
+      });
+    }
+    return pts;
+  }, []);
+
+  // Mount Three.js 3D WebGL Studio
+  useEffect(() => {
+    if (activeTab !== 'subspace_3d' || !mountRef.current) return;
+
+    const container = mountRef.current;
+    const width = container.clientWidth || 640;
+    const height = 400;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.set(0, 8, 20);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+
+    // Studio Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.15);
+    dirLight.position.set(12, 18, 14);
+    scene.add(dirLight);
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.45);
+    fillLight.position.set(-12, -8, -10);
+    scene.add(fillLight);
+
+    // Light Mode Floor Grid
+    const gridHelper = new THREE.GridHelper(24, 20, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -4.5;
+    scene.add(gridHelper);
+
+    const rootGroup = new THREE.Group();
+    scene.add(rootGroup);
+
+    // Render Data Point Spheres
+    const sphereGeo = new THREE.SphereGeometry(0.28, 16, 16);
+    const blueMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7,
+      roughness: 0.3,
+      metalness: 0.2
+    });
+    const redMat = new THREE.MeshStandardMaterial({
+      color: 0xe11d48,
+      roughness: 0.3,
+      metalness: 0.2
+    });
+
+    pointsData.forEach((pt) => {
+      const mesh = new THREE.Mesh(sphereGeo, pt.cls === 0 ? blueMat : redMat);
+      mesh.position.set(pt.x, pt.y, pt.z);
+      rootGroup.add(mesh);
+    });
+
+    // Helper: Create Partition Boundary Plane
+    const createPlane = (w, h, color, opacity, posX, posY, posZ, rotX = 0, rotY = 0, rotZ = 0) => {
+      const planeGeo = new THREE.PlaneGeometry(w, h);
+      const planeMat = new THREE.MeshStandardMaterial({
+        color: color,
+        transparent: true,
+        opacity: opacity,
+        side: THREE.DoubleSide,
+        roughness: 0.3
+      });
+      const planeMesh = new THREE.Mesh(planeGeo, planeMat);
+      planeMesh.position.set(posX, posY, posZ);
+      planeMesh.rotation.set(rotX, rotY, rotZ);
+      rootGroup.add(planeMesh);
+
+      const wireGeo = new THREE.WireframeGeometry(planeGeo);
+      const wireMat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.6 });
+      const wire = new THREE.LineSegments(wireGeo, wireMat);
+      wire.position.set(posX, posY, posZ);
+      wire.rotation.set(rotX, rotY, rotZ);
+      rootGroup.add(wire);
+    };
+
+    // Render Tree Decision Partitions based on treeMode
+    if (treeMode === 'bagging') {
+      // Standard Bagging: All 3 trees split on the exact same Dominant Feature X1 at x = 0
+      // Result: Redundant, cloned vertical walls (High Correlation rho = 0.78)
+      createPlane(10, 8, 0xef4444, 0.45, 0.0, 0, 0, 0, Math.PI / 2, 0);
+      createPlane(10, 8, 0xf97316, 0.30, 0.2, 0, 0, 0, Math.PI / 2, 0);
+      createPlane(10, 8, 0xdc2626, 0.25, -0.2, 0, 0, Math.PI / 2, 0);
+    } else if (treeMode === 'rf_tree1') {
+      // RF Tree 1: Subspace {X1, X2} -> Splits on X1 and X2
+      createPlane(10, 8, 0x10b981, 0.50, 0.4, 0, 0, 0, Math.PI / 2, 0); // X1 split
+      createPlane(10, 10, 0x059669, 0.35, 0, 0.3, 0, Math.PI / 2, 0, 0); // X2 split
+    } else if (treeMode === 'rf_tree2') {
+      // RF Tree 2: Subspace {X2, X3} -> Dominant X1 is HIDDEN! Forced to split on X2 and X3
+      createPlane(10, 10, 0x06b6d4, 0.50, 0, -0.4, 0, Math.PI / 2, 0, 0); // X2 split
+      createPlane(10, 8, 0x0891b2, 0.40, 0, 0, 0.5, 0, 0, 0); // X3 split
+    } else if (treeMode === 'rf_tree3') {
+      // RF Tree 3: Subspace {X1, X3} -> Splits on X1 and X3
+      createPlane(10, 8, 0xf59e0b, 0.50, -0.5, 0, 0, 0, Math.PI / 2, 0); // X1 split
+      createPlane(10, 8, 0xd97706, 0.40, 0, 0, -0.4, 0, 0, 0); // X3 split
+    } else if (treeMode === 'ensemble') {
+      // Full Random Forest Ensemble: Composite decorrelated multi-plane boundary network
+      createPlane(10, 8, 0x10b981, 0.30, 0.4, 0, 0, 0, Math.PI / 2, 0);
+      createPlane(10, 10, 0x06b6d4, 0.30, 0, -0.4, 0, Math.PI / 2, 0, 0);
+      createPlane(10, 8, 0xf59e0b, 0.30, -0.5, 0, 0, 0, Math.PI / 2, 0);
+      createPlane(10, 8, 0x0891b2, 0.25, 0, 0, 0.5, 0, 0, 0);
+      createPlane(10, 10, 0x059669, 0.25, 0, 0.3, 0, Math.PI / 2, 0, 0);
+    }
+
+    // Mouse Drag Rotation Controls
+    let isDragging = false;
+    let prevMouseX = 0;
+    let prevMouseY = 0;
+
+    const onMouseDown = (e) => {
+      isDragging = true;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevMouseX;
+      const dy = e.clientY - prevMouseY;
+      rootGroup.rotation.y += dx * 0.008;
+      rootGroup.rotation.x = Math.max(-0.6, Math.min(0.8, rootGroup.rotation.x + dy * 0.008));
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => { isDragging = false; };
+
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    // Animation Loop
+    let animId;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (autoRotate && !isDragging) {
+        rootGroup.rotation.y += 0.0035;
+      }
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      renderer.dispose();
+      container.innerHTML = '';
+    };
+  }, [activeTab, treeMode, pointsData, autoRotate]);
+
+  // Tab 2: Feature Sub-sampling Calculations
+  const calculatedM = useMemo(() => {
+    if (taskType === 'classification') {
+      return Math.max(1, Math.floor(Math.sqrt(totalFeaturesP)));
+    } else if (taskType === 'regression') {
+      return Math.max(1, Math.floor(totalFeaturesP / 3));
+    }
+    return customM;
+  }, [totalFeaturesP, taskType, customM]);
+
+  const subSamplingStats = useMemo(() => {
+    const fraction = calculatedM / totalFeaturesP;
+    const pHidden = 1 - fraction;
+    const treesWithoutDominant = Math.round(100 * pHidden);
+    return {
+      m: calculatedM,
+      pctEvaluated: (fraction * 100).toFixed(1),
+      pHiddenPct: (pHidden * 100).toFixed(1),
+      treesWithoutDominant
+    };
+  }, [calculatedM, totalFeaturesP]);
+
+  const handleSimulateDraw = () => {
+    const prng = createSeededPRNG(Date.now() + drawCount * 17);
+    const indices = [];
+    const pool = Array.from({ length: totalFeaturesP }, (_, i) => i + 1);
+    for (let i = 0; i < calculatedM; i++) {
+      if (pool.length === 0) break;
+      const idx = Math.floor(prng() * pool.length);
+      indices.push(pool.splice(idx, 1)[0]);
+    }
+    setDrawnFeatures(indices.sort((a, b) => a - b));
+    setDrawCount(prev => prev + 1);
+  };
+
+  // Tab 3: MDI vs Permutation Feature Importance Data
+  const importanceData = useMemo(() => {
+    if (injectNoise) {
+      return [
+        { name: 'Patient_ID (High Cardinality)', type: 'noise', mdi: 0.312, perm: 0.001, desc: 'MDI severely fooled by unique IDs!' },
+        { name: 'Tumor_Radius (Real Signal)', type: 'signal', mdi: 0.285, perm: 0.395, desc: 'True champion biological predictor' },
+        { name: 'Random_Noise_Continuous', type: 'noise', mdi: 0.184, perm: 0.002, desc: 'Continuous random noise artificially elevated by MDI' },
+        { name: 'Tumor_Texture (Real Signal)', type: 'signal', mdi: 0.118, perm: 0.165, desc: 'Secondary real biological marker' },
+        { name: 'Tumor_Smoothness (Real Signal)', type: 'signal', mdi: 0.076, perm: 0.098, desc: 'Subtle latent real signal' },
+        { name: 'Random_Binary_Noise (0 or 1)', type: 'noise', mdi: 0.025, perm: 0.000, desc: 'Low-cardinality noise has low MDI' }
+      ];
+    }
+    return [
+      { name: 'Tumor_Radius', type: 'signal', mdi: 0.442, perm: 0.465, desc: 'Primary tumor size measurement' },
+      { name: 'Tumor_Texture', type: 'signal', mdi: 0.248, perm: 0.262, desc: 'Cellular consistency texture' },
+      { name: 'Tumor_Smoothness', type: 'signal', mdi: 0.165, perm: 0.158, desc: 'Perimeter variation metric' },
+      { name: 'Tumor_Symmetry', type: 'signal', mdi: 0.095, perm: 0.078, desc: 'Cell symmetry score' },
+      { name: 'Fractal_Dimension', type: 'signal', mdi: 0.050, perm: 0.037, desc: 'Boundary roughness measure' }
+    ];
+  }, [injectNoise]);
+
+  // Tab 4: Theoretical Variance Curves: Bagging vs Random Forest
+  const varianceComparison = useMemo(() => {
+    const sigma2 = 1.0;
+    const points = [];
+    for (let m = 1; m <= 50; m++) {
+      const varBagging = baggingRho * sigma2 + ((1 - baggingRho) / m) * sigma2;
+      const varRF = rfRho * sigma2 + ((1 - rfRho) / m) * sigma2;
+      points.push({ m, varBagging, varRF });
+    }
+    const curBagging = baggingRho * sigma2 + ((1 - baggingRho) / estimatorCountM) * sigma2;
+    const curRF = rfRho * sigma2 + ((1 - rfRho) / estimatorCountM) * sigma2;
+    const bagDrop = ((1.0 - curBagging) / 1.0) * 100;
+    const rfDrop = ((1.0 - curRF) / 1.0) * 100;
+    const extraLift = rfDrop - bagDrop;
+
+    return {
+      points,
+      curBagging,
+      curRF,
+      bagDrop,
+      rfDrop,
+      extraLift
+    };
+  }, [estimatorCountM, baggingRho, rfRho]);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      borderRadius: '24px',
+      border: '1.5px solid #cbd5e1',
+      padding: '1.5rem',
+      boxShadow: '0 8px 32px rgba(0, 31, 84, 0.04)',
+      marginBottom: '2.5rem'
+    }}>
+      {/* Studio Header */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        marginBottom: '1.25rem',
+        borderBottom: '1px solid #e2e8f0',
+        paddingBottom: '1rem'
+      }}>
+        <div>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: '#e0f2fe',
+            color: '#0369a1',
+            borderRadius: '8px',
+            padding: '4px 10px',
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginBottom: '6px'
+          }}>
+            <IconSparkles size={14} /> Interactive Studio
+          </div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#001f54', margin: 0 }}>
+            Random Forest Decorrelation &amp; Subspace Studio
+          </h2>
+          <p style={{ fontSize: '0.80rem', color: '#64748b', margin: '4px 0 0 0' }}>
+            Explore 3D feature subspace projections in Light Studio Mode, test feature masking mathematics ($m = \sqrt&#123;p&#125;$), and master unbiased feature importance.
+          </p>
+        </div>
+
+        {/* Global Controls */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            onClick={() => setAutoRotate(!autoRotate)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              background: autoRotate ? '#001f54' : '#f8fafc',
+              color: autoRotate ? '#ffffff' : '#475569',
+              fontSize: '0.74rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+          >
+            {autoRotate ? 'Auto-Rotate ON' : 'Auto-Rotate OFF'}
+          </button>
+        </div>
+      </div>
+
+      {/* Studio Navigation Tabs */}
+      <div style={{
+        display: 'flex',
+        gap: '6px',
+        overflowX: 'auto',
+        paddingBottom: '8px',
+        marginBottom: '1.25rem',
+        borderBottom: '1px solid #f1f5f9'
+      }}>
+        {[
+          { id: 'subspace_3d', label: '1. 3D Subspace & Tree Decorrelation' },
+          { id: 'subsampling_math', label: '2. Feature Sub-sampling (m = sqrt(p))' },
+          { id: 'importance_studio', label: '3. MDI vs Permutation Importance' },
+          { id: 'variance_lab', label: '4. Bagging vs RF Variance Decay' },
+          { id: 'code', label: '5. Production Python Pipeline' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '10px',
+              border: 'none',
+              background: activeTab === tab.id ? '#001f54' : '#f1f5f9',
+              color: activeTab === tab.id ? '#ffffff' : '#475569',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ─── TAB 1: 3D SUBSPACE & TREE DECORRELATION ─────────────────── */}
+      {activeTab === 'subspace_3d' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Tree Mode Selector */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '10px',
+            background: '#f8fafc',
+            padding: '12px 16px',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>
+              Select Ensemble Architecture:
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {[
+                { id: 'bagging', label: 'Standard Bagging (Correlated Walls)' },
+                { id: 'rf_tree1', label: 'RF Tree 1: Subspace {X1, X2}' },
+                { id: 'rf_tree2', label: 'RF Tree 2: Subspace {X2, X3} (X1 Hidden!)' },
+                { id: 'rf_tree3', label: 'RF Tree 3: Subspace {X1, X3}' },
+                { id: 'ensemble', label: 'Composite Random Forest Ensemble' }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setTreeMode(item.id)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid',
+                    borderColor: treeMode === item.id ? '#001f54' : '#cbd5e1',
+                    background: treeMode === item.id ? '#001f54' : '#ffffff',
+                    color: treeMode === item.id ? '#ffffff' : '#334155',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: treeMode === item.id ? '0 2px 8px rgba(0, 31, 84, 0.15)' : 'none'
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 3D WebGL Canvas Container */}
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '400px',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+            border: '1.5px solid #cbd5e1'
+          }}>
+            <div ref={mountRef} style={{ width: '100%', height: '100%', cursor: 'grab' }} />
+
+            {/* Frosted HUD Overlay */}
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '12px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              padding: '10px 14px',
+              borderRadius: '12px',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 4px 12px rgba(0, 31, 84, 0.05)',
+              fontSize: '0.75rem',
+              color: '#334155',
+              maxWidth: '280px',
+              lineHeight: 1.5
+            }}>
+              <div style={{ fontWeight: 800, color: '#001f54', marginBottom: '4px' }}>
+                {treeMode === 'bagging' && 'Standard Bagging: High Correlation'}
+                {treeMode === 'rf_tree1' && 'RF Tree 1: Standard Split Pool'}
+                {treeMode === 'rf_tree2' && 'RF Tree 2: Dominant X1 Masked!'}
+                {treeMode === 'rf_tree3' && 'RF Tree 3: Alternative Split Pool'}
+                {treeMode === 'ensemble' && 'Ensemble: Unified Low Correlation'}
+              </div>
+              <div>
+                {treeMode === 'bagging' && (
+                  <span style={{ color: '#dc2626', fontWeight: 700 }}>
+                    Pairwise Tree Correlation &rho; = 0.78. Every tree splits on dominant X1!
+                  </span>
+                )}
+                {treeMode === 'rf_tree1' && (
+                  <span style={{ color: '#16a34a', fontWeight: 700 }}>
+                    Evaluated candidates: X1 (Tumor Size) &amp; X2 (Texture). Splits on green orthogonal planes.
+                  </span>
+                )}
+                {treeMode === 'rf_tree2' && (
+                  <span style={{ color: '#0284c7', fontWeight: 800 }}>
+                    X1 was NOT in candidate pool! Forced to discover subtle boundary on X2 &amp; X3 (cyan planes).
+                  </span>
+                )}
+                {treeMode === 'rf_tree3' && (
+                  <span style={{ color: '#d97706', fontWeight: 700 }}>
+                    Evaluated candidates: X1 &amp; X3 (Perimeter). Splits on amber planes.
+                  </span>
+                )}
+                {treeMode === 'ensemble' && (
+                  <span style={{ color: '#16a34a', fontWeight: 800 }}>
+                    Tree Correlation &rho; dropped from 0.78 &rarr; 0.22! Maximum ensemble variance reduction achieved.
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* 3D Legend HUD */}
+            <div style={{
+              position: 'absolute',
+              bottom: '12px',
+              right: '12px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(8px)',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              border: '1px solid #cbd5e1',
+              fontSize: '0.70rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }} />
+                <span>Class 0: Benign (15 pts)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#e11d48', display: 'inline-block' }} />
+                <span>Class 1: Malignant (15 pts)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: FEATURE SUB-SAMPLING CALCULATOR (m = sqrt(p)) ───── */}
+      {activeTab === 'subsampling_math' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1rem'
+          }}>
+            {/* Control Panel */}
+            <div style={{
+              background: '#f8fafc',
+              padding: '1.25rem',
+              borderRadius: '16px',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Feature Space Configuration
+              </div>
+
+              {/* Slider: Total Features p */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#475569', marginBottom: '4px' }}>
+                  <span>Total Features in Dataset (p):</span>
+                  <span style={{ fontWeight: 800, color: '#001f54' }}>{totalFeaturesP} features</span>
+                </div>
+                <input
+                  type="range"
+                  min="4"
+                  max="100"
+                  value={totalFeaturesP}
+                  onChange={(e) => setTotalFeaturesP(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: '#001f54' }}
+                />
+              </div>
+
+              {/* Task Type Radio Selection */}
+              <div>
+                <div style={{ fontSize: '0.78rem', color: '#475569', marginBottom: '6px', fontWeight: 700 }}>
+                  Feature Subset Rule:
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#334155', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="taskType"
+                      checked={taskType === 'classification'}
+                      onChange={() => setTaskType('classification')}
+                      style={{ accentColor: '#001f54' }}
+                    />
+                    <strong>Classification Rule:</strong> m = &lfloor;&radic;p&rfloor; = {Math.floor(Math.sqrt(totalFeaturesP))}
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#334155', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="taskType"
+                      checked={taskType === 'regression'}
+                      onChange={() => setTaskType('regression')}
+                      style={{ accentColor: '#001f54' }}
+                    />
+                    <strong>Regression Rule:</strong> m = &lfloor;p / 3&rfloor; = {Math.floor(totalFeaturesP / 3)}
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#334155', cursor: 'pointer' }}>
+                    <input
+                      type="radio"
+                      name="taskType"
+                      checked={taskType === 'custom'}
+                      onChange={() => setTaskType('custom')}
+                      style={{ accentColor: '#001f54' }}
+                    />
+                    <strong>Custom m Subset:</strong>
+                  </label>
+                </div>
+
+                {taskType === 'custom' && (
+                  <div style={{ marginTop: '8px' }}>
+                    <input
+                      type="range"
+                      min="1"
+                      max={totalFeaturesP}
+                      value={customM}
+                      onChange={(e) => setCustomM(Number(e.target.value))}
+                      style={{ width: '100%', accentColor: '#001f54' }}
+                    />
+                    <div style={{ textAlign: 'right', fontSize: '0.72rem', color: '#001f54', fontWeight: 800 }}>
+                      m = {customM} candidate features
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Simulation Trigger */}
+              <button
+                onClick={handleSimulateDraw}
+                style={{
+                  background: '#001f54',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0, 31, 84, 0.15)'
+                }}
+              >
+                Simulate Node Split Draw #{drawCount}
+              </button>
+            </div>
+
+            {/* Mathematical Scorecard */}
+            <div style={{
+              background: '#ffffff',
+              padding: '1.25rem',
+              borderRadius: '16px',
+              border: '1.5px solid #cbd5e1',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Mathematical Impact of Sub-sampling
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ background: '#f0fdf4', padding: '10px', borderRadius: '10px', border: '1px solid #86efac' }}>
+                  <div style={{ fontSize: '0.68rem', color: '#166534', fontWeight: 700 }}>Candidate Pool Size m</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#16a34a' }}>{subSamplingStats.m} / {totalFeaturesP}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#166534' }}>{subSamplingStats.pctEvaluated}% features evaluated</div>
+                </div>
+
+                <div style={{ background: '#eff6ff', padding: '10px', borderRadius: '10px', border: '1px solid #93c5fd' }}>
+                  <div style={{ fontSize: '0.68rem', color: '#1e40af', fontWeight: 700 }}>P(Dominant Feature Hidden)</div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#2563eb' }}>{subSamplingStats.pHiddenPct}%</div>
+                  <div style={{ fontSize: '0.68rem', color: '#1e40af' }}>1 - m/p probability</div>
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.74rem', color: '#334155', lineHeight: 1.6 }}>
+                <strong>Key Takeaway:</strong> In a forest of 100 trees, approximately <strong>{subSamplingStats.treesWithoutDominant} out of 100 trees</strong> will be strictly forbidden from splitting on the #1 dominant feature at the root node! This forces the forest to explore {totalFeaturesP - subSamplingStats.m} alternative latent features.
+              </div>
+
+              {/* Active Draw Display */}
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '6px' }}>
+                  Active Drawn Candidate Features for Node Split #{drawCount}:
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {drawnFeatures.map((featId) => (
+                    <span
+                      key={featId}
+                      style={{
+                        background: featId === 1 ? '#fee2e2' : '#e0f2fe',
+                        color: featId === 1 ? '#991b1b' : '#0369a1',
+                        border: `1px solid ${featId === 1 ? '#fca5a5' : '#7dd3fc'}`,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        fontSize: '0.70rem',
+                        fontWeight: 800
+                      }}
+                    >
+                      {featId === 1 ? 'X1 (Dominant)' : `X${featId}`}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: MDI VS PERMUTATION FEATURE IMPORTANCE ───────────── */}
+      {activeTab === 'importance_studio' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Header & Trap Toggle */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '10px',
+            background: '#f8fafc',
+            padding: '12px 16px',
+            borderRadius: '14px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                Feature Importance Benchmark: MDI vs Permutation (MDA)
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                Observe how MDI is tricked by high-cardinality noise, whereas Permutation Importance stays 100% resilient.
+              </div>
+            </div>
+
+            <button
+              onClick={() => setInjectNoise(!injectNoise)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: injectNoise ? '#ef4444' : '#cbd5e1',
+                background: injectNoise ? '#fef2f2' : '#ffffff',
+                color: injectNoise ? '#991b1b' : '#334155',
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              {injectNoise ? 'Remove Noise Features' : 'Inject High-Cardinality Noise Trap'}
+            </button>
+          </div>
+
+          {/* Importance Comparison Cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {importanceData.map((item, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: item.type === 'noise' ? '#fff1f2' : '#ffffff',
+                  borderRadius: '12px',
+                  border: `1.5px solid ${item.type === 'noise' ? '#fecdd3' : '#e2e8f0'}`,
+                  padding: '12px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      background: item.type === 'noise' ? '#e11d48' : '#001f54',
+                      color: '#ffffff',
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      padding: '2px 6px',
+                      borderRadius: '4px'
+                    }}>
+                      {item.type === 'noise' ? 'NOISE TRAP' : 'REAL SIGNAL'}
+                    </span>
+                    <strong style={{ fontSize: '0.84rem', color: '#001f54' }}>{item.name}</strong>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{item.desc}</span>
+                </div>
+
+                {/* Dual Progress Bars */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  {/* MDI Bar */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.70rem', marginBottom: '2px' }}>
+                      <span style={{ color: '#64748b' }}>MDI (Gini Importance):</span>
+                      <strong style={{ color: item.type === 'noise' ? '#dc2626' : '#001f54' }}>{(item.mdi * 100).toFixed(1)}%</strong>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ width: `${item.mdi * 200}%`, height: '100%', background: item.type === 'noise' ? '#ef4444' : '#0284c7', borderRadius: '4px' }} />
+                    </div>
+                  </div>
+
+                  {/* Permutation Bar */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.70rem', marginBottom: '2px' }}>
+                      <span style={{ color: '#64748b' }}>Permutation Importance (MDA):</span>
+                      <strong style={{ color: '#16a34a' }}>{(item.perm * 100).toFixed(1)}%</strong>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{ width: `${item.perm * 200}%`, height: '100%', background: '#16a34a', borderRadius: '4px' }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: BAGGING VS RF VARIANCE DECAY LAB ────────────────── */}
+      {activeTab === 'variance_lab' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Controls */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1rem',
+            background: '#f8fafc',
+            padding: '1.25rem',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#475569', marginBottom: '4px' }}>
+                <span>Number of Trees M:</span>
+                <span style={{ fontWeight: 800, color: '#001f54' }}>{estimatorCountM} trees</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="50"
+                value={estimatorCountM}
+                onChange={(e) => setEstimatorCountM(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#001f54' }}
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#475569', marginBottom: '4px' }}>
+                <span>Bagging Correlation &rho;<sub>Bag</sub>:</span>
+                <span style={{ fontWeight: 800, color: '#dc2626' }}>{baggingRho.toFixed(2)}</span>
+              </div>
+              <input
+                type="range"
+                min="0.40"
+                max="0.95"
+                step="0.05"
+                value={baggingRho}
+                onChange={(e) => setBaggingRho(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#dc2626' }}
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#475569', marginBottom: '4px' }}>
+                <span>Random Forest &rho;<sub>RF</sub> (m=&radic;p):</span>
+                <span style={{ fontWeight: 800, color: '#16a34a' }}>{rfRho.toFixed(2)}</span>
+              </div>
+              <input
+                type="range"
+                min="0.05"
+                max="0.40"
+                step="0.05"
+                value={rfRho}
+                onChange={(e) => setRfRho(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#16a34a' }}
+              />
+            </div>
+          </div>
+
+          {/* SVG Decay Chart & Scorecards */}
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.25rem' }}>
+            <div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, marginBottom: '6px' }}>
+                Ensemble Error Variance vs Number of Trees M:
+              </div>
+              <svg viewBox="0 0 340 190" style={{ width: '100%', height: 'auto', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                {/* Bagging Floor Asymptote */}
+                <line
+                  x1="40"
+                  y1={160 - baggingRho * 130}
+                  x2="320"
+                  y2={160 - baggingRho * 130}
+                  stroke="#ef4444"
+                  strokeWidth="1.5"
+                  strokeDasharray="4,4"
+                />
+                <text x="180" y={154 - baggingRho * 130} fontSize="8" fill="#dc2626" fontWeight="700">
+                  Bagging Floor &rho; = {baggingRho.toFixed(2)}
+                </text>
+
+                {/* RF Floor Asymptote */}
+                <line
+                  x1="40"
+                  y1={160 - rfRho * 130}
+                  x2="320"
+                  y2={160 - rfRho * 130}
+                  stroke="#16a34a"
+                  strokeWidth="1.5"
+                  strokeDasharray="4,4"
+                />
+                <text x="180" y={154 - rfRho * 130} fontSize="8" fill="#16a34a" fontWeight="700">
+                  Random Forest Floor &rho; = {rfRho.toFixed(2)}
+                </text>
+
+                {/* Bagging Decay Curve */}
+                <polyline
+                  fill="none"
+                  stroke="#ef4444"
+                  strokeWidth="2"
+                  points={varianceComparison.points.map(p => `${40 + (p.m / 50) * 280},${160 - p.varBagging * 130}`).join(' ')}
+                />
+
+                {/* RF Decay Curve */}
+                <polyline
+                  fill="none"
+                  stroke="#16a34a"
+                  strokeWidth="2.5"
+                  points={varianceComparison.points.map(p => `${40 + (p.m / 50) * 280},${160 - p.varRF * 130}`).join(' ')}
+                />
+
+                {/* Active Points */}
+                <circle
+                  cx={40 + (estimatorCountM / 50) * 280}
+                  cy={160 - varianceComparison.curBagging * 130}
+                  r="4"
+                  fill="#ef4444"
+                />
+                <circle
+                  cx={40 + (estimatorCountM / 50) * 280}
+                  cy={160 - varianceComparison.curRF * 130}
+                  r="5"
+                  fill="#16a34a"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                />
+
+                {/* Axes */}
+                <line x1="40" y1="160" x2="320" y2="160" stroke="#94a3b8" strokeWidth="1" />
+                <line x1="40" y1="20" x2="40" y2="160" stroke="#94a3b8" strokeWidth="1" />
+                <text x="40" y="174" fontSize="8" fill="#64748b">M=1</text>
+                <text x="170" y="174" fontSize="8" fill="#64748b">M=25</text>
+                <text x="300" y="174" fontSize="8" fill="#64748b">M=50</text>
+                <text x="10" y="30" fontSize="8" fill="#64748b">1.0 &sigma;&sup2;</text>
+                <text x="15" y="160" fontSize="8" fill="#64748b">0.0</text>
+              </svg>
+            </div>
+
+            {/* Scorecard */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ background: '#fef2f2', padding: '10px 14px', borderRadius: '10px', border: '1px solid #fecdd3' }}>
+                <div style={{ fontSize: '0.68rem', color: '#991b1b', fontWeight: 700 }}>Bagging Variance (M={estimatorCountM})</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#dc2626' }}>
+                  {varianceComparison.curBagging.toFixed(3)} &sigma;&sup2;
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#991b1b' }}>-{varianceComparison.bagDrop.toFixed(1)}% drop</div>
+              </div>
+
+              <div style={{ background: '#f0fdf4', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #86efac' }}>
+                <div style={{ fontSize: '0.68rem', color: '#166534', fontWeight: 700 }}>Random Forest Variance (M={estimatorCountM})</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#16a34a' }}>
+                  {varianceComparison.curRF.toFixed(3)} &sigma;&sup2;
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#166534', fontWeight: 800 }}>
+                  -{varianceComparison.rfDrop.toFixed(1)}% drop (+{varianceComparison.extraLift.toFixed(1)}% extra lift!)
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PRODUCTION PYTHON PIPELINE ──────────────────────── */}
+      {activeTab === 'code' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '0.88rem', color: '#001f54', fontWeight: 800, marginBottom: '0.5rem' }}>
+              Production RandomForestClassifier &amp; Permutation Importance (Scikit-Learn):
+            </div>
+            <SyntaxCodeBlock
+              code={[
+                'import numpy as np',
+                'import pandas as pd',
+                'from sklearn.datasets import load_breast_cancer, load_diabetes',
+                'from sklearn.model_selection import train_test_split',
+                'from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor',
+                'from sklearn.inspection import permutation_importance',
+                'from sklearn.metrics import accuracy_score, r2_score',
+                '',
+                '# =====================================================================',
+                '# 1. CLASSIFICATION: RandomForestClassifier with OOB Score',
+                '# =====================================================================',
+                'X, y = load_breast_cancer(return_X_y=True)',
+                'feature_names = load_breast_cancer().feature_names',
+                'X_train, X_test, y_train, y_test = train_test_split(',
+                '    X, y, test_size=0.25, random_state=42, stratify=y',
+                ')',
+                '',
+                '# Random Forest with m = sqrt(p) feature sub-sampling at each split',
+                'rf_clf = RandomForestClassifier(',
+                '    n_estimators=100,        # 100 trees',
+                '    max_features="sqrt",     # Subsample m = sqrt(p) features per split',
+                '    bootstrap=True,          # Draw N samples with replacement',
+                '    oob_score=True,          # Free built-in validation metric',
+                '    n_jobs=-1,               # Train in parallel on all CPU cores',
+                '    random_state=42',
+                ')',
+                'rf_clf.fit(X_train, y_train)',
+                '',
+                'acc = accuracy_score(y_test, rf_clf.predict(X_test))',
+                'print(f"Random Forest Test Accuracy:   {acc*100:.2f}%")',
+                'print(f"Out-of-Bag (OOB) Score:        {rf_clf.oob_score_*100:.2f}%")',
+                '',
+                '# =====================================================================',
+                '# 2. PERMUTATION FEATURE IMPORTANCE (Unbiased Gold Standard)',
+                '# =====================================================================',
+                'perm = permutation_importance(rf_clf, X_test, y_test, n_repeats=10, random_state=42, n_jobs=-1)',
+                'top_features = pd.Series(perm.importances_mean, index=feature_names).sort_values(ascending=False)',
+                'print("\\n--- Top 5 Features (Permutation Importance) ---")',
+                'for feat, score in top_features.head(5).items():',
+                '    print(f"  - {feat:28s}: {score:.4f}")',
+                '',
+                '# =====================================================================',
+                '# 3. REGRESSION: RandomForestRegressor (m = p / 3)',
+                '# =====================================================================',
+                'Xr, yr = load_diabetes(return_X_y=True)',
+                'Xr_train, Xr_test, yr_train, yr_test = train_test_split(',
+                '    Xr, yr, test_size=0.25, random_state=42',
+                ')',
+                '',
+                'rf_reg = RandomForestRegressor(',
+                '    n_estimators=100,',
+                '    max_features=1.0/3.0,    # Regression rule of thumb: m = p / 3',
+                '    bootstrap=True,',
+                '    oob_score=True,',
+                '    n_jobs=-1,',
+                '    random_state=42',
+                ')',
+                'rf_reg.fit(Xr_train, yr_train)',
+                'r2 = r2_score(yr_test, rf_reg.predict(Xr_test))',
+                'print(f"\\nRandom Forest Regressor R2: {r2:.4f} | OOB R2: {rf_reg.oob_score_:.4f}")'
+              ].join('\n')}
+              title="random_forest_production_pipeline.py"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6', 'ml-6-7', 'ml-6-8', 'ml-7-1', 'ml-7-2', 'ml-7-3'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6', 'ml-6-7', 'ml-6-8', 'ml-7-1', 'ml-7-2', 'ml-7-3', 'ml-7-4'
 ];
 
 export default function MLLessonArticlePage() {
@@ -34574,6 +35620,9 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'bagging_interactive_studio' && (
               <BaggingInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'random_forest_ensemble_studio' && (
+              <RandomForestEnsembleStudio />
             )}
           </div>
         )}

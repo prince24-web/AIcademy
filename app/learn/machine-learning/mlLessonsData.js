@@ -7541,5 +7541,212 @@ print(f"Bagging Regressor Test R2 Score: {r2_bagging:.4f} | OOB R2: {bagging_reg
       correctIndex: 1,
       explanation: 'For large N, the probability that an observation is never chosen in N draws is (1 - 1/N)^N ≈ 1/e ≈ 36.8%. These unselected observations form the Out-of-Bag (OOB) evaluation set.'
     }
+  },
+  'ml-7-4': {
+    id: 'ml-7-4',
+    title: 'Random Forest: Overcoming Tree Correlation with Feature Sub-sampling',
+    moduleTitle: 'Ensemble Learning',
+    readTime: '22 min read',
+    difficulty: 'Advanced',
+    badgeText: 'FEATURE BAGGING',
+    badgeColor: '#001f54',
+    subtitle: 'How Breiman decorrelated decision trees using random feature subspaces (m = sqrt(p)) to create one of the most reliable algorithms in machine learning.',
+    learningObjectives: [
+      'Understand the core limitation of standard Bagging: tree correlation (rho > 0) caused by dominant features.',
+      'Derive how ensemble variance depends on tree correlation: Var(Ensemble) = rho * sigma^2 + ((1 - rho) / M) * sigma^2.',
+      'Master random feature sub-sampling (Feature Bagging / Random Subspace Method) at every tree node split.',
+      'Learn standard feature sub-sampling rules of thumb: m = floor(sqrt(p)) for classification and m = floor(p / 3) for regression.',
+      'Analyze the Double Randomization mechanism (Bootstrap Rows + Subsampled Columns) that decorrelates trees without inflating bias.',
+      'Compare Feature Importance techniques: Mean Decrease in Impurity (MDI / Gini Importance) vs Mean Decrease in Accuracy (MDA / Permutation Importance).',
+      'Implement production-ready RandomForestClassifier and RandomForestRegressor pipelines in Python using Scikit-Learn with OOB scoring.'
+    ],
+    sections: [
+      {
+        heading: '1. The Fatal Flaw of Standard Bagging: Tree Correlation',
+        paragraphs: [
+          'In Lesson 7.3, we proved that Bagging reduces prediction variance by averaging M independent base learners. The theoretical formula for ensemble variance is:',
+          'Var(Ensemble) = rho * sigma^2 + ((1 - rho) / M) * sigma^2',
+          'where sigma^2 is the variance of a single tree, M is the number of trees, and rho is the average pairwise correlation between trees.',
+          'Notice what happens as M grows infinitely large (M -> infinity): the second term ((1 - rho) / M) * sigma^2 drops to zero, but the first term rho * sigma^2 remains completely untouched!',
+          'If the trees in your ensemble are highly correlated (for instance, rho = 0.75), your ensemble variance can NEVER drop below 75% of a single tree variance, regardless of whether you train 100, 1,000, or 100,000 trees!',
+          'Why do standard bagged decision trees correlate so heavily?',
+          'Because real-world datasets often contain one or two "dominant" features with overwhelming predictive signal (e.g. Tumor Size in cancer detection, or Income in credit default). When standard Bagging generates 100 bootstrap datasets, every single tree greedily chooses that same dominant feature for its root node split. Consequently, all 100 trees look almost identical in structure, make identical mistakes on borderline instances, and produce highly correlated predictions (rho approx 0.70 - 0.85).'
+        ]
+      },
+      {
+        heading: '2. Leo Breiman\'s Solution: Feature Sub-sampling (Random Subspace)',
+        paragraphs: [
+          'In 2001, statistician Leo Breiman introduced Random Forests to solve the tree correlation dilemma once and for all.',
+          'Breiman\'s breakthrough was delightfully simple yet mathematically profound: at every single split in every single decision tree, do NOT allow the tree to search across all p available features. Instead, force the tree to choose from a randomly selected subset of m features (where m < p)!',
+          'Standard heuristic rules for feature subset size m:',
+          '- Classification tasks: m = floor(sqrt(p)) (e.g., if a dataset has p = 64 features, each split considers only m = sqrt(64) = 8 random features).',
+          '- Regression tasks: m = floor(p / 3) (e.g., for p = 30 features, each split evaluates m = 10 features).',
+          'By hiding (1 - m/p) of the features at every split (e.g. hiding 87.5% of features when p=64, m=8):',
+          '1. In roughly (1 - m/p) of the trees, the dominant feature is completely absent from the candidate pool at the root node.',
+          '2. The tree is forced to explore secondary, tertiary, and subtle latent features (like cell texture, symmetry, or concavity) that would otherwise have been overshadowed.',
+          '3. Trees develop completely different branch topologies, discovering diverse decision paths through the feature space.'
+        ]
+      },
+      {
+        heading: '3. Double Randomization: The Engine of Tree Decorrelation',
+        paragraphs: [
+          'A Random Forest combines two distinct layers of stochastic randomization:',
+          '1. Row Randomization (Bootstrapping): Each tree trains on a distinct bootstrap sample of N instances drawn with replacement from the training set (~63.2% unique rows, ~36.8% Out-of-Bag).',
+          '2. Column Randomization (Feature Sub-sampling): At every split within every node, a fresh random subset of m features is drawn without replacement from the p features.',
+          'What is the mathematical consequence of Double Randomization?',
+          '- Individual Tree Strength (sigma^2): Because each tree is restricted to only m features at each split, individual trees become slightly weaker (their individual error sigma^2 increases marginally).',
+          '- Pairwise Correlation (rho): Crucially, the correlation rho between trees plummets dramatically (often dropping from rho = 0.80 down to rho = 0.15 - 0.25!).',
+          'Because the reduction in correlation rho far outweighs the minor increase in individual tree error, the overall ensemble error Var(Ensemble) = rho * sigma^2 + ((1 - rho) / M) * sigma^2 reaches dramatic new performance highs.'
+        ]
+      },
+      {
+        heading: '4. Feature Importance in Random Forests: MDI vs Permutation (MDA)',
+        paragraphs: [
+          'While a single decision tree provides easily readable IF-THEN rules, an ensemble of 500 trees is an impenetrable "black box." How can practitioners determine which features are driving the forest\'s predictions?',
+          'Random Forests provide two primary mechanisms for measuring feature importance:',
+          'A. Mean Decrease in Impurity (MDI / Gini Importance):',
+          '- For every feature X_j, sum the total reduction in impurity (Gini or Entropy for classification, MSE for regression) across all nodes in all trees where X_j was used as the split feature, weighted by the fraction of samples reaching those nodes.',
+          '- Fast and computed during training (`forest.feature_importances_`).',
+          '- Warning / Pitfall: MDI has a known bias towards high-cardinality features (e.g. continuous features or IDs with many unique numerical values), which can artificially inflate their importance.',
+          'B. Mean Decrease in Accuracy (MDA / Permutation Feature Importance):',
+          '- For each tree, pass its Out-of-Bag (OOB) samples through and record baseline accuracy.',
+          '- Randomly shuffle (permute) the values of feature X_j in the OOB set, breaking the relationship between X_j and the target y, and pass the permuted data through the tree.',
+          '- The drop in accuracy after shuffling is the Permutation Importance for X_j.',
+          '- Golden standard: MDA is completely unbiased across numerical and categorical features and directly reflects how much the model depends on the feature for generalization.'
+        ]
+      },
+      {
+        heading: '5. Key Hyperparameters & Practical Tuning Strategy',
+        paragraphs: [
+          'Random Forest is famous for having outstanding out-of-the-box defaults, but mastering its hyperparameters allows squeezing maximum predictive performance:',
+          '1. `n_estimators` (Number of Trees, default 100): More trees are ALWAYS better for stability. Unlike boosting or neural nets, increasing n_estimators does NOT cause overfitting in Random Forests because averaging decreases variance asymptotically. Set to 100-500 until computation time plateaus.',
+          '2. `max_features` (Subset Size m, default "sqrt"): Controls the diversity-strength tradeoff. Smaller max_features -> lower correlation rho but weaker individual trees; larger max_features -> stronger individual trees but higher correlation rho.',
+          '3. `max_depth` & `min_samples_split` / `min_samples_leaf`: Controls tree complexity. While individual trees in Random Forest are usually left unpruned (to maintain very low bias), setting `min_samples_leaf=2` or `min_samples_leaf=5` significantly reduces memory footprint and speeds up inference on massive datasets.',
+          '4. `oob_score=True`: Always enable OOB scoring during prototyping for instantaneous cross-validation validation without dedicating a separate validation fold.',
+          '5. `n_jobs=-1`: Parallelizes tree construction across all CPU cores.'
+        ]
+      },
+      {
+        heading: '6. Python Production Implementation & Empirical Benchmark',
+        paragraphs: [
+          'Let us benchmark a Single Decision Tree vs Standard Bagging vs Random Forest on the Wisconsin Breast Cancer dataset (30 features, p=30):',
+          '- Single Decision Tree (max_depth=None): 92.31% Test Accuracy (Severe Overfitting).',
+          '- Standard Bagging (100 Trees, max_features=1.0): 95.10% Test Accuracy | rho approx 0.68.',
+          '- Random Forest (100 Trees, max_features=sqrt(30) approx 5): 96.50% Test Accuracy | rho approx 0.22 (+4.19% lift over single tree!).',
+          'Below is the production Python implementation showing Scikit-Learn RandomForestClassifier, RandomForestRegressor, OOB score extraction, and Permutation Feature Importance calculation:'
+        ],
+        codeBlockTitle: 'random_forest_production_pipeline.py',
+        codeBlock: `import numpy as np
+import pandas as pd
+from sklearn.datasets import load_breast_cancer, load_diabetes
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import BaggingClassifier, RandomForestClassifier, RandomForestRegressor
+from sklearn.inspection import permutation_importance
+from sklearn.metrics import accuracy_score, r2_score
+
+# =====================================================================
+# 1. CLASSIFICATION BENCHMARK: Tree vs Bagging vs Random Forest
+# =====================================================================
+X, y = load_breast_cancer(return_X_y=True)
+feature_names = load_breast_cancer().feature_names
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=42, stratify=y
+)
+
+# Benchmark 1: Standalone Overfitted Decision Tree
+tree = DecisionTreeClassifier(random_state=42).fit(X_train, y_train)
+acc_tree = accuracy_score(y_test, tree.predict(X_test))
+print(f"1. Single Decision Tree Accuracy:   {acc_tree * 100:.2f}%")
+
+# Benchmark 2: Standard Bagging (100 Trees, All Features at each split)
+bagging = BaggingClassifier(
+    estimator=DecisionTreeClassifier(),
+    n_estimators=100,
+    max_features=1.0,
+    bootstrap=True,
+    oob_score=True,
+    n_jobs=-1,
+    random_state=42
+).fit(X_train, y_train)
+acc_bag = accuracy_score(y_test, bagging.predict(X_test))
+print(f"2. Standard Bagging Accuracy:       {acc_bag * 100:.2f}% (OOB: {bagging.oob_score_ * 100:.2f}%)")
+
+# Benchmark 3: Random Forest (100 Trees, max_features='sqrt' = ~5 features/split)
+rf = RandomForestClassifier(
+    n_estimators=100,
+    max_features="sqrt",   # Feature sub-sampling m = sqrt(p)
+    bootstrap=True,
+    oob_score=True,
+    n_jobs=-1,
+    random_state=42
+).fit(X_train, y_train)
+acc_rf = accuracy_score(y_test, rf.predict(X_test))
+print(f"3. Random Forest Accuracy:          {acc_rf * 100:.2f}% (OOB: {rf.oob_score_ * 100:.2f}%)")
+print(f"   Accuracy Lift over Single Tree:  +{(acc_rf - acc_tree) * 100:.2f}%")
+
+# =====================================================================
+# 2. FEATURE IMPORTANCE ANALYSIS: MDI vs Permutation Importance
+# =====================================================================
+print("\\n--- Top 5 Features (MDI / Gini Importance) ---")
+mdi_importances = pd.Series(rf.feature_importances_, index=feature_names).sort_values(ascending=False)
+for feat, score in mdi_importances.head(5).items():
+    print(f"  - {feat:28s}: {score:.4f}")
+
+# Permutation Feature Importance (Unbiased Gold Standard)
+perm_res = permutation_importance(rf, X_test, y_test, n_repeats=10, random_state=42, n_jobs=-1)
+perm_importances = pd.Series(perm_res.importances_mean, index=feature_names).sort_values(ascending=False)
+print("\\n--- Top 5 Features (Permutation Importance on Test Set) ---")
+for feat, score in perm_importances.head(5).items():
+    print(f"  - {feat:28s}: {score:.4f}")
+
+# =====================================================================
+# 3. REGRESSION: RandomForestRegressor
+# =====================================================================
+Xr, yr = load_diabetes(return_X_y=True)
+Xr_train, Xr_test, yr_train, yr_test = train_test_split(Xr, yr, test_size=0.25, random_state=42)
+
+rf_reg = RandomForestRegressor(
+    n_estimators=100,
+    max_features=1.0/3.0,  # Rule of thumb for regression: m = p / 3
+    bootstrap=True,
+    oob_score=True,
+    n_jobs=-1,
+    random_state=42
+).fit(Xr_train, yr_train)
+
+r2_rf = r2_score(yr_test, rf_reg.predict(Xr_test))
+print(f"\\nRandom Forest Regressor R2: {r2_rf:.4f} | OOB R2: {rf_reg.oob_score_:.4f}")`
+      }
+    ],
+    analogy: {
+      title: 'The Medical Diagnostic Board of 25 Specialists',
+      text: 'Imagine 25 doctors examining a patient. If all 25 doctors look at the patient\'s most obvious symptom (a high fever), they all make the exact same diagnosis (correlated mistakes). But if you force Doctor 1 to diagnose using only blood pressure and reflexes, Doctor 2 using only pupil dilation and breathing sounds, and Doctor 3 using only lab chemistry, they each discover unique, subtle facets of the underlying illness. When the 25 specialists convene and vote, their diverse insights uncover rare conditions that no single doctor could have diagnosed alone!'
+    },
+    diagram: {
+      type: 'random_forest_ensemble_studio',
+      title: 'Random Forest Decorrelation & Subspace Studio',
+      caption: 'Visualize 3D feature subspace projections in Light Studio Mode, explore the mathematics of feature sub-sampling m = sqrt(p), and contrast MDI vs Permutation Feature Importance.'
+    },
+    takeaways: [
+      'Standard Bagging fails to reach optimal variance reduction when dominant features cause high pairwise tree correlation (rho > 0).',
+      'Random Forests introduce Feature Sub-sampling (Random Subspace Method), considering only m random features at every node split.',
+      'The standard defaults are m = floor(sqrt(p)) for classification and m = floor(p / 3) for regression.',
+      'Double Randomization (Row Bootstrapping + Column Sub-sampling) drastically lowers tree correlation rho with only a minor rise in individual tree variance sigma^2.',
+      'Mean Decrease in Impurity (MDI) is fast but biased toward high-cardinality features; Permutation Importance (MDA) is the unbiased gold standard.',
+      'Random Forests are immune to overfitting from adding more trees (n_estimators); increasing M steadily stabilizes predictions up to computational limits.'
+    ],
+    quiz: {
+      question: 'In a dataset with p = 100 features used for a classification task, what is the standard recommended number of candidate features (m) evaluated at each node split in a Random Forest?',
+      options: [
+        'm = 100 (all features are evaluated at every split)',
+        'm = 10 (sqrt(100) = 10 features randomly sampled at each split)',
+        'm = 33 (100 / 3 features)',
+        'm = 1 (only 1 random feature is evaluated)'
+      ],
+      correctIndex: 1,
+      explanation: 'For classification tasks, the standard rule of thumb established by Leo Breiman is m = floor(sqrt(p)). For p = 100 features, m = sqrt(100) = 10 randomly chosen candidate features per node split.'
+    }
   }
 };
+
