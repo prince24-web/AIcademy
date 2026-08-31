@@ -36512,6 +36512,49 @@ export default function MLLessonArticlePage() {
                   {renderTextWithMath(p)}
                 </div>
               ))}
+              {sec.image && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: '16px',
+                  padding: '1.25rem',
+                  margin: '1.75rem 0',
+                  boxShadow: '0 4px 16px rgba(0, 31, 84, 0.04)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    border: '1px solid #e2e8f0',
+                    background: '#ffffff',
+                    padding: '0.75rem'
+                  }}>
+                    <img
+                      src={sec.image.src}
+                      alt={sec.image.alt || 'Section Diagram'}
+                      style={{
+                        maxWidth: '100%',
+                        height: 'auto',
+                        borderRadius: '6px',
+                        display: 'block',
+                        margin: '0 auto',
+                        objectFit: 'contain'
+                      }}
+                    />
+                  </div>
+                  {sec.image.caption && (
+                    <p style={{
+                      margin: '0.75rem 0 0 0',
+                      fontSize: '0.82rem',
+                      color: '#475569',
+                      fontWeight: 500,
+                      lineHeight: '1.5'
+                    }}>
+                      {sec.image.caption}
+                    </p>
+                  )}
+                </div>
+              )}
               {sec.inlineVisual === 'condorcet_ballot_visual' && <CondorcetBallotVisual />}
               {sec.inlineVisual === 'bias_variance_error_cards' && <BiasVarianceErrorCards />}
               {sec.inlineVisual === 'voting_comparison_visual' && <VotingComparisonVisual />}

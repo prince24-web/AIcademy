@@ -7811,7 +7811,12 @@ print(f"\\nRandom Forest Regressor R2: {r2_rf:.4f} | OOB R2: {rf_reg.oob_score_:
           '$$F_M(x) = F_0(x) + \\sum_{m=1}^M \\eta \\cdot h_m(x)$$',
           'where $F_0(x)$ is a simple initial baseline prediction (e.g. the mean of the training targets $\\bar{y}$ or the log-odds of class labels), $h_m(x)$ is the $m$-th weak base learner, and $\\eta \\in (0, 1]$ is the shrinkage factor / learning rate.',
           'Because each model focuses exclusively on the difficult examples that the current ensemble struggles with, Boosting achieves massive Bias Reduction, converting high-bias weak learners (like 1-split decision stumps) into state-of-the-art predictors.'
-        ]
+        ],
+        image: {
+          src: '/boosting-process-flow.png',
+          alt: 'The Sequential Process of Boosting',
+          caption: 'Figure 7.5.1: The Sequential Chaining Process in Boosting. The training data flows into initial models; any false predictions and residual errors are systematically passed forward into subsequent subsets and weak learners before aggregating into the final overall prediction.'
+        }
       },
       {
         heading: '2. AdaBoost (Adaptive Boosting): Instance Weighting & Accuracy-Weighted Voting',
@@ -7832,7 +7837,13 @@ print(f"\\nRandom Forest Regressor R2: {r2_rf:.4f} | OOB R2: {rf_reg.oob_score_:
           'If observation $i$ was correctly classified ($y_i h_m(x_i) = +1$), its weight shrinks by $e^{-\\alpha_m}$. If misclassified ($y_i h_m(x_i) = -1$), its weight expands by $e^{+\\alpha_m}$! We then normalize so $\\sum_{i=1}^N w_i^{(m+1)} = 1.0$.',
           'Step 3: Output the final consensus classification by weighted majority sign:',
           '$$H_{\\text{final}}(x) = \\text{sign} \\left( \\sum_{m=1}^M \\alpha_m h_m(x) \\right)$$'
-        ]
+        ],
+        image: {
+          src: '/boosting-instance-weighting.png',
+          alt: 'Instance Weighting across Sequential Iterations in AdaBoost',
+          caption: 'Figure 7.5.2: Sequential Instance Re-Weighting. Correctly classified points (green checkmarks) see their relative importance reduced, while misclassified examples (red cross marks) are magnified in subsequent rounds so the next weak classifier concentrates on resolving the hardest examples.'
+        },
+        inlineVisual: 'adaboost_magnifier_visual'
       },
       {
         heading: '3. Gradient Boosting Machine (GBM): Functional Gradient Descent',
