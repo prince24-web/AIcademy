@@ -34813,22 +34813,26 @@ const RandomForestEnsembleStudio = () => {
               position: 'absolute',
               bottom: '12px',
               right: '12px',
-              background: 'rgba(255, 255, 255, 0.94)',
+              background: 'rgba(255, 255, 255, 0.96)',
               backdropFilter: 'blur(8px)',
               padding: '8px 12px',
               borderRadius: '10px',
               border: '1px solid #cbd5e1',
-              fontSize: '0.70rem',
+              boxShadow: '0 4px 12px rgba(0, 31, 84, 0.08)',
+              fontSize: '0.72rem',
+              color: '#0f172a',
               display: 'flex',
               flexDirection: 'column',
-              gap: '4px'
+              gap: '6px',
+              zIndex: 10,
+              pointerEvents: 'none'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0284c7', display: 'inline-block' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1e293b', fontWeight: 700 }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0284c7', display: 'inline-block', flexShrink: 0 }} />
                 <span>Class 0: Benign (15 pts)</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#e11d48', display: 'inline-block' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1e293b', fontWeight: 700 }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#e11d48', display: 'inline-block', flexShrink: 0 }} />
                 <span>Class 1: Malignant (15 pts)</span>
               </div>
             </div>
