@@ -7,6 +7,17 @@ import katex from 'katex';
 import * as THREE from 'three';
 import styles from './page.module.css';
 import { mlLessonsData } from '../mlLessonsData';
+import {
+  CondorcetBallotVisual,
+  BiasVarianceErrorCards,
+  VotingComparisonVisual,
+  RegressionAveragingVisual,
+  BootstrapUrnVisual,
+  FeatureSubsampleVisual,
+  AdaBoostMagnifierVisual,
+  ResidualArrowVisual,
+  XGBoostTollGateVisual
+} from './EnsembleVisualComponents';
 
 // ─── KATEX MATH FORMULA RENDERER ────────────────────────────────────────────
 const MathFormula = ({ math, block = false }) => {
@@ -36428,6 +36439,15 @@ export default function MLLessonArticlePage() {
                   {renderTextWithMath(p)}
                 </div>
               ))}
+              {sec.inlineVisual === 'condorcet_ballot_visual' && <CondorcetBallotVisual />}
+              {sec.inlineVisual === 'bias_variance_error_cards' && <BiasVarianceErrorCards />}
+              {sec.inlineVisual === 'voting_comparison_visual' && <VotingComparisonVisual />}
+              {sec.inlineVisual === 'regression_averaging_visual' && <RegressionAveragingVisual />}
+              {sec.inlineVisual === 'bootstrap_urn_visual' && <BootstrapUrnVisual />}
+              {sec.inlineVisual === 'feature_subsample_visual' && <FeatureSubsampleVisual />}
+              {sec.inlineVisual === 'adaboost_magnifier_visual' && <AdaBoostMagnifierVisual />}
+              {sec.inlineVisual === 'residual_arrow_visual' && <ResidualArrowVisual />}
+              {sec.inlineVisual === 'xgboost_toll_gate_visual' && <XGBoostTollGateVisual />}
               {sec.codeBlock && (
                 <SyntaxCodeBlock
                   code={sec.codeBlock}
