@@ -16,10 +16,30 @@ import {
   FeatureSubsampleVisual,
   AdaBoostMagnifierVisual,
   ResidualArrowVisual,
-  XGBoostTollGateVisual
+  XGBoostTollGateVisual,
+  StackingArchitecturePyramid,
+  OutOfFoldMatrixStepper,
+  BlendingVsStackingVisual,
+  EnsembleDecisionFlowchart,
+  LatencyVsAccuracyRadar,
+  NestedCVShieldVisual
 } from './EnsembleVisualComponents';
+import { ProblemFramingInteractiveStudio, DataIngestionEDAStudio, FeatureEngineeringPipelineStudio, ModelTournamentStudio, HyperparameterTuningStudio, ModelEvaluationPackagingStudio, ProductionServingStudio } from './WorkflowVisualComponents';
 
-// ─── KATEX MATH FORMULA RENDERER ────────────────────────────────────────────
+// ─── SVG ICONS FOR COLLAPSIBLE MATH ─────────────────────────────────────────
+const IconEye = ({ size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+  </svg>
+);
+
+const IconEyeOff = ({ size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>
+);
+
+// ─── INLINE KATEX MATH FORMULA RENDERER ─────────────────────────────────────
 const MathFormula = ({ math, block = false }) => {
   const html = useMemo(() => {
     if (!math) return '';
@@ -50,12 +70,154 @@ const MathFormula = ({ math, block = false }) => {
   );
 };
 
+// ─── COLLAPSIBLE MATHEMATICAL FORMULA CARD (INTUITION-FIRST DESIGN) ─────────
+const CollapsibleMathBlock = ({ math, title = 'Mathematical Formulation & Proof' }) => {
+  const [isRevealed, setIsRevealed] = useState(false);
+
+  const html = useMemo(() => {
+    if (!math) return '';
+    try {
+      return katex.renderToString(math, {
+        displayMode: true,
+        throwOnError: false
+      });
+    } catch (e) {
+      return math;
+    }
+  }, [math]);
+
+  return (
+    <div style={{
+      margin: '1.25rem 0',
+      borderRadius: '14px',
+      border: isRevealed ? '1.5px solid #001f54' : '1.5px solid #cbd5e1',
+      background: isRevealed ? '#ffffff' : 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+      overflow: 'hidden',
+      transition: 'all 0.2s ease',
+      boxShadow: isRevealed ? '0 6px 20px rgba(0, 31, 84, 0.06)' : '0 2px 6px rgba(0, 0, 0, 0.02)'
+    }}>
+      <div
+        onClick={() => setIsRevealed(!isRevealed)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.85rem 1.15rem',
+          cursor: 'pointer',
+          background: isRevealed ? 'rgba(0, 31, 84, 0.03)' : 'transparent',
+          borderBottom: isRevealed ? '1px solid #e2e8f0' : 'none',
+          userSelect: 'none',
+          gap: '1rem'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '28px',
+            height: '28px',
+            borderRadius: '8px',
+            background: isRevealed ? '#001f54' : '#e2e8f0',
+            color: isRevealed ? '#ffffff' : '#334155',
+            fontSize: '0.85rem',
+            fontWeight: 800
+          }}>
+            Σ
+          </span>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54' }}>
+                {title}
+              </span>
+              <span style={{
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                color: isRevealed ? '#047857' : '#64748b',
+                background: isRevealed ? '#ecfdf5' : '#e2e8f0',
+                padding: '2px 8px',
+                borderRadius: '12px'
+              }}>
+                {isRevealed ? 'EXPANDED' : 'OPTIONAL MATH'}
+              </span>
+            </div>
+            <span style={{ display: 'block', fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
+              {isRevealed
+                ? 'Click to collapse formula and return to intuitive summary'
+                : 'Hidden by default · Focus on intuition and visual models first'}
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsRevealed(!isRevealed);
+          }}
+          style={{
+            padding: '0.45rem 0.95rem',
+            borderRadius: '8px',
+            border: isRevealed ? '1px solid #001f54' : '1px solid #cbd5e1',
+            background: isRevealed ? '#001f54' : '#ffffff',
+            color: isRevealed ? '#ffffff' : '#001f54',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.04)'
+          }}
+        >
+          {isRevealed ? <IconEyeOff size={14} /> : <IconEye size={14} />}
+          {isRevealed ? 'Hide Formula' : 'Reveal Formula'}
+        </button>
+      </div>
+
+      {isRevealed && (
+        <div style={{
+          padding: '1.25rem 1.25rem 1rem 1.25rem',
+          background: '#ffffff',
+          overflowX: 'auto'
+        }}>
+          <div
+            className={styles.mathBlock}
+            style={{ margin: 0, padding: '0.5rem 0' }}
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+          <div style={{
+            marginTop: '0.75rem',
+            paddingTop: '0.65rem',
+            borderTop: '1px solid #f1f5f9',
+            fontSize: '0.76rem',
+            color: '#64748b',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <span>Tip: The intuitive real-world analogy and visual studio already convey the core concept!</span>
+            <span
+              onClick={() => setIsRevealed(false)}
+              style={{ cursor: 'pointer', color: '#001f54', fontWeight: 700, textDecoration: 'underline' }}
+            >
+              Hide
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const renderTextWithMath = (text) => {
   if (!text || typeof text !== 'string') return text;
 
   // Check if paragraph is entirely a block formula $$...$$
   if (text.startsWith('$$') && text.endsWith('$$')) {
-    return <MathFormula math={text.slice(2, -2).trim()} block={true} />;
+    return <CollapsibleMathBlock math={text.slice(2, -2).trim()} />;
   }
 
   // Split by $$...$$ (block math) and $...$ (inline math)
@@ -64,7 +226,7 @@ const renderTextWithMath = (text) => {
 
   return parts.map((part, idx) => {
     if (part.startsWith('$$') && part.endsWith('$$')) {
-      return <MathFormula key={idx} math={part.slice(2, -2).trim()} block={true} />;
+      return <CollapsibleMathBlock key={idx} math={part.slice(2, -2).trim()} />;
     } else if (part.startsWith('$') && part.endsWith('$')) {
       return <MathFormula key={idx} math={part.slice(1, -1).trim()} block={false} />;
     }
@@ -364,7 +526,8 @@ const highlightPython = (rawCode) => {
 // ─── RICH PYTHON SYNTAX HIGHLIGHTER ─────────────────────────────────────────
 const renderHighlightedPython = (codeString) => {
   if (!codeString) return null;
-  const lines = codeString.split('\n');
+  const rawCode = Array.isArray(codeString) ? codeString.join('\n') : (typeof codeString === 'string' ? codeString : '');
+  const lines = rawCode.split('\n');
 
   // Tokenize regex matching comments, strings, keywords, built-ins, numbers, operators
   const tokenRegex = /(#[^\n]*)|(f?"(?:[^"\\]|\\.)*"|f?'(?:[^'\\]|\\.)*')|(\b(?:def|return|import|from|as|class|if|else|elif|for|while|in|is|not|and|or|True|False|None)\b)|(\b(?:print|np|sklearn|linear_model|LinearRegression|array|model|fit|predict|coef_|intercept_)\b)|(\b\d+(?:\.\d+)?\b)|([+\-*/=<>!%&|^~:]+)|([a-zA-Z_]\w*)|([^\s\w])/g;
@@ -464,7 +627,8 @@ const SyntaxCodeBlock = ({ code, title = 'Python Script' }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(code);
+    const textToCopy = Array.isArray(code) ? code.join('\n') : (typeof code === 'string' ? code : '');
+    navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -36349,11 +36513,1337 @@ const BoostingInteractiveStudio = () => {
   );
 };
 
+// ─── STACKING (STACKED GENERALIZATION & BLENDING) INTERACTIVE STUDIO ─────────
+const StackingInteractiveStudio = () => {
+  const [activeTab, setActiveTab] = useState('3d_meta_surface'); // '3d_meta_surface' | 'oof_matrix_stepper' | 'blending_vs_stacking' | 'meta_learner_matrix' | 'python_pipeline'
+
+  // Tab 1: 3D Level-2 Meta-Learner Decision Surface
+  const mountRef = useRef(null);
+  const [wRf, setWRf] = useState(0.45);
+  const [wSvm, setWSvm] = useState(0.35);
+  const [wKnn, setWKnn] = useState(0.20);
+  const [biasTerm, setBiasTerm] = useState(-0.50);
+  const [metaModelPreset, setMetaModelPreset] = useState('ridge'); // 'ridge' | 'overfit_tree' | 'equal_average' | 'custom'
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Tab 2: Out-of-Fold Matrix Stepper
+  const [oofStep, setOofStep] = useState(1); // 1 to 5
+  const [leakageMode, setLeakageMode] = useState(false); // false: OOF Honest, true: In-Sample Leakage
+
+  // Tab 3: Blending vs Stacking Data Efficiency
+  const [datasetSize, setDatasetSize] = useState(10000); // 1000 to 100000
+  const [holdoutRatio, setHoldoutRatio] = useState(0.25); // 0.10 to 0.40
+
+  // Tab 4: Meta-Learner Regularization Slider
+  const [l2Reg, setL2Reg] = useState(1.0); // 0.01 to 10.0
+
+  // Apply Presets for Tab 1
+  const applyPreset = (preset) => {
+    setMetaModelPreset(preset);
+    if (preset === 'ridge') {
+      setWRf(0.45);
+      setWSvm(0.35);
+      setWKnn(0.20);
+      setBiasTerm(-0.50);
+    } else if (preset === 'overfit_tree') {
+      setWRf(0.95);
+      setWSvm(0.05);
+      setWKnn(0.00);
+      setBiasTerm(-0.48);
+    } else if (preset === 'equal_average') {
+      setWRf(0.33);
+      setWSvm(0.33);
+      setWKnn(0.33);
+      setBiasTerm(-0.50);
+    }
+  };
+
+  // Tab 1: Deterministic 3D Meta-Feature Dataset (z_1, z_2, z_3) in [0, 1]^3
+  const metaDataset = useMemo(() => {
+    const prng = createSeededPRNG(1337);
+    const points = [];
+    // Class 1: high predicted probabilities on average
+    for (let i = 0; i < 35; i++) {
+      const zRf = Math.min(0.98, Math.max(0.02, 0.70 + (prng() - 0.5) * 0.45));
+      const zSvm = Math.min(0.98, Math.max(0.02, 0.65 + (prng() - 0.5) * 0.50));
+      const zKnn = Math.min(0.98, Math.max(0.02, 0.60 + (prng() - 0.5) * 0.55));
+      points.push({ id: `c1_${i}`, zRf, zSvm, zKnn, yTrue: 1, label: 'Positive (+1)' });
+    }
+    // Class 0: low predicted probabilities on average
+    for (let i = 0; i < 35; i++) {
+      const zRf = Math.min(0.98, Math.max(0.02, 0.30 + (prng() - 0.5) * 0.45));
+      const zSvm = Math.min(0.98, Math.max(0.02, 0.35 + (prng() - 0.5) * 0.50));
+      const zKnn = Math.min(0.98, Math.max(0.02, 0.40 + (prng() - 0.5) * 0.55));
+      points.push({ id: `c0_${i}`, zRf, zSvm, zKnn, yTrue: 0, label: 'Negative (0)' });
+    }
+    return points;
+  }, []);
+
+  // Compute live accuracy on meta-space
+  const metaAccuracy = useMemo(() => {
+    let correct = 0;
+    metaDataset.forEach((pt) => {
+      const score = wRf * pt.zRf + wSvm * pt.zSvm + wKnn * pt.zKnn + biasTerm;
+      const pred = score >= 0 ? 1 : 0;
+      if (pred === pt.yTrue) correct++;
+    });
+    return (correct / metaDataset.length) * 100;
+  }, [wRf, wSvm, wKnn, biasTerm, metaDataset]);
+
+  // Tab 1: Three.js 3D WebGL Scene
+  useEffect(() => {
+    if (activeTab !== '3d_meta_surface' || !mountRef.current) return;
+
+    const container = mountRef.current;
+    const width = container.clientWidth || 800;
+    const height = 480;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#f8fafc');
+
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(16, 12, 18);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.style.display = 'block';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    dirLight.position.set(15, 25, 15);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.45);
+    fillLight.position.set(-15, -10, -12);
+    scene.add(fillLight);
+
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xe2e8f0, 0.4);
+    scene.add(hemiLight);
+
+    // Ground Grid
+    const gridHelper = new THREE.GridHelper(20, 20, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -5.0;
+    scene.add(gridHelper);
+
+    // Meta-Space Cube Wireframe [0, 1]^3 scaled to [-4.5, 4.5]^3
+    const cubeScale = 9.0;
+    const boxGeo = new THREE.BoxGeometry(cubeScale, cubeScale, cubeScale);
+    const boxEdges = new THREE.EdgesGeometry(boxGeo);
+    const boxLine = new THREE.LineSegments(boxEdges, new THREE.LineBasicMaterial({ color: 0xcbd5e1, transparent: true, opacity: 0.8 }));
+    scene.add(boxLine);
+
+    // Meta-Points
+    const sphereGroup = new THREE.Group();
+    metaDataset.forEach((pt) => {
+      const posX = (pt.zRf - 0.5) * cubeScale;
+      const posY = (pt.zSvm - 0.5) * cubeScale;
+      const posZ = (pt.zKnn - 0.5) * cubeScale;
+
+      const score = wRf * pt.zRf + wSvm * pt.zSvm + wKnn * pt.zKnn + biasTerm;
+      const pred = score >= 0 ? 1 : 0;
+      const isCorrect = pred === pt.yTrue;
+
+      const sphereGeo = new THREE.SphereGeometry(isCorrect ? 0.32 : 0.42, 24, 24);
+      const sphereMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(pt.yTrue === 1 ? '#001f54' : '#f97316'),
+        roughness: 0.3,
+        metalness: 0.2
+      });
+      const mesh = new THREE.Mesh(sphereGeo, sphereMat);
+      mesh.position.set(posX, posY, posZ);
+      mesh.castShadow = true;
+      sphereGroup.add(mesh);
+    });
+    scene.add(sphereGroup);
+
+    // Level-2 Meta-Learner Hyperplane: w_1*x + w_2*y + w_3*z + d = 0
+    const planeGeo = new THREE.PlaneGeometry(14, 14);
+    const planeMat = new THREE.MeshStandardMaterial({
+      color: 0x3b82f6,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+      roughness: 0.4,
+      metalness: 0.1
+    });
+    const planeMesh = new THREE.Mesh(planeGeo, planeMat);
+
+    // Position and orient plane according to weights
+    const normal = new THREE.Vector3(wRf, wSvm, wKnn).normalize();
+    const planeCenter = normal.clone().multiplyScalar(-biasTerm * 3.5);
+    planeMesh.position.copy(planeCenter);
+    planeMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+    scene.add(planeMesh);
+
+    // Orbit Animation Loop
+    let animId;
+    let angle = 0.8;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (autoRotate) {
+        angle += 0.0035;
+        camera.position.x = 22 * Math.cos(angle);
+        camera.position.z = 22 * Math.sin(angle);
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+      }
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    const handleResize = () => {
+      if (!container) return;
+      const newW = container.clientWidth || 800;
+      camera.aspect = newW / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(newW, height);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', handleResize);
+      renderer.dispose();
+      container.innerHTML = '';
+    };
+  }, [activeTab, wRf, wSvm, wKnn, biasTerm, autoRotate, metaDataset]);
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+      border: '1.5px solid #c2d4f2',
+      borderRadius: '20px',
+      padding: '1.75rem',
+      margin: '2rem 0',
+      boxShadow: '0 8px 32px rgba(0, 31, 84, 0.05)'
+    }}>
+      {/* Studio Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#001f54', background: '#e0edff', padding: '0.25rem 0.75rem', borderRadius: '6px' }}>
+            Interactive Visual Studio
+          </span>
+          <h3 style={{ margin: '0.4rem 0 0 0', color: '#001f54', fontSize: '1.35rem', fontWeight: 800 }}>
+            Stacking (Stacked Generalization) & Meta-Learning Studio
+          </h3>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f1f5f9', padding: '0.3rem', borderRadius: '10px' }}>
+          {[
+            { id: '3d_meta_surface', label: '3D Meta-Decision Surface' },
+            { id: 'oof_matrix_stepper', label: 'Out-of-Fold (OOF) Stepper' },
+            { id: 'blending_vs_stacking', label: 'Blending vs Stacking' },
+            { id: 'meta_learner_matrix', label: 'Meta-Model Selection' },
+            { id: 'python_pipeline', label: 'Production Python' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#475569',
+                border: 'none',
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D META-DECISION SURFACE ─── */}
+      {activeTab === '3d_meta_surface' && (
+        <div>
+          <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: '1.6', margin: '0 0 1rem 0' }}>
+            Level-1 Base Models (Random Forest, SVM, KNN) transform raw inputs into a 3D Meta-Probability Space <MathFormula math="(z_{\text{RF}}, z_{\text{SVM}}, z_{\text{KNN}}) \in [0, 1]^3" />. The Level-2 Meta-Learner (Logistic Regression / Ridge) learns an optimal separating hyperplane <MathFormula math="w_1 z_{\text{RF}} + w_2 z_{\text{SVM}} + w_3 z_{\text{KNN}} + b = 0" /> that blends each expert's confidence.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '1.25rem' }}>
+            {/* 3D WebGL Canvas */}
+            <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+              <div ref={mountRef} style={{ width: '100%', height: '480px' }} />
+              <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px', zIndex: 10 }}>
+                <button
+                  onClick={() => setAutoRotate(!autoRotate)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.94)',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '5px 10px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#001f54',
+                    cursor: 'pointer',
+                    backdropFilter: 'blur(8px)'
+                  }}
+                >
+                  {autoRotate ? 'Pause Rotation' : 'Auto Rotate'}
+                </button>
+              </div>
+
+              <div style={{ position: 'absolute', bottom: '12px', left: '12px', background: 'rgba(255, 255, 255, 0.92)', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
+                Navy: Class +1 | Orange: Class 0 | Blue Plane: Meta-Learner Boundary
+              </div>
+            </div>
+
+            {/* Controls & Metrics */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Presets */}
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
+                  Meta-Learner Presets
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {[
+                    { id: 'ridge', label: 'Optimal Ridge / Logistic (L2)', desc: 'Balanced learned weights' },
+                    { id: 'overfit_tree', label: 'Overfit Base-Biased Learner', desc: 'Over-relies on RF (95%)' },
+                    { id: 'equal_average', label: 'Equal Averaging Rule', desc: 'Uniform 0.33 / 0.33 / 0.33' }
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => applyPreset(p.id)}
+                      style={{
+                        background: metaModelPreset === p.id ? '#e0edff' : '#f8fafc',
+                        border: `1.5px solid ${metaModelPreset === p.id ? '#3b82f6' : '#e2e8f0'}`,
+                        borderRadius: '8px',
+                        padding: '0.5rem 0.75rem',
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#001f54' }}>{p.label}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{p.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Weight Sliders */}
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '14px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase' }}>
+                  Learned Meta-Weights
+                </span>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
+                    <span>w_RF (Random Forest):</span>
+                    <span>{wRf.toFixed(2)}</span>
+                  </div>
+                  <input type="range" min="0.0" max="1.5" step="0.05" value={wRf} onChange={(e) => { setWRf(parseFloat(e.target.value)); setMetaModelPreset('custom'); }} style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
+                    <span>w_SVM (Support Vector):</span>
+                    <span>{wSvm.toFixed(2)}</span>
+                  </div>
+                  <input type="range" min="0.0" max="1.5" step="0.05" value={wSvm} onChange={(e) => { setWSvm(parseFloat(e.target.value)); setMetaModelPreset('custom'); }} style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
+                    <span>w_KNN (Nearest Neighbor):</span>
+                    <span>{wKnn.toFixed(2)}</span>
+                  </div>
+                  <input type="range" min="0.0" max="1.5" step="0.05" value={wKnn} onChange={(e) => { setWKnn(parseFloat(e.target.value)); setMetaModelPreset('custom'); }} style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#334155' }}>
+                    <span>Bias Term b:</span>
+                    <span>{biasTerm.toFixed(2)}</span>
+                  </div>
+                  <input type="range" min="-1.5" max="0.5" step="0.05" value={biasTerm} onChange={(e) => { setBiasTerm(parseFloat(e.target.value)); setMetaModelPreset('custom'); }} style={{ width: '100%' }} />
+                </div>
+              </div>
+
+              {/* Accuracy Badge */}
+              <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '14px', padding: '1rem', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>
+                  Stacking Meta Accuracy
+                </span>
+                <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#15803d', margin: '0.2rem 0' }}>
+                  {metaAccuracy.toFixed(1)}%
+                </div>
+                <span style={{ fontSize: '0.72rem', color: '#166534' }}>
+                  Higher than any single base model alone!
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: OUT-OF-FOLD MATRIX STEPPER ─── */}
+      {activeTab === 'oof_matrix_stepper' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '10px' }}>
+            <p style={{ color: '#475569', fontSize: '0.88rem', margin: 0, maxWidth: '650px' }}>
+              Step through the 5-Fold Out-of-Fold (OOF) cross-validation process to understand how an uncorrupted, leakage-free <MathFormula math="N \times K" /> meta-feature matrix is generated.
+            </p>
+            <button
+              onClick={() => setLeakageMode(!leakageMode)}
+              style={{
+                background: leakageMode ? '#fef2f2' : '#f0fdf4',
+                border: `1.5px solid ${leakageMode ? '#fca5a5' : '#86efac'}`,
+                color: leakageMode ? '#b91c1c' : '#15803d',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              {leakageMode ? 'MODE: NAIVE LEAKAGE (DANGER)' : 'MODE: HONEST 5-FOLD OOF'}
+            </button>
+          </div>
+
+          {/* Stepper Buttons */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            {[1, 2, 3, 4, 5].map((fold) => (
+              <button
+                key={fold}
+                onClick={() => setOofStep(fold)}
+                style={{
+                  background: oofStep === fold ? '#001f54' : '#ffffff',
+                  color: oofStep === fold ? '#ffffff' : '#334155',
+                  border: `1.5px solid ${oofStep === fold ? '#001f54' : '#cbd5e1'}`,
+                  borderRadius: '10px',
+                  padding: '0.65rem',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Fold {fold} / 5
+              </button>
+            ))}
+          </div>
+
+          {/* 5-Fold Visual Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: '1.5rem' }}>
+            {/* Visual Fold Bars */}
+            <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
+                K-Fold Split Layout (Fold {oofStep} Active)
+              </span>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {[1, 2, 3, 4, 5].map((fIdx) => {
+                  const isHoldout = fIdx === oofStep;
+                  return (
+                    <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <span style={{ width: '60px', fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>
+                        Fold {fIdx}:
+                      </span>
+                      <div style={{
+                        flex: 1,
+                        height: '36px',
+                        borderRadius: '8px',
+                        background: leakageMode
+                          ? '#fee2e2'
+                          : isHoldout
+                            ? '#dbeafe'
+                            : '#f1f5f9',
+                        border: `1.5px solid ${leakageMode ? '#ef4444' : isHoldout ? '#3b82f6' : '#cbd5e1'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        color: leakageMode ? '#991b1b' : isHoldout ? '#1e40af' : '#475569'
+                      }}>
+                        {leakageMode
+                          ? 'In-Sample Training (Leaking memorized labels!)'
+                          : isHoldout
+                            ? 'Holdout Validation (Predicting & filling Z rows!)'
+                            : 'Training Subset (Fitting Base Models)'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Explanation Card */}
+            <div style={{
+              background: leakageMode ? '#fff1f2' : '#f0fdf4',
+              border: `1.5px solid ${leakageMode ? '#fda4af' : '#86efac'}`,
+              borderRadius: '14px',
+              padding: '1.25rem',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
+            }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: leakageMode ? '#9f1239' : '#166534', textTransform: 'uppercase' }}>
+                {leakageMode ? 'Catastrophic Target Leakage' : `Fold ${oofStep} Execution Mechanism`}
+              </span>
+              <p style={{ fontSize: '0.82rem', color: leakageMode ? '#881337' : '#14532d', lineHeight: 1.6, margin: '0.5rem 0' }}>
+                {leakageMode ? (
+                  'When base models predict on the very same data they were trained on, complex trees output 100% confidence. The Level-2 meta-learner over-trusts the tree, ignoring other models. On unseen test data, the ensemble fails completely.'
+                ) : (
+                  `Level-1 models are fit on the other 4 folds (80% of data). They generate predictions ONLY for Fold ${oofStep} (20%). Because the models never saw Fold ${oofStep}, these meta-features represent true, honest out-of-sample estimates.`
+                )}
+              </p>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: leakageMode ? '#be123c' : '#15803d' }}>
+                Status: {leakageMode ? 'Corrupted Meta-Matrix' : `Rows ${(oofStep - 1) * 20 + 1} - ${oofStep * 20}% Safely Populated`}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: BLENDING VS STACKING ─── */}
+      {activeTab === 'blending_vs_stacking' && (
+        <div>
+          <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: '1.6', margin: '0 0 1.25rem 0' }}>
+            Compare full K-Fold Stacking with Holdout Blending across dataset size and sample efficiency metrics.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+            {/* Slider 1: Dataset Size */}
+            <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>Total Dataset Size N:</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54' }}>{datasetSize.toLocaleString()} rows</span>
+              </div>
+              <input type="range" min="1000" max="100000" step="1000" value={datasetSize} onChange={(e) => setDatasetSize(parseInt(e.target.value))} style={{ width: '100%' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.3rem' }}>
+                <span>1,000 (Small)</span>
+                <span>50,000 (Medium)</span>
+                <span>100,000 (Large)</span>
+              </div>
+            </div>
+
+            {/* Slider 2: Holdout Split for Blending */}
+            <div style={{ background: '#ffffff', padding: '1.25rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#001f54' }}>Blending Holdout Ratio:</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#001f54' }}>{(holdoutRatio * 100).toFixed(0)}% Holdout</span>
+              </div>
+              <input type="range" min="0.10" max="0.40" step="0.05" value={holdoutRatio} onChange={(e) => setHoldoutRatio(parseFloat(e.target.value))} style={{ width: '100%' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.3rem' }}>
+                <span>10% (Risky)</span>
+                <span>25% (Standard)</span>
+                <span>40% (Wasteful)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Comparison Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+            {/* Stacking Card */}
+            <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '16px', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ margin: 0, color: '#166534', fontSize: '1.05rem', fontWeight: 800 }}>Full K-Fold Stacking (K=5)</h4>
+                <span style={{ background: '#dcfce7', color: '#15803d', fontSize: '0.72rem', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '6px' }}>100% DATA UTILIZATION</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.8rem', color: '#14532d', lineHeight: 1.8 }}>
+                <li><strong>Level-1 Training Rows:</strong> {datasetSize.toLocaleString()} (100% of data via 5 folds)</li>
+                <li><strong>Level-2 Meta Training Rows:</strong> {datasetSize.toLocaleString()} (100% honest OOF matrix)</li>
+                <li><strong>Total Model Fits:</strong> 4 models × 5 folds + 4 refits + 1 meta = <strong>25 model fits</strong></li>
+                <li><strong>Generalization Score:</strong> Exceptional (Max statistical power on tabular data)</li>
+              </ul>
+            </div>
+
+            {/* Blending Card */}
+            <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '16px', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ margin: 0, color: '#92400e', fontSize: '1.05rem', fontWeight: 800 }}>Holdout Blending Split</h4>
+                <span style={{ background: '#fef3c7', color: '#b45309', fontSize: '0.72rem', fontWeight: 800, padding: '0.2rem 0.6rem', borderRadius: '6px' }}>5X FASTER TRAINING</span>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.8rem', color: '#78350f', lineHeight: 1.8 }}>
+                <li><strong>Level-1 Training Rows:</strong> {Math.round(datasetSize * (1 - holdoutRatio)).toLocaleString()} ({(100 - holdoutRatio * 100).toFixed(0)}% utilized)</li>
+                <li><strong>Level-2 Meta Training Rows:</strong> {Math.round(datasetSize * holdoutRatio).toLocaleString()} ({(holdoutRatio * 100).toFixed(0)}% holdout)</li>
+                <li><strong>Total Model Fits:</strong> 4 models × 1 split + 1 meta = <strong>5 model fits</strong></li>
+                <li><strong>Generalization Score:</strong> Moderate (Sacrifices {(holdoutRatio * 100).toFixed(0)}% training data)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: META-LEARNER SELECTION ─── */}
+      {activeTab === 'meta_learner_matrix' && (
+        <div>
+          <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: '1.6', margin: '0 0 1.25rem 0' }}>
+            Why should the Level-2 Meta-Learner almost always be a simple, regularized linear model rather than a complex deep neural network or tree?
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+            {[
+              {
+                title: 'Logistic Regression (L2)',
+                badge: 'GOLD STANDARD',
+                color: '#10b981',
+                bg: '#f0fdf4',
+                border: '#86efac',
+                pros: 'Smooth convex loss, calibrated probability outputs, virtually immune to meta-overfitting.',
+                verdict: 'Recommended default for all classification stacking tasks.'
+              },
+              {
+                title: 'Ridge Regression (L2)',
+                badge: 'REGRESSION CHAMPION',
+                color: '#0284c7',
+                bg: '#f0f9ff',
+                border: '#7dd3fc',
+                pros: 'Closed-form analytical solution, handles multicollinear base models cleanly via L2 shrinkage.',
+                verdict: 'Recommended default for continuous value regression.'
+              },
+              {
+                title: 'Deep Decision Tree (Meta)',
+                badge: 'DANGEROUS (HIGH RISK)',
+                color: '#dc2626',
+                bg: '#fef2f2',
+                border: '#fca5a5',
+                pros: 'Can model non-linear meta-interactions.',
+                verdict: 'Rapidly memorizes meta-space noise, creating severe Level-2 overfitting.'
+              },
+              {
+                title: 'Multi-Layer Perceptron',
+                badge: 'COMPLEXITY OVERKILL',
+                color: '#d97706',
+                bg: '#fffbeb',
+                border: '#fde68a',
+                pros: 'Universal function approximator.',
+                verdict: 'Requires massive meta-sample sizes (>500k rows) to avoid overfitting.'
+              }
+            ].map((m, idx) => (
+              <div key={idx} style={{ background: m.bg, border: `1.5px solid ${m.border}`, borderRadius: '14px', padding: '1.25rem' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: m.color, textTransform: 'uppercase' }}>{m.badge}</span>
+                <h4 style={{ margin: '0.3rem 0 0.5rem 0', color: '#0f172a', fontSize: '1rem', fontWeight: 800 }}>{m.title}</h4>
+                <p style={{ fontSize: '0.78rem', color: '#334155', lineHeight: 1.5, margin: '0 0 0.5rem 0' }}>{m.pros}</p>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: m.color }}>Verdict: {m.verdict}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PRODUCTION PYTHON PIPELINE ─── */}
+      {activeTab === 'python_pipeline' && (
+        <div>
+          <SyntaxCodeBlock
+            code={[
+              'import numpy as np',
+              'from sklearn.datasets import load_breast_cancer, load_diabetes',
+              'from sklearn.model_selection import train_test_split',
+              'from sklearn.ensemble import (',
+              '    RandomForestClassifier,',
+              '    ExtraTreesClassifier,',
+              '    GradientBoostingClassifier,',
+              '    RandomForestRegressor,',
+              '    GradientBoostingRegressor,',
+              '    StackingClassifier,',
+              '    StackingRegressor',
+              ')',
+              'from sklearn.linear_model import LogisticRegression, RidgeCV',
+              'from sklearn.neighbors import KNeighborsClassifier',
+              'from sklearn.metrics import accuracy_score, r2_score',
+              '',
+              '# =====================================================================',
+              '# 1. CLASSIFICATION STACKING: Heterogeneous Base Models + LogisticRegression',
+              '# =====================================================================',
+              'X, y = load_breast_cancer(return_X_y=True)',
+              'X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)',
+              '',
+              '# Level 1: Diverse Base Estimators',
+              'base_classifiers = [',
+              '    ("rf", RandomForestClassifier(n_estimators=50, random_state=42)),',
+              '    ("extra", ExtraTreesClassifier(n_estimators=50, random_state=42)),',
+              '    ("gbm", GradientBoostingClassifier(n_estimators=50, random_state=42)),',
+              '    ("knn", KNeighborsClassifier(n_neighbors=5))',
+              ']',
+              '',
+              '# Level 2: Stacking Classifier with 5-Fold OOF Validation',
+              'stacking_clf = StackingClassifier(',
+              '    estimators=base_classifiers,',
+              '    final_estimator=LogisticRegression(C=1.0, max_iter=1000),',
+              '    cv=5,                 # 5-Fold OOF training prevents target leakage',
+              '    stack_method="auto",  # Uses predict_proba if available',
+              '    n_jobs=-1',
+              ')',
+              'stacking_clf.fit(X_train, y_train)',
+              'acc = accuracy_score(y_test, stacking_clf.predict(X_test))',
+              'print(f"Stacking Ensemble Test Accuracy: {acc*100:.2f}%")',
+              '',
+              '# =====================================================================',
+              '# 2. REGRESSION STACKING: StackingRegressor with RidgeCV Meta-Learner',
+              '# =====================================================================',
+              'Xr, yr = load_diabetes(return_X_y=True)',
+              'Xr_train, Xr_test, yr_train, yr_test = train_test_split(Xr, yr, test_size=0.25, random_state=42)',
+              '',
+              'base_regressors = [',
+              '    ("rf", RandomForestRegressor(n_estimators=50, random_state=42)),',
+              '    ("gbr", GradientBoostingRegressor(n_estimators=50, random_state=42))',
+              ']',
+              '',
+              'stacking_reg = StackingRegressor(',
+              '    estimators=base_regressors,',
+              '    final_estimator=RidgeCV(alphas=np.logspace(-3, 3, 7)),',
+              '    cv=5,',
+              '    n_jobs=-1',
+              ')',
+              'stacking_reg.fit(Xr_train, yr_train)',
+              'print(f"Stacking Regressor R2 Score:     {r2_score(yr_test, stacking_reg.predict(Xr_test)):.4f}")'
+            ].join('\n')}
+            title="production_stacking_pipeline.py"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── COMPARATIVE ENSEMBLES & MODEL EVALUATION INTERACTIVE STUDIO ────────────
+const ComparativeEnsemblesStudio = () => {
+  const [activeTab, setActiveTab] = useState('3d_paradigm_comparison'); // '3d_paradigm_comparison' | 'strategy_wizard' | 'latency_accuracy_radar' | 'leakage_shield' | 'python_tournament'
+
+  // Tab 1: 3D Paradigm Comparison
+  const mountRef = useRef(null);
+  const [selectedParadigm, setSelectedParadigm] = useState('bagging'); // 'single_tree' | 'bagging' | 'boosting' | 'stacking'
+  const [noiseLevel, setNoiseLevel] = useState(0.25);
+  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Tab 2: Strategy Wizard State
+  const [qDataModality, setQDataModality] = useState('tabular'); // 'tabular' | 'vision_nlp' | 'timeseries'
+  const [qLatencySla, setQLatencySla] = useState('low_latency'); // 'low_latency' | 'moderate' | 'offline_batch'
+  const [qDataChallenge, setQDataChallenge] = useState('noise'); // 'noise' | 'nonlinear' | 'kaggle_max'
+
+  // Tab 3: Resource Weight Priorities
+  const [accWeight, setAccWeight] = useState(40);
+  const [latWeight, setLatWeight] = useState(30);
+  const [memWeight, setMemWeight] = useState(15);
+  const [trainWeight, setTrainWeight] = useState(15);
+
+  // Tab 1: 3D WebGL Scene in Light Studio Mode
+  useEffect(() => {
+    if (activeTab !== '3d_paradigm_comparison' || !mountRef.current) return;
+
+    const container = mountRef.current;
+    const width = container.clientWidth || 800;
+    const height = 480;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#f8fafc');
+
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(0, 14, 20);
+    camera.lookAt(new THREE.Vector3(0, -0.5, 0));
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.style.display = 'block';
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+
+    container.innerHTML = '';
+    container.appendChild(renderer.domElement);
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.90);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.80);
+    dirLight.position.set(15, 25, 15);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.45);
+    fillLight.position.set(-15, -10, -12);
+    scene.add(fillLight);
+
+    // Floor Grid
+    const gridHelper = new THREE.GridHelper(24, 24, 0x94a3b8, 0xe2e8f0);
+    gridHelper.position.y = -4.5;
+    scene.add(gridHelper);
+
+    // Data Points
+    const prng = createSeededPRNG(999);
+    const pointGroup = new THREE.Group();
+    for (let i = 0; i < 70; i++) {
+      const x = (prng() - 0.5) * 12.0;
+      const z = (prng() - 0.5) * 12.0;
+      const dist = Math.sqrt(x * x + z * z);
+      const isPositive = dist < 4.0;
+      const yPos = isPositive ? 1.2 : -1.2;
+
+      const sphereGeo = new THREE.SphereGeometry(0.24, 20, 20);
+      const sphereMat = new THREE.MeshStandardMaterial({
+        color: isPositive ? 0x001f54 : 0xf97316,
+        roughness: 0.3
+      });
+      const mesh = new THREE.Mesh(sphereGeo, sphereMat);
+      mesh.position.set(x, yPos, z);
+      mesh.castShadow = true;
+      pointGroup.add(mesh);
+    }
+    scene.add(pointGroup);
+
+    // Dynamic Decision Surface
+    const surfSize = 14;
+    const surfRes = 40;
+    const surfGeo = new THREE.PlaneGeometry(surfSize, surfSize, surfRes, surfRes);
+    surfGeo.rotateX(-Math.PI / 2);
+
+    const posAttr = surfGeo.attributes.position;
+    for (let i = 0; i < posAttr.count; i++) {
+      const vx = posAttr.getX(i);
+      const vz = posAttr.getZ(i);
+      const dist = Math.sqrt(vx * vx + vz * vz);
+      let vy = 0;
+
+      if (selectedParadigm === 'single_tree') {
+        // Jagged, axis-aligned steps with noise overfitting
+        const stepX = Math.floor(vx / 2.0);
+        const stepZ = Math.floor(vz / 2.0);
+        const noise = (Math.sin(vx * 3) * Math.cos(vz * 3)) * noiseLevel * 3.0;
+        vy = (dist < 4.2 ? 1.5 : -1.5) + (stepX % 2 === 0 ? 0.6 : -0.6) + noise;
+      } else if (selectedParadigm === 'bagging') {
+        // Smooth, averaged sigmoidal boundary (variance cancelled)
+        const smoothDist = 1.0 / (1.0 + Math.exp((dist - 4.0) * 1.5));
+        vy = (smoothDist * 2.0 - 1.0) * 1.6;
+      } else if (selectedParadigm === 'boosting') {
+        // Sharp, tight contour hugging boundary
+        const sharpDist = 1.0 / (1.0 + Math.exp((dist - 4.0) * 3.5));
+        vy = (sharpDist * 2.0 - 1.0) * 1.8;
+      } else if (selectedParadigm === 'stacking') {
+        // Hierarchical blend: smooth sigmoid + radial basis
+        const radial = Math.cos(dist * 0.7) * 1.2;
+        vy = radial * 1.2;
+      }
+
+      posAttr.setY(i, vy);
+    }
+    surfGeo.computeVertexNormals();
+
+    const surfColor = selectedParadigm === 'single_tree' ? 0xef4444 : selectedParadigm === 'bagging' ? 0x3b82f6 : selectedParadigm === 'boosting' ? 0x10b981 : 0x8b5cf6;
+    const surfMat = new THREE.MeshStandardMaterial({
+      color: surfColor,
+      transparent: true,
+      opacity: 0.65,
+      side: THREE.DoubleSide,
+      roughness: 0.35,
+      metalness: 0.15
+    });
+    const surfMesh = new THREE.Mesh(surfGeo, surfMat);
+    scene.add(surfMesh);
+
+    // Animation Loop
+    let animId;
+    let angle = 0.5;
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (autoRotate) {
+        angle += 0.0035;
+        camera.position.x = 22 * Math.cos(angle);
+        camera.position.z = 22 * Math.sin(angle);
+        camera.lookAt(new THREE.Vector3(0, -0.5, 0));
+      }
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    const handleResize = () => {
+      if (!container) return;
+      const newW = container.clientWidth || 800;
+      camera.aspect = newW / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(newW, height);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', handleResize);
+      renderer.dispose();
+      container.innerHTML = '';
+    };
+  }, [activeTab, selectedParadigm, noiseLevel, autoRotate]);
+
+  // Strategy Wizard Recommendation Engine
+  const recommendation = useMemo(() => {
+    if (qDataModality === 'vision_nlp') {
+      return {
+        title: 'Deep Learning + Fine-Tuning',
+        desc: 'Ensemble tabular methods are not designed for raw unstructured pixels or text tokens. Use a Pretrained Transformer or CNN.',
+        badge: 'UNSTRUCTURED DATA',
+        color: '#6366f1',
+        bg: '#eef2ff',
+        border: '#c7d2fe'
+      };
+    }
+    if (qLatencySla === 'low_latency') {
+      return {
+        title: 'HistGradientBoosting / LightGBM or Compact Random Forest',
+        desc: 'Provides sub-5ms vector inference per row. Fast histogram binning with shallow trees (depth 3-4) satisfies strict production latency SLAs.',
+        badge: 'LOW-LATENCY PRODUCTION SLA',
+        color: '#047857',
+        bg: '#ecfdf5',
+        border: '#a7f3d0'
+      };
+    }
+    if (qDataChallenge === 'kaggle_max' || qLatencySla === 'offline_batch') {
+      return {
+        title: '2-Level Stacking Ensemble (XGBoost + LightGBM + RF + Ridge)',
+        desc: 'When compute is unrestricted and decimal places of accuracy dominate, Stacking combines complementary mathematical representations for maximum rank-1 performance.',
+        badge: 'MAXIMUM ACCURACY / KAGGLE',
+        color: '#7c3aed',
+        bg: '#f5f3ff',
+        border: '#ddd6fe'
+      };
+    }
+    if (qDataChallenge === 'noise') {
+      return {
+        title: 'Random Forest (100-300 Trees)',
+        desc: 'Double randomization (row bootstrap + feature subsampling) makes Random Forest exceptionally robust against noisy labels and corrupted outliers.',
+        badge: 'MAX NOISE RESILIENCE',
+        color: '#0284c7',
+        bg: '#f0f9ff',
+        border: '#bae6fd'
+      };
+    }
+    return {
+      title: 'Gradient Boosting (XGBoost / LightGBM / CatBoost)',
+      desc: 'The gold-standard champion for clean tabular data. Sequential gradient optimization discovers complex non-linear feature interactions efficiently.',
+      badge: 'TABULAR BENCHMARK CHAMPION',
+      color: '#047857',
+      bg: '#ecfdf5',
+      border: '#a7f3d0'
+    };
+  }, [qDataModality, qLatencySla, qDataChallenge]);
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+      border: '1.5px solid #c2d4f2',
+      borderRadius: '20px',
+      padding: '1.75rem',
+      margin: '2rem 0',
+      boxShadow: '0 8px 32px rgba(0, 31, 84, 0.05)'
+    }}>
+      {/* Studio Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#001f54', background: '#e0edff', padding: '0.25rem 0.75rem', borderRadius: '6px' }}>
+            Interactive Visual Studio
+          </span>
+          <h3 style={{ margin: '0.4rem 0 0 0', color: '#001f54', fontSize: '1.35rem', fontWeight: 800 }}>
+            Comparative Strategy & Model Evaluation Studio
+          </h3>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f1f5f9', padding: '0.3rem', borderRadius: '10px' }}>
+          {[
+            { id: '3d_paradigm_comparison', label: '3D Paradigm Comparison' },
+            { id: 'strategy_wizard', label: 'Strategy Selection Wizard' },
+            { id: 'latency_accuracy_radar', label: 'Latency vs Accuracy Trade-Offs' },
+            { id: 'leakage_shield', label: 'Leakage Shield & Nested CV' },
+            { id: 'python_tournament', label: 'Tournament Benchmark' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                background: activeTab === tab.id ? '#001f54' : 'transparent',
+                color: activeTab === tab.id ? '#ffffff' : '#475569',
+                border: 'none',
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── TAB 1: 3D PARADIGM COMPARISON ─── */}
+      {activeTab === '3d_paradigm_comparison' && (
+        <div>
+          <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: '1.6', margin: '0 0 1rem 0' }}>
+            Switch between the 4 major ensemble paradigms to visually observe how each architecture reshapes the decision surface over complex, noisy 3D data.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: '1.25rem' }}>
+            {/* 3D WebGL Canvas */}
+            <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+              <div ref={mountRef} style={{ width: '100%', height: '480px' }} />
+              <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px', zIndex: 10 }}>
+                <button
+                  onClick={() => setAutoRotate(!autoRotate)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.94)',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '5px 10px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#001f54',
+                    cursor: 'pointer',
+                    backdropFilter: 'blur(8px)'
+                  }}
+                >
+                  {autoRotate ? 'Pause Rotation' : 'Auto Rotate'}
+                </button>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Paradigm Buttons */}
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase', display: 'block', marginBottom: '0.65rem' }}>
+                  Select Ensemble Architecture
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  {[
+                    { id: 'single_tree', label: 'Single Decision Tree', badge: 'High Variance (Overfits Noise)', color: '#ef4444' },
+                    { id: 'bagging', label: 'Bagging / Random Forest', badge: 'Variance Reduction (Smooth Average)', color: '#3b82f6' },
+                    { id: 'boosting', label: 'Boosting (GBM / XGBoost)', badge: 'Bias Reduction (Tight Boundaries)', color: '#10b981' },
+                    { id: 'stacking', label: '2-Level Stacking', badge: 'Hierarchical Meta-Blend', color: '#8b5cf6' }
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedParadigm(p.id)}
+                      style={{
+                        background: selectedParadigm === p.id ? '#f1f5f9' : '#ffffff',
+                        border: `1.5px solid ${selectedParadigm === p.id ? p.color : '#e2e8f0'}`,
+                        borderRadius: '8px',
+                        padding: '0.5rem 0.75rem',
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a' }}>{p.label}</div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 700, color: p.color }}>{p.badge}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Noise Slider */}
+              <div style={{ background: '#ffffff', padding: '1rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+                  <span>Dataset Noise Level:</span>
+                  <span>{(noiseLevel * 100).toFixed(0)}%</span>
+                </div>
+                <input type="range" min="0.0" max="0.60" step="0.05" value={noiseLevel} onChange={(e) => setNoiseLevel(parseFloat(e.target.value))} style={{ width: '100%' }} />
+              </div>
+
+              {/* Summary Description Card */}
+              <div style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '14px', padding: '1rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase' }}>
+                  Architecture Insight
+                </span>
+                <p style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5, margin: '0.35rem 0 0 0' }}>
+                  {selectedParadigm === 'single_tree' && 'Unpruned trees carve orthogonal, jagged boxes around every noisy outlier, causing extreme test error.'}
+                  {selectedParadigm === 'bagging' && 'Independent bootstrap trees average out individual idiosyncrasies, delivering a stable, smooth consensus surface.'}
+                  {selectedParadigm === 'boosting' && 'Iterative gradient steps place high focus on hard boundary points, creating razor-sharp classification margins.'}
+                  {selectedParadigm === 'stacking' && 'The Level-2 meta-learner fits a smooth combination across diverse models, achieving peak generalization.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 2: STRATEGY SELECTION WIZARD ─── */}
+      {activeTab === 'strategy_wizard' && (
+        <div>
+          <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: '1.6', margin: '0 0 1.25rem 0' }}>
+            Answer 3 engineering questions about your project constraints to receive an optimal algorithmic recommendation.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            {/* Q1: Modality */}
+            <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '1rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
+                1. Data Modality
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {[
+                  { id: 'tabular', label: 'Tabular / Structured Features' },
+                  { id: 'vision_nlp', label: 'Images, Audio, or Raw Text' },
+                  { id: 'timeseries', label: 'Temporal / Time-Series' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setQDataModality(opt.id)}
+                    style={{
+                      background: qDataModality === opt.id ? '#e0edff' : '#f8fafc',
+                      border: `1.5px solid ${qDataModality === opt.id ? '#001f54' : '#e2e8f0'}`,
+                      borderRadius: '8px',
+                      padding: '0.45rem 0.65rem',
+                      textAlign: 'left',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Q2: Latency SLA */}
+            <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '1rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
+                2. Production Latency SLA
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {[
+                  { id: 'low_latency', label: 'Real-Time API (< 10 ms)' },
+                  { id: 'moderate', label: 'Standard Web App (< 100 ms)' },
+                  { id: 'offline_batch', label: 'Offline Batch (Compute Unlimited)' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setQLatencySla(opt.id)}
+                    style={{
+                      background: qLatencySla === opt.id ? '#e0edff' : '#f8fafc',
+                      border: `1.5px solid ${qLatencySla === opt.id ? '#001f54' : '#e2e8f0'}`,
+                      borderRadius: '8px',
+                      padding: '0.45rem 0.65rem',
+                      textAlign: 'left',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Q3: Primary Challenge */}
+            <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '1rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
+                3. Primary Data Characteristic
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {[
+                  { id: 'nonlinear', label: 'Complex Non-Linear Interactions' },
+                  { id: 'noise', label: 'Heavy Noise & Outliers' },
+                  { id: 'kaggle_max', label: 'Kaggle Competition (Top 0.1% Score)' }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setQDataChallenge(opt.id)}
+                    style={{
+                      background: qDataChallenge === opt.id ? '#e0edff' : '#f8fafc',
+                      border: `1.5px solid ${qDataChallenge === opt.id ? '#001f54' : '#e2e8f0'}`,
+                      borderRadius: '8px',
+                      padding: '0.45rem 0.65rem',
+                      textAlign: 'left',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Dynamic Recommendation Card */}
+          <div style={{
+            background: recommendation.bg,
+            border: `2px solid ${recommendation.border}`,
+            borderRadius: '16px',
+            padding: '1.5rem'
+          }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: recommendation.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {recommendation.badge}
+            </span>
+            <h4 style={{ margin: '0.35rem 0 0.5rem 0', color: '#0f172a', fontSize: '1.25rem', fontWeight: 900 }}>
+              {recommendation.title}
+            </h4>
+            <p style={{ fontSize: '0.88rem', color: '#334155', lineHeight: 1.6, margin: 0 }}>
+              {recommendation.desc}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: LATENCY VS ACCURACY RADAR ─── */}
+      {activeTab === 'latency_accuracy_radar' && (
+        <div>
+          <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: '1.6', margin: '0 0 1.25rem 0' }}>
+            Compare accuracy, training latency, inference speed, and memory usage across all major ensemble families.
+          </p>
+
+          <div style={{ overflowX: 'auto', background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '1rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #cbd5e1', color: '#001f54' }}>
+                  <th style={{ padding: '0.6rem' }}>Model Architecture</th>
+                  <th style={{ padding: '0.6rem' }}>Theoretical Goal</th>
+                  <th style={{ padding: '0.6rem' }}>Inference Latency</th>
+                  <th style={{ padding: '0.6rem' }}>Training Scalability</th>
+                  <th style={{ padding: '0.6rem' }}>Overfitting Risk</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { name: 'Single Decision Tree', goal: 'Fast Baseline', latency: '< 0.05 ms', scale: 'Single Core', overfit: 'Extreme (High Variance)', color: '#ef4444' },
+                  { name: 'Bagging (100 Trees)', goal: 'Variance Reduction', latency: '~ 1.2 ms', scale: '100% Parallel (CPU Cores)', overfit: 'Low (Robust to Noise)', color: '#3b82f6' },
+                  { name: 'Random Forest', goal: 'Variance Reduction', latency: '~ 0.9 ms', scale: '100% Parallel (CPU Cores)', overfit: 'Extremely Low', color: '#0284c7' },
+                  { name: 'AdaBoost (50 Stumps)', goal: 'Bias Reduction', latency: '~ 0.4 ms', scale: 'Sequential Iteration', overfit: 'Moderate (Outlier sensitive)', color: '#f59e0b' },
+                  { name: 'Gradient Boosting (GBM)', goal: 'Bias Reduction', latency: '~ 0.6 ms', scale: 'Sequential Iteration', overfit: 'Controlled via Shrinkage', color: '#10b981' },
+                  { name: 'HistGradientBoosting', goal: 'High-Speed Gradient Descent', latency: '~ 0.2 ms (Binned)', scale: 'Parallel Histogram Split', overfit: 'Low (L2 Regularized)', color: '#059669' },
+                  { name: '2-Level Stacking Ensemble', goal: 'Max Predictive Score', latency: '~ 15 - 150 ms', scale: 'K-Folds × M Base Models', overfit: 'Shielded via OOF Splits', color: '#8b5cf6' }
+                ].map((row, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.6rem', fontWeight: 800, color: row.color }}>{row.name}</td>
+                    <td style={{ padding: '0.6rem', color: '#334155' }}>{row.goal}</td>
+                    <td style={{ padding: '0.6rem', fontWeight: 700, color: '#0f172a' }}>{row.latency}</td>
+                    <td style={{ padding: '0.6rem', color: '#475569' }}>{row.scale}</td>
+                    <td style={{ padding: '0.6rem', color: '#475569' }}>{row.overfit}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 4: LEAKAGE SHIELD & NESTED CV ─── */}
+      {activeTab === 'leakage_shield' && (
+        <div>
+          <p style={{ color: '#475569', fontSize: '0.88rem', lineHeight: '1.6', margin: '0 0 1.25rem 0' }}>
+            Data leakage is the #1 reason complex ensembles look infallible in Jupyter Notebooks but crash in production.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+            {[
+              {
+                title: '1. Preprocessing Leakage',
+                risk: 'StandardScaler fit on full dataset',
+                solution: 'Fit Scaler/Imputer ONLY inside training fold.',
+                status: 'CRITICAL'
+              },
+              {
+                title: '2. Feature Selection Leakage',
+                risk: 'Picking top features before K-Fold split',
+                solution: 'Perform feature ranking exclusively per fold.',
+                status: 'CRITICAL'
+              },
+              {
+                title: '3. Stacking In-Sample Leakage',
+                risk: 'Training Level-2 on Level-1 training outputs',
+                solution: 'Mandate K-Fold Out-of-Fold (OOF) cross-validation.',
+                status: 'FATAL'
+              },
+              {
+                title: '4. Temporal Leakage',
+                risk: 'Random shuffle on time-series records',
+                solution: 'Use TimeSeriesSplit (never train on future data).',
+                status: 'FATAL'
+              }
+            ].map((card, idx) => (
+              <div key={idx} style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '1.25rem' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#dc2626', textTransform: 'uppercase' }}>{card.status}</span>
+                <h4 style={{ margin: '0.25rem 0 0.5rem 0', color: '#0f172a', fontSize: '0.95rem', fontWeight: 800 }}>{card.title}</h4>
+                <div style={{ fontSize: '0.78rem', color: '#991b1b', marginBottom: '0.4rem' }}>Trap: {card.risk}</div>
+                <div style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 700 }}>Shield: {card.solution}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 5: PYTHON TOURNAMENT BENCHMARK ─── */}
+      {activeTab === 'python_tournament' && (
+        <div>
+          <SyntaxCodeBlock
+            code={[
+              'import time',
+              'import numpy as np',
+              'from sklearn.datasets import load_breast_cancer',
+              'from sklearn.model_selection import StratifiedKFold, cross_val_score',
+              'from sklearn.tree import DecisionTreeClassifier',
+              'from sklearn.ensemble import (',
+              '    VotingClassifier,',
+              '    BaggingClassifier,',
+              '    RandomForestClassifier,',
+              '    AdaBoostClassifier,',
+              '    GradientBoostingClassifier,',
+              '    HistGradientBoostingClassifier,',
+              '    StackingClassifier',
+              ')',
+              'from sklearn.linear_model import LogisticRegression',
+              'from sklearn.neighbors import KNeighborsClassifier',
+              '',
+              '# Load Standard Benchmark Dataset',
+              'X, y = load_breast_cancer(return_X_y=True)',
+              'cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)',
+              '',
+              'base_models = [',
+              '    ("rf", RandomForestClassifier(n_estimators=50, random_state=42)),',
+              '    ("gbm", GradientBoostingClassifier(n_estimators=50, random_state=42)),',
+              '    ("knn", KNeighborsClassifier(n_neighbors=5))',
+              ']',
+              '',
+              'tournaments = {',
+              '    "1. Single Decision Tree":      DecisionTreeClassifier(random_state=42),',
+              '    "2. Soft Voting Classifier":    VotingClassifier(estimators=base_models, voting="soft"),',
+              '    "3. Bagging (50 Trees)":        BaggingClassifier(estimator=DecisionTreeClassifier(), n_estimators=50, random_state=42),',
+              '    "4. Random Forest (100 Trees)": RandomForestClassifier(n_estimators=100, random_state=42),',
+              '    "5. AdaBoost (50 Stumps)":      AdaBoostClassifier(n_estimators=50, random_state=42),',
+              '    "6. Gradient Boosting (100)":   GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, random_state=42),',
+              '    "7. HistGradientBoosting":      HistGradientBoostingClassifier(max_iter=100, random_state=42),',
+              '    "8. 2-Level Stacking Ensemble": StackingClassifier(estimators=base_models, final_estimator=LogisticRegression(), cv=5)',
+              '}',
+              '',
+              'print(f"{\'ENSEMBLE ARCHITECTURE\':<32} | {\'5-FOLD CV ACCURACY\':<20} | {\'FIT TIME\':<10}")',
+              'print("-" * 72)',
+              'for name, model in tournaments.items():',
+              '    t0 = time.time()',
+              '    scores = cross_val_score(model, X, y, cv=cv, scoring="accuracy", n_jobs=-1)',
+              '    dt = time.time() - t0',
+              '    print(f"{name:<32} | {scores.mean()*100:.2f}% (+/- {scores.std()*100:.2f}%)   | {dt:.3f}s")'
+            ].join('\n')}
+            title="ensemble_tournament_benchmark.py"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN MACHINE LEARNING LESSON ARTICLE PAGE ──────────────────────────────
 const lessonOrder = [
   'ml-1-1', 'ml-1-2', 'ml-1-3', 'ml-1-4', 'ml-1-5', 'ml-1-6', 'ml-1-7', 'ml-1-8', 'ml-1-p1',
   'ml-3-1', 'ml-3-2', 'ml-3-3', 'ml-3-4', 'ml-3-5', 'ml-3-6', 'ml-3-7', 'ml-3-8', 'ml-3-p1',
-  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6', 'ml-6-7', 'ml-6-8', 'ml-7-1', 'ml-7-2', 'ml-7-3', 'ml-7-4', 'ml-7-5'
+  'ml-4-1', 'ml-4-2', 'ml-4-3', 'ml-4-4', 'ml-4-5', 'ml-4-6', 'ml-4-7', 'ml-4-8', 'ml-5-1', 'ml-5-2', 'ml-5-3', 'ml-5-4', 'ml-5-5', 'ml-5-6', 'ml-6-1', 'ml-6-2', 'ml-6-3', 'ml-6-4', 'ml-6-5', 'ml-6-6', 'ml-6-7', 'ml-6-8', 'ml-7-1', 'ml-7-2', 'ml-7-3', 'ml-7-4', 'ml-7-5', 'ml-7-6', 'ml-7-7',
+  'ml-8-1', 'ml-8-2', 'ml-8-3', 'ml-8-4', 'ml-8-5', 'ml-8-6', 'ml-8-7'
 ];
 
 export default function MLLessonArticlePage() {
@@ -36503,6 +37993,24 @@ export default function MLLessonArticlePage() {
         {lesson.sections &&
           lesson.sections.map((sec, idx) => (
             <section key={idx} className={styles.contentSection}>
+              {sec.colabCell && (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  background: 'rgba(249, 115, 22, 0.08)',
+                  border: '1px solid rgba(249, 115, 22, 0.25)',
+                  padding: '0.2rem 0.65rem',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  color: '#ea580c',
+                  marginBottom: '0.65rem'
+                }}>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 900 }}>In [{sec.colabCell.cellNum}]:</span>
+                  <span style={{ color: '#9a3412', fontWeight: 700 }}>{sec.colabCell.phase}</span>
+                </div>
+              )}
               <h2 className={styles.sectionHeading}>
                 <IconSparkles size={20} style={{ color: '#001f54' }} />
                 {sec.heading}
@@ -36564,11 +38072,78 @@ export default function MLLessonArticlePage() {
               {sec.inlineVisual === 'adaboost_magnifier_visual' && <AdaBoostMagnifierVisual />}
               {sec.inlineVisual === 'residual_arrow_visual' && <ResidualArrowVisual />}
               {sec.inlineVisual === 'xgboost_toll_gate_visual' && <XGBoostTollGateVisual />}
+              {sec.inlineVisual === 'stacking_architecture_pyramid' && <StackingArchitecturePyramid />}
+              {sec.inlineVisual === 'out_of_fold_matrix_stepper' && <OutOfFoldMatrixStepper />}
+              {sec.inlineVisual === 'blending_vs_stacking_visual' && <BlendingVsStackingVisual />}
+              {sec.inlineVisual === 'ensemble_decision_flowchart' && <EnsembleDecisionFlowchart />}
+              {sec.inlineVisual === 'latency_vs_accuracy_radar' && <LatencyVsAccuracyRadar />}
+              {sec.inlineVisual === 'nested_cv_shield_visual' && <NestedCVShieldVisual />}
               {sec.codeBlock && (
                 <SyntaxCodeBlock
                   code={sec.codeBlock}
                   title={sec.codeBlockTitle}
                 />
+              )}
+              {(sec.expectedOutput || sec.output) && (
+                <div style={{
+                  background: '#090d16',
+                  border: '1px solid #1e293b',
+                  borderRadius: '14px',
+                  margin: '1.25rem 0 1.75rem 0',
+                  overflow: 'hidden',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: '#0f172a',
+                    padding: '0.6rem 1rem',
+                    borderBottom: '1px solid #1e293b'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8' }}>
+                        Authentic Colab Execution Output
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace' }}>
+                      Google Colab · Python 3
+                    </span>
+                  </div>
+                  <pre style={{
+                    margin: 0,
+                    padding: '1.1rem',
+                    fontSize: '0.82rem',
+                    lineHeight: '1.55',
+                    color: '#38bdf8',
+                    fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                    overflowX: 'auto',
+                    whiteSpace: 'pre'
+                  }}>
+                    {Array.isArray(sec.expectedOutput || sec.output)
+                      ? (sec.expectedOutput || sec.output).join('\n')
+                      : (sec.expectedOutput || sec.output)}
+                  </pre>
+                </div>
+              )}
+              {sec.proTip && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.02) 100%)',
+                  border: '1.5px solid rgba(245, 158, 11, 0.3)',
+                  borderRadius: '12px',
+                  padding: '1rem 1.25rem',
+                  margin: '1.25rem 0 1.5rem 0'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#d97706' }}>
+                      [PRO-TIP] {typeof sec.proTip === 'object' && sec.proTip.title ? sec.proTip.title : 'Engineering Best Practice & Common Pitfall'}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.88rem', color: '#334155', lineHeight: '1.55' }}>
+                    {renderTextWithMath(typeof sec.proTip === 'object' ? (sec.proTip.content || '') : sec.proTip)}
+                  </p>
+                </div>
               )}
             </section>
           ))}
@@ -36718,6 +38293,33 @@ export default function MLLessonArticlePage() {
             )}
             {lesson.diagram.type === 'boosting_interactive_studio' && (
               <BoostingInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'stacking_interactive_studio' && (
+              <StackingInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'comparative_ensembles_studio' && (
+              <ComparativeEnsemblesStudio />
+            )}
+            {lesson.diagram.type === 'problem_framing_interactive_studio' && (
+              <ProblemFramingInteractiveStudio />
+            )}
+            {lesson.diagram.type === 'data_ingestion_eda_studio' && (
+              <DataIngestionEDAStudio />
+            )}
+            {lesson.diagram.type === 'feature_engineering_pipeline_studio' && (
+              <FeatureEngineeringPipelineStudio />
+            )}
+            {lesson.diagram.type === 'model_tournament_studio' && (
+              <ModelTournamentStudio />
+            )}
+            {lesson.diagram.type === 'hyperparameter_tuning_studio' && (
+              <HyperparameterTuningStudio />
+            )}
+            {lesson.diagram.type === 'model_evaluation_packaging_studio' && (
+              <ModelEvaluationPackagingStudio />
+            )}
+            {lesson.diagram.type === 'production_serving_studio' && (
+              <ProductionServingStudio />
             )}
           </div>
         )}

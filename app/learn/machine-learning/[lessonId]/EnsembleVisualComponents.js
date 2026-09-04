@@ -1060,3 +1060,653 @@ export function XGBoostTollGateVisual() {
     </div>
   );
 }
+
+// ============================================================================
+// 10. STACKING TWO-LEVEL ARCHITECTURE PYRAMID (ml-7-6)
+// ============================================================================
+export function StackingArchitecturePyramid() {
+  const [activeModel, setActiveModel] = useState('meta');
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #e2e8f0',
+      borderRadius: '16px',
+      padding: '1.5rem',
+      margin: '1.5rem 0',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
+        <div>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#001f54', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Interactive Architecture Visual
+          </span>
+          <h4 style={{ margin: '0.25rem 0 0 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: 800 }}>
+            Two-Level Stacking Generalization Hierarchy
+          </h4>
+        </div>
+        <span style={{
+          background: '#f8fafc',
+          border: '1px solid #cbd5e1',
+          padding: '4px 10px',
+          borderRadius: '8px',
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          color: '#475569'
+        }}>
+          Click a tier to inspect data flow
+        </span>
+      </div>
+
+      {/* Level 2: Meta-Learner Tier */}
+      <div
+        onClick={() => setActiveModel('meta')}
+        style={{
+          background: activeModel === 'meta' ? 'linear-gradient(135deg, #001f54 0%, #034078 100%)' : '#f8fafc',
+          color: activeModel === 'meta' ? '#ffffff' : '#001f54',
+          border: '2px solid #001f54',
+          borderRadius: '14px',
+          padding: '1rem 1.25rem',
+          textAlign: 'center',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          boxShadow: activeModel === 'meta' ? '0 6px 18px rgba(0, 31, 84, 0.25)' : 'none',
+          marginBottom: '1rem'
+        }}
+      >
+        <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', opacity: activeModel === 'meta' ? 0.9 : 0.7 }}>
+          Level 2: Meta-Learner (Blender Model)
+        </div>
+        <div style={{ fontSize: '1.05rem', fontWeight: 900, marginTop: '2px' }}>
+          Logistic Regression / Ridge / ElasticNet (L2 Regularized)
+        </div>
+        <div style={{ fontSize: '0.78rem', marginTop: '4px', opacity: activeModel === 'meta' ? 0.95 : 0.8 }}>
+          Input: Out-of-Fold predictions matrix Z = [y_hat_RF, y_hat_SVM, y_hat_KNN, y_hat_GBM] &rarr; Output: Final Ensemble Prediction
+        </div>
+      </div>
+
+      {/* Connecting Flow Arrows */}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2rem', margin: '-0.5rem 0 0.5rem 0' }}>
+        <div style={{ color: '#0284c7', fontSize: '1.2rem', fontWeight: 900 }}>^</div>
+        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0284c7', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '2px 10px', borderRadius: '20px' }}>
+          Out-of-Fold (OOF) Prediction Matrix Z (N x M)
+        </div>
+        <div style={{ color: '#0284c7', fontSize: '1.2rem', fontWeight: 900 }}>^</div>
+      </div>
+
+      {/* Level 1: Heterogeneous Base Estimators Tier */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+        gap: '0.75rem',
+        marginBottom: '1rem'
+      }}>
+        {[
+          { id: 'rf', name: 'Random Forest', desc: 'Tree Orthogonal Splits', color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
+          { id: 'svm', name: 'RBF Support Vector', desc: 'Margin Non-linear Shell', color: '#0284c7', bg: '#f0f9ff', border: '#7dd3fc' },
+          { id: 'knn', name: 'K-Nearest Neighbors', desc: 'Local Distance Geometry', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+          { id: 'gbm', name: 'Gradient Boosting', desc: 'Sequential Residuals', color: '#7c3aed', bg: '#faf5ff', border: '#d8b4fe' }
+        ].map((m) => (
+          <div
+            key={m.id}
+            onClick={() => setActiveModel(m.id)}
+            style={{
+              background: activeModel === m.id ? m.bg : '#ffffff',
+              border: `1.5px solid ${activeModel === m.id ? m.color : '#e2e8f0'}`,
+              borderRadius: '12px',
+              padding: '0.85rem 0.75rem',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: activeModel === m.id ? `0 4px 12px ${m.bg}` : 'none'
+            }}
+          >
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: m.color, textTransform: 'uppercase' }}>
+              Base Estimator
+            </div>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#001f54', margin: '2px 0' }}>
+              {m.name}
+            </div>
+            <div style={{ fontSize: '0.70rem', color: '#64748b' }}>
+              {m.desc}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Connecting Flow Arrows */}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2rem', margin: '-0.5rem 0 0.5rem 0' }}>
+        <div style={{ color: '#64748b', fontSize: '1.2rem', fontWeight: 900 }}>^</div>
+        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '2px 10px', borderRadius: '20px' }}>
+          Original Feature Matrix X (N Samples x P Features)
+        </div>
+        <div style={{ color: '#64748b', fontSize: '1.2rem', fontWeight: 900 }}>^</div>
+      </div>
+
+      {/* Explanatory Footer Card */}
+      <div style={{
+        background: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: '12px',
+        padding: '0.85rem 1.1rem',
+        fontSize: '0.78rem',
+        color: '#334155',
+        lineHeight: 1.6
+      }}>
+        {activeModel === 'meta' && (
+          <div>
+            <strong style={{ color: '#001f54' }}>Level-2 Meta-Learner Role:</strong> Instead of trusting an unweighted vote, the Meta-Learner fits a learned linear/logistic combination function y_pred = sigmoid(w_0 + w_1*y_RF + w_2*y_SVM + w_3*y_KNN). It automatically penalizes redundant models with near-zero coefficients and gives maximal influence to complementary specialists.
+          </div>
+        )}
+        {activeModel === 'rf' && (
+          <div>
+            <strong style={{ color: '#16a34a' }}>Random Forest Specialist:</strong> Excels at capturing sharp, axis-aligned categorical splits and complex hierarchical rule interactions without scaling dependencies.
+          </div>
+        )}
+        {activeModel === 'svm' && (
+          <div>
+            <strong style={{ color: '#0284c7' }}>RBF SVM Specialist:</strong> Excels at discovering smooth, continuous curved decision margins in high-dimensional feature projections.
+          </div>
+        )}
+        {activeModel === 'knn' && (
+          <div>
+            <strong style={{ color: '#d97706' }}>KNN Specialist:</strong> Excels at memorizing local geometric cluster neighborhoods and dense topological pockets.
+          </div>
+        )}
+        {activeModel === 'gbm' && (
+          <div>
+            <strong style={{ color: '#7c3aed' }}>Gradient Boosting Specialist:</strong> Excels at sequentially chipping away at subtle non-linear residual errors.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 11. OUT-OF-FOLD (OOF) MATRIX STEPPER (ml-7-6)
+// ============================================================================
+export function OutOfFoldMatrixStepper() {
+  const [activeFold, setActiveFold] = useState(1);
+  const [showLeakageWarning, setShowLeakageWarning] = useState(false);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #e2e8f0',
+      borderRadius: '16px',
+      padding: '1.5rem',
+      margin: '1.5rem 0',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
+        <div>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#001f54', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Validation Safety Visual
+          </span>
+          <h4 style={{ margin: '0.25rem 0 0 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: 800 }}>
+            K-Fold Out-of-Fold (OOF) Meta-Matrix Generation
+          </h4>
+        </div>
+        <button
+          onClick={() => setShowLeakageWarning(!showLeakageWarning)}
+          style={{
+            background: showLeakageWarning ? '#fee2e2' : '#f8fafc',
+            border: `1.5px solid ${showLeakageWarning ? '#ef4444' : '#cbd5e1'}`,
+            color: showLeakageWarning ? '#991b1b' : '#475569',
+            padding: '5px 12px',
+            borderRadius: '8px',
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            cursor: 'pointer'
+          }}
+        >
+          {showLeakageWarning ? 'Target Leakage Trap: ON' : 'Target Leakage Trap: OFF'}
+        </button>
+      </div>
+
+      {/* Fold Selection Buttons */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem', overflowX: 'auto', paddingBottom: '4px' }}>
+        {[1, 2, 3, 4, 5].map((foldNum) => (
+          <button
+            key={foldNum}
+            onClick={() => setActiveFold(foldNum)}
+            style={{
+              flex: 1,
+              minWidth: '90px',
+              padding: '8px 10px',
+              borderRadius: '10px',
+              border: `1.5px solid ${activeFold === foldNum ? '#001f54' : '#e2e8f0'}`,
+              background: activeFold === foldNum ? '#001f54' : '#f8fafc',
+              color: activeFold === foldNum ? '#ffffff' : '#475569',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            Fold #{foldNum} Step
+          </button>
+        ))}
+      </div>
+
+      {/* 5-Fold Partition Grid Visual */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '1.25rem' }}>
+        {[1, 2, 3, 4, 5].map((f) => {
+          const isHoldout = f === activeFold;
+          return (
+            <div
+              key={f}
+              style={{
+                background: showLeakageWarning ? '#fef2f2' : isHoldout ? '#ecfdf5' : '#eff6ff',
+                border: `2px solid ${showLeakageWarning ? '#ef4444' : isHoldout ? '#10b981' : '#93c5fd'}`,
+                borderRadius: '10px',
+                padding: '12px 8px',
+                textAlign: 'center',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <div style={{ fontSize: '0.70rem', fontWeight: 800, color: showLeakageWarning ? '#991b1b' : isHoldout ? '#065f46' : '#1e40af' }}>
+                Fold {f} (20%)
+              </div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#001f54', marginTop: '2px' }}>
+                {showLeakageWarning ? 'Trained & Predicted!' : isHoldout ? 'OOF Test Set' : 'Training Fold'}
+              </div>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                {showLeakageWarning ? 'Severe Leakage!' : isHoldout ? 'P(Unseen) -> Matrix Z' : 'Fits Base Learners'}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Explanation Banner */}
+      <div style={{
+        background: showLeakageWarning ? '#fef2f2' : '#f0fdf4',
+        border: `1.5px solid ${showLeakageWarning ? '#fca5a5' : '#86efac'}`,
+        borderRadius: '12px',
+        padding: '1rem',
+        fontSize: '0.78rem',
+        color: showLeakageWarning ? '#991b1b' : '#166534',
+        lineHeight: 1.6
+      }}>
+        {showLeakageWarning ? (
+          <div>
+            <strong>Catastrophic Target Leakage:</strong> If base models are allowed to predict on the exact samples they trained on, complex models (like Decision Trees or Random Forests) will output memorized 100% confidence scores. The Level-2 Meta-Learner will see this fake 100% accuracy, give all weight to the overfitted base learner, and suffer catastrophic test set failure!
+          </div>
+        ) : (
+          <div>
+            <strong>Fold #{activeFold} Out-of-Fold Execution:</strong> Base estimators are fitted strictly on the other 4 folds (80% of data). Then, they predict strictly on Fold #{activeFold} (20% unseen data). By repeating this for all 5 folds, we construct a 100% pristine Meta-Feature Matrix Z (of dimension N &times; M) where every single row was predicted by a model that never saw that sample during training!
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 12. BLENDING VS STACKING PARTITION DIAGRAM (ml-7-6)
+// ============================================================================
+export function BlendingVsStackingVisual() {
+  const [selectedArch, setSelectedArch] = useState('stacking');
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #e2e8f0',
+      borderRadius: '16px',
+      padding: '1.5rem',
+      margin: '1.5rem 0',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
+        <div>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#001f54', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Architectural Comparison
+          </span>
+          <h4 style={{ margin: '0.25rem 0 0 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: 800 }}>
+            Blending (Hold-Out Set) vs. Stacking (K-Fold OOF)
+          </h4>
+        </div>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button
+            onClick={() => setSelectedArch('blending')}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: `1.5px solid ${selectedArch === 'blending' ? '#001f54' : '#cbd5e1'}`,
+              background: selectedArch === 'blending' ? '#001f54' : '#ffffff',
+              color: selectedArch === 'blending' ? '#ffffff' : '#475569',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            Blending
+          </button>
+          <button
+            onClick={() => setSelectedArch('stacking')}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: `1.5px solid ${selectedArch === 'stacking' ? '#001f54' : '#cbd5e1'}`,
+              background: selectedArch === 'stacking' ? '#001f54' : '#ffffff',
+              color: selectedArch === 'stacking' ? '#ffffff' : '#475569',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            Stacking (K-Fold)
+          </button>
+        </div>
+      </div>
+
+      {/* Side-by-Side Comparison Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+        <div style={{
+          background: selectedArch === 'blending' ? '#f0f9ff' : '#f8fafc',
+          border: `1.5px solid ${selectedArch === 'blending' ? '#0284c7' : '#e2e8f0'}`,
+          borderRadius: '12px',
+          padding: '1.25rem'
+        }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase' }}>
+            Blending Architecture
+          </div>
+          <div style={{ fontSize: '1rem', fontWeight: 900, color: '#001f54', margin: '4px 0' }}>
+            Fixed Hold-Out Validation Set
+          </div>
+          <div style={{ fontSize: '0.76rem', color: '#475569', lineHeight: 1.6 }}>
+            Dataset is partitioned once into Train (60%), Blend Validation (20%), and Test (20%). Base models train on 60% and predict on 20% to train Meta-Learner.
+          </div>
+          <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.72rem' }}>
+            <span style={{ color: '#16a34a', fontWeight: 700 }}>+ Fast: Requires only 1 training pass per model</span>
+            <span style={{ color: '#dc2626', fontWeight: 700 }}>- Data Inefficient: 20% validation data wasted</span>
+            <span style={{ color: '#d97706', fontWeight: 700 }}>- Higher Variance: Sensitive to the hold-out split</span>
+          </div>
+        </div>
+
+        <div style={{
+          background: selectedArch === 'stacking' ? '#f0fdf4' : '#f8fafc',
+          border: `1.5px solid ${selectedArch === 'stacking' ? '#16a34a' : '#e2e8f0'}`,
+          borderRadius: '12px',
+          padding: '1.25rem'
+        }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase' }}>
+            Stacking Architecture
+          </div>
+          <div style={{ fontSize: '1rem', fontWeight: 900, color: '#001f54', margin: '4px 0' }}>
+            Full K-Fold Out-of-Fold Matrix
+          </div>
+          <div style={{ fontSize: '0.76rem', color: '#475569', lineHeight: 1.6 }}>
+            K-Fold cross-validation generates out-of-fold predictions for 100% of the training dataset. Meta-Learner trains on full N samples.
+          </div>
+          <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.72rem' }}>
+            <span style={{ color: '#16a34a', fontWeight: 700 }}>+ Maximum Accuracy: 100% data utilized</span>
+            <span style={{ color: '#16a34a', fontWeight: 700 }}>+ Stable & Robust: Zero hold-out split variance</span>
+            <span style={{ color: '#dc2626', fontWeight: 700 }}>- Slower: Requires K x M base training passes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 13. ENSEMBLE DECISION FLOWCHART VISUAL (ml-7-7)
+// ============================================================================
+export function EnsembleDecisionFlowchart() {
+  const [selectedGoal, setSelectedGoal] = useState('high_acc');
+
+  const scenarios = {
+    high_acc: {
+      title: 'Top Generalization Accuracy (Tabular/Kaggle)',
+      recommendation: 'Stacking Ensemble or XGBoost / LightGBM',
+      rationale: 'When latency is secondary and every 0.1% accuracy matters, Stacking heterogeneous models (Trees + SVM + Linear) or tuning a deep Gradient Boosting pipeline dominates.',
+      color: '#7c3aed',
+      bg: '#faf5ff',
+      border: '#d8b4fe'
+    },
+    low_latency: {
+      title: 'Sub-5ms Real-Time Production SLA (Fraud / Ads)',
+      recommendation: 'HistGradientBoosting / Pruned Random Forest',
+      rationale: 'Avoid complex multi-level Stacking. Use histogram-binned gradient boosting (LightGBM/HistGBM) with shallow depth (<=4) or simple Soft Voting across 2 lightweight models.',
+      color: '#0284c7',
+      bg: '#f0f9ff',
+      border: '#7dd3fc'
+    },
+    noisy_data: {
+      title: 'Noisy Data & Extreme Outlier Contamination',
+      recommendation: 'Bagging / Random Forest (Avoid Deep Boosting!)',
+      rationale: 'Boosting tries aggressively to correct mislabeled outliers, leading to severe overfitting. Bagging averages out independent noise with complete mathematical stability.',
+      color: '#16a34a',
+      bg: '#f0fdf4',
+      border: '#86efac'
+    },
+    edge_device: {
+      title: 'Resource-Constrained IoT / Mobile Edge (RAM < 32MB)',
+      recommendation: 'Simple Soft Voting of 3 Linear / Naive Bayes Models',
+      rationale: 'Ensembles of large forests exceed memory limits. Combine a logistic regression, a linear SVM, and a decision stump with pre-computed weighted voting.',
+      color: '#d97706',
+      bg: '#fffbeb',
+      border: '#fde68a'
+    }
+  };
+
+  const current = scenarios[selectedGoal];
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #e2e8f0',
+      borderRadius: '16px',
+      padding: '1.5rem',
+      margin: '1.5rem 0',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
+        <div>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#001f54', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Production Engineering Flowchart
+          </span>
+          <h4 style={{ margin: '0.25rem 0 0 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: 800 }}>
+            The Master Ensemble Decision Matrix
+          </h4>
+        </div>
+      </div>
+
+      {/* Scenario Selectors */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginBottom: '1.25rem' }}>
+        {[
+          { id: 'high_acc', label: 'Max Accuracy (Kaggle)' },
+          { id: 'low_latency', label: 'Real-Time (<5ms SLA)' },
+          { id: 'noisy_data', label: 'Noisy / Outlier Data' },
+          { id: 'edge_device', label: 'Embedded / Edge IoT' }
+        ].map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setSelectedGoal(item.id)}
+            style={{
+              padding: '10px 12px',
+              borderRadius: '10px',
+              border: `1.5px solid ${selectedGoal === item.id ? '#001f54' : '#e2e8f0'}`,
+              background: selectedGoal === item.id ? '#001f54' : '#f8fafc',
+              color: selectedGoal === item.id ? '#ffffff' : '#334155',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Decision Outcome Card */}
+      <div style={{
+        background: current.bg,
+        border: `2px solid ${current.border}`,
+        borderRadius: '14px',
+        padding: '1.25rem'
+      }}>
+        <div style={{ fontSize: '0.72rem', fontWeight: 800, color: current.color, textTransform: 'uppercase' }}>
+          Recommended Production Architecture
+        </div>
+        <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#001f54', margin: '4px 0' }}>
+          {current.recommendation}
+        </div>
+        <div style={{ fontSize: '0.80rem', color: '#334155', lineHeight: 1.6, marginTop: '6px' }}>
+          {current.rationale}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 14. INFERENCE LATENCY VS ACCURACY RADAR (ml-7-7)
+// ============================================================================
+export function LatencyVsAccuracyRadar() {
+  const [activeEnsemble, setActiveEnsemble] = useState('random_forest');
+
+  const models = {
+    single_tree: { name: 'Single Decision Tree', acc: 92.3, trainTime: '0.01s', infLatency: '0.2ms', ram: '2 MB', score: 65, color: '#64748b' },
+    voting: { name: 'Soft Voting (3 Models)', acc: 96.5, trainTime: '0.12s', infLatency: '1.1ms', ram: '8 MB', score: 82, color: '#0284c7' },
+    bagging: { name: 'Bagging (50 Trees)', acc: 95.8, trainTime: '0.45s', infLatency: '3.2ms', ram: '24 MB', score: 85, color: '#16a34a' },
+    random_forest: { name: 'Random Forest (100 Trees)', acc: 96.5, trainTime: '0.55s', infLatency: '4.1ms', ram: '32 MB', score: 92, color: '#059669' },
+    xgboost: { name: 'XGBoost / HistGBM', acc: 97.2, trainTime: '0.80s', infLatency: '1.8ms', ram: '14 MB', score: 96, color: '#7c3aed' },
+    stacking: { name: '2-Level Stacking (4 Models)', acc: 98.6, trainTime: '3.80s', infLatency: '8.5ms', ram: '64 MB', score: 98, color: '#dc2626' }
+  };
+
+  const m = models[activeEnsemble];
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #e2e8f0',
+      borderRadius: '16px',
+      padding: '1.5rem',
+      margin: '1.5rem 0',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
+        <div>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#001f54', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Empirical Benchmark Trade-Off
+          </span>
+          <h4 style={{ margin: '0.25rem 0 0 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: 800 }}>
+            Accuracy vs. Inference Latency & Hardware Profile
+          </h4>
+        </div>
+      </div>
+
+      {/* Model Selection Tabs */}
+      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', marginBottom: '1.25rem' }}>
+        {Object.keys(models).map((key) => (
+          <button
+            key={key}
+            onClick={() => setActiveEnsemble(key)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: `1.5px solid ${activeEnsemble === key ? '#001f54' : '#e2e8f0'}`,
+              background: activeEnsemble === key ? '#001f54' : '#f8fafc',
+              color: activeEnsemble === key ? '#ffffff' : '#475569',
+              fontSize: '0.74rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {models[key].name}
+          </button>
+        ))}
+      </div>
+
+      {/* Live Metric Cards Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+        <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>Test Accuracy</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#001f54', marginTop: '2px' }}>{m.acc}%</div>
+        </div>
+        <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>Inference Latency</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#0284c7', marginTop: '2px' }}>{m.infLatency}</div>
+        </div>
+        <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>Training Time</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{m.trainTime}</div>
+        </div>
+        <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>RAM Footprint</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#d97706', marginTop: '2px' }}>{m.ram}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 15. NESTED CROSS-VALIDATION LEAKAGE SHIELD (ml-7-7)
+// ============================================================================
+export function NestedCVShieldVisual() {
+  const [nestedMode, setNestedMode] = useState(true);
+
+  return (
+    <div style={{
+      background: '#ffffff',
+      border: '1.5px solid #e2e8f0',
+      borderRadius: '16px',
+      padding: '1.5rem',
+      margin: '1.5rem 0',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
+        <div>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#001f54', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Leakage Shield Architecture
+          </span>
+          <h4 style={{ margin: '0.25rem 0 0 0', color: '#0f172a', fontSize: '1.1rem', fontWeight: 800 }}>
+            Nested Cross-Validation (5x3 Loop)
+          </h4>
+        </div>
+        <button
+          onClick={() => setNestedMode(!nestedMode)}
+          style={{
+            background: nestedMode ? '#001f54' : '#f8fafc',
+            border: '1.5px solid #001f54',
+            color: nestedMode ? '#ffffff' : '#001f54',
+            padding: '5px 12px',
+            borderRadius: '8px',
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            cursor: 'pointer'
+          }}
+        >
+          {nestedMode ? 'Nested CV: ENABLED (Zero Bias)' : 'Flat CV: ENABLED (Optimistic Bias)'}
+        </button>
+      </div>
+
+      <div style={{
+        background: nestedMode ? '#f0fdf4' : '#fffbeb',
+        border: `1.5px solid ${nestedMode ? '#86efac' : '#fde68a'}`,
+        borderRadius: '12px',
+        padding: '1rem',
+        fontSize: '0.78rem',
+        color: nestedMode ? '#166534' : '#b45309',
+        lineHeight: 1.6
+      }}>
+        {nestedMode ? (
+          <div>
+            <strong>Outer Loop (Generalization Estimate) & Inner Loop (Hyperparameter Tuning):</strong> The outer 5 folds assess performance on completely unseen test data. Inside each outer fold, an inner 3-fold CV tunes model hyperparameters and Level-2 Stacking weights. This mathematically eliminates information leakage between parameter optimization and generalization error.
+          </div>
+        ) : (
+          <div>
+            <strong>Flat Cross-Validation Risk:</strong> When hyperparameter selection or meta-learning is tuned on the same cross-validation loop used to report test error, the reported accuracy is optimistically biased by 1.5% to 4.0%, leading to unexpected performance degradation when deployed to real production traffic.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
