@@ -4738,7 +4738,10 @@ export function ProductionServingStudio() {
       padding: '2rem',
       margin: '2rem 0 3rem 0',
       boxShadow: '0 12px 36px rgba(0, 31, 84, 0.06)',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      boxSizing: 'border-box',
+      maxWidth: '100%',
+      overflow: 'hidden'
     }}>
       {/* Studio Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.75rem' }}>
@@ -4793,10 +4796,24 @@ export function ProductionServingStudio() {
           TAB 1: FASTAPI REST CONSOLE & SWAGGER PLAYGROUND
           ───────────────────────────────────────────────────────────────────────────── */}
       {activeTab === 'api_console' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '1.5rem' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+          gap: '1.5rem',
+          alignItems: 'stretch'
+        }}>
           {/* Left: Request Configuration */}
-          <div style={{ background: '#ffffff', border: '1.5px solid #c2d4f2', borderRadius: '14px', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div style={{
+            background: '#ffffff',
+            border: '1.5px solid #c2d4f2',
+            borderRadius: '14px',
+            padding: '1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.4rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase' }}>
                 HTTP Request Dispatcher
               </span>
@@ -4810,7 +4827,7 @@ export function ProductionServingStudio() {
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#334155', marginBottom: '0.4rem' }}>
                 SELECT REST ENDPOINT
               </label>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                 {[
                   { id: 'predict_single', method: 'POST', path: '/predict' },
                   { id: 'predict_batch', method: 'POST', path: '/predict/batch' },
@@ -4820,7 +4837,7 @@ export function ProductionServingStudio() {
                     key={ep.id}
                     onClick={() => { setEndpoint(ep.id); setApiResponse(null); }}
                     style={{
-                      flex: 1,
+                      flex: '1 1 110px',
                       background: endpoint === ep.id ? '#eff6ff' : '#f8fafc',
                       border: endpoint === ep.id ? '1.5px solid #2563eb' : '1px solid #cbd5e1',
                       borderRadius: '8px',
@@ -4852,7 +4869,7 @@ export function ProductionServingStudio() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>TEST PAYLOAD PRESETS:</span>
                 </div>
-                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
                   {[
                     { id: 'high_risk', label: 'High-Risk Fiber' },
                     { id: 'low_risk', label: 'Low-Risk 2-Yr VIP' },
@@ -4862,7 +4879,7 @@ export function ProductionServingStudio() {
                       key={p.id}
                       onClick={() => handleSelectPreset(p.id)}
                       style={{
-                        flex: 1,
+                        flex: '1 1 95px',
                         background: payloadPreset === p.id ? '#001f54' : '#f1f5f9',
                         color: payloadPreset === p.id ? '#ffffff' : '#334155',
                         border: 'none',
@@ -4882,7 +4899,7 @@ export function ProductionServingStudio() {
 
             {/* Editable JSON Payload */}
             {endpoint !== 'health' && (
-              <div style={{ marginBottom: '1rem' }}>
+              <div style={{ marginBottom: '1rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>REQUEST BODY (JSON):</span>
                   <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Pydantic Validated</span>
@@ -4891,7 +4908,7 @@ export function ProductionServingStudio() {
                   <textarea
                     value={customJson}
                     onChange={(e) => setCustomJson(e.target.value)}
-                    rows={12}
+                    rows={11}
                     style={{
                       width: '100%',
                       fontFamily: 'Consolas, Monaco, monospace',
@@ -4902,7 +4919,9 @@ export function ProductionServingStudio() {
                       borderRadius: '8px',
                       padding: '0.75rem',
                       lineHeight: 1.45,
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      minWidth: 0,
+                      resize: 'vertical'
                     }}
                   />
                 ) : (
@@ -4913,7 +4932,8 @@ export function ProductionServingStudio() {
                     padding: '1rem',
                     color: '#94a3b8',
                     fontFamily: 'monospace',
-                    fontSize: '0.78rem'
+                    fontSize: '0.78rem',
+                    boxSizing: 'border-box'
                   }}>
                     {`{\n  "customers": [ /* 50 Subscriber Dictionaries */ ]\n}`}
                     <div style={{ marginTop: '0.5rem', color: '#38bdf8', fontSize: '0.72rem' }}>
@@ -4942,7 +4962,8 @@ export function ProductionServingStudio() {
                 justifyContent: 'center',
                 alignItems: 'center',
                 gap: '0.5rem',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                marginTop: 'auto'
               }}
             >
               {apiLoading ? 'Executing ASGI Request...' : 'EXECUTE HTTP REQUEST'}
@@ -4950,8 +4971,17 @@ export function ProductionServingStudio() {
           </div>
 
           {/* Right: Live Response Viewer */}
-          <div style={{ background: '#ffffff', border: '1.5px solid #c2d4f2', borderRadius: '14px', padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div style={{
+            background: '#ffffff',
+            border: '1.5px solid #c2d4f2',
+            borderRadius: '14px',
+            padding: '1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.4rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase' }}>
                 ASGI Response Inspector
               </span>
@@ -4975,9 +5005,9 @@ export function ProductionServingStudio() {
             </div>
 
             {apiResponse ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 {/* Headers */}
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '0.5rem 0.75rem', marginBottom: '0.75rem', fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace' }}>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '0.5rem 0.75rem', marginBottom: '0.75rem', fontSize: '0.7rem', color: '#64748b', fontFamily: 'monospace', overflowX: 'auto' }}>
                   <div>content-type: {apiResponse.headers['content-type']}</div>
                   <div>x-response-time: {apiResponse.headers['x-response-time'] || `${apiLatency}ms`}</div>
                 </div>
@@ -4994,6 +5024,10 @@ export function ProductionServingStudio() {
                   fontSize: '0.74rem',
                   lineHeight: 1.45,
                   overflowX: 'auto',
+                  overflowY: 'auto',
+                  maxHeight: '340px',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
                   fontFamily: 'Consolas, Monaco, monospace'
                 }}>
                   {JSON.stringify(apiResponse.data, null, 2)}
@@ -5056,7 +5090,7 @@ export function ProductionServingStudio() {
           </div>
 
           {/* Feature Selector Buttons */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
             {Object.keys(driftFeatures).map(key => {
               const f = driftFeatures[key];
               const isSelected = driftFeature === key;
@@ -5065,7 +5099,7 @@ export function ProductionServingStudio() {
                   key={key}
                   onClick={() => setDriftFeature(key)}
                   style={{
-                    flex: 1,
+                    flex: '1 1 180px',
                     background: isSelected ? '#001f54' : '#f8fafc',
                     color: isSelected ? '#ffffff' : '#334155',
                     border: isSelected ? '1.5px solid #001f54' : '1px solid #cbd5e1',
@@ -5186,14 +5220,14 @@ export function ProductionServingStudio() {
       {activeTab === 'service_metrics' && (
         <div>
           {/* 4 KPI Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
             {[
               { label: 'Throughput (Batch)', val: '1,428 req/s', sub: 'Vectorized Pipeline', status: '[OPTIMAL]', color: '#16a34a' },
               { label: 'P95 Latency', val: '11.4 ms', sub: 'ASGI Async Loop', status: '[SLA PASS]', color: '#16a34a' },
               { label: 'HTTP Error Rate', val: '0.01%', sub: 'Over 2.4M requests', status: '[99.98% UPTIME]', color: '#16a34a' },
               { label: 'Memory RSS', val: '142 MB', sub: 'Scikit-Learn Ensemble', status: '[LEAN]', color: '#16a34a' }
             ].map(kpi => (
-              <div key={kpi.label} style={{ background: '#ffffff', border: '1.5px solid #c2d4f2', borderRadius: '12px', padding: '1rem' }}>
+              <div key={kpi.label} style={{ background: '#ffffff', border: '1.5px solid #c2d4f2', borderRadius: '12px', padding: '1rem', minWidth: 0, boxSizing: 'border-box' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>{kpi.label}</span>
                 <strong style={{ fontSize: '1.5rem', color: '#001f54', display: 'block', margin: '0.2rem 0' }}>{kpi.val}</strong>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem' }}>
@@ -5264,9 +5298,9 @@ export function ProductionServingStudio() {
           TAB 4: EXECUTIVE ROI & BUSINESS PAYOFF CALCULATOR
           ───────────────────────────────────────────────────────────────────────────── */}
       {activeTab === 'roi_calculator' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.5rem', alignItems: 'stretch' }}>
           {/* Sliders: Business Assumptions */}
-          <div style={{ background: '#ffffff', border: '1.5px solid #c2d4f2', borderRadius: '14px', padding: '1.25rem' }}>
+          <div style={{ background: '#ffffff', border: '1.5px solid #c2d4f2', borderRadius: '14px', padding: '1.25rem', minWidth: 0, boxSizing: 'border-box' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
               Business Model Assumptions
             </span>
@@ -5345,7 +5379,7 @@ export function ProductionServingStudio() {
           </div>
 
           {/* Right: Executive Balance Sheet Ledger */}
-          <div style={{ background: '#ffffff', border: '1.5px solid #c2d4f2', borderRadius: '14px', padding: '1.25rem' }}>
+          <div style={{ background: '#ffffff', border: '1.5px solid #c2d4f2', borderRadius: '14px', padding: '1.25rem', minWidth: 0, boxSizing: 'border-box' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#001f54', textTransform: 'uppercase', display: 'block', marginBottom: '0.75rem' }}>
               Annual Executive P&amp;L Payoff Ledger
             </span>
